@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+       <title>CourseConnect - Chatroom</title>
+       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+       <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+       <style>
+           :root {
+               --bg-primary: #f3f4f6;
+               --bg-secondary: #ffffff;
+               --text-primary: #1f2937;
+               --text-secondary: #6b7280;
+               --accent: #2563eb;
+               --accent-hover: #1d4ed8;
+               --message-sent: #2563eb;
+               --message-received: #e5e7eb;
+               --message-ai: #dbeafe;
+           }
+           [data-theme="dark"] {
+               --bg-primary: #1f2937;
+               --bg-secondary: #374151;
+               --text-primary: #0a0a0a;
+               --text-secondary:rgb(3, 3, 3);
+               --accent: #3b82f6;
+               --accent-hover: #60a5fa;
+               --message-sent: #3b82f6;
+               --message-received: #4b5563;
+               --message-ai: #1e40af;
+           }
+           body {
+               background-color: var(--bg-primary);
+               color: var(--text-primary);
+               font-family: 'Inter', sans-serif;
+               transition: background-color 0.3s, color 0.3s;
+           }
+           .chat-body {
+               background-color: var(--bg-secondary);
+               border-color: var(--text-secondary);
+           }
+           .message.sent {
+               background-color: var(--message-sent);
+               color: #ffffff;
+           }
+           .message.received {
+               background-color: var(--message-received);
+               color: var(--text-primary);
+           }
+           .message.ai {
+               background-color: var(--message-ai);
+               border-left-color: var(--accent);
+               color: var(--text-primary);
+           }
+           .header {
+               background-color: var(--bg-secondary);
+               border-bottom-color: var(--text-secondary);
+           }
+           .chat-footer button {
+               background-color: var(--accent);
+               color: #ffffff;
+           }
+           .chat-footer button:hover {
+               background-color: var(--accent-hover);
+           }
+           .toggle-button i {
+               color: var(--text-primary);
+           }
+           #errorMessage {
+               background-color: #fee2e2;
+               color: #b91c1c;
+           }
+           #successMessage {
+               background-color: #dcfce7;
+               color: #15803d;
+           }
+           [data-theme="dark"] #errorMessage {
+               background-color: #7f1d1d;
+               color: #fecaca;
+           }
+           [data-theme="dark"] #successMessage {
+               background-color: #166534;
+               color: #bbf7d0;
+           }
+       </style>
+   </head>
+   <body data-theme="light">
+       <div class="container max-w-3xl mx-auto p-4">
+           <div class="header flex justify-between items-center py-3 px-6 border-b">
+               <div>
+                   <h1 id="groupName" class="text-xl font-semibold">Loading...</h1>
+                   <p id="groupDetails" class="text-sm text-gray-500"></p>
+               </div>
+               <div class="flex items-center space-x-4">
+                   <button class="toggle-button" onclick="toggleTheme()">
+                       <i id="themeIcon" class="fas fa-moon"></i>
+                   </button>
+                   <button class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+               </div>
+           </div>
+           <div id="chatBody" class="chat-body p-4 h-96 overflow-y-auto border rounded-lg mt-4"></div>
+           <div id="errorMessage" class="hidden mt-4 p-3 rounded"></div>
+           <div id="successMessage" class="hidden mt-4 p-3 rounded"></div>
+           <div class="chat-footer flex flex-col sm:flex-row mt-4 gap-3">
+               <input type="text" id="chatMessage" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" placeholder="Type a message...">
+               <input type="file" id="fileUpload" class="mt-2 sm:mt-0" accept=".pdf,.jpg,.png">
+               <button onclick="sendMessage()" class="px-6 py-2 mt-2 sm:mt-0 rounded-lg">Send</button>
+           </div>
+       </div>
+       <script>
+           const API_URL = 'http://localhost:3001';
+           let currentUser = { uid: 'user1', email: 'alice@example.com' };
+           let groupId = new URLSearchParams(window.location.search).get('groupId');
+           let replyingTo = null;
+
+           if (!currentUser) window.location.href = 'login.html';
+           if (!groupId) showError('No group selected.');
+
+           function showError(message) {
+               const errorDiv = document.getElementById('errorMessage');
+               if (errorDiv) {
+                   errorDiv.textContent = message;
+                   errorDiv.style.display = 'block';
+                   setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
+               }
+           }
+
+           function showSuccess(message) {
+               const successDiv = document.getElementById('successMessage');
+               if (successDiv) {
+                   successDiv.textContent = message;
+                   successDiv.style.display = 'block';
+                   setTimeout(() => { successDiv.style.display = 'none'; }, 2000);
+               }
+           }
+
+           function toggleTheme() {
+               const body = document.body;
+               const themeIcon = document.getElementById('themeIcon');
+               const isDark = body.getAttribute('data-theme') === 'dark';
+               body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+               themeIcon.className = `fas fa-${isDark ? 'moon' : 'sun'}`;
+               localStorage.setItem('theme', isDark ? 'light' : 'dark');
+           }
+
+           window.onload = () => {
+               const savedTheme = localStorage.getItem('theme') || 'light';
+               document.body.setAttribute('data-theme', savedTheme);
+               document.getElementById('themeIcon').className = `fas fa-${savedTheme === 'light' ? 'moon' : 'sun'}`;
+           };
+
+           async function loadGroupChat() {
+               try {
+                   const groupResponse = await fetch(`${API_URL}/groups/${groupId}`, {
+                       headers: { 'x-user': JSON.stringify(currentUser) }
+                   });
+                   const group = await groupResponse.json();
+                   if (!group) return showError('Group not found.');
+                   document.getElementById('groupName').textContent = group.name;
+                   document.getElementById('groupDetails').textContent = `${Object.keys(group.members).length} members • ${getCourseName(group.course)}`;
+
+                   const messagesResponse = await fetch(`${API_URL}/groups/${groupId}/messages`, {
+                       headers: { 'x-user': JSON.stringify(currentUser) }
+                   });
+                   const messages = await messagesResponse.json();
+                   const chatBody = document.getElementById('chatBody');
+                   chatBody.innerHTML = '';
+                   const fragment = document.createDocumentFragment();
+                   messages.forEach(msg => {
+                       const msgDiv = document.createElement('div');
+                       const isAI = msg.uid === 'studyspark';
+                       msgDiv.className = `message ${isAI ? 'ai' : msg.uid === currentUser.uid ? 'sent' : 'received'} p-3 rounded-lg mb-2 max-w-lg relative group`;
+                       const date = new Date(msg.timestamp);
+                       const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                       const actions = isAI ? '' : `
+                           <div class="message-actions absolute top-1 right-2 hidden group-hover:block">
+                               <button onclick="replyToMessage('${msg.messageId}', '${msg.sender}', '${msg.text || '[File]'}')"><i class="fas fa-reply text-gray-500"></i></button>
+                               ${msg.uid === currentUser.uid ? `
+                                   ${msg.text ? `<button onclick="editMessage('${msg.messageId}', '${msg.text}')"><i class="fas fa-edit text-gray-500"></i></button>` : ''}
+                                   <button onclick="deleteMessage('${msg.messageId}')"><i class="fas fa-trash text-gray-500"></i></button>
+                               ` : ''}
+                           </div>
+                       `;
+                       const replyPreview = msg.replyTo ? `
+                           <div class="reply-preview bg-gray-100 p-2 border-l-2 border-blue-500 text-sm mb-2">
+                               Replying to ${JSON.parse(msg.replyTo).sender}: ${JSON.parse(msg.replyTo).text}
+                           </div>
+                       ` : '';
+                       const content = msg.text ? `<div>${msg.text}${msg.edited ? ' <span class="text-xs text-gray-400">(edited)</span>' : ''}</div>` : `
+                           <div class="file-preview">
+                               <a href="${msg.fileUrl}" target="_blank" download="${msg.fileName}" class="text-blue-600 hover:underline">
+                                   <i class="fas fa-file-${msg.fileName.endsWith('.pdf') ? 'pdf' : 'image'}"></i> ${msg.fileName} (${(msg.fileSize / 1024).toFixed(1)} KB)
+                               </a>
+                           </div>
+                       `;
+                       msgDiv.innerHTML = `
+                           <div>
+                               ${!isAI && msg.uid !== currentUser.uid ? `<div class="username font-semibold text-blue-600">${msg.sender}</div>` : ''}
+                               ${isAI ? `<div class="ai-indicator font-semibold text-blue-600"><i class="fas fa-robot"></i> StudySpark</div>` : ''}
+                               ${replyPreview}
+                               ${content}
+                               <div class="timestamp text-xs text-gray-500 text-right">${timeStr}</div>
+                               ${actions}
+                           </div>
+                       `;
+                       fragment.appendChild(msgDiv);
+                   });
+                   chatBody.appendChild(fragment);
+                   chatBody.scrollTop = chatBody.scrollHeight;
+               } catch (error) {
+                   showError('Failed to load chat.');
+               }
+           }
+
+           async function sendMessage() {
+               const text = document.getElementById('chatMessage').value.trim();
+               const file = document.getElementById('fileUpload').files[0];
+               if (!text && !file) return showError('Message or file cannot be empty.');
+               const messageData = { replyTo: replyingTo };
+               try {
+                   if (file) {
+                       if (file.size > 5 * 1024 * 1024) return showError('File size exceeds 5MB.');
+                       const formData = new FormData();
+                       formData.append('file', file);
+                       const fileResponse = await fetch(`${API_URL}/upload`, {
+                           method: 'POST',
+                           body: formData
+                       });
+                       const { url, name, size } = await fileResponse.json();
+                       messageData.fileUrl = url;
+                       messageData.fileName = name;
+                       messageData.fileSize = size;
+                   } else {
+                       messageData.text = text;
+                   }
+                   const response = await fetch(`${API_URL}/groups/${groupId}/messages`, {
+                       method: 'POST',
+                       headers: file ? {} : { 'Content-Type': 'application/json', 'x-user': JSON.stringify(currentUser) },
+                       body: file ? formData : JSON.stringify(messageData)
+                   });
+                   if (!response.ok) throw new Error('Failed to send');
+                   showSuccess(file ? 'File sent.' : 'Message sent.');
+                   document.getElementById('chatMessage').value = '';
+                   document.getElementById('fileUpload').value = '';
+                   replyingTo = null;
+                   loadGroupChat();
+               } catch (error) {
+                   showError('Failed to send message/file: ' + error.message);
+               }
+           }
+
+           function replyToMessage(messageId, sender, text) {
+               replyingTo = { messageId, sender, text };
+               document.getElementById('chatMessage').focus();
+               document.getElementById('chatMessage').value = `Replying to ${sender}: ${text}\n`;
+           }
+
+           function editMessage(messageId, text) {
+               const newText = prompt('Edit message:', text);
+               if (newText) {
+                   showSuccess('Message edited.');
+                   loadGroupChat();
+               }
+           }
+
+           function deleteMessage(messageId) {
+               if (confirm('Delete this message?')) {
+                   showSuccess('Message deleted.');
+                   loadGroupChat();
+               }
+           }
+
+           function getCourseName(courseId) {
+               const courses = {
+                   engl101: 'ENGL 101 - College Writing',
+                   math365: 'MATH 365 - Calculus I'
+               };
+               return courses[courseId] || courseId;
+           }
+
+           loadGroupChat();
+           setInterval(loadGroupChat, 5000);
+       </script>
+   </body>
+   </html>

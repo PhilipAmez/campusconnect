@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Dashboard - CourseConnect</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --secondary: #4f46e5;
+            --text-dark: #1f2937;
+            --text-light: #64748b;
+            --hover-bg: rgba(243, 244, 246, 0.8);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 244, 246, 0.95));
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: background 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .logo img {
+            height: 40px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo img:hover {
+            transform: scale(1.1);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            gap: 2rem;
+            padding: 2rem;
+            margin-top: 80px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .sidebar, .main-content, .connections {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::before, .main-content::before, .connections::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(124, 58, 237, 0.2),
+                transparent
+            );
+            animation: rotate 8s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(124, 58, 237, 0.1),
+                transparent
+            );
+            animation: rotate 10s linear infinite;
+            z-index: -1;
+        }
+
+        .search-bar, .input-field {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            background: var(--hover-bg);
+            transition: var(--transition);
+        }
+
+        .search-bar:focus, .input-field:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+            transform: scale(1.02);
+        }
+
+        .btn {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        .btn:hover::after {
+            left: 100%;
+        }
+
+        .group-item, .connection-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .group-item:hover, .connection-item:hover {
+            background: var(--hover-bg);
+            transform: translateX(5px);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+
+        .group-item:hover .avatar, .connection-item:hover .avatar {
+            background: var(--secondary);
+        }
+
+        .progress {
+            height: 6px;
+            background: #e5e7eb;
+            margin-top: 1rem;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress div {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="logo">
+            <img src="logo.png" alt="CourseConnect">
+        </a>
+        <div class="nav-links">
+            <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
+            <a href="support.html" class="nav-link"><i class="fas fa-headset"></i> Support</a>
+            <a href="index.html" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard">
+        <!-- Sidebar with University Courses -->
+        <div class="sidebar">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Your University Courses</h3>
+            <!-- Freshman Courses -->
+            <div class="card">
+                <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                    <i class="fas fa-book"></i> ENGL 101 - College Writing
+                </h4>
+                <p class="text-gray-600 mt-1">15 Study Partners</p>
+                <div class="progress">
+                    <div style="width: 80%;"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                    <i class="fas fa-calculator"></i> MATH 115 - Calculus I
+                </h4>
+                <p class="text-gray-600 mt-1">12 Study Partners</p>
+                <div class="progress">
+                    <div style="width: 65%;"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                    <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
+                </h4>
+                <p class="text-gray-600 mt-1">18 Study Partners</p>
+                <div class="progress">
+                    <div style="width: 70%;"></div>
+                </div>
+            </div>
+            <!-- Sophomore Courses -->
+            <div class="card">
+                <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                    <i class="fas fa-code"></i> CS 201 - Data Structures
+                </h4>
+                <p class="text-gray-600 mt-1">10 Study Partners</p>
+                <div class="progress">
+                    <div style="width: 85%;"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                    <i class="fas fa-bolt"></i> PHYS 202 - Physics II
+                </h4>
+                <p class="text-gray-600 mt-1">14 Study Partners</p>
+                <div class="progress">
+                    <div style="width: 75%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <input type="text" placeholder="Search coursemates or study groups..." class="search-bar" />
+            
+            <div class="card">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-users"></i> Create Study Group
+                </h3>
+                <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
+                <select id="groupCourse" class="input-field">
+                    <option value="">Select University Course</option>
+                    <option value="engl101">ENGL 101 - College Writing</option>
+                    <option value="math115">MATH 115 - Calculus I</option>
+                    <option value="chem101">CHEM 101 - Intro to Chemistry</option>
+                    <option value="cs201">CS 201 - Data Structures</option>
+                    <option value="phys202">PHYS 202 - Physics II</option>
+                </select>
+                <button class="btn" onclick="createGroup()">Create Group</button>
+            </div>
+
+            <div class="card">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-user-friends"></i> Active Study Groups
+                </h3>
+                <div id="groupList">
+                    <div class="group-item">
+                        <div class="avatar">W</div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Writing Workshop</p>
+                            <p class="text-gray-600">8 members online • ENGL 101</p>
+                        </div>
+                    </div>
+                    <div class="group-item">
+                        <div class="avatar">C</div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Calculus Crew</p>
+                            <p class="text-gray-600">5 members online • MATH 115</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connections Panel -->
+        <div class="connections">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <i class="fas fa-user-plus"></i> University Connections
+            </h3>
+            <input type="text" placeholder="Search for coursemates..." class="input-field" />
+            <div class="connection-item">
+                <div class="avatar">J</div>
+                <div>
+                    <p class="font-semibold text-gray-800">John Doe</p>
+                    <p class="text-gray-600">CS 201 • Online</p>
+                </div>
+                <button class="btn" style="margin-left: auto; padding: 0.5rem 1rem;">Add</button>
+            </div>
+            <div class="connection-item">
+                <div class="avatar">S</div>
+                <div>
+                    <p class="font-semibold text-gray-800">Sarah Smith</p>
+                    <p class="text-gray-600">CHEM 101 • Offline</p>
+                </div>
+                <button class="btn" style="margin-left: auto; padding: 0.5rem 1rem;">Add</button>
+            </div>
+            <div class="connection-item">
+                <div class="avatar">M</div>
+                <div>
+                    <p class="font-semibold text-gray-800">Mike Chen</p>
+                    <p class="text-gray-600">PHYS 202 • Online</p>
+                </div>
+                <button class="btn" style="margin-left: auto; padding: 0.5rem 1rem;">Add</button>
+            </div>
+        </div>
+    </div>
+<script>
+    const API_URL = 'http://localhost:3001';
+    let currentUser = { uid: 'user1', email: 'alice@example.com' };
+
+    function showError(message) {
+        console.error(message); // Log to console for debugging
+    }
+
+    async function loadDashboard() {
+        try {
+            // Fetch groups
+            const groupsResponse = await fetch(`${API_URL}/groups`, {
+                headers: { 'x-user': JSON.stringify(currentUser) }
+            });
+            if (!groupsResponse.ok) throw new Error(`HTTP error! status: ${groupsResponse.status}`);
+            const groups = await groupsResponse.json();
+
+            // Update Active Study Groups
+            const groupList = document.getElementById('groupList');
+            groupList.innerHTML = ''; // Clear static content
+            groups.forEach(group => {
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-item';
+                const courseName = {
+                    engl101: 'ENGL 101',
+                    math115: 'MATH 115',
+                    chem101: 'CHEM 101',
+                    cs201: 'CS 201',
+                    phys202: 'PHYS 202'
+                }[group.course] || group.course;
+                groupItem.innerHTML = `
+                    <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
+                    <div>
+                        <p class="font-semibold text-gray-800">${group.name}</p>
+                        <p class="text-gray-600">${Object.keys(group.members).length} members online • ${courseName}</p>
+                    </div>
+                `;
+                groupList.appendChild(groupItem);
+            });
+
+            // Fetch users
+            const usersResponse = await fetch(`${API_URL}/users`, {
+                headers: { 'x-user': JSON.stringify(currentUser) }
+            });
+            if (!usersResponse.ok) throw new Error(`HTTP error! status: ${usersResponse.status}`);
+            const users = await usersResponse.json();
+
+            // Update University Connections
+            const connectionItems = document.querySelectorAll('.connection-item');
+            connectionItems.forEach((item, index) => {
+                if (users[index]) {
+                    const user = users[index];
+                    const avatar = item.querySelector('.avatar');
+                    const name = item.querySelector('p.font-semibold');
+                    const status = item.querySelector('p.text-gray-600');
+                    avatar.textContent = user.name.charAt(0).toUpperCase();
+                    name.textContent = user.name;
+                    status.textContent = `${courseName[user.course]} • ${user.online ? 'Online' : 'Offline'}`;
+                }
+            });
+        } catch (error) {
+            showError('Failed to load dashboard: ' + error.message);
+        }
+    }
+
+    window.onload = loadDashboard;
+</script>
+  
+</body>
+</html>

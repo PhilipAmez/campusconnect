@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile - CourseConnect</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --secondary: #4f46e5;
+            --text-dark: #1f2937;
+            --text-light: #64748b;
+            --hover-bg: rgba(243, 244, 246, 0.8);
+            --accent: #10b981;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 244, 246, 0.95));
+            min-height: 100vh;
+        }
+
+        .navbar {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: background 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .logo img {
+            height: 40px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo img:hover {
+            transform: scale(1.1);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .profile-container {
+            max-width: 900px;
+            margin: 100px auto 40px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(124, 58, 237, 0.2),
+                transparent
+            );
+            animation: rotate 8s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+
+        .profile-cover {
+            height: 200px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-cover::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            animation: rotate 10s linear infinite;
+            z-index: 0;
+        }
+
+        .profile-avatar {
+            width: 140px;
+            height: 140px;
+            background: var(--primary);
+            border-radius: 50%;
+            border: 6px solid rgba(255, 255, 255, 0.95);
+            position: absolute;
+            bottom: -70px;
+            left: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .profile-avatar:hover {
+            transform: scale(1.1);
+        }
+
+        .profile-content {
+            padding: 2rem 3rem 3rem;
+            margin-top: 60px;
+        }
+
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+
+        .profile-identity h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .profile-course {
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .profile-index {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        .btn:hover::after {
+            left: 100%;
+        }
+
+        .bio-section {
+            margin-bottom: 2rem;
+        }
+
+        .bio-display {
+            color: var(--text-dark);
+            line-height: 1.6;
+            font-size: 1.1rem;
+            background: var(--hover-bg);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .bio-display:hover {
+            background: rgba(243, 244, 246, 0.9);
+        }
+
+        .bio-edit {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid transparent;
+            border-radius: 0.75rem;
+            resize: vertical;
+            min-height: 120px;
+            font-size: 1.1rem;
+            background: var(--hover-bg);
+            display: none;
+            transition: var(--transition);
+        }
+
+        .bio-edit:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+            transform: scale(1.02);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(124, 58, 237, 0.1),
+                transparent
+            );
+            animation: rotate 10s linear infinite;
+            z-index: -1;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="logo">
+            <img src="logo.png" alt="CourseConnect">
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="index.html" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <div class="profile-cover">
+            <div class="profile-avatar" id="avatar"></div>
+        </div>
+        <div class="profile-content">
+            <div class="profile-header">
+                <div class="profile-identity">
+                    <h1 id="userName" class="flex items-center gap-2">
+                        <i class="fas fa-user-circle"></i>
+                    </h1>
+                    <span class="profile-course" id="userCourse"></span>
+                    <div class="profile-index" id="userIndex"></div>
+                </div>
+                <button class="btn" id="editBioBtn"><i class="fas fa-edit"></i> Edit Bio</button>
+                <button class="btn" id="saveBioBtn" style="display: none;"><i class="fas fa-save"></i> Save Bio</button>
+            </div>
+            <div class="bio-section">
+                <p class="bio-display" id="bioDisplay"></p>
+                <textarea class="bio-edit" id="bioEdit" placeholder="Tell the world about yourself..."></textarea>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="groupsCount">0</div>
+                    <div class="stat-label">Study Groups</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="connectionsCount">0</div>
+                    <div class="stat-label">Connections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="sinceDate"></div>
+                    <div class="stat-label">Member Since</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+</body>
+</html>
