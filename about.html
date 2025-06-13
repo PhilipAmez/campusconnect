@@ -59,12 +59,18 @@
     }
     .chat-box {
       margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
     }
     .chat-box input {
       width: 70%;
+      min-width: 180px;
       padding: 12px;
       border: 1px solid #ccc;
       border-radius: 6px;
+      flex: 1 1 180px;
     }
     .chat-box button {
       padding: 12px 18px;
@@ -73,12 +79,13 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      flex: 0 0 auto;
     }
     .chat-box button:hover {
       background-color: #0056b3;
     }
     .voice-button {
-      margin-left: 10px;
+      margin-left: 0;
       padding: 12px 18px;
       background-color: #005fa3;
       color: white;
@@ -95,6 +102,57 @@
       background-color: #003366;
       color: white;
       margin-top: 60px;
+    }
+
+    /* --- Responsive Styles --- */
+    @media (max-width: 700px) {
+      header {
+        padding: 25px 10px;
+      }
+      header h1 {
+        font-size: 2em;
+      }
+      main {
+        padding: 20px 8px;
+      }
+      .assistant {
+        padding: 15px;
+      }
+      .faq-item {
+        padding-bottom: 10px;
+      }
+      .chat-box input {
+        width: 100%;
+        min-width: 0;
+      }
+      .chat-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      .chat-box button,
+      .voice-button {
+        width: 100%;
+        margin-left: 0;
+      }
+    }
+    @media (max-width: 480px) {
+      header h1 {
+        font-size: 1.3em;
+      }
+      .faq-item h3 {
+        font-size: 1em;
+      }
+      h2 {
+        font-size: 1.1em;
+      }
+      .assistant h2 {
+        font-size: 1em;
+      }
+      footer {
+        padding: 15px;
+        font-size: 0.95em;
+      }
     }
   </style>
 </head>
