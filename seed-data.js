@@ -1,4 +1,4 @@
-const sqlite3 = require('better-sqlite3');
+/*const sqlite3 = require('better-sqlite3');
 const db = sqlite3('./courseconnect.db');
 
 db.transaction(() => {
@@ -48,4 +48,4 @@ db.transaction(() => {
     console.log('Test data inserted successfully.');
 })();
 
-db.close();
+db.close();*/

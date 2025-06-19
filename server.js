@@ -1,48 +1,48 @@
-// server.js
-import express from 'express';
-import path from 'path';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
+// // server.js
+// import express from 'express';
+// import path from 'path';
+// import dotenv from 'dotenv';
+// import { fileURLToPath } from 'url';
 
-dotenv.config();
+// dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// const app = express();
+// const PORT = process.env.PORT || 3000;
 
-// __dirname workaround for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// // __dirname workaround for ES modules
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
-// Serve static files (images, JS, CSS)
-app.use(express.static(__dirname));
+// // Serve static files (images, JS, CSS)
+// app.use(express.static(__dirname));
 
-// Serve HTML pages
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+// // Serve HTML pages
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'index.html'));
+// });
 
-// Add more routes if needed
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
+// // Add more routes if needed
+// app.get('/login', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'login.html'));
+// });
 
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
+// app.get('/dashboard', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'dashboard.html'));
+// });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// // Start server
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
 
 
-/*require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('better-sqlite3');
+
 
 const app = express();
-const db = sqlite3('./courseconnect.db', { verbose: console.log });
+
 
 app.use(cors());
 app.use(express.json());
@@ -207,4 +207,4 @@ app.post('/upload', (req, res) => {
 });
 
  app.listen(3001, () => console.log('Server running on http://localhost:3001'));
- */
+ 
