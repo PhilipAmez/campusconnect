@@ -6,6 +6,7 @@
        <title>CourseConnect - Chatroom</title>
        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+       <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
        <style>
            :root {
                --bg-primary: #f3f4f6;
@@ -140,6 +141,33 @@
                    padding: 0.5rem !important;
                }
            }
+
+            .message {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.5rem;
+      max-width: 75%;
+      word-wrap: break-word;
+    }
+    .sent {
+      background-color: #d1fae5;
+      align-self: flex-end;
+      text-align: right;
+    }
+    .received {
+      background-color: #e5e7eb;
+      align-self: flex-start;
+      text-align: left;
+    }
+    .file-preview {
+      margin-top: 0.5rem;
+    }
+    #chatBody {
+      display: flex;
+      flex-direction: column;
+    }
+    .typing-notice {
+      font-style: italic;}
        </style>
    </head>
    <body data-theme="light">
@@ -165,179 +193,27 @@
                <button onclick="sendMessage()" class="px-6 py-2 mt-2 sm:mt-0 rounded-lg">Send</button>
            </div>
        </div>
-       <script>
-           const API_URL = 'http://localhost:3001';
-           let currentUser = { uid: 'user1', email: 'alice@example.com' };
-           let groupId = new URLSearchParams(window.location.search).get('groupId');
-           let replyingTo = null;
 
-           if (!currentUser) window.location.href = 'login.html';
-           if (!groupId) showError('No group selected.');
+       <script src="socket .js"></script>
+   <script type="module">
+  import { socket, setupSocketEvents, emitTyping } from './socket.js';
 
-           function showError(message) {
-               const errorDiv = document.getElementById('errorMessage');
-               if (errorDiv) {
-                   errorDiv.textContent = message;
-                   errorDiv.style.display = 'block';
-                   setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
-               }
-           }
+  const groupId = new URLSearchParams(window.location.search).get('groupId');
+  const currentUser = { id: 1, name: 'Alice' };
 
-           function showSuccess(message) {
-               const successDiv = document.getElementById('successMessage');
-               if (successDiv) {
-                   successDiv.textContent = message;
-                   successDiv.style.display = 'block';
-                   setTimeout(() => { successDiv.style.display = 'none'; }, 2000);
-               }
-           }
+  setupSocketEvents(groupId, currentUser, addMessageToChat, showTypingNotice);
 
-           function toggleTheme() {
-               const body = document.body;
-               const themeIcon = document.getElementById('themeIcon');
-               const isDark = body.getAttribute('data-theme') === 'dark';
-               body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-               themeIcon.className = `fas fa-${isDark ? 'moon' : 'sun'}`;
-               localStorage.setItem('theme', isDark ? 'light' : 'dark');
-           }
+  function showTypingNotice(user) {
+    const typingDiv = document.getElementById('typingNotice');
+    typingDiv.textContent = `${user} is typing...`;
+    setTimeout(() => typingDiv.textContent = '', 2000);
+  }
 
-           window.onload = () => {
-               const savedTheme = localStorage.getItem('theme') || 'light';
-               document.body.setAttribute('data-theme', savedTheme);
-               document.getElementById('themeIcon').className = `fas fa-${savedTheme === 'light' ? 'moon' : 'sun'}`;
-           };
+  document.getElementById('chatMessage').addEventListener('input', () => {
+    emitTyping(groupId, currentUser.name);
+  });
+</script>
 
-           async function loadGroupChat() {
-               try {
-                   const groupResponse = await fetch(`${API_URL}/groups/${groupId}`, {
-                       headers: { 'x-user': JSON.stringify(currentUser) }
-                   });
-                   const group = await groupResponse.json();
-                   if (!group) return showError('Group not found.');
-                   document.getElementById('groupName').textContent = group.name;
-                   document.getElementById('groupDetails').textContent = `${Object.keys(group.members).length} members • ${getCourseName(group.course)}`;
 
-                   const messagesResponse = await fetch(`${API_URL}/groups/${groupId}/messages`, {
-                       headers: { 'x-user': JSON.stringify(currentUser) }
-                   });
-                   const messages = await messagesResponse.json();
-                   const chatBody = document.getElementById('chatBody');
-                   chatBody.innerHTML = '';
-                   const fragment = document.createDocumentFragment();
-                   messages.forEach(msg => {
-                       const msgDiv = document.createElement('div');
-                       const isAI = msg.uid === 'studyspark';
-                       msgDiv.className = `message ${isAI ? 'ai' : msg.uid === currentUser.uid ? 'sent' : 'received'} p-3 rounded-lg mb-2 max-w-lg relative group`;
-                       const date = new Date(msg.timestamp);
-                       const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                       const actions = isAI ? '' : `
-                           <div class="message-actions absolute top-1 right-2 hidden group-hover:block">
-                               <button onclick="replyToMessage('${msg.messageId}', '${msg.sender}', '${msg.text || '[File]'}')"><i class="fas fa-reply text-gray-500"></i></button>
-                               ${msg.uid === currentUser.uid ? `
-                                   ${msg.text ? `<button onclick="editMessage('${msg.messageId}', '${msg.text}')"><i class="fas fa-edit text-gray-500"></i></button>` : ''}
-                                   <button onclick="deleteMessage('${msg.messageId}')"><i class="fas fa-trash text-gray-500"></i></button>
-                               ` : ''}
-                           </div>
-                       `;
-                       const replyPreview = msg.replyTo ? `
-                           <div class="reply-preview bg-gray-100 p-2 border-l-2 border-blue-500 text-sm mb-2">
-                               Replying to ${JSON.parse(msg.replyTo).sender}: ${JSON.parse(msg.replyTo).text}
-                           </div>
-                       ` : '';
-                       const content = msg.text ? `<div>${msg.text}${msg.edited ? ' <span class="text-xs text-gray-400">(edited)</span>' : ''}</div>` : `
-                           <div class="file-preview">
-                               <a href="${msg.fileUrl}" target="_blank" download="${msg.fileName}" class="text-blue-600 hover:underline">
-                                   <i class="fas fa-file-${msg.fileName.endsWith('.pdf') ? 'pdf' : 'image'}"></i> ${msg.fileName} (${(msg.fileSize / 1024).toFixed(1)} KB)
-                               </a>
-                           </div>
-                       `;
-                       msgDiv.innerHTML = `
-                           <div>
-                               ${!isAI && msg.uid !== currentUser.uid ? `<div class="username font-semibold text-blue-600">${msg.sender}</div>` : ''}
-                               ${isAI ? `<div class="ai-indicator font-semibold text-blue-600"><i class="fas fa-robot"></i> StudySpark</div>` : ''}
-                               ${replyPreview}
-                               ${content}
-                               <div class="timestamp text-xs text-gray-500 text-right">${timeStr}</div>
-                               ${actions}
-                           </div>
-                       `;
-                       fragment.appendChild(msgDiv);
-                   });
-                   chatBody.appendChild(fragment);
-                   chatBody.scrollTop = chatBody.scrollHeight;
-               } catch (error) {
-                   showError('Failed to load chat.');
-               }
-           }
-
-           async function sendMessage() {
-               const text = document.getElementById('chatMessage').value.trim();
-               const file = document.getElementById('fileUpload').files[0];
-               if (!text && !file) return showError('Message or file cannot be empty.');
-               const messageData = { replyTo: replyingTo };
-               try {
-                   if (file) {
-                       if (file.size > 5 * 1024 * 1024) return showError('File size exceeds 5MB.');
-                       const formData = new FormData();
-                       formData.append('file', file);
-                       const fileResponse = await fetch(`${API_URL}/upload`, {
-                           method: 'POST',
-                           body: formData
-                       });
-                       const { url, name, size } = await fileResponse.json();
-                       messageData.fileUrl = url;
-                       messageData.fileName = name;
-                       messageData.fileSize = size;
-                   } else {
-                       messageData.text = text;
-                   }
-                   const response = await fetch(`${API_URL}/groups/${groupId}/messages`, {
-                       method: 'POST',
-                       headers: file ? {} : { 'Content-Type': 'application/json', 'x-user': JSON.stringify(currentUser) },
-                       body: file ? formData : JSON.stringify(messageData)
-                   });
-                   if (!response.ok) throw new Error('Failed to send');
-                   showSuccess(file ? 'File sent.' : 'Message sent.');
-                   document.getElementById('chatMessage').value = '';
-                   document.getElementById('fileUpload').value = '';
-                   replyingTo = null;
-                   loadGroupChat();
-               } catch (error) {
-                   showError('Failed to send message/file: ' + error.message);
-               }
-           }
-
-           function replyToMessage(messageId, sender, text) {
-               replyingTo = { messageId, sender, text };
-               document.getElementById('chatMessage').focus();
-               document.getElementById('chatMessage').value = `Replying to ${sender}: ${text}\n`;
-           }
-
-           function editMessage(messageId, text) {
-               const newText = prompt('Edit message:', text);
-               if (newText) {
-                   showSuccess('Message edited.');
-                   loadGroupChat();
-               }
-           }
-
-           function deleteMessage(messageId) {
-               if (confirm('Delete this message?')) {
-                   showSuccess('Message deleted.');
-                   loadGroupChat();
-               }
-           }
-
-           function getCourseName(courseId) {
-               const courses = {
-                   engl101: 'ENGL 101 - College Writing',
-                   math365: 'MATH 365 - Calculus I'
-               };
-               return courses[courseId] || courseId;
-           }
-
-           loadGroupChat();
-           setInterval(loadGroupChat, 5000);
-       </script>
    </body>
    </html>

@@ -1,210 +1,180 @@
-// // server.js
-// import express from 'express';
-// import path from 'path';
-// import dotenv from 'dotenv';
-// import { fileURLToPath } from 'url';
-
-// dotenv.config();
-
-// const app = express();
-// const PORT = process.env.PORT || 3000;
-
-// // __dirname workaround for ES modules
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-
-// // Serve static files (images, JS, CSS)
-// app.use(express.static(__dirname));
-
-// // Serve HTML pages
-// app.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'index.html'));
-// });
-
-// // Add more routes if needed
-// app.get('/login', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'login.html'));
-// });
-
-// app.get('/dashboard', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'dashboard.html'));
-// });
-
-// // Start server
-// app.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
-
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-
+const http = require('http');
+const { Server } = require('socket.io');
+const { Pool } = require('pg');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 app.use(cors());
 app.use(express.json());
 
-
-
-// Authentication middleware (simplified for testing)
-const authenticate = (req, res, next) => {
-    const user = req.headers['x-user'];
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    req.user = JSON.parse(user);
-    next();
+// Create users table
+const createUsersTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      profile_pic TEXT,
+      badges TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await pool.query(query);
 };
 
-// User registration
-app.post('/register', (req, res) => {
-    const { email, password, indexNumber, name, bio } = req.body;
-    if (!email || !password || !indexNumber || !name) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-    const uid = 'user_' + Date.now();
-    try {
-        db.prepare(`
-            INSERT INTO users (uid, email, password, indexNumber, name, bio)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(uid, email, password, indexNumber, name, bio || '');
-        res.json({ success: true, uid });
-    } catch (error) {
-        res.status(400).json({ error: 'User already exists or invalid data' });
-    }
+// Create groups table
+const createGroupsTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS groups (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      course TEXT,
+      created_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await pool.query(query);
+};
+
+// Create messages table
+const createMessagesTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      group_id INTEGER REFERENCES groups(id),
+      sender_id INTEGER REFERENCES users(id),
+      text TEXT,
+      file_url TEXT,
+      file_name TEXT,
+      file_size INTEGER,
+      reply_to INTEGER REFERENCES messages(id),
+      edited BOOLEAN DEFAULT FALSE,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await pool.query(query);
+};
+
+// Call table creation functions on startup
+(async () => {
+  try {
+    await createUsersTable();
+    await createGroupsTable();
+    await createMessagesTable();
+    console.log('✅ Tables created (or already exist)');
+  } catch (err) {
+    console.error('❌ Error creating tables:', err);
+  }
+})();
+
+// Basic route
+app.get('/', (req, res) => {
+  res.send('CampusConnect backend running!');
 });
 
-// Get registered users
-app.get('/users', authenticate, (req, res) => {
-    const users = db.prepare(`
-        SELECT uid, email, indexNumber, name, bio, courses
-        FROM users
-        WHERE uid != ?
-    `).all(req.user.uid);
-    res.json(users.map(u => ({
-        uid: u.uid,
-        name: u.name,
-        email: u.email,
-        indexNumber: u.indexNumber,
-        bio: u.bio,
-        courses: JSON.parse(u.courses)
-    })));
+// Simple user registration
+app.post('/register', async (req, res) => {
+  const { name, email, password, profile_pic, badges } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ error: 'Missing fields' });
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO users (name, email, password, profile_pic, badges) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, email, password, profile_pic || null, badges || null]
+    );
+    res.status(201).json({ user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
 });
 
-// Get groups
-app.get('/groups', authenticate, (req, res) => {
-    const groups = db.prepare(`
-        SELECT groupId, name, course, members
-        FROM groups
-        WHERE members LIKE ?
-    `).all(`%${req.user.uid}%`);
-    res.json(groups.map(g => ({
-        groupId: g.groupId,
-        name: g.name,
-        course: g.course,
-        members: JSON.parse(g.members)
-    })));
+// GET messages for a group
+app.get('/messages/:groupId', async (req, res) => {
+  const groupId = req.params.groupId;
+  try {
+    const result = await pool.query(
+      'SELECT * FROM messages WHERE group_id = $1 ORDER BY timestamp ASC',
+      [groupId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
 });
 
-// Get messages
-app.get('/groups/:groupId/messages', authenticate, (req, res) => {
-    const messages = db.prepare(`
-        SELECT messageId, uid, sender, text, fileUrl, fileName, fileSize, timestamp, replyTo, edited
-        FROM messages
-        WHERE groupId = ?
-    `).all(req.params.groupId);
-    res.json(messages);
-});
-
-// Post message (placeholder for @StudySpark)
-app.post('/groups/:groupId/messages', authenticate, (req, res) => {
-    const { text, fileUrl, fileName, fileSize, replyTo } = req.body;
-    const messageId = Date.now().toString();
-    const groupId = req.params.groupId;
-    const sender = req.user.name || req.user.email.split('@')[0];
-    const timestamp = Date.now();
-
-    db.prepare(`
-        INSERT INTO messages (messageId, groupId, uid, sender, text, fileUrl, fileName, fileSize, timestamp, replyTo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-        messageId, groupId, req.user.uid, sender, text, fileUrl, fileName, fileSize, timestamp, replyTo ? JSON.stringify(replyTo) : null
+// POST new message
+app.post('/messages', async (req, res) => {
+  const { group_id, sender_id, text, file_url, file_name, file_size, reply_to } = req.body;
+  try {
+    const result = await pool.query(
+      `
+      INSERT INTO messages (group_id, sender_id, text, file_url, file_name, file_size, reply_to)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+      `,
+      [group_id, sender_id, text, file_url, file_name, file_size, reply_to]
     );
 
-    db.prepare(`
-        INSERT OR REPLACE INTO analytics (groupId, uid, messagesSent)
-        VALUES (?, ?, COALESCE((SELECT messagesSent FROM analytics WHERE groupId = ? AND uid = ?), 0) + 1)
-    `).run(groupId, req.user.uid, groupId, req.user.uid);
+    // Emit the message to all clients in the group
+    io.to('group_' + group_id).emit('new_message', result.rows[0]);
 
-    // Placeholder for @StudySpark (remove or replace with API call)
-    if (text && text.toLowerCase().startsWith('@studyspark')) {
-        const query = text.slice(11).trim();
-        if (query) {
-            const aiMessageId = (Date.now() + 1).toString();
-            db.prepare(`
-                INSERT INTO messages (messageId, groupId, uid, sender, text, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `).run(
-                aiMessageId, groupId, 'studyspark', 'StudySpark', 'AI response placeholder (integrate Grok API later)', Date.now()
-            );
-        }
-    }
-
-    res.json({ success: true });
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
 });
 
-// Get recommendations
-app.get('/groups/:groupId/recommendations', authenticate, (req, res) => {
-    const group = db.prepare('SELECT course FROM groups WHERE groupId = ?').get(req.params.groupId);
-    const messages = db.prepare('SELECT text FROM messages WHERE groupId = ?').all(req.params.groupId);
-    const keywords = messages.flatMap(m => m.text ? m.text.toLowerCase().split(/\s+/).filter(w => w.length > 3) : []);
-    const uniqueKeywords = [...new Set(keywords)].slice(0, 5);
-    const resources = db.prepare(`
-        SELECT resourceId, course, title, url, type, relevanceScore
-        FROM resources
-        WHERE course = ? OR title LIKE ?
-    `).all(group.course, `%${uniqueKeywords.join('%')}%`);
-    res.json(resources);
+// PUT edit message
+app.put('/messages/:id', async (req, res) => {
+  const id = req.params.id;
+  const { text } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE messages SET text = $1, edited = TRUE WHERE id = $2 RETURNING *',
+      [text, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to edit message' });
+  }
 });
 
-// Save resource
-app.post('/users/:uid/resources', authenticate, (req, res) => {
-    const { resourceId } = req.body;
-    const user = db.prepare('SELECT savedResources FROM users WHERE uid = ?').get(req.user.uid);
-    const saved = user ? JSON.parse(user.savedResources) : {};
-    saved[resourceId] = true;
-    db.prepare('UPDATE users SET savedResources = ? WHERE uid = ?').run(JSON.stringify(saved), req.user.uid);
-    res.json({ success: true });
+// Socket.io real-time chat
+io.on('connection', (socket) => {
+  console.log('🟢 New client connected');
+
+  socket.on('join_group', (groupId) => {
+    socket.join('group_' + groupId);
+    console.log(`Client joined group ${groupId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected');
+  });
 });
 
-// Search users and groups
-app.get('/search', authenticate, (req, res) => {
-    const query = req.query.q ? req.query.q.toLowerCase() : '';
-    const groups = db.prepare(`
-        SELECT groupId, name, course
-        FROM groups
-        WHERE name LIKE ? OR course LIKE ?
-    `).all(`%${query}%`, `%${query}%`);
-    const users = db.prepare(`
-        SELECT uid, email, indexNumber, name, bio
-        FROM users
-        WHERE email LIKE ? OR indexNumber LIKE ? OR name LIKE ?
-    `).all(`%${query}%`, `%${query}%`, `%${query}%`);
-    res.json({
-        groups: groups.map(g => ({ groupId: g.groupId, name: g.name, course: g.course })),
-        users: users.map(u => ({ uid: u.uid, name: u.name, email: u.email, indexNumber: u.indexNumber, bio: u.bio }))
-    });
+// Start server with correct port
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log('🚀 Server with real-time chat running on port ' + PORT);
 });
-
-// File upload (mock)
-app.post('/upload', (req, res) => {
-    res.json({
-        url: 'https://example.com/file.pdf',
-        name: 'uploaded_file.pdf',
-        size: 1024
-    });
-});
-
- app.listen(3001, () => console.log('Server running on http://localhost:3001'));
- 
