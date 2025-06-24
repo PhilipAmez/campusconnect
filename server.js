@@ -163,15 +163,21 @@ app.put('/messages/:id', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('🟢 New client connected');
 
-  socket.on('join_group', (groupId) => {
+  socket.on('join_group', (groupId, username) => {
     socket.join('group_' + groupId);
-    console.log(`Client joined group ${groupId}`);
+    console.log(`${username || 'A user'} joined group ${groupId}`);
+    io.to('group_' + groupId).emit('user_joined', username || 'Someone');
+  });
+
+  socket.on('typing', ({ groupId, user }) => {
+    socket.to('group_' + groupId).emit('user_typing', user);
   });
 
   socket.on('disconnect', () => {
     console.log('🔌 Client disconnected');
   });
 });
+
 
 // Start server with correct port
 const PORT = process.env.PORT || 3000;

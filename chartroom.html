@@ -171,49 +171,51 @@
        </style>
    </head>
    <body data-theme="light">
-       <div class="container max-w-3xl mx-auto p-4">
-           <div class="header flex justify-between items-center py-3 px-6 border-b">
-               <div>
-                   <h1 id="groupName" class="text-xl font-semibold">Loading...</h1>
-                   <p id="groupDetails" class="text-sm text-gray-500"></p>
-               </div>
-               <div class="flex items-center space-x-4">
-                   <button class="toggle-button" onclick="toggleTheme()">
-                       <i id="themeIcon" class="fas fa-moon"></i>
-                   </button>
-                   <button class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-               </div>
-           </div>
-           <div id="chatBody" class="chat-body p-4 h-96 overflow-y-auto border rounded-lg mt-4"></div>
-           <div id="errorMessage" class="hidden mt-4 p-3 rounded"></div>
-           <div id="successMessage" class="hidden mt-4 p-3 rounded"></div>
-           <div class="chat-footer flex flex-col sm:flex-row mt-4 gap-3">
-               <input type="text" id="chatMessage" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" placeholder="Type a message...">
-               <input type="file" id="fileUpload" class="mt-2 sm:mt-0" accept=".pdf,.jpg,.png">
-               <button onclick="sendMessage()" class="px-6 py-2 mt-2 sm:mt-0 rounded-lg">Send</button>
-           </div>
-       </div>
+  <div class="container max-w-3xl mx-auto p-4">
+    <div class="header flex justify-between items-center py-3 px-6 border-b">
+      <div>
+        <h1 id="groupName" class="text-xl font-semibold">Loading...</h1>
+        <p id="groupDetails" class="text-sm text-gray-500"></p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button class="toggle-button" onclick="toggleTheme()">
+          <i id="themeIcon" class="fas fa-moon"></i>
+        </button>
+        <button class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+      </div>
+    </div>
 
-       <script src="socket .js"></script>
-   <script type="module">
-  import { socket, setupSocketEvents, emitTyping } from './socket.js';
+    <div id="chatBody" class="chat-body p-4 h-96 overflow-y-auto border rounded-lg mt-4"></div>
+    <div id="typingNotice" class="typing-notice text-sm text-gray-500 mt-1 px-4"></div>
+    <div id="errorMessage" class="hidden mt-4 p-3 rounded"></div>
+    <div id="successMessage" class="hidden mt-4 p-3 rounded"></div>
 
-  const groupId = new URLSearchParams(window.location.search).get('groupId');
-  const currentUser = { id: 1, name: 'Alice' };
+    <div class="chat-footer flex flex-col sm:flex-row mt-4 gap-3">
+      <input type="text" id="chatMessage" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" placeholder="Type a message...">
+      <input type="file" id="fileUpload" class="mt-2 sm:mt-0" accept=".pdf,.jpg,.png">
+      <button onclick="sendMessage()" class="px-6 py-2 mt-2 sm:mt-0 rounded-lg">Send</button>
+    </div>
+  </div>
 
-  setupSocketEvents(groupId, currentUser, addMessageToChat, showTypingNotice);
+ <script type="module" src="socket.js"></script>
+  <script type="module">
+    import { socket, setupSocketEvents, emitTyping } from './socket.js';
 
-  function showTypingNotice(user) {
-    const typingDiv = document.getElementById('typingNotice');
-    typingDiv.textContent = `${user} is typing...`;
-    setTimeout(() => typingDiv.textContent = '', 2000);
-  }
+    const groupId = new URLSearchParams(window.location.search).get('groupId');
+    const currentUser = { id: 1, name: 'Alice' };
 
-  document.getElementById('chatMessage').addEventListener('input', () => {
-    emitTyping(groupId, currentUser.name);
-  });
+    setupSocketEvents(groupId, currentUser, addMessageToChat, showTypingNotice);
+
+    function showTypingNotice(user) {
+      const typingDiv = document.getElementById('typingNotice');
+      typingDiv.textContent = `${user} is typing...`;
+      setTimeout(() => typingDiv.textContent = '', 2000);
+    }
+
+    document.getElementById('chatMessage').addEventListener('input', () => {
+      emitTyping(groupId, currentUser.name);
+    });
 </script>
-
 
    </body>
    </html>
