@@ -488,13 +488,15 @@
                     cs201: 'CS 201',
                     phys202: 'PHYS 202'
                 }[group.course] || group.course;
-                groupItem.innerHTML = `
-                    <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">${group.name}</p>
-                        <p class="text-gray-600">${Object.keys(group.members).length} members online • ${courseName}</p>
-                    </div>
-                `;
+               groupItem.innerHTML = `
+  <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
+  <div>
+    <p class="font-semibold text-gray-800">${group.name}</p>
+    <p class="text-gray-600">${Object.keys(group.members).length} members online • ${courseName}</p>
+    <a href="chartroom.html?groupId=${group.id}" class="text-sm text-blue-600 underline mt-1 inline-block">Join Chat →</a>
+  </div>
+`;
+
                 groupList.appendChild(groupItem);
             });
 
