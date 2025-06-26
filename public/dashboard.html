@@ -458,88 +458,73 @@
     </div>
     <script src="server.js"></script>
 <script>
+  const API_URL = 'https://campusconnect-omep.onrender.com'; // Update with your backend URL
+  const currentUser = { uid: 1, email: 'alice@example.com', name: 'Alice' };
 
-    const API_URL = 'http://localhost:3001';
-    let currentUser = { uid: 'user1', email: 'alice@example.com' };
+  async function createGroup() {
+    const name = document.getElementById('groupName').value.trim();
+    const course = document.getElementById('groupCourse').value;
 
-    function showError(message) {
-        console.error(message); // Log to console for debugging
+    if (!name || !course) return alert("Group name and course required");
+
+    try {
+      const res = await fetch(`${API_URL}/groups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user': JSON.stringify(currentUser)
+        },
+        body: JSON.stringify({ name, course })
+      });
+
+      if (!res.ok) throw new Error("Failed to create group");
+      alert("Group created!");
+      loadDashboard();
+    } catch (err) {
+      alert("Error: " + err.message);
     }
+  }
 
-    async function loadDashboard() {
-        try {
-            // Fetch groups
-            const groupsResponse = await fetch(`${API_URL}/groups`, {
-                headers: { 'x-user': JSON.stringify(currentUser) }
-            });
-            if (!groupsResponse.ok) throw new Error(`HTTP error! status: ${groupsResponse.status}`);
-            const groups = await groupsResponse.json();
-
-            // Update Active Study Groups
-            const groupList = document.getElementById('groupList');
-            groupList.innerHTML = ''; // Clear static content
-            groups.forEach(group => {
-                const groupItem = document.createElement('div');
-                groupItem.className = 'group-item';
-                const courseName = {
-                    engl101: 'ENGL 101',
-                    math115: 'MATH 115',
-                    chem101: 'CHEM 101',
-                    cs201: 'CS 201',
-                    phys202: 'PHYS 202'
-                }[group.course] || group.course;
-               groupItem.innerHTML = `
-  <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-  <div>
-    <p class="font-semibold text-gray-800">${group.name}</p>
-    <p class="text-gray-600">${Object.keys(group.members).length} members online • ${courseName}</p>
-    <a href="chartroom.html?groupId=${group.id}" class="text-sm text-blue-600 underline mt-1 inline-block">Join Chat →</a>
-  </div>
-`;
-
-                groupList.appendChild(groupItem);
-            });
-
-            // Fetch users
-            const usersResponse = await fetch(`${API_URL}/users`, {
-                headers: { 'x-user': JSON.stringify(currentUser) }
-            });
-            if (!usersResponse.ok) throw new Error(`HTTP error! status: ${usersResponse.status}`);
-            const users = await usersResponse.json();
-
-            // Update University Connections
-            const connectionItems = document.querySelectorAll('.connection-item');
-            connectionItems.forEach((item, index) => {
-                if (users[index]) {
-                    const user = users[index];
-                    const avatar = item.querySelector('.avatar');
-                    const name = item.querySelector('p.font-semibold');
-                    const status = item.querySelector('p.text-gray-600');
-                    avatar.textContent = user.name.charAt(0).toUpperCase();
-                    name.textContent = user.name;
-                    status.textContent = `${courseName[user.course]} • ${user.online ? 'Online' : 'Offline'}`;
-                }
-            });
-        } catch (error) {
-            showError('Failed to load dashboard: ' + error.message);
+  async function loadDashboard() {
+    try {
+      const res = await fetch(`${API_URL}/groups`, {
+        headers: {
+          'x-user': JSON.stringify(currentUser)
         }
+      });
+
+      const groups = await res.json();
+      const groupList = document.getElementById('groupList');
+      groupList.innerHTML = '';
+
+      groups.forEach(group => {
+        const groupItem = document.createElement('div');
+        groupItem.className = 'group-item';
+        const courseName = {
+          engl101: 'ENGL 101',
+          math115: 'MATH 115',
+          chem101: 'CHEM 101',
+          cs201: 'CS 201',
+          phys202: 'PHYS 202'
+        }[group.course] || group.course;
+
+        groupItem.innerHTML = `
+          <div class="avatar">${group.name.charAt(0)}</div>
+          <div>
+            <p class="font-semibold text-gray-800">${group.name}</p>
+            <p class="text-gray-600">Course: ${courseName}</p>
+            <a href="chartroom.html?groupId=${group.id}" class="text-sm text-blue-600 underline">Join Chat →</a>
+          </div>
+        `;
+
+        groupList.appendChild(groupItem);
+      });
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
     }
+  }
 
-    window.onload = loadDashboard;
-
-    // Mobile nav toggle
-    const navToggle = document.getElementById('navToggle');
-    const navLinksMobile = document.getElementById('navLinksMobile');
-    navToggle.addEventListener('click', function () {
-        navLinksMobile.classList.toggle('show');
-    });
-
-    // Optional: Hide mobile nav when clicking outside
-    document.addEventListener('click', function (e) {
-        if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-            navLinksMobile.classList.remove('show');
-        }
-    });
+  window.onload = loadDashboard;
 </script>
   
 </body>
