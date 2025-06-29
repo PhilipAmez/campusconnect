@@ -4,6 +4,7 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -87,6 +88,34 @@ const createMessagesTable = async () => {
 // Basic route
 app.get('/', (req, res) => {
   res.send('CampusConnect backend running!');
+});
+
+// get group
+app.get('/groups', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM groups ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
+});
+
+//post group
+app.post('/groups', async (req, res) => {
+  const { name, course } = req.body;
+  const createdBy = req.headers['x-user']
+    ? JSON.parse(req.headers['x-user']).uid
+    : 'anonymous';
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO groups (name, course, created_by) VALUES ($1, $2, $3) RETURNING *',
+      [name, course, createdBy]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create group' });
+  }
 });
 
 // Simple user registration
