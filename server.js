@@ -29,7 +29,9 @@ const createUsersTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      username TEXT UNIQUE NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       profile_pic TEXT,
@@ -120,18 +122,22 @@ app.post('/groups', async (req, res) => {
 
 // Simple user registration
 app.post('/register', async (req, res) => {
-  const { name, email, password, profile_pic, badges } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: 'Missing fields' });
+  const { first_name, last_name, username, email, password, profile_pic, badges } = req.body;
+  if (!first_name || !last_name || !username || !email || !password)
+    return res.status(400).json({ error: 'Missing fields' });
 
   try {
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, profile_pic, badges) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [name, email, password, profile_pic || null, badges || null]
+      'INSERT INTO users (first_name, last_name, username, email, password, profile_pic, badges) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [first_name, last_name, username, email, password, profile_pic || null, badges || null]
     );
     res.status(201).json({ user: result.rows[0] });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to register user' });
+    if (err.code === '23505') { // unique_violation
+      res.status(409).json({ error: 'Username or email already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to register user' });
+    }
   }
 });
 
@@ -187,6 +193,14 @@ app.put('/messages/:id', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Failed to edit message' });
   }
+});
+
+// Check if username exists
+app.get('/check-username', async (req, res) => {
+  const { username } = req.query;
+  if (!username) return res.status(400).json({ error: 'Username required' });
+  const result = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+  res.json({ exists: result.rowCount > 0 });
 });
 
 // Socket.io real-time chat

@@ -144,37 +144,25 @@
     </div>
 
     <script type="module">
-        // Example: Replace with your actual Firebase or backend login logic
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const loginValue = document.getElementById('login').value.trim();
+            const login = document.getElementById('login').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
             errorMessage.textContent = '';
-            successMessage.textContent = '';
 
-            if (!loginValue || !password) {
-                errorMessage.textContent = 'Please enter your email/username and password.';
+            const res = await fetch('https://campusconnect-omep.onrender.com/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ login, password })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errorMessage.textContent = data.message || 'Login failed.';
                 return;
             }
-
-            // Example API endpoint
-            const API_URL = 'https://campusconnect-omep.onrender.com';
-
-            try {
-                const res = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ login: loginValue, password })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.message || 'Login failed');
-                successMessage.textContent = 'Login successful! Redirecting...';
-                setTimeout(() => window.location.href = 'dashboard.html', 1500);
-            } catch (err) {
-                errorMessage.textContent = err.message;
-            }
+            // Save user info/token as needed and redirect
+            window.location.href = 'dashboard.html';
         });
     </script>
 </body>
