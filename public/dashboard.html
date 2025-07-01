@@ -419,6 +419,7 @@
                             <p class="font-semibold text-gray-800">Calculus Crew</p>
                             <p class="text-gray-600">5 members online • MATH 115</p>
                         </div>
+                        <div id="groups"></div>
                     </div>
                 </div>
             </div>
@@ -458,73 +459,35 @@
     </div>
     <script src="server.js"></script>
 <script>
-  const API_URL = 'https://campusconnect-omep.onrender.com'; // Update with your backend URL
-  const currentUser = { uid: 1, email: 'alice@example.com', name: 'Alice' };
+  const API_URL = 'https://campusconnect-omep.onrender.com';
+    const currentUserId = 1; // simulate logged-in user
 
-  async function createGroup() {
-    const name = document.getElementById('groupName').value.trim();
-    const course = document.getElementById('groupCourse').value;
-
-    if (!name || !course) return alert("Group name and course required");
-
-    try {
-      const res = await fetch(`${API_URL}/groups`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user': JSON.stringify(currentUser)
-        },
-        body: JSON.stringify({ name, course })
-      });
-
-      if (!res.ok) throw new Error("Failed to create group");
-      alert("Group created!");
-      loadDashboard();
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  }
-
-  async function loadDashboard() {
-    try {
-      const res = await fetch(`${API_URL}/groups`, {
-        headers: {
-          'x-user': JSON.stringify(currentUser)
-        }
-      });
-
+    async function fetchGroups() {
+      const res = await fetch(`${API_URL}/groups`);
       const groups = await res.json();
-      const groupList = document.getElementById('groupList');
-      groupList.innerHTML = '';
-
-      groups.forEach(group => {
-        const groupItem = document.createElement('div');
-        groupItem.className = 'group-item';
-        const courseName = {
-          engl101: 'ENGL 101',
-          math115: 'MATH 115',
-          chem101: 'CHEM 101',
-          cs201: 'CS 201',
-          phys202: 'PHYS 202'
-        }[group.course] || group.course;
-
-        groupItem.innerHTML = `
-          <div class="avatar">${group.name.charAt(0)}</div>
-          <div>
-            <p class="font-semibold text-gray-800">${group.name}</p>
-            <p class="text-gray-600">Course: ${courseName}</p>
-            <a href="chartroom.html?groupId=${group.id}" class="text-sm text-blue-600 underline">Join Chat →</a>
-          </div>
-        `;
-
-        groupList.appendChild(groupItem);
-      });
-    } catch (err) {
-      console.error("Error loading dashboard:", err);
+      document.getElementById('groups').innerHTML = groups.map(
+        g => `<div>
+                <a href="chartroom.html?groupId=${g.id}">${g.name}</a> - ${g.course}
+              </div>`
+      ).join('');
     }
-  }
 
-  window.onload = loadDashboard;
+    async function createGroup(e) {
+      e.preventDefault();
+      const name = document.getElementById('groupName').value;
+      const course = document.getElementById('groupCourse').value;
+
+      await fetch(`${API_URL}/groups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, course, created_by: currentUserId })
+      });
+
+      fetchGroups(); // refresh list
+    }
+
+    window.onload = fetchGroups;
+
 </script>
   
 </body>

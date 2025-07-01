@@ -4,15 +4,13 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Pool } = require('pg');
+const multer = require('multer');
 const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
+  cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
 const pool = new Pool({
@@ -20,31 +18,27 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-app.use(cors());
-app.use(express.static('public'));
-app.use(express.json());
+const upload = multer({ dest: 'uploads/' });
 
-// Create users table
-const createUsersTable = async () => {
-  const query = `
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// Create tables on startup
+const createTables = async () => {
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      first_name TEXT NOT NULL,
-      last_name TEXT NOT NULL,
-      username TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       profile_pic TEXT,
       badges TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
-  await pool.query(query);
-};
+  `);
 
-// Create groups table
-const createGroupsTable = async () => {
-  const query = `
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS groups (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -52,13 +46,9 @@ const createGroupsTable = async () => {
       created_by INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
-  await pool.query(query);
-};
+  `);
 
-// Create messages table
-const createMessagesTable = async () => {
-  const query = `
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
       group_id INTEGER REFERENCES groups(id),
@@ -67,164 +57,93 @@ const createMessagesTable = async () => {
       file_url TEXT,
       file_name TEXT,
       file_size INTEGER,
-      reply_to INTEGER REFERENCES messages(id),
+      reply_to INTEGER,
       edited BOOLEAN DEFAULT FALSE,
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
-  await pool.query(query);
+  `);
 };
 
-// Call table creation functions on startup
-(async () => {
-  try {
-    await createUsersTable();
-    await createGroupsTable();
-    await createMessagesTable();
-    console.log('✅ Tables created (or already exist)');
-  } catch (err) {
-    console.error('❌ Error creating tables:', err);
-  }
-})();
+createTables().then(() => console.log('✅ Tables ready')).catch(console.error);
 
-// Basic route
-app.get('/', (req, res) => {
-  res.send('CampusConnect backend running!');
+// Routes
+app.get('/', (req, res) => res.send('CampusConnect backend running!'));
+
+app.post('/users', async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *',
+      [name, email, password]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to register user' });
+  }
 });
 
-// get group
 app.get('/groups', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM groups ORDER BY created_at DESC');
     res.json(result.rows);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to fetch groups' });
   }
 });
 
-//post group
 app.post('/groups', async (req, res) => {
-  const { name, course } = req.body;
-  const createdBy = req.headers['x-user']
-    ? JSON.parse(req.headers['x-user']).uid
-    : 'anonymous';
-
+  const { name, course, created_by } = req.body;
   try {
     const result = await pool.query(
       'INSERT INTO groups (name, course, created_by) VALUES ($1, $2, $3) RETURNING *',
-      [name, course, createdBy]
+      [name, course, created_by || null]
     );
     res.status(201).json(result.rows[0]);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to create group' });
   }
 });
 
-// Simple user registration
-app.post('/register', async (req, res) => {
-  const { first_name, last_name, username, email, password, profile_pic, badges } = req.body;
-  if (!first_name || !last_name || !username || !email || !password)
-    return res.status(400).json({ error: 'Missing fields' });
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO users (first_name, last_name, username, email, password, profile_pic, badges) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [first_name, last_name, username, email, password, profile_pic || null, badges || null]
-    );
-    res.status(201).json({ user: result.rows[0] });
-  } catch (err) {
-    if (err.code === '23505') { // unique_violation
-      res.status(409).json({ error: 'Username or email already exists' });
-    } else {
-      res.status(500).json({ error: 'Failed to register user' });
-    }
-  }
-});
-
-// GET messages for a group
 app.get('/messages/:groupId', async (req, res) => {
-  const groupId = req.params.groupId;
   try {
     const result = await pool.query(
       'SELECT * FROM messages WHERE group_id = $1 ORDER BY timestamp ASC',
-      [groupId]
+      [req.params.groupId]
     );
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch messages' });
+  } catch {
+    res.status(500).json({ error: 'Failed to load messages' });
   }
 });
 
-// POST new message
-app.post('/messages', async (req, res) => {
+app.post('/messages', upload.none(), async (req, res) => {
   const { group_id, sender_id, text, file_url, file_name, file_size, reply_to } = req.body;
   try {
     const result = await pool.query(
-      `
-      INSERT INTO messages (group_id, sender_id, text, file_url, file_name, file_size, reply_to)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-      `,
+      `INSERT INTO messages (group_id, sender_id, text, file_url, file_name, file_size, reply_to)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [group_id, sender_id, text, file_url, file_name, file_size, reply_to]
     );
-
-    // Emit the message to all clients in the group
-    io.to('group_' + group_id).emit('new_message', result.rows[0]);
-
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
+    const msg = result.rows[0];
+    io.to('group_' + group_id).emit('new_message', msg);
+    res.status(201).json(msg);
+  } catch {
     res.status(500).json({ error: 'Failed to send message' });
   }
 });
 
-// PUT edit message
-app.put('/messages/:id', async (req, res) => {
-  const id = req.params.id;
-  const { text } = req.body;
-  try {
-    const result = await pool.query(
-      'UPDATE messages SET text = $1, edited = TRUE WHERE id = $2 RETURNING *',
-      [text, id]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to edit message' });
-  }
-});
-
-// Check if username exists
-app.get('/check-username', async (req, res) => {
-  const { username } = req.query;
-  if (!username) return res.status(400).json({ error: 'Username required' });
-  const result = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
-  res.json({ exists: result.rowCount > 0 });
-});
-
-// Socket.io real-time chat
+// Socket.IO events
 io.on('connection', (socket) => {
-  console.log('🟢 New client connected');
-
-  socket.on('join_group', (groupId, username) => {
+  socket.on('join_group', (groupId) => {
     socket.join('group_' + groupId);
-    console.log(`${username || 'A user'} joined group ${groupId}`);
-    io.to('group_' + groupId).emit('user_joined', username || 'Someone');
   });
 
   socket.on('typing', ({ groupId, user }) => {
     socket.to('group_' + groupId).emit('user_typing', user);
   });
 
-  socket.on('disconnect', () => {
-    console.log('🔌 Client disconnected');
-  });
+  socket.on('disconnect', () => {});
 });
 
-
-// Start server with correct port
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log('🚀 Server with real-time chat running on port ' + PORT);
-});
+server.listen(PORT, () => console.log('🚀 Backend running on port', PORT));

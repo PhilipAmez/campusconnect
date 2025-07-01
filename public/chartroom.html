@@ -199,22 +199,50 @@
 
  <script type="module" src="socket.js"></script>
   <script type="module">
-    import { socket, setupSocketEvents, emitTyping } from './socket.js';
-
+     const API_URL = 'https://campusconnect-omep.onrender.com';
+    const socket = io(API_URL);
+    const currentUserId = 1;
     const groupId = new URLSearchParams(window.location.search).get('groupId');
-    const currentUser = { id: 1, name: 'Alice' };
 
-    setupSocketEvents(groupId, currentUser, addMessageToChat, showTypingNotice);
-
-    function showTypingNotice(user) {
-      const typingDiv = document.getElementById('typingNotice');
-      typingDiv.textContent = `${user} is typing...`;
-      setTimeout(() => typingDiv.textContent = '', 2000);
+    function renderMessage(msg) {
+      const div = document.createElement('div');
+      div.textContent = msg.text + ' (' + new Date(msg.timestamp).toLocaleTimeString() + ')';
+      document.getElementById('messages').appendChild(div);
     }
 
-    document.getElementById('chatMessage').addEventListener('input', () => {
-      emitTyping(groupId, currentUser.name);
+    async function loadMessages() {
+      const res = await fetch(`${API_URL}/messages/${groupId}`);
+      const msgs = await res.json();
+      document.getElementById('messages').innerHTML = '';
+      msgs.forEach(renderMessage);
+    }
+
+    async function sendMessage(e) {
+      e.preventDefault();
+      const text = document.getElementById('messageInput').value;
+
+      const res = await fetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          group_id: groupId,
+          sender_id: currentUserId,
+          text
+        })
+      });
+
+      const msg = await res.json();
+      socket.emit('new_message', msg);
+      renderMessage(msg);
+      document.getElementById('messageInput').value = '';
+    }
+
+    socket.on('connect', () => socket.emit('join_group', groupId));
+    socket.on('new_message', (msg) => {
+      if (msg.group_id == groupId) renderMessage(msg);
     });
+
+    window.onload = loadMessages;
 </script>
 
    </body>
