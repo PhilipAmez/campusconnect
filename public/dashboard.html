@@ -11,6 +11,8 @@
     <link rel="manifest" href="/site.webmanifest" />
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
     <style>
         :root {
             --primary: #7c3aed;
@@ -459,34 +461,59 @@
     </div>
     <script src="server.js"></script>
 <script>
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "campusconnect-48927",
+    appId: "campusconnect-48927"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
   const API_URL = 'https://campusconnect-omep.onrender.com';
-    const currentUserId = 1; // simulate logged-in user
 
-    async function fetchGroups() {
-      const res = await fetch(`${API_URL}/groups`);
-      const groups = await res.json();
-      document.getElementById('groups').innerHTML = groups.map(
-        g => `<div>
-                <a href="chartroom.html?groupId=${g.id}">${g.name}</a> - ${g.course}
-              </div>`
-      ).join('');
-    }
+  function getToken() {
+    return auth.currentUser.getIdToken();
+  }
 
-    async function createGroup(e) {
-      e.preventDefault();
-      const name = document.getElementById('groupName').value;
-      const course = document.getElementById('groupCourse').value;
+  async function fetchGroups() {
+    const token = await getToken();
+    const res = await fetch(`${API_URL}/groups`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const groups = await res.json();
+    document.getElementById('groupList').innerHTML = groups.map(
+      g => `<div><a href="chartroom.html?groupId=${g.id}">${g.name}</a> - ${g.course}</div>`
+    ).join('');
+  }
 
-      await fetch(`${API_URL}/groups`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, course, created_by: currentUserId })
-      });
+  async function createGroup(e) {
+    e.preventDefault();
+    const token = await getToken();
+    const name = document.getElementById('groupName').value;
+    const course = document.getElementById('groupCourse').value;
 
-      fetchGroups(); // refresh list
-    }
+    await fetch(`${API_URL}/groups`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name, course })
+    });
 
-    window.onload = fetchGroups;
+    fetchGroups();
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) fetchGroups();
+    else window.location.href = 'login.html';
+  });
+
+    //   fetchGroups(); // refresh list
+    // }
+
+    // window.onload = fetchGroups;
 
 </script>
   

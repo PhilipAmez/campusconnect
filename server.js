@@ -24,6 +24,30 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+const admin = require('firebase-admin');
+const serviceAccount = require('./firebase-service.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+async function verifyFirebaseToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.firebaseUser = decodedToken;
+    next();
+  } catch (err) {
+    console.error('❌ Token verification failed:', err.message);
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+
 // Create tables on startup
 const createTables = async () => {
   await pool.query(`
@@ -82,7 +106,7 @@ app.post('/users', async (req, res) => {
   }
 });
 
-app.get('/groups', async (req, res) => {
+app.get('/groups', verifyFirebaseToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM groups ORDER BY created_at DESC');
     res.json(result.rows);
@@ -91,17 +115,14 @@ app.get('/groups', async (req, res) => {
   }
 });
 
-app.post('/groups', async (req, res) => {
-  const { name, course, created_by } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO groups (name, course, created_by) VALUES ($1, $2, $3) RETURNING *',
-      [name, course, created_by || null]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch {
-    res.status(500).json({ error: 'Failed to create group' });
-  }
+app.post('/groups', verifyFirebaseToken, async (req, res) => {
+  const { name, course } = req.body;
+  const email = req.firebaseUser.email;
+  const result = await pool.query(
+    'INSERT INTO groups (name, course, created_by_email) VALUES ($1, $2, $3) RETURNING *',
+    [name, course, email]
+  );
+  res.status(201).json(result.rows[0]);
 });
 
 app.get('/messages/:groupId', async (req, res) => {
