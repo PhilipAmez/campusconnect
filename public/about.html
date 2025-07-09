@@ -1,233 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About | Central University Campus Connect</title>
-   <link rel="icon" type="favicon.ico" href="favicon.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      background-color: #fdfdfd;
-      color: #222;
-    }
-    header {
-      background-color: #003366;
-      color: white;
-      padding: 40px 20px;
-      text-align: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 2.8em;
-    }
-    main {
-      max-width: 1000px;
-      margin: auto;
-      padding: 40px 20px;
-    }
-    h2 {
-      color: #003366;
-      margin-top: 50px;
-    }
-    .faq {
-      margin-top: 30px;
-    }
-    .faq-item {
-      margin-bottom: 30px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 15px;
-    }
-    .faq-item h3 {
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    .assistant {
-      background-color: #f9f9f9;
-      padding: 25px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-top: 50px;
-    }
-    .assistant h2 {
-      margin-top: 0;
-    }
-    .chat-box {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-    .chat-box input {
-      width: 70%;
-      min-width: 180px;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      flex: 1 1 180px;
-    }
-    .chat-box button {
-      padding: 12px 18px;
-      background-color: #003366;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      flex: 0 0 auto;
-    }
-    .chat-box button:hover {
-      background-color: #0056b3;
-    }
-    .voice-button {
-      margin-left: 0;
-      padding: 12px 18px;
-      background-color: #005fa3;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .voice-button:hover {
-      background-color: #003f73;
-    }
-    footer {
-      text-align: center;
-      padding: 25px;
-      background-color: #003366;
-      color: white;
-      margin-top: 60px;
-    }
-
-    /* --- Responsive Styles --- */
-    @media (max-width: 700px) {
-      header {
-        padding: 25px 10px;
-      }
-      header h1 {
-        font-size: 2em;
-      }
-      main {
-        padding: 20px 8px;
-      }
-      .assistant {
-        padding: 15px;
-      }
-      .faq-item {
-        padding-bottom: 10px;
-      }
-      .chat-box input {
-        width: 100%;
-        min-width: 0;
-      }
-      .chat-box {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-      }
-      .chat-box button,
-      .voice-button {
-        width: 100%;
-        margin-left: 0;
-      }
-    }
-    @media (max-width: 480px) {
-      header h1 {
-        font-size: 1.3em;
-      }
-      .faq-item h3 {
-        font-size: 1em;
-      }
-      h2 {
-        font-size: 1.1em;
-      }
-      .assistant h2 {
-        font-size: 1em;
-      }
-      footer {
-        padding: 15px;
-        font-size: 0.95em;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | Peerloop</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <style>
+        :root {
+            --primary: #7c3aed; /* Consistent with index.html and chatroom.html */
+            --secondary: #4f46e5;
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1f2937;
+            --bg-secondary: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --primary: #7c3aed;
+            --secondary: #4f46e5;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            animation: rotate 10s linear infinite;
+            z-index: 0;
+        }
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.8em;
+            font-style: italic;
+            font-weight: 400;
+            color: black;
+            position: relative;
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+        main {
+            max-width: 1000px;
+            margin: auto;
+            padding: 40px 20px;
+        }
+        h2 {
+            color: var(--primary);
+            margin-top: 50px;
+        }
+        .faq {
+            margin-top: 30px;
+        }
+        .faq-item {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+        }
+        .faq-item h3 {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .assistant {
+            background-color: var(--bg-secondary);
+            padding: 25px;
+            border: 1px solid var(--text-secondary);
+            border-radius: 8px;
+            margin-top: 50px;
+        }
+        .assistant h2 {
+            margin-top: 0;
+        }
+        .chat-box {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .chat-box input {
+            width: 70%;
+            min-width: 180px;
+            padding: 12px;
+            border: 1px solid var(--text-secondary);
+            border-radius: 6px;
+            flex: 1 1 180px;
+        }
+        .chat-box button, .voice-button {
+            font-style: italic;
+            font-weight: 400;
+            color: black;
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            flex: 0 0 auto;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        .chat-box button:hover, .voice-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        footer {
+            text-align: center;
+            padding: 25px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            margin-top: 60px;
+        }
+        /* Responsive Styles */
+        @media (max-width: 700px) {
+            header {
+                padding: 25px 10px;
+            }
+            header h1 {
+                font-size: 2em;
+            }
+            main {
+                padding: 20px 8px;
+            }
+            .assistant {
+                padding: 15px;
+            }
+            .faq-item {
+                padding-bottom: 10px;
+            }
+            .chat-box {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .chat-box input {
+                width: 100%;
+                min-width: 0;
+            }
+            .chat-box button, .voice-button {
+                width: 100%;
+                margin-left: 0;
+            }
+        }
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.3em;
+            }
+            .faq-item h3 {
+                font-size: 1em;
+            }
+            h2 {
+                font-size: 1.1em;
+            }
+            .assistant h2 {
+                font-size: 1em;
+            }
+            footer {
+                padding: 15px;
+                font-size: 0.95em;
+            }
+        }
+    </style>
 </head>
-<body>
-  <header>
-    <h1>Welcome to Campus Connect!</h1>
-    <p>Your Social and Academic Network at Central University</p>
-  </header>
-  <main>
-    <section class="intro">
-      <p>We know campus life is more than just lectures and exams — it's about finding your people, making connections, and building a community that supports your growth. That’s why we created Campus Connect — a safe and friendly space where you can meet coursemates, form study groups, share ideas, and thrive together. Whether you're a fresher or final year student, this platform makes it easy to stay connected with the right people throughout your university journey.</p>
-    </section>
+<body data-theme="light">
+    <header>
+        <h1>Welcome to Peerloopm!</h1>
+        <p>Your Social and Academic Network for University student </p>
+    </header>
+    <main>
+        <section class="intro">
+            <p>We know campus life is more than just lectures and exams — it's about finding your people, making connections, and building a community that supports your growth. That’s why we created Peerloop — a safe and friendly space where you can meet coursemates, form study groups, share ideas, and thrive together. Whether you're a fresher or final year student, this platform makes it easy to stay connected with the right people throughout your university journey.</p>
+        </section>
 
-    <section class="faq">
-      <h2>FAQs – You Ask, We Answer</h2>
-      <div class="faq-item">
-        <h3>1. What exactly is Campus Connect?</h3>
-        <p>Campus Connect is your go-to platform to find coursemates, collaborate on studies, and create lasting friendships across Central University.</p>
-      </div>
-      <div class="faq-item">
-        <h3>2. Who can join?</h3>
-        <p>Only verified students from Central University can register. We keep the space secure and exclusive for our campus community.</p>
-      </div>
-      <div class="faq-item">
-        <h3>3. How much does it cost?</h3>
-        <p>Absolutely nothing. It's free — and always will be for CU students.</p>
-      </div>
-      <div class="faq-item">
-        <h3>4. Can I chat with my coursemates?</h3>
-        <p>Yes! You can message classmates one-on-one or in group chats to stay in touch or prep for exams together.</p>
-      </div>
-      <div class="faq-item">
-        <h3>5. How do I create a study group?</h3>
-        <p>Click on “Create Group” in your dashboard, give it a name, invite members, and start collaborating.</p>
-      </div>
-      <div class="faq-item">
-        <h3>6. Can I edit my profile later?</h3>
-        <p>Of course! Update your course, year, and other info anytime through your profile settings.</p>
-      </div>
-      <div class="faq-item">
-        <h3>7. What if I forget my password?</h3>
-        <p>No worries — just use the “Forgot Password” option on the login page to reset it quickly.</p>
-      </div>
-      <div class="faq-item">
-        <h3>8. What do I do if someone is being inappropriate?</h3>
-        <p>You can report users directly from their profile, and our support team will step in to handle it seriously.</p>
-      </div>
-      <div class="faq-item">
-        <h3>9. Is our data safe? Can anyone read our chats?</h3>
-        <p>Messages are encrypted, and we respect your privacy. Your conversations stay between you and your mates.</p>
-      </div>
-      <div class="faq-item">
-        <h3>10. Is there an app?</h3>
-        <p>The platform works great on phones, and yes — our mobile app is coming soon!</p>
-      </div>
-    </section>
+        <section class="faq">
+            <h2>FAQs – You Ask, We Answer</h2>
+            <div class="faq-item">
+                <h3>1. What exactly is Peerloom?</h3>
+                <p>Peerloom is your go-to platform to find coursemates, collaborate on studies, and create lasting friendships across University.</p>
+            </div>
+            <div class="faq-item">
+                <h3>2. Who can join?</h3>
+                <p> ANYONE!!! and University can register. We keep the space secure and exclusive for our campus community.</p>
+            </div>
+            <div class="faq-item">
+                <h3>3. How much does it cost?</h3>
+                <p>Absolutely nothing. It's free.</p>
+            </div>
+            <div class="faq-item">
+                <h3>4. Can I chat with my coursemates?</h3>
+                <p>Yes! You can message classmates one-on-one or in group chats to stay in touch or prep for exams together.</p>
+            </div>
+            <div class="faq-item">
+                <h3>5. How do I create a study group?</h3>
+                <p>Click on “Create Group” in your dashboard, give it a name, invite members, and start collaborating.</p>
+            </div>
+            <div class="faq-item">
+                <h3>6. Can I edit my profile later?</h3>
+                <p>Of course! Update your course, year, and other info anytime through your profile settings.</p>
+            </div>
+            <div class="faq-item">
+                <h3>7. What if I forget my password?</h3>
+                <p>No worries — just use the “Forgot Password” option on the login page to reset it quickly.</p>
+            </div>
+            <div class="faq-item">
+                <h3>8. What do I do if someone is being inappropriate?</h3>
+                <p>You can report users directly from their profile, and our support team will step in to handle it seriously.</p>
+            </div>
+            <div class="faq-item">
+                <h3>9. Is our data safe? Can anyone read our chats?</h3>
+                <p>Messages are encrypted, and we respect your privacy. Your conversations stay between you and your mates.</p>
+            </div>
+            <div class="faq-item">
+                <h3>10. Is there an app?</h3>
+                <p>The platform works great on phones, and yes — our mobile app is coming soon!</p>
+            </div>
+        </section>
 
-    <section class="assistant">
-      <h2>Talk to Our Assistant 🤖</h2>
-      <p>Have questions about using the platform? Ask away — our AI assistant is here to help!</p>
-      <div class="chat-box">
-        <input type="text" id="userInput" placeholder="Ask about the site or features..." onkeypress="handleKeyPress(event)" />
-        <button onclick="getAIResponse()">Ask</button>
-        <button class="voice-button" onclick="startVoiceInput()">🎤 Speak</button>
-        <p id="aiResponse"></p>
-      </div>
-    </section>
-  </main>
+        <section class="assistant">
+            <h2>Talk to Our Assistant 🤖</h2>
+            <p>Have questions about using the platform? Ask away — our AI assistant is here to help!</p>
+            <div class="chat-box">
+                <input type="text" id="userInput" placeholder="Ask about the site or features..." onkeypress="handleKeyPress(event)" />
+                <button onclick="getAIResponse()">Ask</button>
+                <button class="voice-button" onclick="startVoiceInput()">🎤 Speak</button>
+                <p id="aiResponse" class="text-gray-600"></p>
+            </div>
+        </section>
+    </main>
 
-  <footer>
-    <p>&copy; 2025 Campus Connect | Built with 💙 for University Students</p>
-  </footer>
+    <footer>
+        <p>© 2025 Peerloop | Built with 💙 for University Students</p>
+    </footer>
 
- 
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
+            authDomain: "campusconnect-48927.firebaseapp.com",
+            projectId: "campusconnect-48927",
+            storageBucket: "campusconnect-48927.appspot.com",
+            messagingSenderId: "252390549644",
+            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Error initializing Firebase:", error);
+        }
+
+        // AI Assistant Responses
+        const assistantResponses = {
+            "what is peerloom": "Peerloom is a platform for University students to connect with coursemates, form study groups, and collaborate on academic projects. It’s a safe, free space to build community and thrive!",
+            "how to join": "Sign up with your email on the signup page, and you’ll be verified to join the community.",
+            "cost": "Peerloom is completely free for University students!",
+            "chat": "Yes, you can chat with coursemates one-on-one or in group chats. Just visit the chatroom from your dashboard to start connecting.",
+            "study group": "To create a study group, go to your dashboard, click 'Create Group,' name it, and invite members to start collaborating.",
+            "edit profile": "You can update your profile anytime! Go to your profile settings in the dashboard to change your course, year, or other details.",
+            "forgot password": "If you forget your password, click 'Forgot Password' on the login page to reset it quickly via email.",
+            "report": "To report inappropriate behavior, go to the user’s profile and click the report button. Our support team will handle it promptly.",
+            "data safety": "Your data is safe with us. Messages are encrypted, and only you and your chat partners can read them.",
+            "app": "Peerloom is mobile-friendly, and a dedicated mobile app is coming soon!"
+        };
+
+        function getAIResponse() {
+            const input = document.getElementById('userInput').value.trim().toLowerCase();
+            const responseElement = document.getElementById('aiResponse');
+            let response = "Sorry, I’m not sure about that. Try asking about Peerloop, how to join, or other features!";
+
+            // Check for matching keywords in the input
+            for (const [key, value] of Object.entries(assistantResponses)) {
+                if (input.includes(key)) {
+                    response = value;
+                    break;
+                }
+            }
+
+            responseElement.textContent = response;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                getAIResponse();
+            }
+        }
+
+        function startVoiceInput() {
+            // Placeholder for voice input (Web Speech API not fully supported in all browsers)
+            const responseElement = document.getElementById('aiResponse');
+            responseElement.textContent = "Voice input is not supported yet. Please type your question or use the 'Ask' button.";
+        }
+    </script>
 </body>
 </html>
