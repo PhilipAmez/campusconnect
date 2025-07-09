@@ -237,6 +237,37 @@
             position: relative;
             overflow: hidden;
         }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                rgba(124, 58, 237, 0.2),
+                transparent
+            );
+            animation: rotate 8s linear infinite;
+            z-index: -1;
+        }
+
+        .feature-icon {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.2);
+        }
         .water-glass {
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
@@ -276,37 +307,6 @@
     left: 100%;
 }
 
-
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(
-                transparent,
-                rgba(124, 58, 237, 0.2),
-                transparent
-            );
-            animation: rotate 8s linear infinite;
-            z-index: -1;
-        }
-
-        .feature-icon {
-            color: var(--primary);
-            margin-bottom: 1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .feature-card:hover .feature-icon {
-            transform: scale(1.2);
-        }
     </style>
 </head>
 <body>
@@ -332,16 +332,17 @@
         </div>
     </nav>
 
-     <section class="hero">
-        <div class="hero-content">
-            <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
-            <p class="text-xl mb-6">Find study partners and succeed together</p>
-            <a href="signup.html" class="cta-button">
-                <span>Get Started</span>
-                <i class="fas fa-glass-water"></i>
-            </a>
-        </div>
-    </section>
+    <section class="hero">
+    <div class="hero-content">
+        <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
+        <p class="text-xl mb-6">Find study partners and succeed together</p>
+        <a href="signup.html" class="cta-button water-glass">
+            <span>Get Started</span>
+            <i class="fas fa-glass-water"></i>
+        </a>
+    </div>
+</section>
+
 
     <section class="features" id="features">
         <div class="features-grid">
