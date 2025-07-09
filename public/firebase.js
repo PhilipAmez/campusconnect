@@ -1,23 +1,18 @@
-// firebase.js
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your Firebase configuration
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxEdvwsz94vSMx9zKf2RwaUhvM6plfMj8",
-    authDomain: "campusconnect-cac42.firebaseapp.com",
-    projectId: "campusconnect-cac42",
-    storageBucket: "campusconnect-cac42.firebasestorage.app",
-    messagingSenderId: "697670243248",
-    appId: "1:697670243248:web:441a1b4f4d30a14a2e3c75",
-    measurementId: "G-33LEKJRXDR"
+  apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
+  authDomain: "campusconnect-48927.firebaseapp.com",
+  databaseURL: "https://campusconnect-48927-default-rtdb.firebaseio.com",
+  projectId: "campusconnect-48927",
+  storageBucket: "campusconnect-48927.firebasestorage.app",
+  messagingSenderId: "252390549644",
+  appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Export what you need
-export { auth, db };
