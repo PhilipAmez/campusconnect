@@ -11,8 +11,8 @@
     <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <style>
         :root {
             --primary: #7c3aed;
@@ -268,51 +268,51 @@
         .feature-card:hover .feature-icon {
             transform: scale(1.2);
         }
+
         .water-glass {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
-    transition: all 0.3s ease-in-out;
-    position: relative;
-    overflow: hidden;
-}
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
 
-.water-glass:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.5);
-}
+        .water-glass:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.5);
+        }
 
-.water-glass::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        120deg,
-        rgba(255, 255, 255, 0.1) 0%,
-        rgba(255, 255, 255, 0.4) 50%,
-        rgba(255, 255, 255, 0.1) 100%
-    );
-    transform: skewX(-20deg);
-    transition: left 0.6s ease;
-    pointer-events: none;
-}
+        .water-glass::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0.1) 100%
+            );
+            transform: skewX(-20deg);
+            transition: left 0.6s ease;
+            pointer-events: none;
+        }
 
-.water-glass:hover::after {
-    left: 100%;
-}
-
+        .water-glass:hover::after {
+            left: 100%;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar" id="navbar">
         <a href="index.html" class="logo">
-            <img src="../logo.png" alt="PeerLoom">
+            <img src="../logo.png" alt="Peerloop" onerror="this.parentElement.innerHTML='Peerloop'">
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
             <i class="fas fa-bars"></i>
@@ -323,7 +323,6 @@
             <a href="about.html" class="nav-link">About</a>
             <a href="support.html" class="nav-link">Support</a>
         </div>
-        <!-- Mobile dropdown nav -->
         <div class="nav-links mobile" id="navLinksMobile">
             <a href="login.html" class="nav-link">Login</a>
             <a href="signup.html" class="nav-link">Sign Up</a>
@@ -333,16 +332,15 @@
     </nav>
 
     <section class="hero">
-    <div class="hero-content">
-        <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
-        <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
-        <a href="signup.html" class="cta-button water-glass">
-            <span>Get Started</span>
-            <i class="fas fa-glass-water"></i>
-        </a>
-    </div>
-</section>
-
+        <div class="hero-content">
+            <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
+            <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
+            <a href="signup.html" class="cta-button water-glass">
+                <span>Get Started</span>
+                <i class="fas fa-glass-water"></i>
+            </a>
+        </div>
+    </section>
 
     <section class="features" id="features">
         <div class="features-grid">
@@ -364,20 +362,81 @@
         </div>
     </section>
 
-    <script>
-        // Mobile nav toggle
-        const navToggle = document.getElementById('navToggle');
-        const navLinksMobile = document.getElementById('navLinksMobile');
-        navToggle.addEventListener('click', function () {
-            navLinksMobile.classList.toggle('show');
-        });
+    <script type="module">
+        // Import Firebase services
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Optional: Hide mobile nav when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-                navLinksMobile.classList.remove('show');
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
+            authDomain: "campusconnect-48927.firebaseapp.com",
+            projectId: "campusconnect-48927",
+            storageBucket: "campusconnect-48927.appspot.com",
+            messagingSenderId: "252390549644",
+            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
+        };
+
+        // Initialize Firebase
+        let auth;
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Firebase initialization error:", error.message, error.stack);
+            alert("Failed to initialize Firebase. Please try again later.");
+            return;
+        }
+
+        // Check authentication state
+        try {
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    console.log("User authenticated:", user.uid);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    console.log("No user authenticated, staying on index.html");
+                }
+            });
+        } catch (error) {
+            console.error("Auth state change error:", error.message, error.stack);
+            alert("Authentication error. Please try again.");
+        }
+
+        // Mobile nav toggle
+        try {
+            const navToggle = document.getElementById('navToggle');
+            const navLinksMobile = document.getElementById('navLinksMobile');
+            if (!navToggle || !navLinksMobile) {
+                throw new Error("Navigation elements not found");
             }
-        });
+            navToggle.addEventListener('click', () => {
+                navLinksMobile.classList.toggle('show');
+            });
+
+            // Hide mobile nav when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
+                    navLinksMobile.classList.remove('show');
+                }
+            });
+        } catch (error) {
+            console.error("Navigation toggle error:", error.message, error.stack);
+            alert("Error setting up navigation. Please try again.");
+        }
+
+        // Add scroll effect to navbar
+        try {
+            window.addEventListener('scroll', () => {
+                const navbar = document.getElementById('navbar');
+                if (navbar) {
+                    navbar.classList.toggle('scrolled', window.scrollY > 50);
+                }
+            });
+        } catch (error) {
+            console.error("Navbar scroll effect error:", error.message, error.stack);
+        }
     </script>
 </body>
 </html>
