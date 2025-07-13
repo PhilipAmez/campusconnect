@@ -33,7 +33,6 @@
             max-width: 450px;
             position: relative;
             overflow: hidden;
-            transform: translateY(0);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
@@ -66,7 +65,7 @@
             transition: all 0.3s ease;
             border: 2px solid transparent;
             background: rgba(243, 244, 246, 0.8);
-            padding-right: 2.5rem; /* Space for icons or toggle */
+            padding-right: 2.5rem;
         }
 
         .input-group input:focus {
@@ -87,7 +86,6 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-            animation: heartbeat 1.5s ease-in-out infinite;
             width: 100%;
             position: relative;
             overflow: hidden;
@@ -121,12 +119,6 @@
             left: 100%;
         }
 
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
         .input-icon {
             transition: color 0.3s ease;
             position: absolute;
@@ -136,35 +128,6 @@
 
         .input-group input:focus + .input-icon {
             color: #7c3aed;
-        }
-
-        .toggle-password {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            cursor: pointer;
-            color: #64748b;
-            width: 1.5rem;
-            height: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            right: 0.5rem;
-            top: 2.75rem;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        .toggle-password:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .toggle-password.is-active {
-            color: #7c3aed;
-            box-shadow: 0 0 8px rgba(124, 58, 237, 0.5);
         }
 
         .auth-title {
@@ -179,12 +142,6 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 1rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            animation: slideIn 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes slideIn {
-            0% { transform: translateX(-20px); }
-            100% { transform: translateX(20px); }
         }
 
         .error-message, .success-message {
@@ -200,13 +157,79 @@
         .success-message {
             color: #16a34a;
         }
+
+        .support-button {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.7rem 1.3rem;
+            color: black;
+            font-style: italic;
+            font-weight: 400;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            z-index: 1000;
+        }
+
+        .support-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .auth-card {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+            .auth-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.95rem;
+            }
+            .input-group input {
+                padding: 0.7rem;
+                font-size: 0.95rem;
+            }
+            .support-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-card {
+                padding: 1rem;
+                margin: 0.5rem;
+            }
+            .auth-button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
+            .input-group input {
+                padding: 0.7rem;
+                font-size: 0.9rem;
+            }
+            .support-button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-content">
-                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">Login to Peerloom</h2>
+                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 𝐿𝑜𝑔𝑖𝑛
+</h2>
                 <form id="loginForm" class="auth-form space-y-6">
                     <div class="input-group relative">
                         <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
@@ -216,9 +239,6 @@
                     <div class="input-group relative">
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password">
-                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
-                            <i class="fas fa-eye"></i>
-                        </button>
                     </div>
                     <button type="submit" class="auth-button w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
                         <span>Login</span>
@@ -236,6 +256,11 @@
             </div>
         </div>
     </div>
+
+    <a href="support.html" class="support-button">
+        <i class="fas fa-headset"></i>
+        <span>Support</span>
+    </a>
 
     <script type="module">
         // Import Firebase SDK
@@ -264,24 +289,6 @@
             console.error("Firebase initialization error:", error.message, error.stack);
             document.getElementById('errorMessage').textContent = "Error initializing Firebase. Please try again later.";
             return;
-        }
-
-        // Handle password toggle
-        try {
-            const passwordInput = document.getElementById('password');
-            const togglePassword = document.querySelector('.toggle-password');
-            if (!passwordInput || !togglePassword) throw new Error("Password input or toggle button not found");
-            togglePassword.addEventListener('click', () => {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                const icon = togglePassword.querySelector('i');
-                icon.classList.toggle('fa-eye');
-                icon.classList.toggle('fa-eye-slash');
-                togglePassword.classList.toggle('is-active');
-            });
-        } catch (error) {
-            console.error("Password toggle setup error:", error.message, error.stack);
-            document.getElementById('errorMessage').textContent = "Error setting up password toggle. Please try again.";
         }
 
         // Handle form submission
