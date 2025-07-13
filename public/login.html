@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Peerloom</title>
-    <link rel="icon" href="favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" href="favicon.ico" onerror="console.warn('Favicon not found')">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" onerror="console.warn('Apple touch icon not found')">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" onerror="console.warn('Favicon 32x32 not found')">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" onerror="console.warn('Favicon 16x16 not found')">
     <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -66,6 +66,7 @@
             transition: all 0.3s ease;
             border: 2px solid transparent;
             background: rgba(243, 244, 246, 0.8);
+            padding-right: 2.5rem; /* Space for icons or toggle */
         }
 
         .input-group input:focus {
@@ -128,10 +129,42 @@
 
         .input-icon {
             transition: color 0.3s ease;
+            position: absolute;
+            right: 0.5rem;
+            top: 2.75rem;
         }
 
         .input-group input:focus + .input-icon {
             color: #7c3aed;
+        }
+
+        .toggle-password {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            color: #64748b;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            right: 0.5rem;
+            top: 2.75rem;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .toggle-password:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .toggle-password.is-active {
+            color: #7c3aed;
+            box-shadow: 0 0 8px rgba(124, 58, 237, 0.5);
         }
 
         .auth-title {
@@ -176,14 +209,16 @@
                 <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">Login to Peerloom</h2>
                 <form id="loginForm" class="auth-form space-y-6">
                     <div class="input-group relative">
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="email" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter">
-                        <i class="fas fa-envelope input-icon absolute right-4 top-10 text-gray-400"></i>
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" id="username" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your username">
+                        <i class="fas fa-user input-icon text-gray-400"></i>
                     </div>
                     <div class="input-group relative">
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password">
-                        <i class="fas fa-lock input-icon absolute right-4 top-10 text-gray-400"></i>
+                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                     <button type="submit" class="auth-button w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
                         <span>Login</span>
@@ -206,6 +241,7 @@
         // Import Firebase SDK
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
         // Firebase configuration
         const firebaseConfig = {
@@ -218,10 +254,11 @@
         };
 
         // Initialize Firebase
-        let auth;
+        let auth, db;
         try {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
+            db = getFirestore(app);
             console.log("Firebase initialized successfully");
         } catch (error) {
             console.error("Firebase initialization error:", error.message, error.stack);
@@ -229,28 +266,74 @@
             return;
         }
 
+        // Handle password toggle
+        try {
+            const passwordInput = document.getElementById('password');
+            const togglePassword = document.querySelector('.toggle-password');
+            if (!passwordInput || !togglePassword) throw new Error("Password input or toggle button not found");
+            togglePassword.addEventListener('click', () => {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                const icon = togglePassword.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+                togglePassword.classList.toggle('is-active');
+            });
+        } catch (error) {
+            console.error("Password toggle setup error:", error.message, error.stack);
+            document.getElementById('errorMessage').textContent = "Error setting up password toggle. Please try again.";
+        }
+
         // Handle form submission
         try {
             const loginForm = document.getElementById('loginForm');
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-            if (!loginForm || !errorMessage || !successMessage) {
-                throw new Error("Form or message elements not found");
-            }
-
+            if (!loginForm) throw new Error("Login form not found");
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const email = document.getElementById('email').value.trim();
+                const username = document.getElementById('username').value.trim();
                 const password = document.getElementById('password').value.trim();
+                const errorMessage = document.getElementById('errorMessage');
+                const successMessage = document.getElementById('successMessage');
+
+                // Clear previous messages
                 errorMessage.textContent = '';
                 successMessage.textContent = '';
 
+                // Validate username
+                if (!username.match(/^[a-zA-Z0-9._]{3,20}$/)) {
+                    errorMessage.textContent = 'Username must be 3-20 alphanumeric characters (dots allowed, no spaces).';
+                    return;
+                }
+
                 try {
+                    // Query Firestore for email associated with username
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('username', '==', username));
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        errorMessage.textContent = 'No account found with this username.';
+                        return;
+                    }
+
+                    // Get email from first matching document
+                    let email;
+                    querySnapshot.forEach((doc) => {
+                        email = doc.data().email;
+                    });
+
+                    if (!email) {
+                        errorMessage.textContent = 'Error retrieving email for this username.';
+                        return;
+                    }
+
                     // Sign in with Firebase
                     await signInWithEmailAndPassword(auth, email, password);
                     successMessage.textContent = 'Login successful! Redirecting...';
-                    document.getElementById('email').value = '';
+                    // Clear form
+                    document.getElementById('username').value = '';
                     document.getElementById('password').value = '';
+                    // Redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1000);
@@ -258,10 +341,10 @@
                     console.error("Login error:", error.message, error.stack);
                     switch (error.code) {
                         case 'auth/invalid-email':
-                            errorMessage.textContent = 'Invalid email format.';
+                            errorMessage.textContent = 'Invalid email format associated with this username.';
                             break;
                         case 'auth/user-not-found':
-                            errorMessage.textContent = 'No account found with this email.';
+                            errorMessage.textContent = 'No account found with this username.';
                             break;
                         case 'auth/wrong-password':
                             errorMessage.textContent = 'Incorrect password.';
@@ -270,7 +353,7 @@
                             errorMessage.textContent = 'Too many attempts. Please try again later.';
                             break;
                         case 'auth/invalid-credential':
-                            errorMessage.textContent = 'Invalid email or password.';
+                            errorMessage.textContent = 'Invalid username or password.';
                             break;
                         default:
                             errorMessage.textContent = 'Error: ' + error.message;
