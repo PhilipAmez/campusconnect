@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Peerloom</title>
-    <link rel="icon" href="favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" href="favicon.ico" onerror="console.warn('Favicon not found')">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" onerror="console.warn('Apple touch icon not found')">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" onerror="console.warn('Favicon 32x32 not found')">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" onerror="console.warn('Favicon 16x16 not found')">
     <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -64,11 +64,7 @@
             width: 200%;
             height: 200%;
             background: conic-gradient(transparent, rgba(255, 255, 255, 0.2), transparent);
-            animation: rotate 10s linear infinite;
             z-index: -1;
-        }
-        @keyframes rotate {
-            100% { transform: rotate(360deg); }
         }
         .logo img {
             height: 38px;
@@ -145,7 +141,6 @@
             font-style: italic;
             font-weight: 400;
             color: black;
-            position: relative;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
@@ -156,11 +151,6 @@
             border-radius: 1rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             margin-bottom: 1.5rem;
-            animation: slideIn 2s ease-in-out infinite alternate;
-        }
-        @keyframes slideIn {
-            0% { transform: translateX(-20px); }
-            100% { transform: translateX(20px); }
         }
         .card {
             background: rgba(255, 255, 255, 0.2);
@@ -211,8 +201,7 @@
             border-radius: 0.5rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: heartbeat 1.5s ease-in-out infinite;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -275,6 +264,31 @@
             height: 180px;
             border: none;
             border-radius: 0.5rem;
+        }
+        .support-button {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.7rem 1.3rem;
+            color: black;
+            font-style: italic;
+            font-weight: 400;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            z-index: 1000;
+        }
+        .support-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.3);
         }
         @media (min-width: 1024px) {
             .dashboard {
@@ -346,6 +360,10 @@
                 width: 100%;
                 text-align: center;
             }
+            .support-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.95rem;
+            }
         }
         @media (max-width: 480px) {
             .navbar {
@@ -382,13 +400,17 @@
             .video-container iframe {
                 height: 140px;
             }
+            .support-button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
     <nav class="navbar" id="navbar">
         <a href="index.html" class="logo">
-            <img src="../logo.png" alt="Peerloom">
+            <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
             <i class="fas fa-bars"></i>
@@ -415,10 +437,10 @@
             <div id="courseList">
                 <div class="card">
                     <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-book"></i> ENGL 101 - College Writing
+                        <i class="fas fa-book"></i> AI 101 - College Writing
                     </h4>
                     <div class="video-container">
-                        <iframe src="https://www.youtube.com/watch?v=2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                     </div>
                 </div>
                 <div class="card">
@@ -576,6 +598,11 @@
             </div>
         </div>
     </div>
+
+    <a href="support.html" class="support-button">
+        <i class="fas fa-headset"></i>
+        <span>Support</span>
+    </a>
 
     <script type="module">
         // Check if Tailwind loaded
@@ -738,7 +765,6 @@
             }
         }
 
-        // Group search handler (client-side filtering)
         function searchGroups() {
             try {
                 const query = document.getElementById('groupSearch').value.trim().toLowerCase();
@@ -753,7 +779,6 @@
             }
         }
 
-        // Connection search handler (client-side filtering)
         function searchConnections() {
             try {
                 const query = document.getElementById('connectionSearch').value.trim().toLowerCase();
@@ -818,7 +843,6 @@
             } catch (error) {
                 console.error("Fetch groups error:", error.message, error.stack);
                 alert("Error loading study groups. Showing default groups.");
-                // Fallback to default groups
                 document.getElementById('groupList').innerHTML = `
                     <div class="group-item" data-name="Writing Workshop">
                         <div class="avatar">W</div>
