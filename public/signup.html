@@ -11,9 +11,6 @@
     <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script> -->
     <link rel="stylesheet" href="style.css">
     <style>
         :root {
@@ -23,7 +20,6 @@
             --text-dark: #1f2937;
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
-            --transition: all 0.3s cubic-bezier(.4,0,.2,1);
         }
         body {
             background: linear-gradient(120deg, #f3e8ff 0%, #f8fafc 100%);
@@ -53,7 +49,11 @@
             width: 200%;
             height: 200%;
             background: conic-gradient(transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: rotate 10s linear infinite;
             z-index: -1;
+        }
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
         }
         .logo img {
             height: 38px;
@@ -128,13 +128,7 @@
             border-radius: 0.5rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
             width: 100%;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.3);
         }
         .support-button {
             position: fixed;
@@ -153,13 +147,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
             z-index: 1000;
-        }
-        .support-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.3);
         }
         @media (max-width: 480px) {
             .card {
@@ -191,6 +179,8 @@
     <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
         <form id="signupForm">
+            <input type="text" id="firstName" class="input-field" placeholder="First Name" required>
+            <input type="text" id="lastName" class="input-field" placeholder="Last Name" required>
             <input type="text" id="username" class="input-field" placeholder="Username" required>
             <input type="email" id="email" class="input-field" placeholder="Email" required>
             <input type="password" id="password" class="input-field" placeholder="Password" required>
@@ -205,62 +195,7 @@
         <span>Support</span>
     </a>
 
-    <!-- <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
-            authDomain: "campusconnect-48927.firebaseapp.com",
-            projectId: "campusconnect-48927",
-            storageBucket: "campusconnect-48927.appspot.com",
-            messagingSenderId: "252390549644",
-            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
-        };
-
-        try {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            console.log("Firebase initialized successfully");
-
-            document.getElementById('signupForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = document.getElementById('username').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const password = document.getElementById('password').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-
-                if (password !== confirmPassword) {
-                    alert("Passwords do not match.");
-                    return;
-                }
-
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-                    await setDoc(doc(db, "users", user.uid), {
-                        username,
-                        email,
-                        createdAt: new Date()
-                    });
-                    console.log("User signed up:", user.uid);
-                    alert("Sign up successful!");
-                    window.location.href = 'dashboard.html';
-                } catch (error) {
-                    console.error("Signup error:", error.message, error.stack);
-                    alert("Error signing up: " + error.message);
-                }
-            });
-        } catch (error) {
-            console.error("Firebase initialization error:", error.message, error.stack);
-            alert("Failed to initialize Firebase. Please try again later.");
-        }
-    </script> -->
-    <!-- Shared Supabase client -->
     <script type="module" src="js/supabaseClient.js"></script>
-        <!-- signup.html –– Supabase logic -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js'
 
@@ -269,38 +204,33 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault()
 
-            // ── Grab form values
-            const username        = document.getElementById('username').value.trim()
-            const email           = document.getElementById('email').value.trim()
-            const password        = document.getElementById('password').value
+            // Grab form values
+            const firstName = document.getElementById('firstName').value.trim()
+            const lastName = document.getElementById('lastName').value.trim()
+            const username = document.getElementById('username').value.trim()
+            const email = document.getElementById('email').value.trim()
+            const password = document.getElementById('password').value
             const confirmPassword = document.getElementById('confirmPassword').value
 
             if (password !== confirmPassword) {
-            return alert('Passwords do not match.')
+                return alert('Passwords do not match.')
             }
 
             /* 1 ── Create the auth user */
             const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options : { data: { username } }          // saved as user_metadata
+                email,
+                password,
+                options: { data: { firstName, lastName, username } }
             })
 
             if (error) {
-            console.error(error)
-            return alert(error.message)
+                console.error(error)
+                return alert(error.message)
             }
 
-            /* 2 ── OPTIONAL: normalised user‑profile row (requires table) */
-            // await supabase.from('profiles').insert({
-            //   id: data.user.id,      // same PK as auth.users
-            //   username
-            // })
-
-            alert('Sign‑up success! Check your inbox to verify, then log in.')
+            alert('Sign-up success! Check your inbox to verify, then log in.')
             window.location = 'login.html'
         })
     </script>
-
 </body>
 </html>
