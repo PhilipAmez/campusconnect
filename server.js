@@ -48,47 +48,47 @@ async function verifyFirebaseToken(req, res, next) {
 }
 
 
-// Create tables on startup
-const createTables = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      profile_pic TEXT,
-      badges TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+// // Create tables on startup
+// const createTables = async () => {
+//   await pool.query(`
+//     CREATE TABLE IF NOT EXISTS users (
+//       id SERIAL PRIMARY KEY,
+//       name TEXT NOT NULL,
+//       email TEXT UNIQUE NOT NULL,
+//       password TEXT NOT NULL,
+//       profile_pic TEXT,
+//       badges TEXT,
+//       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+//     );
+//   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS groups (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      course TEXT,
-      created_by INTEGER REFERENCES users(id),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+//   await pool.query(`
+//     CREATE TABLE IF NOT EXISTS groups (
+//       id SERIAL PRIMARY KEY,
+//       name TEXT NOT NULL,
+//       course TEXT,
+//       created_by INTEGER REFERENCES users(id),
+//       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+//     );
+//   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id SERIAL PRIMARY KEY,
-      group_id INTEGER REFERENCES groups(id),
-      sender_id INTEGER REFERENCES users(id),
-      text TEXT,
-      file_url TEXT,
-      file_name TEXT,
-      file_size INTEGER,
-      reply_to INTEGER,
-      edited BOOLEAN DEFAULT FALSE,
-      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-};
+//   await pool.query(`
+//     CREATE TABLE IF NOT EXISTS messages (
+//       id SERIAL PRIMARY KEY,
+//       group_id INTEGER REFERENCES groups(id),
+//       sender_id INTEGER REFERENCES users(id),
+//       text TEXT,
+//       file_url TEXT,
+//       file_name TEXT,
+//       file_size INTEGER,
+//       reply_to INTEGER,
+//       edited BOOLEAN DEFAULT FALSE,
+//       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+//     );
+//   `);
+// };
 
-createTables().then(() => console.log('✅ Tables ready')).catch(console.error);
+// createTables().then(() => console.log('✅ Tables ready')).catch(console.error);
 
 // Routes
 app.get('/', (req, res) => res.send('CampusConnect backend running!'));

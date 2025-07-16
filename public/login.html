@@ -262,7 +262,7 @@
         <span>Support</span>
     </a>
 
-    <script type="module">
+    <!-- <script type="module">
         // Import Firebase SDK
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
@@ -393,6 +393,40 @@
             console.error("Auth state change error:", error.message, error.stack);
             document.getElementById('errorMessage').textContent = "Authentication error. Please try again.";
         }
+    </script> -->
+    <!-- Shared Supabase client -->
+    <script type="module" src="js/supabaseClient.js"></script>
+    <!-- login.html –– Supabase logic -->
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js'
+
+        const form     = document.getElementById('loginForm')
+        const emailEl  = document.getElementById('username')   // reuse existing field
+        const passEl   = document.getElementById('password')
+        const errorEl  = document.getElementById('errorMessage')
+        const okEl     = document.getElementById('successMessage')
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            errorEl.textContent = okEl.textContent = ''
+
+            const email    = emailEl.value.trim()
+            const password = passEl.value
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+            if (error) {
+            errorEl.textContent = error.message
+            return
+            }
+            okEl.textContent = 'Login successful! Redirecting…'
+            window.location = 'dashboard.html'
+        })
+
+        // Auto‑redirect if already signed in
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) window.location = 'dashboard.html'
     </script>
+
 </body>
 </html>
