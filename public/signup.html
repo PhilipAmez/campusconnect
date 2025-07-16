@@ -20,6 +20,7 @@
             --text-dark: #1f2937;
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
+            --transition: all 0.3s cubic-bezier(.4,0,.2,1);
         }
         body {
             background: linear-gradient(120deg, #f3e8ff 0%, #f8fafc 100%);
@@ -49,7 +50,7 @@
             width: 200%;
             height: 200%;
             background: conic-gradient(transparent, rgba(255, 255, 255, 0.2), transparent);
-            animation: rotate 10s linear infinite;
+            animation: rotate 8s linear infinite;
             z-index: -1;
         }
         @keyframes rotate {
@@ -128,7 +129,14 @@
             border-radius: 0.5rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            animation: heartbeat 1.5s ease-in-out infinite;
             width: 100%;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.3);
         }
         .support-button {
             position: fixed;
@@ -147,7 +155,19 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            animation: heartbeat 1.5s ease-in-out infinite;
             z-index: 1000;
+        }
+        .support-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         @media (max-width: 480px) {
             .card {
@@ -205,18 +225,18 @@
             e.preventDefault()
 
             // Grab form values
-            const firstName = document.getElementById('firstName').value.trim()
-            const lastName = document.getElementById('lastName').value.trim()
-            const username = document.getElementById('username').value.trim()
-            const email = document.getElementById('email').value.trim()
-            const password = document.getElementById('password').value
+            const firstName       = document.getElementById('firstName').value.trim()
+            const lastName        = document.getElementById('lastName').value.trim()
+            const username        = document.getElementById('username').value.trim()
+            const email           = document.getElementById('email').value.trim()
+            const password        = document.getElementById('password').value
             const confirmPassword = document.getElementById('confirmPassword').value
 
             if (password !== confirmPassword) {
                 return alert('Passwords do not match.')
             }
 
-            /* 1 ── Create the auth user */
+            /* Create the auth user */
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
