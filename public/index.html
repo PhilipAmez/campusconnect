@@ -403,38 +403,38 @@
         }
 
         // Mobile nav toggle
-        try {
+        document.addEventListener('DOMContentLoaded', () => {
             const navToggle = document.getElementById('navToggle');
             const navLinksMobile = document.getElementById('navLinksMobile');
-            if (!navToggle || !navLinksMobile) {
-                throw new Error("Navigation elements not found");
-            }
-            navToggle.addEventListener('click', () => {
-                navLinksMobile.classList.toggle('show');
-            });
+            if (navToggle && navLinksMobile) {
+                navToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navLinksMobile.classList.toggle('show');
+                });
 
-            // Hide mobile nav when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-                    navLinksMobile.classList.remove('show');
-                }
-            });
-        } catch (error) {
-            console.error("Navigation toggle error:", error.message, error.stack);
-            alert("Error setting up navigation. Please try again.");
-        }
+                // Hide mobile nav when clicking outside or on a link
+                document.addEventListener('click', (e) => {
+                    if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
+                        navLinksMobile.classList.remove('show');
+                    }
+                });
+
+                // Ensure links inside mobile nav work without closing immediately
+                navLinksMobile.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        navLinksMobile.classList.remove('show');
+                    });
+                });
+            }
+        });
 
         // Add scroll effect to navbar
-        try {
-            window.addEventListener('scroll', () => {
-                const navbar = document.getElementById('navbar');
-                if (navbar) {
-                    navbar.classList.toggle('scrolled', window.scrollY > 50);
-                }
-            });
-        } catch (error) {
-            console.error("Navbar scroll effect error:", error.message, error.stack);
-        }
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (navbar) {
+                navbar.classList.toggle('scrolled', window.scrollY > 50);
+            }
+        });
     </script>
 </body>
 </html>
