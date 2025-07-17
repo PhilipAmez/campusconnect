@@ -1,139 +1,135 @@
-/*  dashboardGroups.js  */
+/* dashboardGroups.js – Active vs. Suggested lists */
 import { supabase } from './supabaseClient.js'
 
-/* ────────────────────────────────────────────────────────────── */
-/* Helpers                                                       */
-/* ────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────  DOM shortcuts  ───────────────────────────── */
+const activeEl    = document.getElementById('groupList')        // “Active Study Groups”
+const suggestedEl = document.getElementById('suggestedGroups')  // “Suggested Groups”
+const nameInput   = document.getElementById('groupName')
+const courseInput = document.getElementById('groupCourse')
 
-const groupListEl  = document.getElementById('groupList')
-const createBtn    = document.querySelector('button[onclick="createGroup()"]')  // already in HTML
-const groupNameEl  = document.getElementById('groupName')
-const groupCourseEl= document.getElementById('groupCourse')
+const esc = (s = '') => s.replace(/[&<>'"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 
-function escapeHTML (str = '') {
-  return str.replace(/[&<>'"]/g, c => (
-    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
-  ))
-}
-
-/* ────────────────────────────────────────────────────────────── */
-/* Load & render public groups                                   */
-/* ────────────────────────────────────────────────────────────── */
-
+/* ─────────────────────────────  Load & render  ───────────────────────────── */
 export async function loadGroups () {
-  const { data: groups, error } = await supabase
-      .from('groups')
-      .select('id, name, course_code')
-      .order('created_at', { ascending: false })
+  /* 1. signed‑in user & memberships */
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) { window.location = 'login.html'; return }
 
-  if (error) {
-    console.error(error)
-    groupListEl.innerHTML = `<p class="text-red-600">Error loading groups</p>`
-    return
+  const { data: memberships, error: mErr } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id)
+
+  if (mErr) { console.error(mErr); return }
+
+  const myGroupIds = memberships.map(m => m.group_id)
+
+  /* 2. fetch the two sets in parallel */
+  const [activeRes, suggestedRes] = await Promise.all([
+    // Active (= member)
+    supabase.from('groups')
+            .select('id, name, course_code')
+            .in('id', myGroupIds)
+            .order('created_at', { ascending: false }),
+
+    // Suggested : public AND not in myGroupIds
+    supabase.from('groups')
+            .select('id, name, course_code')
+            .eq('is_public', true)
+            .not('id', 'in', `(${myGroupIds.join(',') || 0})`)   // 0 → empty list safe‑guard
+            .order('created_at', { ascending: false })
+  ])
+
+  const { data: active,   error: aErr } = activeRes
+  const { data: suggest,  error: sErr } = suggestedRes
+  if (aErr || sErr) { console.error(aErr || sErr); return }
+
+  /* 3. render helpers */
+  const render = (parent, list, btnLabel) => {
+    parent.innerHTML = list.length
+      ? ''
+      : `<p class="text-gray-500">Nothing to show yet.</p>`
+
+    list.forEach(g => {
+      const div = document.createElement('div')
+      div.className =
+        'group-item flex items-center gap-4 px-2 py-2 rounded-lg hover:bg-purple-50'
+      div.innerHTML = `
+        <div class="avatar">${esc(g.name[0].toUpperCase())}</div>
+        <div class="min-w-0">
+           <p class="font-semibold text-gray-800 truncate">${esc(g.name)}</p>
+           <p class="text-gray-600 text-sm">${esc(g.course_code)}</p>
+        </div>
+        <button class="btn ml-auto"
+                onclick="${btnLabel === 'Open'
+                   ? `openGroup('${g.id}')`
+                   : `joinGroup('${g.id}')`}">
+          ${btnLabel}
+        </button>`
+      parent.appendChild(div)
+    })
   }
 
-  // clear and rebuild
-  groupListEl.innerHTML = ''
-  groups.forEach(g => {
-    const div = document.createElement('div')
-    div.className = 'group-item flex items-center gap-4 rounded-lg hover:bg-purple-50 px-2 py-2'
-
-    div.innerHTML = `
-      <div class="avatar">${escapeHTML(g.name.charAt(0).toUpperCase())}</div>
-      <div class="min-w-0">
-        <p class="font-semibold text-gray-800 truncate">${escapeHTML(g.name)}</p>
-        <p class="text-gray-600 text-sm">${escapeHTML(g.course_code)}</p>
-      </div>
-      <button class="btn ml-auto" onclick="joinGroup('${g.id}')">Join</button>
-    `
-    groupListEl.appendChild(div)
-  })
+  render(activeEl,    active,   'Open')
+  render(suggestedEl, suggest,  'Join')
 }
 
-/* ────────────────────────────────────────────────────────────── */
-/* Create a public group (single admin)                          */
-/* ────────────────────────────────────────────────────────────── */
+/* ───────────────────────────  Create new group  ─────────────────────────── */
+window.createGroup = async () => {
+  const name   = nameInput.value.trim()
+  const course = courseInput.value
+  if (!name || !course) return alert('Fill in both fields')
 
-window.createGroup = async function createGroup () {
-  const name   = groupNameEl.value.trim()
-  const course = groupCourseEl.value.trim()
-  if (!name || !course) return alert('Please supply both a group name and course.')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return alert('Not signed in')
 
-  const user   = (await supabase.auth.getUser()).data.user
-  if (!user)   return alert('Not signed in')
-
-  // 1) create group
-  const { data: g, error: err1 } = await supabase
+  const { data: grp, error } = await supabase
         .from('groups')
         .insert({
           name,
-          course_code: course,
-          created_by: user.id,
-          is_public : true
+          course_code : course,
+          created_by  : user.id,
+          is_public   : true
         })
         .select()
         .single()
 
-  if (err1) {
-    console.error(err1)
-    return alert(err1.message)
-  }
+  if (error) { console.error(error); return alert(error.message) }
 
-  // 2) insert admin membership
-  const { error: err2 } = await supabase
-        .from('group_members')
-        .insert({
-          group_id : g.id,
-          user_id  : user.id,
-          role     : 'admin'
-        })
+  // Make creator admin‑member
+  await supabase.from('group_members')
+                .insert({ group_id: grp.id, user_id: user.id, role: 'admin' })
 
-  if (err2) {               // rare, but roll back if needed
-    await supabase.from('groups').delete().eq('id', g.id)
-    console.error(err2)
-    return alert(err2.message)
-  }
-
-  // UI feedback
-  groupNameEl.value = ''
-  groupCourseEl.value = ''
-  alert('Group created!')
+  nameInput.value   = ''
+  courseInput.value = ''
   loadGroups()
 }
 
-/* ────────────────────────────────────────────────────────────── */
-/* Join (or open) group                                          */
-/* ────────────────────────────────────────────────────────────── */
-
-window.joinGroup = async function joinGroup (groupId) {
-  const user = (await supabase.auth.getUser()).data.user
+/* ───────────────────────────  Join & Open group  ─────────────────────────── */
+window.joinGroup = async (groupId) => {
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return alert('Please log in')
 
-  /* Insert membership; ignore “duplicate‑key” error if already a member */
-//   const { error } = await supabase
-//         .from('group_members')
-//         .insert({ group_id: groupId, user_id: user.id, role: 'member' }, { onConflict: 'group_id,user_id' })
-
-//   if (error && error.code !== '23505') {   // 23505 = unique_violation
-//     console.error(error)
-//     return alert(error.message)
-//   }
-
-  // Redirect to chatroom
+  await supabase
+        .from('group_members')
+        .upsert(
+          { group_id: groupId, user_id: user.id, role: 'member' },
+          { onConflict: 'group_id,user_id', ignoreDuplicates: true }
+        )
   window.location = `chatroom.html?groupId=${groupId}`
 }
 
-/* ────────────────────────────────────────────────────────────── */
-/* Live refresh using Realtime                                   */
-/* ────────────────────────────────────────────────────────────── */
+window.openGroup = (groupId) =>
+  window.location = `chatroom.html?groupId=${groupId}`
 
-loadGroups()   // initial load
+/* ───────────────────────────  Live refresh  ─────────────────────────────── */
+loadGroups()  // initial
 
 supabase
-  .channel('public-groups')
-  .on(
-     'postgres_changes',
-     { event: '*', schema: 'public', table: 'groups' },
-     payload => loadGroups()             // re‑render on insert/update/delete
-  )
+  .channel('dash-groups')
+  .on('postgres_changes',
+      { event:'*', schema:'public', table:'groups'       }, loadGroups)
+  .on('postgres_changes',
+      { event:'*', schema:'public', table:'group_members'}, loadGroups)
   .subscribe()

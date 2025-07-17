@@ -195,7 +195,20 @@
         .typing-notice {
             font-style: italic;
         }
+        /* prettier chat bubbles */
+        .bubble.mine   { background: linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;
+                        margin-left:auto; animation:slideL .15s ease-out; }
+        .bubble.theirs { background:#e5e7eb; color:#1f2937;
+                        margin-right:auto; animation:slideR .15s ease-out; }
+
+        @keyframes slideL { from{transform:translateX(30px);opacity:0} to{opacity:1} }
+        @keyframes slideR { from{transform:translateX(-30px);opacity:0} to{opacity:1} }
+
+        /* scroll container a bit taller & softer */
+        #chatBody { height: 70vh; overscroll-behavior: contain; padding-bottom:4rem; }
+
     </style>
+
 </head>
 <body data-theme="light">
     <div class="container max-w-3xl mx-auto p-4">
@@ -227,99 +240,81 @@
     <script type="module" src="js/supabaseClient.js"></script>
 
     <!-- chatroom.html – Supabase chat logic -->
+    <!-- chatroom.html – Supabase chat logic -->
     <script type="module">
-    import { supabase } from './js/supabaseClient.js'
+        import { supabase } from './js/supabaseClient.js'
 
-    /* ──────────────────────────────────────────────────────────────
-    1.  Basic helpers
-    ────────────────────────────────────────────────────────────────*/
-    const $       = (id) => document.getElementById(id)
-    const qs      = new URLSearchParams(window.location.search)
-    const groupId = qs.get('groupId')                  // ?groupId=…
-    if (!groupId) {
-    alert('No groupId provided in URL'); history.back()
-    }
+        /* ───────────────  tiny helpers  ─────────────── */
+        const $  = id => document.getElementById(id)
+        const qs = new URLSearchParams(location.search)
+        const groupId = qs.get('groupId')
+        if (!groupId) { alert('Missing groupId'); history.back(); }
 
-    /* ──────────────────────────────────────────────────────────────
-    2.  Get current user (redirect to login if not authenticated)
-    ────────────────────────────────────────────────────────────────*/
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) { window.location = 'login.html' }
-    const user = session.user
-    const username = user.user_metadata?.username ?? 'Anon'
+        const { data:{ session } } = await supabase.auth.getSession()
+        if (!session) location = 'login.html'
+        const user      = session.user
+        const fullName  = [user.user_metadata.firstName, user.user_metadata.lastName]
+                        .filter(Boolean).join(' ') || 'Anon'
 
-    /* ──────────────────────────────────────────────────────────────
-    3.  Fetch group details & populate header
-    ────────────────────────────────────────────────────────────────*/
-    const { data: group, error: groupErr } =
-       await supabase.from('groups').select('name').eq('id', groupId).single()
+        /* ───────────────  group header  ─────────────── */
+        const { data: grp } = await supabase
+            .from('groups').select('name').eq('id', groupId).single()
+        if (!grp) { alert('Group not found'); history.back(); }
+        $('groupName').textContent    = grp.name
+        $('groupDetails').textContent = grp.description ?? 'Public group'
 
-    if (groupErr || !group) { alert('Group not found'); history.back() }
-    $('groupName').textContent    = group.name
-    $('groupDetails').textContent = group.description ?? 'Public group'
+        /* ───────────────  render helper  ─────────────── */
+        const chatBody = $('chatBody')
+        function render (m) {
+        const self = m.sender_id === user.id
+        const bubble = document.createElement('div')
+        bubble.className =
+            `bubble ${self ? 'mine' : 'theirs'} flex flex-col max-w-[80%] rounded-lg p-2 mb-2`
+        bubble.innerHTML = `
+            <span class="sender font-semibold ${self?'text-purple-100':'text-purple-700'}">
+            ${m.sender_name ?? 'Unknown'}
+            </span>
+            <span class="content break-words">${m.content}</span>
+            <span class="stamp text-xs text-gray-400 self-end mt-1">
+            ${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+            </span>`
+        chatBody.appendChild(bubble)
+        chatBody.scrollTop = chatBody.scrollHeight
+        }
 
-    /* ──────────────────────────────────────────────────────────────
-    4.  Load existing messages
-    ────────────────────────────────────────────────────────────────*/
-    const chatBody = $('chatBody')
+        /* ───────────────  history  ─────────────── */
+        const { data: history } = await supabase
+            .from('group_messages')
+            .select('*').eq('group_id', groupId).order('created_at')
+        history?.forEach(render)
 
-    function renderMessage (msg) {
-    const div       = document.createElement('div')
-    div.className   = `message ${msg.user_id === user.id ? 'sent' : 'received'}`
-    div.innerHTML   = `<strong>${msg.first_name}:</strong> ${msg.content}`
-    chatBody.appendChild(div)
-    chatBody.scrollTop = chatBody.scrollHeight   // auto‑scroll
-    }
+        /* ───────────────  realtime  ─────────────── */
+        supabase.channel('grp_'+groupId)
+        .on('postgres_changes',
+            { event:'INSERT', schema:'public', table:'group_messages', filter:`group_id=eq.${groupId}` },
+            ({ new: m }) => render(m))
+        .subscribe()
 
-    const { data: chatHistory } = await supabase
-    .from('group_messages')
-    .select('*')
-    .eq('group_id', groupId)
-    .order('created_at', { ascending: true })
+        /* ───────────────  send message  ─────────────── */
+        window.sendMessage = async () => {
+        const content = $('chatMessage').value.trim()
+        if (!content) return
+        const { error } = await supabase.from('group_messages').insert({
+            group_id: groupId,          // FK
+            sender_id   : user.id,
+            sender_name : fullName,
+            content
+        })
+        if (error) { console.error(error); alert(error.message) }
+        $('chatMessage').value = ''
+        }
 
-    chatHistory?.forEach(renderMessage)
-
-    /* ──────────────────────────────────────────────────────────────
-    5.  Subscribe for new messages in this group
-    ────────────────────────────────────────────────────────────────*/
-    supabase
-    .channel('grp_'+groupId)
-    .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` },
-        payload => renderMessage(payload.new)
-    )
-    .subscribe()
-
-    /* ──────────────────────────────────────────────────────────────
-    6.  Send a message
-    ────────────────────────────────────────────────────────────────*/
-    async function sendMessage () {
-    const content = $('chatMessage').value.trim()
-    if (!content) return
-
-    const { error } = await supabase.from('group_messages').insert({
-        group_id : groupId,
-        sender_id  : user.id,
-        content
-    })
-    if (error) { console.error(error); alert(error.message) }
-    $('chatMessage').value = ''
-    }
-
-    window.sendMessage = sendMessage   // expose to inline onclick
-
-    /* ──────────────────────────────────────────────────────────────
-    7.  (Optional) file‑upload stub
-    ────────────────────────────────────────────────────────────────*/
-    $('fileUpload').addEventListener('change', async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    // TODO: 1) upload to Supabase Storage  2) insert file_url into messages
-    alert('File upload coming soon 😊')
-    e.target.value = ''
-    })
+        /* (optional) file upload stub untouched */
+        $('fileUpload').addEventListener('change', e => {
+        alert('File upload coming soon 🙂'); e.target.value = ''
+        })
     </script>
+
 
 </body>
 </html>
