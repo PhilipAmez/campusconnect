@@ -191,7 +191,10 @@
     <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
         <form id="signupForm">
-            <input type="text" id="username" class="input-field" placeholder="Username" required>
+            <!-- <input type="text" id="username" class="input-field" placeholder="Username" required> -->
+            <input type="text" id="firstName" class="input-field" placeholder="First name"  required>
+            <input type="text" id="lastName"  class="input-field" placeholder="Last name"   required>
+            <input type="tel"  id="contact"   class="input-field" placeholder="Contact ‑ phone or WhatsApp" required>
             <input type="email" id="email" class="input-field" placeholder="Email" required>
             <input type="password" id="password" class="input-field" placeholder="Password" required>
             <input type="password" id="confirmPassword" class="input-field" placeholder="Confirm Password" required>
@@ -205,59 +208,7 @@
         <span>Support</span>
     </a>
 
-    <!-- <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
-            authDomain: "campusconnect-48927.firebaseapp.com",
-            projectId: "campusconnect-48927",
-            storageBucket: "campusconnect-48927.appspot.com",
-            messagingSenderId: "252390549644",
-            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
-        };
-
-        try {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            console.log("Firebase initialized successfully");
-
-            document.getElementById('signupForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = document.getElementById('username').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const password = document.getElementById('password').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-
-                if (password !== confirmPassword) {
-                    alert("Passwords do not match.");
-                    return;
-                }
-
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-                    await setDoc(doc(db, "users", user.uid), {
-                        username,
-                        email,
-                        createdAt: new Date()
-                    });
-                    console.log("User signed up:", user.uid);
-                    alert("Sign up successful!");
-                    window.location.href = 'dashboard.html';
-                } catch (error) {
-                    console.error("Signup error:", error.message, error.stack);
-                    alert("Error signing up: " + error.message);
-                }
-            });
-        } catch (error) {
-            console.error("Firebase initialization error:", error.message, error.stack);
-            alert("Failed to initialize Firebase. Please try again later.");
-        }
-    </script> -->
+    
     <!-- Shared Supabase client -->
     <script type="module" src="js/supabaseClient.js"></script>
         <!-- signup.html –– Supabase logic -->
@@ -270,7 +221,10 @@
             e.preventDefault()
 
             // ── Grab form values
-            const username        = document.getElementById('username').value.trim()
+            // const username        = document.getElementById('username').value.trim()
+            const firstName       = document.getElementById('firstName').value.trim()
+            const lastName        = document.getElementById('lastName').value.trim()
+            const contact         = document.getElementById('contact').value.trim()
             const email           = document.getElementById('email').value.trim()
             const password        = document.getElementById('password').value
             const confirmPassword = document.getElementById('confirmPassword').value
@@ -281,9 +235,16 @@
 
             /* 1 ── Create the auth user */
             const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options : { data: { username } }          // saved as user_metadata
+                email,
+                password,
+                options : { 
+                    data: {                  // <── everything here lands in auth.users.user_metadata
+                        //username,
+                        firstName,
+                        lastName,
+                        contact
+                    } 
+                }          // saved as user_metadata
             })
 
             if (error) {

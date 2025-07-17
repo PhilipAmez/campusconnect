@@ -223,125 +223,103 @@
             <button onclick="sendMessage()">Send</button>
         </div>
     </div>
+    <!-- shared client -->
+    <script type="module" src="js/supabaseClient.js"></script>
 
-    <!-- <script type="module">
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
-            authDomain: "campusconnect-48927.firebaseapp.com",
-            projectId: "campusconnect-48927",
-            storageBucket: "campusconnect-48927.appspot.com",
-            messagingSenderId: "252390549644",
-            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
-        };
+    <!-- chatroom.html – Supabase chat logic -->
+    <script type="module">
+    import { supabase } from './js/supabaseClient.js'
 
-        // Initialize Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-            console.log("Firebase initialized successfully");
-        } catch (error) {
-            console.error("Error initializing Firebase:", error);
-            document.getElementById('errorMessage').classList.remove('hidden');
-            document.getElementById('errorMessage').textContent = 'Error initializing Firebase.';
-        }
+    /* ──────────────────────────────────────────────────────────────
+    1.  Basic helpers
+    ────────────────────────────────────────────────────────────────*/
+    const $       = (id) => document.getElementById(id)
+    const qs      = new URLSearchParams(window.location.search)
+    const groupId = qs.get('groupId')                  // ?groupId=…
+    if (!groupId) {
+    alert('No groupId provided in URL'); history.back()
+    }
 
-        // Socket.IO setup
-        const API_URL = 'https://campusconnect-omep.onrender.com';
-        const socket = io(API_URL);
-        let currentUserId = null;
+    /* ──────────────────────────────────────────────────────────────
+    2.  Get current user (redirect to login if not authenticated)
+    ────────────────────────────────────────────────────────────────*/
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) { window.location = 'login.html' }
+    const user = session.user
+    const username = user.user_metadata?.username ?? 'Anon'
 
-        // Get current user ID from Firebase Auth
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                currentUserId = user.uid;
-                console.log("User ID:", currentUserId);
-            } else {
-                console.error("No user is signed in.");
-                document.getElementById('errorMessage').classList.remove('hidden');
-                document.getElementById('errorMessage').textContent = 'Please log in to access the chat.';
-            }
-        });
+    /* ──────────────────────────────────────────────────────────────
+    3.  Fetch group details & populate header
+    ────────────────────────────────────────────────────────────────*/
+    const { data: group, error: groupErr } =
+       await supabase.from('groups').select('name').eq('id', groupId).single()
 
-        const groupId = new URLSearchParams(window.location.search).get('groupId');
+    if (groupErr || !group) { alert('Group not found'); history.back() }
+    $('groupName').textContent    = group.name
+    $('groupDetails').textContent = group.description ?? 'Public group'
 
-        function renderMessage(msg) {
-            const div = document.createElement('div');
-            div.className = `message ${msg.sender_id === currentUserId ? 'sent' : 'received'}`;
-            div.textContent = `${msg.text} (${new Date(msg.timestamp).toLocaleTimeString()})`;
-            document.getElementById('chatBody').appendChild(div);
-        }
+    /* ──────────────────────────────────────────────────────────────
+    4.  Load existing messages
+    ────────────────────────────────────────────────────────────────*/
+    const chatBody = $('chatBody')
 
-        async function loadMessages() {
-            try {
-                const res = await fetch(`${API_URL}/messages/${groupId}`);
-                if (!res.ok) throw new Error('Failed to fetch messages');
-                const msgs = await res.json();
-                document.getElementById('chatBody').innerHTML = '';
-                msgs.forEach(renderMessage);
-            } catch (error) {
-                console.error('Error loading messages:', error);
-                document.getElementById('errorMessage').classList.remove('hidden');
-                document.getElementById('errorMessage').textContent = 'Error loading messages.';
-            }
-        }
+    function renderMessage (msg) {
+    const div       = document.createElement('div')
+    div.className   = `message ${msg.user_id === user.id ? 'sent' : 'received'}`
+    div.innerHTML   = `<strong>${msg.first_name}:</strong> ${msg.content}`
+    chatBody.appendChild(div)
+    chatBody.scrollTop = chatBody.scrollHeight   // auto‑scroll
+    }
 
-        async function sendMessage() {
-            if (!currentUserId) {
-                document.getElementById('errorMessage').classList.remove('hidden');
-                document.getElementById('errorMessage').textContent = 'Please log in to send messages.';
-                return;
-            }
-            const text = document.getElementById('chatMessage').value.trim();
-            if (!text) return;
+    const { data: chatHistory } = await supabase
+    .from('group_messages')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('created_at', { ascending: true })
 
-            try {
-                const res = await fetch(`${API_URL}/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        group_id: groupId,
-                        sender_id: currentUserId,
-                        text
-                    })
-                });
-                if (!res.ok) throw new Error('Failed to send message');
-                const msg = await res.json();
-                socket.emit('new_message', msg);
-                renderMessage(msg);
-                document.getElementById('chatMessage').value = '';
-                document.getElementById('successMessage').classList.remove('hidden');
-                document.getElementById('successMessage').textContent = 'Message sent successfully!';
-                setTimeout(() => {
-                    document.getElementById('successMessage').classList.add('hidden');
-                }, 3000);
-            } catch (error) {
-                console.error('Error sending message:', error);
-                document.getElementById('errorMessage').classList.remove('hidden');
-                document.getElementById('errorMessage').textContent = 'Error sending message.';
-            }
-        }
+    chatHistory?.forEach(renderMessage)
 
-        socket.on('connect', () => socket.emit('join_group', groupId));
-        socket.on('new_message', (msg) => {
-            if (msg.group_id == groupId) renderMessage(msg);
-        });
+    /* ──────────────────────────────────────────────────────────────
+    5.  Subscribe for new messages in this group
+    ────────────────────────────────────────────────────────────────*/
+    supabase
+    .channel('grp_'+groupId)
+    .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` },
+        payload => renderMessage(payload.new)
+    )
+    .subscribe()
 
-        // Theme toggle function
-        function toggleTheme() {
-            const body = document.body;
-            const themeIcon = document.getElementById('themeIcon');
-            if (body.getAttribute('data-theme') === 'light') {
-                body.setAttribute('data-theme', 'dark');
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            } else {
-                body.setAttribute('data-theme', 'light');
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-            }
-        }
+    /* ──────────────────────────────────────────────────────────────
+    6.  Send a message
+    ────────────────────────────────────────────────────────────────*/
+    async function sendMessage () {
+    const content = $('chatMessage').value.trim()
+    if (!content) return
 
-        window.onload = loadMessages;
-    </script> -->
+    const { error } = await supabase.from('group_messages').insert({
+        group_id : groupId,
+        sender_id  : user.id,
+        content
+    })
+    if (error) { console.error(error); alert(error.message) }
+    $('chatMessage').value = ''
+    }
+
+    window.sendMessage = sendMessage   // expose to inline onclick
+
+    /* ──────────────────────────────────────────────────────────────
+    7.  (Optional) file‑upload stub
+    ────────────────────────────────────────────────────────────────*/
+    $('fileUpload').addEventListener('change', async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    // TODO: 1) upload to Supabase Storage  2) insert file_url into messages
+    alert('File upload coming soon 😊')
+    e.target.value = ''
+    })
+    </script>
+
 </body>
 </html>
