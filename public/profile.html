@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Profile - CourseConnect</title>
+    <title>My Profile - Peerloom</title>
     <link rel="icon" href="favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -11,16 +11,14 @@
     <link rel="manifest" href="/site.webmanifest" />
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
     <style>
         :root {
-            --primary: #7c3aed;
-            --secondary: #4f46e5;
-            --text-dark: #1f2937;
-            --text-light: #64748b;
-            --hover-bg: rgba(243, 244, 246, 0.8);
-            --accent: #10b981;
+            --primary: #6b46c1;
+            --secondary: #4a2ab1;
+            --text-dark: #1a202c;
+            --text-light: #718096;
+            --hover-bg: rgba(255, 255, 255, 0.1);
+            --accent: #38a169;
             --transition: all 0.3s ease;
         }
 
@@ -32,8 +30,9 @@
         }
 
         body {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 244, 246, 0.95));
+            background: linear-gradient(135deg, #e2e8f0, #edf2f7);
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .navbar {
@@ -42,7 +41,7 @@
             top: 0;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
+            padding: 0.75rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -56,7 +55,7 @@
         }
 
         .logo img {
-            height: 40px;
+            height: 32px;
             transition: transform 0.3s ease;
         }
 
@@ -66,13 +65,14 @@
 
         .nav-links {
             display: flex;
-            gap: 2rem;
+            gap: 1rem;
         }
 
         .nav-link {
             color: var(--text-dark);
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.9rem;
             position: relative;
             transition: color 0.3s ease;
             display: flex;
@@ -100,8 +100,8 @@
         }
 
         .profile-container {
-            max-width: 900px;
-            margin: 100px auto 40px;
+            max-width: 650px;
+            margin: 80px auto 20px;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 1.5rem;
@@ -116,28 +116,8 @@
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
         }
 
-        .profile-container::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(
-                transparent,
-                rgba(124, 58, 237, 0.2),
-                transparent
-            );
-            animation: rotate 8s linear infinite;
-            z-index: -1;
-        }
-
-        @keyframes rotate {
-            100% { transform: rotate(360deg); }
-        }
-
         .profile-cover {
-            height: 200px;
+            height: 150px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             position: relative;
             overflow: hidden;
@@ -150,31 +130,31 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: conic-gradient(
-                transparent,
-                rgba(255, 255, 255, 0.2),
-                transparent
-            );
-            animation: rotate 10s linear infinite;
+            background: conic-gradient(transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: rotate 8s linear infinite;
             z-index: 0;
         }
 
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+
         .profile-avatar {
-            width: 140px;
-            height: 140px;
+            width: 90px;
+            height: 90px;
             background: var(--primary);
             border-radius: 50%;
-            border: 6px solid rgba(255, 255, 255, 0.95);
+            border: 4px solid rgba(255, 255, 255, 0.95);
             position: absolute;
-            bottom: -70px;
-            left: 40px;
+            bottom: -45px;
+            left: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 60px;
+            font-size: 36px;
             color: white;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease;
         }
 
@@ -183,55 +163,65 @@
         }
 
         .profile-content {
-            padding: 2rem 3rem 3rem;
-            margin-top: 60px;
+            padding: 2rem 2.5rem 2rem;
+            margin-top: 50px;
         }
 
         .profile-header {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 2rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-avatar-container {
+            margin-right: 1.5rem;
+        }
+
+        .profile-identity {
+            flex-grow: 1;
         }
 
         .profile-identity h1 {
             margin: 0;
-            font-size: 2.2rem;
+            font-size: 2rem;
             color: var(--text-dark);
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .profile-course {
-            font-size: 1.2rem;
-            color: var(--primary);
-            font-weight: 500;
-            margin-left: 0.5rem;
+        .profile-details {
+            color: var(--text-light);
+            margin-top: 0.3rem;
         }
 
-        .profile-index {
-            font-size: 1rem;
-            color: var(--text-light);
-            margin-top: 0.25rem;
+        .profile-buttons {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
         }
 
         .btn {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border: none;
+            font-style: italic;
+            font-weight: 400;
+            color: black;
+            padding: 0.7rem 1.4rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
-            font-weight: 600;
-            transition: var(--transition);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
             position: relative;
             overflow: hidden;
+            font-size: 0.95rem;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .btn::after {
@@ -241,8 +231,10 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.2);
-            transition: all 0.4s ease;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0.1) 100%);
+            transform: skewX(-20deg);
+            transition: left 0.6s ease;
+            pointer-events: none;
         }
 
         .btn:hover::after {
@@ -250,7 +242,7 @@
         }
 
         .bio-section {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .bio-display {
@@ -265,7 +257,7 @@
         }
 
         .bio-display:hover {
-            background: rgba(243, 244, 246, 0.9);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .bio-edit {
@@ -284,68 +276,257 @@
         .bio-edit:focus {
             border-color: var(--primary);
             outline: none;
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+            box-shadow: 0 0 0 4px rgba(107, 70, 193, 0.1);
             transform: scale(1.02);
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            padding-top: 2rem;
-            border-top: 1px solid #e5e7eb;
+            gap: 0.8rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .stats-grid::after {
+            content: '';
+            display: block;
+            clear: both;
         }
 
         .stat-card {
             text-align: center;
-            padding: 1rem;
-            border-radius: 0.75rem;
+            padding: 0.7rem 1.4rem;
+            border-radius: 0.5rem;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             transition: var(--transition);
             position: relative;
-            overflow: hidden;
+            border-radius: 0.5rem !important; /* Override any circular styling */
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(
-                transparent,
-                rgba(124, 58, 237, 0.1),
-                transparent
-            );
-            animation: rotate 10s linear infinite;
-            z-index: -1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         .stat-number {
-            font-size: 1.8rem;
+            font-size: 1.2rem;
             color: var(--accent);
             font-weight: bold;
         }
 
         .stat-label {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-light);
-            margin-top: 0.25rem;
+            margin-top: 0.2rem;
+        }
+
+        .settings-panel {
+            display: none;
+            max-width: 650px;
+            margin: 1rem auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            position: relative;
+        }
+
+        .setting-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-group h3 {
+            color: var(--text-dark);
+            font-size: 1.2rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.7rem 1.4rem;
+            background: var(--hover-bg);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .setting-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .setting-toggle {
+            cursor: pointer;
+        }
+
+        .support-button {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.7rem 1.4rem;
+            color: black;
+            font-style: italic;
+            font-weight: 400;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            z-index: 1000;
+            font-size: 0.95rem;
+            overflow: hidden;
+            min-width: 120px;
+        }
+
+        .support-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.45);
+        }
+
+        .support-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0.25) 100%);
+            transform: skewX(-20deg);
+            transition: left 0.6s ease;
+            pointer-events: none;
+        }
+
+        .support-button:hover::after {
+            left: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .profile-container, .settings-panel {
+                max-width: 90%;
+                margin: 70px auto 15px;
+            }
+            .profile-cover {
+                height: 120px;
+            }
+            .profile-avatar {
+                width: 80px;
+                height: 80px;
+                bottom: -40px;
+                left: 20px;
+                font-size: 32px;
+                border: 4px solid rgba(255, 255, 255, 0.95);
+            }
+            .profile-content, .settings-panel {
+                padding: 1.5rem 2rem;
+                margin-top: 40px;
+            }
+            .profile-identity h1 {
+                font-size: 1.7rem;
+            }
+            .profile-details {
+                font-size: 0.9rem;
+            }
+            .btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.8rem;
+            }
+            .stat-number {
+                font-size: 1.1rem;
+            }
+            .stat-label {
+                font-size: 0.8rem;
+            }
+            .support-button {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+                min-width: 110px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            .logo img {
+                height: 28px;
+            }
+            .nav-link {
+                font-size: 0.8rem;
+                gap: 0.3rem;
+            }
+            .profile-container, .settings-panel {
+                max-width: 95%;
+                margin: 60px auto 10px;
+            }
+            .profile-cover {
+                height: 100px;
+            }
+            .profile-avatar {
+                width: 70px;
+                height: 70px;
+                bottom: -35px;
+                left: 15px;
+                font-size: 28px;
+                border: 3px solid rgba(255, 255, 255, 0.95);
+            }
+            .profile-content, .settings-panel {
+                padding: 1.2rem;
+                margin-top: 30px;
+            }
+            .profile-identity h1 {
+                font-size: 1.5rem;
+            }
+            .profile-details {
+                font-size: 0.85rem;
+            }
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 0.6rem;
+            }
+            .stat-number {
+                font-size: 1rem;
+            }
+            .stat-label {
+                font-size: 0.75rem;
+            }
+            .support-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+                min-width: 100px;
+            }
+            .setting-group h3 {
+                font-size: 1.1rem;
+            }
+            .setting-item {
+                padding: 0.5rem 1rem;
+            }
         }
     </style>
 </head>
 <body>
     <nav class="navbar" id="navbar">
         <a href="index.html" class="logo">
-            <img src="logo.png" alt="CourseConnect">
+            <img src="logo.png" alt="Peerloom">
         </a>
         <div class="nav-links">
             <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
@@ -359,37 +540,203 @@
         </div>
         <div class="profile-content">
             <div class="profile-header">
-                <div class="profile-identity">
-                    <h1 id="userName" class="flex items-center gap-2">
-                        <i class="fas fa-user-circle"></i>
-                    </h1>
-                    <span class="profile-course" id="userCourse"></span>
-                    <div class="profile-index" id="userIndex"></div>
+                <div class="profile-avatar-container">
+                    <!-- Removed duplicate avatar -->
                 </div>
-                <button class="btn" id="editBioBtn"><i class="fas fa-edit"></i> Edit Bio</button>
-                <button class="btn" id="saveBioBtn" style="display: none;"><i class="fas fa-save"></i> Save Bio</button>
+                <div class="profile-identity">
+                    <h1 id="userName"></h1>
+                    <div class="profile-details" id="userDetails"></div>
+                </div>
+                <div class="profile-buttons">
+                    <button class="btn" id="editProfileBtn"><i class="fas fa-edit"></i> Edit Profile</button>
+                    <button class="btn" id="settingsBtn"><i class="fas fa-cog"></i> Settings</button>
+                </div>
             </div>
             <div class="bio-section">
                 <p class="bio-display" id="bioDisplay"></p>
-                <textarea class="bio-edit" id="bioEdit" placeholder="Tell the world about yourself..."></textarea>
+                <textarea class="bio-edit" id="bioEdit" placeholder="Tell us about yourself..."></textarea>
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-number" id="groupsCount">0</div>
-                    <div class="stat-label">Study Groups</div>
+                    <div class="stat-number" id="postsCount"></div>
+                    <div class="stat-label">Posts</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="connectionsCount">0</div>
-                    <div class="stat-label">Connections</div>
+                    <div class="stat-number" id="friendsCount"></div>
+                    <div class="stat-label">Friends</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="sinceDate"></div>
-                    <div class="stat-label">Member Since</div>
+                    <div class="stat-number" id="joinedDate"></div>
+                    <div class="stat-label">Joined</div>
                 </div>
             </div>
         </div>
     </div>
 
-   
+    <div class="settings-panel" id="settingsPanel">
+        <h2 class="text-2xl font-bold text-text-dark mb-4">Settings</h2>
+        <div class="setting-group">
+            <h3>Privacy</h3>
+            <div class="setting-item">
+                <span>Private Profile</span>
+                <input type="checkbox" class="setting-toggle" id="privateToggle">
+            </div>
+            <div class="setting-item">
+                <span>Hide Friends List</span>
+                <input type="checkbox" class="setting-toggle" id="hideFriendsToggle">
+            </div>
+        </div>
+        <div class="setting-group">
+            <h3>Notifications</h3>
+            <div class="setting-item">
+                <span>Email Notifications</span>
+                <input type="checkbox" class="setting-toggle" id="emailToggle">
+            </div>
+            <div class="setting-item">
+                <span>Push Notifications</span>
+                <input type="checkbox" class="setting-toggle" id="pushToggle">
+            </div>
+        </div>
+        <div class="setting-group">
+            <h3>Account Security</h3>
+            <div class="setting-item">
+                <span>Two-Factor Authentication</span>
+                <input type="checkbox" class="setting-toggle" id="twoFAToggle">
+            </div>
+            <div class="setting-item">
+                <span>Change Password</span>
+                <button class="btn" id="changePasswordBtn">Change</button>
+            </div>
+        </div>
+        <div class="setting-group">
+            <h3>Appearance</h3>
+            <div class="setting-item">
+                <span>Dark Mode</span>
+                <input type="checkbox" class="setting-toggle" id="darkModeToggle">
+            </div>
+        </div>
+        <div class="setting-group">
+            <h3>Account</h3>
+            <div class="setting-item">
+                <span>Deactivate Account</span>
+                <button class="btn" id="deactivateBtn">Deactivate</button>
+            </div>
+        </div>
+    </div>
+
+    <a href="support.html" class="support-button">
+        <i class="fas fa-headset"></i>
+        <span>Support</span>
+    </a>
+
+    <script type="module" src="js/supabaseClient.js"></script>
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js'
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Load user profile
+        async function loadProfile() {
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) {
+                    console.error('Auth error:', authError?.message);
+                    alert('Please log in to view your profile.');
+                    window.location = 'login.html';
+                    return;
+                }
+
+                const { firstName, lastName } = user.user_metadata || {};
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('username, bio, posts, friends, created_at')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError) {
+                    console.error('Profile fetch error:', profileError.message);
+                    alert('Error loading profile. Please try again.');
+                    return;
+                }
+
+                const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.username || 'User';
+                const displayBio = profile.bio || 'No bio yet...';
+                const displayPosts = profile.posts || 0;
+                const displayFriends = profile.friends || 0;
+                const displayJoined = profile.created_at
+                    ? new Date(profile.created_at).toLocaleString('default', { month: 'short', year: 'numeric' })
+                    : 'Unknown';
+
+                document.getElementById('userName').textContent = displayName;
+                document.getElementById('bioDisplay').textContent = displayBio;
+                document.getElementById('bioEdit').value = displayBio;
+                document.getElementById('postsCount').textContent = displayPosts;
+                document.getElementById('friendsCount').textContent = displayFriends;
+                document.getElementById('joinedDate').textContent = displayJoined;
+                document.getElementById('userDetails').textContent = `${profile.username ? 'Username: ' + profile.username + ' | ' : ''}Joined ${displayJoined}`;
+                document.getElementById('avatar').textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
+            } catch (error) {
+                console.error('Load profile error:', error.message);
+                alert('Error loading profile. Please try again.');
+            }
+        }
+
+        // Toggle edit mode
+        document.getElementById('editProfileBtn').addEventListener('click', () => {
+            const bioDisplay = document.getElementById('bioDisplay');
+            const bioEdit = document.getElementById('bioEdit');
+            bioDisplay.style.display = 'none';
+            bioEdit.style.display = 'block';
+            bioEdit.focus();
+        });
+
+        // Toggle settings panel
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            const settingsPanel = document.getElementById('settingsPanel');
+            settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Save bio
+        document.getElementById('bioEdit').addEventListener('blur', async () => {
+            const bio = document.getElementById('bioEdit').value.trim();
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) {
+                    alert('Please log in to update your bio.');
+                    window.location = 'login.html';
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ bio })
+                    .eq('id', user.id);
+
+                if (error) {
+                    console.error('Bio update error:', error.message);
+                    alert('Error updating bio. Please try again.');
+                    return;
+                }
+
+                document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
+                document.getElementById('bioDisplay').style.display = 'block';
+                document.getElementById('bioEdit').style.display = 'none';
+            } catch (error) {
+                console.error('Save bio error:', error.message);
+                alert('Error updating bio. Please try again.');
+            }
+        });
+
+        // Initialize profile
+        loadProfile();
+    </script>
 </body>
 </html>
