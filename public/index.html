@@ -361,45 +361,16 @@
     </section>
 
     <script type="module">
-        // Import Firebase services
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { supabase } from './js/supabaseClient.js';
 
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
-            authDomain: "campusconnect-48927.firebaseapp.com",
-            projectId: "campusconnect-48927",
-            storageBucket: "campusconnect-48927.appspot.com",
-            messagingSenderId: "252390549644",
-            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
-        };
-
-        // Initialize Firebase
-        let auth;
-        try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            console.log("Firebase initialized successfully");
-        } catch (error) {
-            console.error("Firebase initialization error:", error.message, error.stack);
-            alert("Failed to initialize Firebase. Please try again later.");
-            return;
-        }
-
-        // Check authentication state
-        try {
-            onAuthStateChanged(auth, user => {
-                if (user) {
-                    console.log("User authenticated:", user.uid);
-                    window.location.href = 'dashboard.html';
-                } else {
-                    console.log("No user authenticated, staying on index.html");
-                }
-            });
-        } catch (error) {
-            console.error("Auth state change error:", error.message, error.stack);
-            alert("Authentication error. Please try again.");
+        // Gate-keep the page
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            // Not logged in - stay on index.html
+            console.log("No user authenticated, staying on index.html");
+        } else {
+            console.log("User authenticated:", session.user.id);
+            window.location.href = 'dashboard.html';
         }
 
         // Mobile nav toggle
@@ -408,18 +379,19 @@
             const navLinksMobile = document.getElementById('navLinksMobile');
             if (navToggle && navLinksMobile) {
                 navToggle.addEventListener('click', (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     navLinksMobile.classList.toggle('show');
                 });
 
-                // Hide mobile nav when clicking outside or on a link
+                // Hide mobile nav when clicking outside
                 document.addEventListener('click', (e) => {
                     if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
                         navLinksMobile.classList.remove('show');
                     }
                 });
 
-                // Ensure links inside mobile nav work without closing immediately
+                // Close menu when a link is clicked
                 navLinksMobile.querySelectorAll('a').forEach(link => {
                     link.addEventListener('click', () => {
                         navLinksMobile.classList.remove('show');
