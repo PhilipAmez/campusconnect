@@ -1,365 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>PeerLoom Chat</title>
+  <meta charset="UTF‑8"/>
+  <meta name="viewport" content="width=device‑width,initial‑scale=1"/>
+  <title>PeerLoom Chat V3</title>
   <script type="module" src="js/supabaseClient.js"></script>
   <style>
-    /* 🌙 DARK / LIGHT THEME VARIABLES */
     :root {
-      --bg: #0e0e16;
-      --panel: rgba(255,255,255,0.1);
+      --bg: #0d0d15;
+      --panel: rgba(255,255,255,0.05);
+      --panel-strong: rgba(255,255,255,0.12);
       --text: #e5e7eb;
-      --input-bg: rgba(0,0,0,0.2);
-      --sent-bg: linear-gradient(135deg,#7c3aed,#4f46e5);
-      --recv-bg: rgba(255,255,255,0.12);
+      --sent: linear-gradient(135deg, #8e2de2, #4a00e0);
+      --recv: rgba(255,255,255,0.15);
+      --blur: 25px;
     }
-    [data-theme="light"] {
-      --bg: #f3f4f6;
-      --panel: rgba(255,255,255,0.8);
-      --text: #1f2937;
-      --input-bg: rgba(255,255,255,0.6);
-      --sent-bg: linear-gradient(135deg,#7c3aed,#4f46e5);
-      --recv-bg: rgba(255,255,255,0.9);
-    }
-    /* BASIC RESET */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: 'Inter', sans-serif;
       background: var(--bg);
+      font-family: 'Segoe UI', sans-serif;
       color: var(--text);
-      height: 100vh; display: flex;
-      justify-content: center; align-items: center;
+      height: 100vh; display: flex; justify-content:center; align-items:center;
     }
-    .chat-container {
-      width: 95%; max-width: 900px;
-      height: 90vh;
-      display: flex; flex-direction: column;
+    .container {
+      width: 95%; max-width: 800px; height: 90vh;
       background: var(--panel);
-      backdrop-filter: blur(20px);
-      border-radius: 16px;
+      backdrop-filter: blur(var(--blur));
+      border-radius: 20px;
+      display: flex; flex-direction: column;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,0.15);
     }
     .header {
-      flex: none; padding: 1rem;
-      display: flex; justify-content: space-between; align-items: center;
-      backdrop-filter: blur(15px);
-      background: var(--panel);
-      border-bottom: 1px solid rgba(255,255,255,0.15);
+      flex: 0 0 auto; padding: 1rem;
+      background: var(--panel-strong);
+      backdrop-filter: blur(var(--blur));
+      display:flex;justify-content:space-between;align-items:center;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    .header h1 { font-size: 1.25rem; }
-    .theme-toggle {
-      background: transparent; border: none;
-      font-size: 1.3rem; color: var(--text);
-      cursor: pointer;
+    .header h1 { font-size:1.3rem; }
+    .theme-btn { background:none;border:none;color:var(--text); cursor:pointer; font-size:1.4rem; }
+    .panel {
+      flex:1; padding:1rem; overflow-y:auto;
     }
-    .message-panel {
-      flex: 1; overflow-y: auto;
-      padding: 1rem; display: flex; flex-direction: column;
-    }
-    .message {
-      max-width: 75%;
-      margin-bottom: 1rem;
-      padding: 1rem;
-      border-radius: 14px;
-      backdrop-filter: blur(8px);
-      position: relative;
+    .msg {
+      max-width:75%;
+      padding:1rem;
+      margin-bottom:1rem;
+      border-radius:18px;
+      backdrop-filter: blur(var(--blur));
+      position:relative;
+      word-wrap: break-word;
       touch-action: pan-y;
-      transition: transform 0.2s ease;
     }
-    .message.sent {
-      align-self: flex-end;
-      background: var(--sent-bg);
-      color: white;
+    .msg.sent {
+      align-self:flex-end;
+      background: var(--sent);
+      color: #fff;
     }
-    .message.recv {
-      align-self: flex-start;
-      background: var(--recv-bg);
+    .msg.recv {
+      align-self:flex-start;
+      background: var(--recv);
       color: var(--text);
     }
     .timestamp {
       font-size: 0.75rem;
-      text-align: right;
-      margin-top: 0.5rem;
       opacity: 0.7;
+      margin-top: 0.5rem;
+      text-align: right;
     }
-    .bubble-reply {
+    .reply-banner {
       font-size: 0.85rem;
       margin-bottom: 0.5rem;
-      padding-left: 0.75rem;
-      border-left: 3px solid var(--text);
+      padding-left:0.75rem;
+      border-left:3px solid var(--text);
       opacity: 0.8;
     }
     .footer {
-      flex: none; padding: 1rem;
-      backdrop-filter: blur(15px);
-      background: var(--panel);
+      flex:0 0 auto;
+      background: var(--panel-strong);
+      backdrop-filter: blur(var(--blur));
+      border-top:1px solid rgba(255,255,255,0.1);
+      padding:1rem;
       position: relative;
-      border-top: 1px solid rgba(255,255,255,0.15);
     }
-    .reply-box {
-      display: flex; justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0.75rem;
-      background: var(--input-bg);
+    .reply-area {
+      display:flex;justify-content:space-between;
+      background: var(--panel);
+      padding:0.5rem 1rem;
       border-left: 4px solid var(--text);
-      margin-bottom: 0.5rem;
-      border-radius: 8px;
+      margin-bottom:0.5rem;
+      border-radius: 12px;
     }
-    .reply-box button {
-      background: transparent; border: none;
-      color: var(--text); font-size: 1.2rem;
-      cursor: pointer;
+    .reply-area button { background:none;border:none;color:var(--text);font-size:1.2rem; cursor:pointer; }
+    .input-row {
+      display:flex; align-items:center; gap:0.5rem;
     }
-    .footer .input-area {
-      display: flex; align-items: center;
-      gap: 0.5rem;
-    }
-    .footer input[type=text] {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border-radius: 9999px;
-      border: none;
-      background: var(--input-bg);
+    .input-row input {
+      flex:1;
+      border:none;
+      padding:0.75rem 1rem;
+      border-radius:999px;
+      background: var(--panel);
       color: var(--text);
-      font-size: 1rem;
+      font-size:1rem;
     }
-    .footer input[type=text]:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(124,58,237,0.4);
-    }
-    .footer .icon-btn {
+    .icon-btn {
       background: var(--panel);
-      border: none;
-      border-radius: 50%;
-      padding: 0.5rem;
-      font-size: 1.2rem;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
+      border:none; border-radius:50%;
+      padding:0.5rem; display:flex;
+      justify-content:center; align-items:center;
+      font-size:1.3rem; cursor:pointer;
+      backdrop-filter: blur(var(--blur));
     }
-    .footer .icon-btn:hover {
-      background: rgba(255,255,255,0.2);
+    .icon-btn:hover {
+      background: rgba(255,255,255,0.1);
     }
-    .emoji-picker, .mention-dropdown {
-      position: absolute;
-      bottom: 60px; left: 1rem;
-      background: var(--panel);
-      border-radius: 8px;
-      padding: 0.5rem;
-      backdrop-filter: blur(15px);
-      display: none;
+    .picker, .mention-list {
+      position:absolute;
+      bottom:calc(60px + 1rem);
+      left:1rem;
+      background: var(--panel-strong);
+      backdrop-filter: blur(var(--blur));
+      padding:0.5rem;
+      border-radius:8px;
+      display:none;
+      flex-wrap: wrap;
+      max-width: 300px;
+      z-index: 10;
     }
-    .emoji-picker span, .mention-dropdown div {
-      padding: 0.5rem;
-      border-radius: 6px;
-      cursor: pointer;
+    .picker span, .mention-list div {
+      margin:0.25rem; padding:0.4rem 0.6rem; font-size:1rem;
+      border-radius:8px; cursor:pointer;
     }
-    .emoji-picker span:hover,
-    .mention-dropdown div:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    @media (max-width: 600px) {
-      .footer input[type=text] {
-        font-size: 0.9rem;
-        padding: 0.5rem 0.75rem;
-      }
+    .picker span:hover, .mention-list div:hover {
+      background: rgba(255,255,255,0.1);
     }
   </style>
 </head>
 <body>
-  <div class="chat-container" data-theme="dark">
+  <div class="container" data-theme="dark">
     <div class="header">
-      <h1 id="groupName">Loading...</h1>
-      <button class="theme-toggle" id="themeToggle">🌙</button>
+      <h1 id="grpTitle">Loading...</h1>
+      <button class="theme-btn" id="themeToggle">🌙</button>
     </div>
-    <div class="message-panel" id="messagePanel"></div>
+    <div class="panel" id="msgPanel"></div>
     <div class="footer">
-      <div class="reply-box" id="replyBox" style="display:none">
-        <span id="replyLabel"></span>
-        <button id="cancelReplyBtn">&times;</button>
+      <div class="reply-area" id="replyArea" style="display:none;">
+        <span id="replyText"></span>
+        <button id="cancelReply">×</button>
       </div>
-      <div class="mention-dropdown" id="mentionDropdown"></div>
-      <div class="emoji-picker" id="emojiPicker">
-        😀 😁 😂 😎 😍 😢 😡 👏 💯
-      </div>
-      <div class="input-area">
+      <div class="mention-list" id="mentionList"></div>
+      <div class="picker" id="emojiPicker">😀😁😂😎😍😢😠👍💯</div>
+      <div class="input-row">
         <button class="icon-btn" id="emojiBtn">😄</button>
-        <input type="text" id="chatInput" placeholder="Type a message…" />
-        <button class="icon-btn" id="sendBtn">⬆️</button>
+        <input type="text" id="chatInput" placeholder="Say something…" />
+        <button class="icon-btn" id="sendBtn">&#8593;</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-  import { supabase } from './js/supabaseClient.js'
-  const session = await supabase.auth.getSession()
-  if (!session.data.session) location = 'login.html'
-  const user = session.data.session.user
-  const params = new URLSearchParams(location.search)
-  const gid = params.get('groupId')
-  let replyingTo = null, members = []
+    import { supabase } from './js/supabaseClient.js'
+    const session = await supabase.auth.getSession()
+    if (!session.data.session) location = 'login.html'
+    const user = session.data.session.user
+    const gid = new URLSearchParams(location.search).get('groupId')
+    let replyingMsg = null
 
-  // THEME TOGGLE
-  const container = document.querySelector('.chat-container')
-  const themeToggle = document.getElementById('themeToggle')
-  function setTheme(t) {
-    container.setAttribute('data-theme', t)
-    themeToggle.textContent = t === 'dark' ? '🌙' : '☀️'
-    localStorage.setItem('pl-theme', t)
-  }
-  const initTheme = () => setTheme(localStorage.getItem('pl-theme') || 'dark')
-  themeToggle.onclick = () => setTheme(container.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
-  initTheme()
+    // Elements
+    const cont = document.querySelector('.container')
+    const msgPanel = document.getElementById('msgPanel')
+    const emojiBtn = document.getElementById('emojiBtn')
+    const emojiPicker = document.getElementById('emojiPicker')
+    const mentionList = document.getElementById('mentionList')
+    const chatInput = document.getElementById('chatInput')
+    const sendBtn = document.getElementById('sendBtn')
+    const replyArea = document.getElementById('replyArea')
+    const replyTextElem = document.getElementById('replyText')
+    const cancelReply = document.getElementById('cancelReply')
+    const grpTitle = document.getElementById('grpTitle')
+    const themeToggle = document.getElementById('themeToggle')
 
-  // ELEMENTS
-  const mp = document.getElementById('messagePanel')
-  const chatInput = document.getElementById('chatInput')
-  const emojiBtn = document.getElementById('emojiBtn')
-  const emojiPicker = document.getElementById('emojiPicker')
-  const mentionDrop = document.getElementById('mentionDropdown')
-  const sendBtn = document.getElementById('sendBtn')
-  const replyBox = document.getElementById('replyBox')
-  const replyLabel = document.getElementById('replyLabel')
-  const cancelReply = document.getElementById('cancelReplyBtn')
-
-  // LOAD GROUP + MEMBERS
-  const g = await supabase.from('groups').select('name').eq('id',gid).single()
-  document.getElementById('groupName').textContent = g.data.name
-  const mm = await supabase.from('group_members').select('users(*)').eq('group_id',gid)
-  members = mm.data.map(r => r.users.user_metadata.full_name)
-  mentionDrop.innerHTML = members.map(n => `<div>@${n}</div>`).join('')
-
-  // RENDER HELPER
-  function renderMsg(m) {
-    const isMine = m.sender_id === user.id
-    const div = document.createElement('div')
-    div.className = `message ${isMine ? 'sent':'recv'}`
-    div.dataset.id = m.id
-
-    if (m.reply_to) {
-      const br = document.createElement('div')
-      br.className = 'bubble-reply'
-      br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`
-      div.append(br)
+    // Theme toggle
+    const applyTheme = (t) => {
+      cont.setAttribute('data-theme', t)
+      themeToggle.textContent = t === 'dark' ? '🌙' : '☀️'
+      localStorage.setItem('pl-theme', t)
     }
-    const ct = document.createElement('div')
-    ct.textContent = m.content
-    const ts = document.createElement('div')
-    ts.className = 'timestamp'
-    ts.textContent = new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-    div.append(ct, ts)
+    themeToggle.onclick = () => applyTheme(cont.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
+    applyTheme(localStorage.getItem('pl-theme') || 'dark')
 
-    mp.append(div)
-    mp.scrollTop = mp.scrollHeight
-    attachGestures(div, isMine, m)
-  }
+    // Load group/members
+    const grp = await supabase.from('groups').select('name').eq('id', gid).single()
+    grpTitle.textContent = grp.data.name
+    const mem = await supabase.from('group_members').select('users(*)').eq('group_id', gid)
+    const members = mem.data.map(r=>r.users.user_metadata.full_name)
+    mentionList.innerHTML = members.map(n=>`<div>@${n}</div>`).join('')
 
-  // LOAD history
-  const { data: hist } = await supabase
-    .from('group_messages')
-    .select('*')
-    .eq('group_id',gid)
-    .order('created_at')
-  hist.forEach(renderMsg)
+    // Render messages
+    function render(m) {
+      const mine = m.sender_id === user.id
+      const div = document.createElement('div')
+      div.className = 'msg ' + (mine ? 'sent':'recv')
+      div.dataset.id = m.id
+      if (m.reply_to) {
+        const br = document.createElement('div')
+        br.className = 'reply-banner'
+        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`
+        div.append(br)
+      }
+      const ct = document.createElement('div'); ct.textContent = m.content
+      const ts = document.createElement('div'); ts.className = 'timestamp'
+      ts.textContent = new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+      div.append(ct, ts)
+      msgPanel.append(div)
+      msgPanel.scrollTop = msgPanel.scrollHeight
+      attachGestures(div, mine, m)
+    }
 
-  // REAL-TIME
-  supabase.channel(`grp_${gid}`)
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'group_messages', filter:`group_id=eq.${gid}` },
-      payload => renderMsg(payload.new))
-    .subscribe()
+    async function loadHistory() {
+      const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at')
+      msgPanel.innerHTML = ''
+      data.forEach(render)
+    }
+    await loadHistory()
+    supabase.channel(`grp_${gid}`)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'group_messages', filter:`group_id=eq.${gid}`},
+        payload=> render(payload.new))
+      .subscribe()
 
-  // EMOJI & MENTIONS
-  emojiBtn.onclick = () => {
-    emojiPicker.style.display = emojiPicker.style.display === 'flex' ? 'none':'flex'
-    mentionDrop.style.display = 'none'
-  }
-  emojiPicker.onclick = e => {
-    if (e.target.textContent) {
+    // Emoji & mentions
+    emojiBtn.onclick = () => {
+      emojiPicker.style.display = emojiPicker.style.display==='flex'?'none':'flex'
+      mentionList.style.display = 'none'
+    }
+    emojiPicker.onclick = e => {
       chatInput.value += e.target.textContent
       emojiPicker.style.display = 'none'
     }
-  }
-  chatInput.oninput = () => {
-    emojiPicker.style.display = 'none'
-    const idx = chatInput.value.lastIndexOf('@')
-    mentionDrop.style.display = idx >= 0 ? 'flex':'none'
-  }
-  mentionDrop.onclick = e => {
-    if (e.target.tagName === 'DIV') {
-      const at = chatInput.value.lastIndexOf('@')
-      chatInput.value = chatInput.value.slice(0, at) + e.target.textContent + ' '
-      mentionDrop.style.display = 'none'
+    chatInput.oninput = () => {
+      emojiPicker.style.display = 'none'
+      const i = chatInput.value.lastIndexOf('@')
+      mentionList.style.display = i >= 0 ? 'block':'none'
     }
-  }
+    mentionList.onclick = e => {
+      if (!e.target.matches('div')) return
+      const i = chatInput.value.lastIndexOf('@')
+      chatInput.value = chatInput.value.slice(0, i) + e.target.textContent + ' '
+      mentionList.style.display = 'none'
+    }
 
-  // REPLY CANCEL
-  cancelReply.onclick = () => {
-    replyingTo = null
-    replyBox.style.display = 'none'
-  }
+    // Sending
+    async function sendMsg() {
+      const txt = chatInput.value.trim()
+      if (!txt) return
+      console.log('Sending:', txt)
+      const res = await supabase.from('group_messages').insert({
+        group_id: gid,
+        sender_id: user.id,
+        sender_name: user.user_metadata.full_name,
+        content: txt,
+        reply_to: replyingMsg?.id,
+        reply_to_sender: replyingMsg?.sender_name,
+        reply_to_text: replyingMsg?.content
+      })
+      console.log('Insert result:', res)
+      if (res.error) alert('Error: '+res.error.message)
+      chatInput.value = ''
+      replyingMsg = null
+      replyArea.style.display = 'none'
+    }
+    sendBtn.onclick = sendMsg
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg() }
+    })
 
-  // SEND MESSAGE
-  async function doSend() {
-    const content = chatInput.value.trim()
-    if (!content) return
-    await supabase.from('group_messages').insert({
-      group_id: gid,
-      sender_id: user.id,
-      sender_name: user.user_metadata.full_name,
-      content,
-      reply_to:  replyingTo?.id,
-      reply_to_sender: replyingTo?.sender_name,
-      reply_to_text: replyingTo?.content
-    })
-    chatInput.value = ''
-    replyingTo = null
-    replyBox.style.display = 'none'
-  }
-  sendBtn.onclick = doSend
-  chatInput.addEventListener('keydown', e => e.key==='Enter' && !e.shiftKey && (e.preventDefault(),doSend()))
+    // Reply cancel
+    cancelReply.onclick = () => {
+      replyingMsg = null
+      replyArea.style.display = 'none'
+    }
 
-  // GESTURES
-  function attachGestures(el, mine, msg) {
-    let sx, longpress
-    el.addEventListener('mousedown', e => {
-      sx = e.clientX
-      if (mine) {
-        longpress = setTimeout(() => {
-          if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id)
-        }, 800)
-      }
-    })
-    el.addEventListener('mousemove', e => {
-      if (e.buttons===1 && e.clientX - sx > 100) startReply(msg)
-    })
-    el.addEventListener('mouseup', e => clearTimeout(longpress))
+    // Gestures
+    function attachGestures(el, mine, msg) {
+      let startX, longT
+      el.addEventListener('mousedown', e => {
+        startX = e.clientX
+        if (mine) {
+          longT = setTimeout(()=>{
+            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id)
+          }, 800)
+        }
+      })
+      el.addEventListener('mousemove', e => {
+        if (e.buttons===1 && e.clientX - startX > 120) startReply(msg)
+      })
+      el.addEventListener('mouseup', ()=> clearTimeout(longT))
+      el.addEventListener('dblclick', () => {
+        if (!mine) return
+        const u = prompt('Edit msg:', msg.content)
+        if (u && u!==msg.content) supabase.from('group_messages').update({content: u}).eq('id', msg.id)
+      })
+      el.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX
+        if (mine) {
+          longT = setTimeout(()=>{
+            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id',msg.id)
+          },800)
+        }
+      })
+      el.addEventListener('touchmove', e => {
+        if (e.touches[0].clientX - startX > 120) startReply(msg)
+      })
+      el.addEventListener('touchend', ()=> clearTimeout(longT))
+    }
+    function startReply(msg) {
+      replyingMsg = msg
+      replyArea.style.display = 'flex'
+      replyTextElem.textContent = `${msg.sender_name}: ${msg.content}`
+    }
 
-    el.addEventListener('touchstart', e => {
-      sx = e.touches[0].clientX
-      if (mine) {
-        longpress = setTimeout(() => {
-          if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id)
-        }, 800)
-      }
-    })
-    el.addEventListener('touchmove', e => {
-      if (e.touches[0].clientX - sx > 100) startReply(msg)
-    })
-    el.addEventListener('touchend', e => clearTimeout(longpress))
-
-    el.addEventListener('dblclick', e => {
-      if (!mine) return
-      const upd = prompt('Edit your message:', msg.content)
-      if (upd && upd !== msg.content) supabase.from('group_messages').update({content: upd}).eq('id', msg.id)
-    })
-  }
-  function startReply(msg) {
-    replyingTo = msg
-    replyLabel.textContent = `${msg.sender_name}: ${msg.content}`
-    replyBox.style.display = 'flex'
-  }
   </script>
 </body>
 </html>
