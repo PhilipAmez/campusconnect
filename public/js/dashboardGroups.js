@@ -113,10 +113,11 @@ window.joinGroup = async (groupId) => {
 
   await supabase
         .from('group_members')
-        .upsert(
+        .insert(
           { group_id: groupId, user_id: user.id, role: 'member' },
-          { onConflict: 'group_id,user_id', ignoreDuplicates: true }
+          { onConflict: 'group_id,user_id', ignoreDuplicates: false }
         )
+        alert('member inserted')
   window.location = `chatroom.html?groupId=${groupId}`
 }
 
