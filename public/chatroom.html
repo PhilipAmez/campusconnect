@@ -1,320 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peerloom - Chatroom</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <!-- <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script> -->
-    <style>
-        :root {
-            --bg-primary: #f3f4f6;
-            --bg-secondary: #ffffff;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --message-sent: #2563eb;
-            --message-received: #e5e7eb;
-            --message-ai: #dbeafe;
-            --primary: #7c3aed; /* Consistent with index.html and login.html */
-            --secondary: #4f46e5; /* Consistent with index.html and login.html */
-        }
-        [data-theme="dark"] {
-            --bg-primary: #1f2937;
-            --bg-secondary: #374151;
-            --text-primary: #f9fafb;
-            --text-secondary: #9ca3af;
-            --accent: #3b82f6;
-            --accent-hover: #60a5fa;
-            --message-sent: #3b82f6;
-            --message-received: #4b5563;
-            --message-ai: #1e40af;
-            --primary: #7c3aed;
-            --secondary: #4f46e5;
-        }
-        body {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .chat-body {
-            background-color: var(--bg-secondary);
-            border-color: var(--text-secondary);
-        }
-        .message.sent {
-            background-color: var(--message-sent);
-            color: #ffffff;
-            align-self: flex-end;
-            text-align: right;
-        }
-        .message.received {
-            background-color: var(--message-received);
-            color: var(--text-primary);
-            align-self: flex-start;
-            text-align: left;
-        }
-        .message.ai {
-            background-color: var(--message-ai);
-            border-left-color: var(--accent);
-            color: var(--text-primary);
-        }
-        .header {
-            background-color: var(--bg-secondary);
-            border-bottom-color: var(--text-secondary);
-        }
-        .chat-footer button, .header button {
-            font-style: italic;
-            font-weight: 400;
-            color: black;
-            position: relative;
-            padding: 0.75rem 1.5rem;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: heartbeat 1.5s ease-in-out infinite;
-        }
-        .chat-footer button:hover, .header button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.3);
-        }
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        .toggle-button i {
-            color: var(--text-primary);
-        }
-        #errorMessage {
-            background-color: #fee2e2;
-            color: #b91c1c;
-        }
-        #successMessage {
-            background-color: #dcfce7;
-            color: #15803d;
-        }
-        [data-theme="dark"] #errorMessage {
-            background-color: #7f1d1d;
-            color: #fecaca;
-        }
-        [data-theme="dark"] #successMessage {
-            background-color: #166534;
-            color: #bbf7d0;
-        }
-        /* Responsive Styles */
-        @media (max-width: 700px) {
-            .container {
-                padding: 0.5rem !important;
-            }
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 1rem 0.5rem;
-                gap: 0.5rem;
-            }
-            .header h1 {
-                font-size: 1.1rem;
-            }
-            .chat-body {
-                padding: 0.5rem !important;
-                height: 60vh !important;
-            }
-            .chat-footer {
-                flex-direction: column !important;
-                gap: 0.5rem !important;
-            }
-            .chat-footer input[type="text"] {
-                width: 100% !important;
-                min-width: 0 !important;
-            }
-            .chat-footer input[type="file"] {
-                width: 100% !important;
-            }
-            .chat-footer button {
-                width: 100% !important;
-            }
-        }
-        @media (max-width: 480px) {
-            .container {
-                padding: 0.25rem !important;
-            }
-            .header h1 {
-                font-size: 0.95rem;
-            }
-            .chat-body {
-                font-size: 0.95em;
-                height: 50vh !important;
-            }
-            .message {
-                font-size: 0.95em;
-                padding: 0.5rem !important;
-            }
-            .chat-footer input[type="text"] {
-                font-size: 1em;
-                padding: 0.5rem !important;
-            }
-            .chat-footer button {
-                font-size: 1em;
-                padding: 0.5rem !important;
-            }
-        }
-        .message {
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            max-width: 75%;
-            word-wrap: break-word;
-        }
-        .sent {
-            background-color: #d1fae5;
-            align-self: flex-end;
-            text-align: right;
-        }
-        .received {
-            background-color: #e5e7eb;
-            align-self: flex-start;
-            text-align: left;
-        }
-        .file-preview {
-            margin-top: 0.5rem;
-        }
-        #chatBody {
-            display: flex;
-            flex-direction: column;
-        }
-        .typing-notice {
-            font-style: italic;
-        }
-        /* prettier chat bubbles */
-        .bubble.mine   { background: linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;
-                        margin-left:auto; animation:slideL .15s ease-out; }
-        .bubble.theirs { background:#e5e7eb; color:#1f2937;
-                        margin-right:auto; animation:slideR .15s ease-out; }
-
-        @keyframes slideL { from{transform:translateX(30px);opacity:0} to{opacity:1} }
-        @keyframes slideR { from{transform:translateX(-30px);opacity:0} to{opacity:1} }
-
-        /* scroll container a bit taller & softer */
-        #chatBody { height: 70vh; overscroll-behavior: contain; padding-bottom:4rem; }
-
-    </style>
-
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PeerLoom Chat</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script type="module" src="js/supabaseClient.js"></script>
+<style>
+  /* Global & theming */
+  :root {
+    --bg: #0e0e16;
+    --panel: rgba(255,255,255,0.06);
+    --text: #e5e7eb;
+    --accent: #7c3aed;
+    --accent-light: #4f46e5;
+    --sent-bg: linear-gradient(135deg,#7c3aed,#4f46e5);
+    --rec-bg: rgba(255,255,255,0.1);
+  }
+  [data-theme="light"] {
+    --bg: #f3f4f6;
+    --panel: rgba(255,255,255,0.8);
+    --text: #1f2937;
+    --accent: #7c3aed;
+    --accent-light: #4f46e5;
+    --sent-bg: linear-gradient(135deg,#7c3aed,#4f46e5);
+    --rec-bg: rgba(255,255,255,0.9);
+  }
+  * { margin:0;padding:0;box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family:'Inter',sans-serif;
+    display:flex;justify-content:center;align-items:center;
+    height:100vh;
+  }
+  .container {
+    width:90%;max-width:900px;height:90vh;
+    display:flex;flex-direction:column;
+    backdrop-filter:blur(16px);
+    background:var(--panel);
+    border-radius:16px;
+    overflow:hidden;
+  }
+  .header {
+    flex:none;padding:1rem;
+    display:flex;justify-content:space-between;align-items:center;
+    backdrop-filter:blur(10px); background:var(--panel);
+  }
+  .header h1 { font-size:1.25rem; }
+  .toggle-btn {
+    background:transparent;border:none;
+    font-size:1.25rem;cursor:pointer;color:var(--text);
+  }
+  .chat-body {
+    flex:1;display:flex;flex-direction:column;
+    padding:1rem;overflow-y:auto;
+  }
+  .bubble {
+    max-width:75%; padding:0.75rem;
+    margin-bottom:0.5rem; border-radius:12px;
+    backdrop-filter:blur(6px); position:relative;
+    user-select:none; touch-action:pan-y;
+    transition:transform .2s ease;
+  }
+  .bubble.mine {
+    align-self:flex-end; background:var(--sent-bg); color:#fff;
+  }
+  .bubble.theirs {
+    align-self:flex-start; background:var(--rec-bg); color:var(--text);
+  }
+  .reply-banner {
+    font-size:.875rem;color:var(--text);
+    padding-left:8px; border-left:3px solid var(--accent-light);
+    margin-bottom:4px;
+  }
+  .timestamp {
+    font-size:.75rem;color:var(--text);
+    text-align:right;margin-top:4px;
+  }
+  .emoji-picker {
+    position:absolute;bottom:60px;left:1rem;
+    background:var(--panel); padding:0.5rem;
+    display:flex;flex-wrap:wrap;gap:5px;
+    border-radius:8px;
+    backdrop-filter:blur(10px);
+  }
+  .mention-dropdown {
+    position:absolute;top:-150px;left:1rem;
+    background:var(--panel);padding:0.5rem;
+    border-radius:8px;backdrop-filter:blur(10px);
+    display:flex;flex-direction:column;
+    gap:4px;
+  }
+  .mention-dropdown div {
+    padding:4px 8px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .mention-dropdown div:hover {
+    background:var(--accent);
+    color:#fff;
+  }
+  .footer {
+    flex:none;padding:1rem;backdrop-filter:blur(10px);
+    background:var(--panel);position:relative;
+  }
+  .reply-box {
+    display:flex;justify-content:space-between;
+    align-items:center;padding:0.5rem 0.75rem;
+    background:rgba(0,0,0,0.1);border-left:4px solid var(--accent);
+    margin-bottom:0.5rem;border-radius:8px;
+  }
+  .reply-box button {
+    background:transparent;border:none;color:var(--text);
+    font-size:1.25rem;cursor:pointer;
+  }
+  .footer textarea {
+    width:100%;height:60px;border:none;
+    border-radius:12px;padding:.75rem;
+    resize:none;background:var(--bg);
+    color:var(--text);font-size:1rem;
+  }
+  .footer .actions {
+    margin-top:0.5rem;display:flex;justify-content:space-between;
+  }
+  .footer button {
+    background:var(--accent);color:#fff;
+    border:none;padding:.5rem 1rem;border-radius:8px;
+    cursor:pointer;transition:background .2s;
+  }
+  .footer button:hover {
+    background:var(--accent-light);
+  }
+</style>
 </head>
-<body data-theme="light">
-    <div class="container max-w-3xl mx-auto p-4">
-        <div class="header flex justify-between items-center py-3 px-6 border-b">
-            <div>
-                <h1 id="groupName" class="text-xl font-semibold">Loading...</h1>
-                <p id="groupDetails" class="text-sm text-gray-500"></p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button class="toggle-button" onclick="toggleTheme()">
-                    <i id="themeIcon" class="fas fa-moon"></i>
-                </button>
-                <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-            </div>
-        </div>
-
-        <div id="chatBody" class="chat-body p-4 h-96 overflow-y-auto border rounded-lg mt-4"></div>
-        <div id="typingNotice" class="typing-notice text-sm text-gray-500 mt-1 px-4"></div>
-        <div id="errorMessage" class="hidden mt-4 p-3 rounded"></div>
-        <div id="successMessage" class="hidden mt-4 p-3 rounded"></div>
-
-        <div class="chat-footer flex flex-col sm:flex-row mt-4 gap-3">
-            <input type="text" id="chatMessage" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" placeholder="Type a message...">
-            <input type="file" id="fileUpload" class="mt-2 sm:mt-0" accept=".pdf,.jpg,.png">
-            <button onclick="sendMessage()">Send</button>
-        </div>
+<body>
+<div class="container" data-theme="dark">
+  <div class="header">
+    <h1 id="groupName">Group Chat</h1>
+    <button class="toggle-btn" id="themeToggle">🌙</button>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="footer">
+    <div id="replyBox" class="reply-box hidden">
+      <span id="replyLabel"></span>
+      <button id="cancelReply">&times;</button>
     </div>
-    <!-- shared client -->
-    <script type="module" src="js/supabaseClient.js"></script>
+    <div class="mention-dropdown hidden" id="mentionDropdown"></div>
+    <textarea id="chatMessage" placeholder="Type your message..."></textarea>
+    <div class="actions">
+      <button id="emojiBtn">😄</button>
+      <button id="sendBtn">Send</button>
+    </div>
+    <div class="emoji-picker hidden" id="emojiPicker">😀😁😂😎🥳😍😢😡👏💯</div>
+  </div>
+</div>
 
-    <!-- chatroom.html – Supabase chat logic -->
-    <!-- chatroom.html – Supabase chat logic -->
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js'
+<script type="module">
+import { supabase } from './js/supabaseClient.js'
+const userRes = await supabase.auth.getSession()
+if (!userRes.data.session) location='login.html'
+const user = userRes.data.session.user
+const params = new URLSearchParams(location.search)
+const gid = params.get('groupId')
+let replyingTo = null, members = []
 
-        /* ───────────────  tiny helpers  ─────────────── */
-        const $  = id => document.getElementById(id)
-        const qs = new URLSearchParams(location.search)
-        const groupId = qs.get('groupId')
-        if (!groupId) { alert('Missing groupId'); history.back(); }
+// Theme toggle
+const container = document.querySelector('.container')
+const themeToggle = document.getElementById('themeToggle')
+const saveTheme = theme => {
+  container.setAttribute('data-theme', theme)
+  themeToggle.textContent = theme==='dark'?'🌙':'☀️'
+  localStorage.setItem('pl-theme', theme)
+}
+const initTheme = () => {
+  const t = localStorage.getItem('pl-theme') || 'dark'
+  saveTheme(t)
+}
+themeToggle.onclick = () => saveTheme(container.getAttribute('data-theme')==='dark'?'light':'dark')
+initTheme()
 
-        const { data:{ session } } = await supabase.auth.getSession()
-        if (!session) location = 'login.html'
-        const user      = session.user
-        const fullName  = [user.user_metadata.firstName, user.user_metadata.lastName]
-                        .filter(Boolean).join(' ') || 'Anon'
+// Elements
+const chatBody = document.getElementById('chatBody')
+const chatMessage = document.getElementById('chatMessage')
+const emojiBtn = document.getElementById('emojiBtn')
+const emojiPicker = document.getElementById('emojiPicker')
+const mentionDropdown = document.getElementById('mentionDropdown')
+const sendBtn = document.getElementById('sendBtn')
+const replyBox = document.getElementById('replyBox')
+const replyLabel = document.getElementById('replyLabel')
+const cancelReply = document.getElementById('cancelReply')
 
-        /* ───────────────  group header  ─────────────── */
-        const { data: grp } = await supabase
-            .from('groups').select('name').eq('id', groupId).single()
-        if (!grp) { alert('Group not found'); history.back(); }
-        $('groupName').textContent    = grp.name
-        $('groupDetails').textContent = grp.description ?? 'Public group'
+// Fetch group + members
+const grp = await supabase.from('groups').select('*').eq('id',gid).single()
+document.getElementById('groupName').textContent = grp.data.name
+const m = await supabase.from('group_members').select('users(*)').eq('group_id',gid)
+members = m.data.map(r=>r.users)
+mentionDropdown.innerHTML = members.map(u=>`<div>@${u.user_metadata.full_name}</div>`).join('')
 
-        /* ───────────────  render helper  ─────────────── */
-        const chatBody = $('chatBody')
-        function render (m) {
-        const self = m.sender_id === user.id
-        const bubble = document.createElement('div')
-        bubble.className =
-            `bubble ${self ? 'mine' : 'theirs'} flex flex-col max-w-[80%] rounded-lg p-2 mb-2`
-        bubble.innerHTML = `
-            <span class="sender font-semibold ${self?'text-purple-100':'text-purple-700'}">
-            ${m.sender_name ?? 'Unknown'}
-            </span>
-            <span class="content break-words">${m.content}</span>
-            <span class="stamp text-xs text-gray-400 self-end mt-1">
-            ${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-            </span>`
-        chatBody.appendChild(bubble)
-        chatBody.scrollTop = chatBody.scrollHeight
-        }
+// Message renders
+function render(m){
+  const mine = m.sender_id===user.id
+  const msg = document.createElement('div')
+  msg.className = 'bubble ' + (mine?'mine':'theirs')
+  msg.dataset.id = m.id
 
-        /* ───────────────  history  ─────────────── */
-        const { data: history } = await supabase
-            .from('group_messages')
-            .select('*').eq('group_id', groupId).order('created_at')
-        history?.forEach(render)
+  if (m.reply_to) {
+    const ban = document.createElement('div')
+    ban.className = 'reply-banner'
+    ban.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`
+    msg.appendChild(ban)
+  }
 
-        /* ───────────────  realtime  ─────────────── */
-        supabase.channel('grp_'+groupId)
-        .on('postgres_changes',
-            { event:'INSERT', schema:'public', table:'group_messages', filter:`group_id=eq.${groupId}` },
-            ({ new: m }) => render(m))
-        .subscribe()
+  msg.innerHTML += 
+    `<div>${m.content}</div>
+     <div class="timestamp">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>`
 
-        /* ───────────────  send message  ─────────────── */
-        window.sendMessage = async () => {
-        const content = $('chatMessage').value.trim()
-        if (!content) return
-        const { error } = await supabase.from('group_messages').insert({
-            group_id: groupId,          // FK
-            sender_id   : user.id,
-            sender_name : fullName,
-            content
-        })
-        if (error) { console.error(error); alert(error.message) }
-        $('chatMessage').value = ''
-        }
+  chatBody.appendChild(msg)
+  chatBody.scrollTop = chatBody.scrollHeight
 
-        /* (optional) file upload stub untouched */
-        $('fileUpload').addEventListener('change', e => {
-        alert('File upload coming soon 🙂'); e.target.value = ''
-        })
-    </script>
+  attachGestures(msg, mine, m)
+}
 
+// Load existing
+let { data:history } = await supabase
+  .from('group_messages')
+  .select('*')
+  .eq('group_id',gid)
+  .order('created_at')
+history?.forEach(render)
 
+// Real-time
+supabase.channel(`grp_${gid}`)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'group_messages',filter:`group_id=eq.${gid}`},
+    payload => render(payload.new))
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'group_messages',filter:`group_id=eq.${gid}`},
+    ({new:m}) => {
+      const el = chatBody.querySelector(`[data-id="${m.id}"]`)
+      if (el) el.querySelector('div').textContent = m.content
+    })
+  .on('postgres_changes',{event:'DELETE',schema:'public',table:'group_messages',filter:`group_id=eq.${gid}`},
+    ({old:m}) => {
+      const el = chatBody.querySelector(`[data-id="${m.id}"]`)
+      if (el) el.remove()
+    })
+  .subscribe()
+
+emojiBtn.onclick = () => emojiPicker.classList.toggle('hidden')
+emojiPicker.onclick = e => {
+  chatMessage.value += e.target.textContent
+}
+chatMessage.oninput = () => {
+  const at = chatMessage.value.lastIndexOf('@')
+  mentionDropdown.classList.toggle('hidden', at<0)
+}
+mentionDropdown.onclick = e => {
+  if(e.target.tagName==='DIV'){
+    const name = e.target.textContent
+    const v = chatMessage.value
+    const at = v.lastIndexOf('@')
+    chatMessage.value = v.slice(0,at) + name + ' '
+    mentionDropdown.classList.add('hidden')
+  }
+}
+cancelReply.onclick = () => {
+  replyingTo = null
+  replyBox.classList.add('hidden')
+}
+sendBtn.onclick = async () => {
+  const content = chatMessage.value.trim()
+  if (!content) return
+  await supabase.from('group_messages').insert({
+    group_id:gid,
+    sender_id:user.id,
+    sender_name:user.user_metadata.full_name,
+    content,
+    reply_to: replyingTo?.id,
+    reply_to_sender: replyingTo?.sender_name,
+    reply_to_text: replyingTo?.content
+  })
+  chatMessage.value = ''
+  replyingTo = null
+  replyBox.classList.add('hidden')
+}
+
+// Gestures
+function attachGestures(el, mine, msg){
+  let startX, longT
+  el.addEventListener('dblclick', ()=> {
+    if (!mine) return
+    const u = prompt('Edit message', msg.content)
+    if (u && u!==msg.content){
+      supabase.from('group_messages').update({content:u}).eq('id',msg.id)
+    }
+  })
+  el.addEventListener('touchstart',e=>{
+    if(!mine)return
+    startX = e.touches[0].clientX
+    longT = setTimeout(()=>{
+      if(confirm('Delete?')){ supabase.from('group_messages').delete().eq('id',msg.id) }
+    },800)
+  })
+  el.addEventListener('touchmove',e=>{
+    const dx = e.touches[0].clientX - startX
+    if (dx>100){
+      replyingTo = msg
+      replyLabel.textContent = `${msg.sender_name}: ${msg.content}`
+      replyBox.classList.remove('hidden')
+    }
+  })
+  el.addEventListener('touchend', ()=> clearTimeout(longT))
+  el.addEventListener('mousedown',e=>{
+    if(!mine)return
+    startX = e.clientX
+    longT = setTimeout(()=>{
+      if(confirm('Delete?')){ supabase.from('group_messages').delete().eq('id',msg.id) }
+    },800)
+  })
+  el.addEventListener('mousemove',e=>{
+    if (e.buttons && e.clientX-startX>100){
+      replyingTo = msg
+      replyLabel.textContent = `${msg.sender_name}: ${msg.content}`
+      replyBox.classList.remove('hidden')
+    }
+  })
+  el.addEventListener('mouseup',()=>clearTimeout(longT))
+}
+</script>
 </body>
 </html>
