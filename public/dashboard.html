@@ -111,6 +111,15 @@
         .nav-links.mobile.show {
             display: flex;
         }
+        .nav-links.mobile a {
+            color: var(--text-dark);
+            padding: 0.7rem 1rem;
+            border-radius: 0.4rem;
+        }
+        .nav-links.mobile a:hover {
+            background: var(--hover-bg);
+            color: var(--primary);
+        }
         .dashboard {
             display: flex;
             flex-direction: row;
@@ -263,31 +272,6 @@
             border: none;
             border-radius: 0.5rem;
         }
-        .support-button {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 0.7rem 1.3rem;
-            color: black;
-            font-style: italic;
-            font-weight: 400;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-            z-index: 1000;
-        }
-        .support-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.3);
-        }
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -358,10 +342,6 @@
                 width: 100%;
                 text-align: center;
             }
-            .support-button {
-                padding: 0.5rem 1rem;
-                font-size: 0.95rem;
-            }
         }
         @media (max-width: 480px) {
             .navbar {
@@ -398,10 +378,6 @@
             .video-container iframe {
                 height: 140px;
             }
-            .support-button {
-                padding: 0.5rem 0.8rem;
-                font-size: 0.9rem;
-            }
         }
     </style>
 </head>
@@ -415,12 +391,12 @@
         </button>
         <div class="nav-links" id="navLinks">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-            <a href="support.html" class="nav-link"><i class="fas fa-headset"></i> Support</a>
+            <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
             <a href="logout.html" class="nav-link" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
         <div class="nav-links mobile" id="navLinksMobile">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-            <a href="support.html" class="nav-link"><i class="fas fa-headset"></i> Support</a>
+            <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
             <a href="logout.html" class="nav-link" id="logoutMobile"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>
@@ -516,7 +492,7 @@
             <div class="card">
                 <h3 class="auth-title text-xl"><i class="fas fa-lightbulb"></i> Suggested Groups</h3>
                 <div id="suggestedGroups" class="space-y-2">
-                    <!-- populated by Supabase -->
+                    <!-- populated by Supabase with existing groups -->
                 </div>
             </div>
         </div>
@@ -556,32 +532,19 @@
         </div>
     </div>
 
-    <a href="support.html" class="support-button">
-        <i class="fas fa-headset"></i>
-        <span>Support</span>
-    </a>
-
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        // ───────────────────────────────────────────────
-        // 1. Gate‑keep the page
-        // ───────────────────────────────────────────────
+        // Gate-keep the page
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-            // not logged‑in – bounce to login
             window.location.replace('login.html');
         }
 
-        // You now have the current user if you need it later:
-        // const user = session.user;
-
-        // ───────────────────────────────────────────────
-        // 2. Hook up both “Logout” links
-        // ───────────────────────────────────────────────
+        // Hook up both “Logout” links
         const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
-            .filter(Boolean);                 // ignore nulls
+            .filter(Boolean);
 
         logoutButtons.forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -595,10 +558,40 @@
             });
         });
 
-        // Optional: burger‑menu toggler you already had
+        // Burger-menu toggler
         document.getElementById('navToggle')
             ?.addEventListener('click', () =>
                 document.getElementById('navLinksMobile').classList.toggle('show'));
+
+        // Load suggested groups
+        async function loadSuggestedGroups() {
+            const { data, error } = await supabase
+                .from('groups')
+                .select('id, name, course')
+                .limit(5); // Limit to 5 for display
+            if (error) {
+                console.error('Error loading suggested groups:', error);
+                return;
+            }
+            const suggestedGroupsDiv = document.getElementById('suggestedGroups');
+            suggestedGroupsDiv.innerHTML = '';
+            data.forEach(group => {
+                const div = document.createElement('div');
+                div.className = 'group-item';
+                div.innerHTML = `
+                    <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
+                    <div>
+                        <p class="font-semibold text-gray-800">${group.name}</p>
+                        <p class="text-gray-600">${group.course}</p>
+                    </div>
+                    <button class="btn" onclick="joinGroup('${group.id}')">Join</button>
+                `;
+                suggestedGroupsDiv.appendChild(div);
+            });
+        }
+
+        // Initial load
+        loadSuggestedGroups();
     </script>
     <script type="module" src="js/dashboardGroups.js"></script>
 </body>
