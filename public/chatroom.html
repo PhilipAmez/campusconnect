@@ -1,261 +1,406 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF‑8"/>
-  <meta name="viewport" content="width=device‑width,initial‑scale=1"/>
-  <title>PeerLoom Chat V3</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Peerloom-Chatroom</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script type="module" src="js/supabaseClient.js"></script>
   <style>
     :root {
-      --bg: #0d0d15;
-      --panel: rgba(255,255,255,0.05);
-      --panel-strong: rgba(255,255,255,0.12);
-      --text: #e5e7eb;
-      --sent: linear-gradient(135deg, #8e2de2, #4a00e0);
-      --recv: rgba(255,255,255,0.15);
-      --blur: 25px;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --text: #333333;
+      --text-light: #ffffff;
+      --msg-bg: rgba(0, 0, 0, 0.08);
+      --msg-hover: rgba(0, 0, 0, 0.15);
+      --blur: 10px;
+      --accent: #4a90e2;
+      --ai-bg: rgba(0, 102, 255, 0.1);
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
-      background: var(--bg);
-      font-family: 'Segoe UI', sans-serif;
+      background: transparent;
+      backdrop-filter: blur(var(--blur));
+      font-family: 'Arial', sans-serif;
       color: var(--text);
-      height: 100vh; display: flex; justify-content:center; align-items:center;
-    }
-    .container {
-      width: 95%; max-width: 800px; height: 90vh;
-      background: var(--panel);
-      backdrop-filter: blur(var(--blur));
-      border-radius: 20px;
-      display: flex; flex-direction: column;
+      height: 100vh;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 10px;
+      transition: background 0.3s ease;
     }
-    .header {
-      flex: 0 0 auto; padding: 1rem;
-      background: var(--panel-strong);
+    .chat-arena {
+      width: 90%;
+      max-width: 1200px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list {
+      background: var(--glass-bg);
       backdrop-filter: blur(var(--blur));
-      display:flex;justify-content:space-between;align-items:center;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-radius: 15px;
     }
-    .header h1 { font-size:1.3rem; }
-    .theme-btn { background:none;border:none;color:var(--text); cursor:pointer; font-size:1.4rem; }
-    .panel {
-      flex:1; padding:1rem; overflow-y:auto;
+    .chat-header {
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .chat-header h1 {
+      font-size: 1.8rem;
+      font-style: italic;
+    }
+    .header-actions {
+      display: flex;
+      gap: 0.8rem;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
     }
     .msg {
-      max-width:75%;
-      padding:1rem;
-      margin-bottom:1rem;
-      border-radius:18px;
-      backdrop-filter: blur(var(--blur));
-      position:relative;
-      word-wrap: break-word;
-      touch-action: pan-y;
+      max-width: 70%;
+      padding: 1rem 1.5rem;
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+      background: var(--msg-bg);
+      color: var(--text);
+      position: relative;
+      transition: background 0.3s ease;
     }
     .msg.sent {
-      align-self:flex-end;
-      background: var(--sent);
-      color: #fff;
+      align-self: flex-end;
+      background: linear-gradient(90deg, var(--accent), #50e3c2);
+      color: var(--text-light);
     }
     .msg.recv {
-      align-self:flex-start;
-      background: var(--recv);
-      color: var(--text);
+      align-self: flex-start;
+      background: var(--msg-bg);
+    }
+    .msg.ai {
+      align-self: flex-start;
+      background: var(--ai-bg);
+      font-style: italic;
+    }
+    .msg:hover {
+      background: var(--msg-hover);
     }
     .timestamp {
-      font-size: 0.75rem;
-      opacity: 0.7;
-      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      opacity: 0.6;
+      margin-top: 0.4rem;
       text-align: right;
     }
     .reply-banner {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       margin-bottom: 0.5rem;
-      padding-left:0.75rem;
-      border-left:3px solid var(--text);
-      opacity: 0.8;
+      padding-left: 0.7rem;
+      border-left: 2px solid var(--accent);
+      opacity: 0.7;
     }
-    .footer {
-      flex:0 0 auto;
-      background: var(--panel-strong);
-      backdrop-filter: blur(var(--blur));
-      border-top:1px solid rgba(255,255,255,0.1);
-      padding:1rem;
+    .chat-input-area {
+      padding: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
       position: relative;
     }
-    .reply-area {
-      display:flex;justify-content:space-between;
-      background: var(--panel);
-      padding:0.5rem 1rem;
-      border-left: 4px solid var(--text);
-      margin-bottom:0.5rem;
-      border-radius: 12px;
+    .chat-input-wrapper {
+      flex: 1;
+      position: relative;
     }
-    .reply-area button { background:none;border:none;color:var(--text);font-size:1.2rem; cursor:pointer; }
-    .input-row {
-      display:flex; align-items:center; gap:0.5rem;
-    }
-    .input-row input {
-      flex:1;
-      border:none;
-      padding:0.75rem 1rem;
-      border-radius:999px;
-      background: var(--panel);
+    .chat-input {
+      width: 100%;
+      border: none;
+      padding: 1rem 6rem 1rem 1rem;
+      border-radius: 25px;
+      background: rgba(0, 0, 0, 0.08);
       color: var(--text);
-      font-size:1rem;
+      font-size: 1.1rem;
+      outline: none;
+      min-height: 60px;
+      resize: none;
+    }
+    .chat-input::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+    .send-arrow {
+      position: absolute;
+      right: 3rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--glass-bg);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      backdrop-filter: blur(var(--blur));
+      transition: transform 0.2s ease;
+    }
+    .send-arrow:hover {
+      transform: scale(1.1) translateY(-50%);
+    }
+    .audio-record {
+      position: absolute;
+      right: 0.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--glass-bg);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      backdrop-filter: blur(var(--blur));
+      transition: transform 0.2s ease;
+    }
+    .audio-record:hover {
+      transform: scale(1.1) translateY(-50%);
+    }
+    .audio-record.active {
+      background: var(--accent);
+      color: var(--text-light);
     }
     .icon-btn {
-      background: var(--panel);
-      border:none; border-radius:50%;
-      padding:0.5rem; display:flex;
-      justify-content:center; align-items:center;
-      font-size:1.3rem; cursor:pointer;
+      background: var(--glass-bg);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.3rem;
+      cursor: pointer;
       backdrop-filter: blur(var(--blur));
+      transition: transform 0.2s ease;
     }
     .icon-btn:hover {
-      background: rgba(255,255,255,0.1);
+      transform: scale(1.1);
     }
-    .picker, .mention-list {
-      position:absolute;
-      bottom:calc(60px + 1rem);
-      left:1rem;
-      background: var(--panel-strong);
-      backdrop-filter: blur(var(--blur));
-      padding:0.5rem;
-      border-radius:8px;
-      display:none;
+    .emoji-picker, .mention-list {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 1rem;
+      padding: 0.6rem;
+      border-radius: 12px;
+      display: none;
       flex-wrap: wrap;
-      max-width: 300px;
+      max-width: 280px;
       z-index: 10;
     }
-    .picker span, .mention-list div {
-      margin:0.25rem; padding:0.4rem 0.6rem; font-size:1rem;
-      border-radius:8px; cursor:pointer;
+    .emoji-picker span, .mention-list div {
+      margin: 0.3rem;
+      padding: 0.4rem 0.6rem;
+      font-size: 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
     }
-    .picker span:hover, .mention-list div:hover {
-      background: rgba(255,255,255,0.1);
+    .emoji-picker span:hover, .mention-list div:hover {
+      background: rgba(0, 0, 0, 0.15);
+    }
+    @media (max-width: 768px) {
+      .chat-arena {
+        width: 95%;
+        height: 92vh;
+      }
+      .chat-header {
+        font-size: 1.5rem;
+        padding: 1rem;
+      }
+      .chat-messages {
+        padding: 1rem;
+        gap: 1rem;
+      }
+      .msg {
+        max-width: 80%;
+        padding: 0.8rem 1rem;
+      }
+      .chat-input-area {
+        padding: 0.9rem;
+        gap: 0.7rem;
+      }
+      .chat-input {
+        padding: 0.7rem 5rem 0.7rem 0.7rem;
+        font-size: 1rem;
+        min-height: 50px;
+      }
+      .send-arrow {
+        right: 2.5rem;
+        width: 35px;
+        height: 35px;
+        font-size: 1.1rem;
+      }
+      .audio-record {
+        right: 0.6rem;
+        width: 35px;
+        height: 35px;
+        font-size: 1.1rem;
+      }
+      .icon-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1.1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container" data-theme="dark">
-    <div class="header">
+  <div class="chat-arena">
+    <div class="chat-header">
       <h1 id="grpTitle">Loading...</h1>
-      <button class="theme-btn" id="themeToggle">🌙</button>
+      <div class="header-actions">
+        <button class="icon-btn" id="voiceCallBtn"><i class="fas fa-phone"></i></button>
+        <button class="icon-btn" id="videoCallBtn"><i class="fas fa-video"></i></button>
+        <button class="icon-btn" id="themeToggle">🌙</button>
+      </div>
     </div>
-    <div class="panel" id="msgPanel"></div>
-    <div class="footer">
-      <div class="reply-area" id="replyArea" style="display:none;">
-        <span id="replyText"></span>
-        <button id="cancelReply">×</button>
+    <div class="chat-messages" id="msgPanel"></div>
+    <div class="chat-input-area">
+      <button class="icon-btn" id="emojiBtn">😄</button>
+      <button class="icon-btn" id="fileShareBtn"><i class="fas fa-paperclip"></i></button>
+      <div class="chat-input-wrapper">
+        <textarea id="chatInput" placeholder="Drop your vibe…" rows="1"></textarea>
+        <button class="send-arrow" id="sendBtn">➤</button>
+        <button class="audio-record" id="audioRecordBtn"><i class="fas fa-microphone"></i></button>
       </div>
+      <div class="emoji-picker" id="emojiPicker">😀😁😂😎😍😢😠👍💯</div>
       <div class="mention-list" id="mentionList"></div>
-      <div class="picker" id="emojiPicker">😀😁😂😎😍😢😠👍💯</div>
-      <div class="input-row">
-        <button class="icon-btn" id="emojiBtn">😄</button>
-        <input type="text" id="chatInput" placeholder="Say something…" />
-        <button class="icon-btn" id="sendBtn">&#8593;</button>
-      </div>
+      <div class="reply-context" id="replyContext"></div>
     </div>
   </div>
 
   <script type="module">
-    import { supabase } from './js/supabaseClient.js'
-    const session = await supabase.auth.getSession()
-    if (!session.data.session) location = 'login.html'
-    const user = session.data.session.user
-    const gid = new URLSearchParams(location.search).get('groupId')
-    let replyingMsg = null
+    import { supabase } from './js/supabaseClient.js';
+    const session = await supabase.auth.getSession();
+    if (!session.data.session) location = 'login.html';
+    const user = session.data.session.user;
+    const gid = new URLSearchParams(location.search).get('groupId');
+    let replyingMsg = null;
+    let isRecording = false;
 
     // Elements
-    const cont = document.querySelector('.container')
-    const msgPanel = document.getElementById('msgPanel')
-    const emojiBtn = document.getElementById('emojiBtn')
-    const emojiPicker = document.getElementById('emojiPicker')
-    const mentionList = document.getElementById('mentionList')
-    const chatInput = document.getElementById('chatInput')
-    const sendBtn = document.getElementById('sendBtn')
-    const replyArea = document.getElementById('replyArea')
-    const replyTextElem = document.getElementById('replyText')
-    const cancelReply = document.getElementById('cancelReply')
-    const grpTitle = document.getElementById('grpTitle')
-    const themeToggle = document.getElementById('themeToggle')
+    const msgPanel = document.getElementById('msgPanel');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPicker = document.getElementById('emojiPicker');
+    const mentionList = document.getElementById('mentionList');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const fileShareBtn = document.getElementById('fileShareBtn');
+    const voiceCallBtn = document.getElementById('voiceCallBtn');
+    const videoCallBtn = document.getElementById('videoCallBtn');
+    const audioRecordBtn = document.getElementById('audioRecordBtn');
+    const grpTitle = document.getElementById('grpTitle');
+    const themeToggle = document.getElementById('themeToggle');
+    const replyContext = document.getElementById('replyContext');
+    const body = document.body;
 
     // Theme toggle
-    const applyTheme = (t) => {
-      cont.setAttribute('data-theme', t)
-      themeToggle.textContent = t === 'dark' ? '🌙' : '☀️'
-      localStorage.setItem('pl-theme', t)
-    }
-    themeToggle.onclick = () => applyTheme(cont.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
-    applyTheme(localStorage.getItem('pl-theme') || 'dark')
+    const applyTheme = (theme) => {
+      body.style.background = theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+      document.documentElement.style.setProperty('--text', theme === 'dark' ? '#333333' : '#ffffff');
+      themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem('vibe-theme', theme);
+    };
+    themeToggle.onclick = () => applyTheme(body.style.background.includes('0, 0, 0') ? 'light' : 'dark');
+    applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
-    // Load group/members
-    const grp = await supabase.from('groups').select('name').eq('id', gid).single()
-    grpTitle.textContent = grp.data.name
-    const mem = await supabase.from('group_members').select('users(*)').eq('group_id', gid)
-    const members = mem.data.map(r=>r.users.user_metadata.full_name)
-    mentionList.innerHTML = members.map(n=>`<div>@${n}</div>`).join('')
+    // Load group and members
+    const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
+    grpTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
+    const mem = await supabase.from('group_members').select('users(*)').eq('group_id', gid);
+    const members = mem.data.map(r => r.users.user_metadata.full_name);
+    mentionList.innerHTML = members.map(n => `<div>@${n}</div>`).join('');
 
     // Render messages
     function render(m) {
-      const mine = m.sender_id === user.id
-      const div = document.createElement('div')
-      div.className = 'msg ' + (mine ? 'sent':'recv')
-      div.dataset.id = m.id
+      const mine = m.sender_id === user.id;
+      const div = document.createElement('div');
+      div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
+      div.dataset.id = m.id;
       if (m.reply_to) {
-        const br = document.createElement('div')
-        br.className = 'reply-banner'
-        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`
-        div.append(br)
+        const br = document.createElement('div');
+        br.className = 'reply-banner';
+        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
+        div.append(br);
       }
-      const ct = document.createElement('div'); ct.textContent = m.content
-      const ts = document.createElement('div'); ts.className = 'timestamp'
-      ts.textContent = new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
-      div.append(ct, ts)
-      msgPanel.append(div)
-      msgPanel.scrollTop = msgPanel.scrollHeight
-      attachGestures(div, mine, m)
+      const ct = document.createElement('div');
+      ct.textContent = m.content;
+      const ts = document.createElement('div');
+      ts.className = 'timestamp';
+      ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      div.append(ct, ts);
+      msgPanel.append(div);
+      msgPanel.scrollTop = msgPanel.scrollHeight; // Auto-scroll
+      attachGestures(div, mine, m);
     }
 
     async function loadHistory() {
-      const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at')
-      msgPanel.innerHTML = ''
-      data.forEach(render)
+      const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
+      msgPanel.innerHTML = '';
+      data.forEach(render);
     }
-    await loadHistory()
+    await loadHistory();
     supabase.channel(`grp_${gid}`)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'group_messages', filter:`group_id=eq.${gid}`},
-        payload=> render(payload.new))
-      .subscribe()
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
+        payload => render(payload.new))
+      .subscribe();
 
-    // Emoji & mentions
+    // Emoji and mention handling
     emojiBtn.onclick = () => {
-      emojiPicker.style.display = emojiPicker.style.display==='flex'?'none':'flex'
-      mentionList.style.display = 'none'
-    }
-    emojiPicker.onclick = e => {
-      chatInput.value += e.target.textContent
-      emojiPicker.style.display = 'none'
-    }
+      emojiPicker.style.display = emojiPicker.style.display === 'flex' ? 'none' : 'flex';
+      mentionList.style.display = 'none';
+    };
+    document.addEventListener('click', (e) => {
+      if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
+        emojiPicker.style.display = 'none';
+      }
+    });
+    emojiPicker.onclick = (e) => {
+      if (e.target.tagName === 'SPAN') {
+        chatInput.value += e.target.textContent;
+        emojiPicker.style.display = 'none';
+      }
+    };
     chatInput.oninput = () => {
-      emojiPicker.style.display = 'none'
-      const i = chatInput.value.lastIndexOf('@')
-      mentionList.style.display = i >= 0 ? 'block':'none'
-    }
-    mentionList.onclick = e => {
-      if (!e.target.matches('div')) return
-      const i = chatInput.value.lastIndexOf('@')
-      chatInput.value = chatInput.value.slice(0, i) + e.target.textContent + ' '
-      mentionList.style.display = 'none'
-    }
+      const i = chatInput.value.lastIndexOf('@');
+      mentionList.style.display = i >= 0 ? 'flex' : 'none';
+    };
+    mentionList.onclick = (e) => {
+      if (e.target.matches('div')) {
+        const i = chatInput.value.lastIndexOf('@');
+        chatInput.value = chatInput.value.slice(0, i) + e.target.textContent + ' ';
+        mentionList.style.display = 'none';
+      }
+    };
 
     // Sending
     async function sendMsg() {
-      const txt = chatInput.value.trim()
-      if (!txt) return
-      console.log('Sending:', txt)
+      const txt = chatInput.value.trim();
+      if (!txt) return;
       const res = await supabase.from('group_messages').insert({
         group_id: gid,
         sender_id: user.id,
@@ -264,63 +409,107 @@
         reply_to: replyingMsg?.id,
         reply_to_sender: replyingMsg?.sender_name,
         reply_to_text: replyingMsg?.content
-      })
-      console.log('Insert result:', res)
-      if (res.error) alert('Error: '+res.error.message)
-      chatInput.value = ''
-      replyingMsg = null
-      replyArea.style.display = 'none'
+      });
+      console.log('Supabase insert:', res.error ? 'Failed' : 'Succeeded', res);
+      if (res.error) alert('Error: ' + res.error.message);
+      chatInput.value = '';
+      chatInput.style.height = '60px';
+      await checkPeerloomAI(txt);
     }
-    sendBtn.onclick = sendMsg
-    chatInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg() }
-    })
+    sendBtn.onclick = sendMsg;
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    });
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = '60px';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+    });
 
-    // Reply cancel
-    cancelReply.onclick = () => {
-      replyingMsg = null
-      replyArea.style.display = 'none'
+    // Peerloom AI
+    async function checkPeerloomAI(message) {
+      if (!message.toLowerCase().includes('@peerloom ai')) return;
+      try {
+        const response = await fetch('https://campusconnect-omep.onrender.com/peerloom-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, user: user.user_metadata.full_name })
+        });
+        const data = await response.json();
+        if (data.reply) {
+          await supabase.from('group_messages').insert({
+            group_id: gid,
+            sender_id: 'peerloom-ai',
+            sender_name: 'Peerloom AI',
+            content: data.reply,
+            role: 'ai'
+          });
+        }
+      } catch (error) {
+        console.error('Peerloom AI Error:', error);
+      }
     }
+
+    // Audio recording (placeholder)
+    audioRecordBtn.onclick = () => {
+      isRecording = !isRecording;
+      audioRecordBtn.classList.toggle('active', isRecording);
+      if (isRecording) {
+        alert('Recording started... (Placeholder)');
+      } else {
+        alert('Recording stopped... (Placeholder)');
+      }
+    };
+
+    // File upload (placeholder)
+    fileShareBtn.onclick = () => alert('File upload feature coming soon😊! (Supabase integration pending)');
+
+    // Call buttons (placeholder)
+    voiceCallBtn.onclick = () => alert('Starting voice call...');
+    videoCallBtn.onclick = () => alert('Starting video call...');
 
     // Gestures
     function attachGestures(el, mine, msg) {
-      let startX, longT
-      el.addEventListener('mousedown', e => {
-        startX = e.clientX
+      let startX, longT;
+      el.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
         if (mine) {
-          longT = setTimeout(()=>{
-            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id)
-          }, 800)
+          longT = setTimeout(() => {
+            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id);
+          }, 800);
         }
-      })
-      el.addEventListener('mousemove', e => {
-        if (e.buttons===1 && e.clientX - startX > 120) startReply(msg)
-      })
-      el.addEventListener('mouseup', ()=> clearTimeout(longT))
+      });
+      el.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1 && e.clientX - startX > 120) startReply(msg);
+      });
+      el.addEventListener('mouseup', () => clearTimeout(longT));
       el.addEventListener('dblclick', () => {
-        if (!mine) return
-        const u = prompt('Edit msg:', msg.content)
-        if (u && u!==msg.content) supabase.from('group_messages').update({content: u}).eq('id', msg.id)
-      })
-      el.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX
         if (mine) {
-          longT = setTimeout(()=>{
-            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id',msg.id)
-          },800)
+          const u = prompt('Edit msg:', msg.content);
+          if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
         }
-      })
-      el.addEventListener('touchmove', e => {
-        if (e.touches[0].clientX - startX > 120) startReply(msg)
-      })
-      el.addEventListener('touchend', ()=> clearTimeout(longT))
+      });
+      el.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        if (mine) {
+          longT = setTimeout(() => {
+            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id);
+          }, 800);
+        }
+      });
+      el.addEventListener('touchmove', (e) => {
+        if (e.touches[0].clientX - startX > 120) startReply(msg);
+      });
+      el.addEventListener('touchend', () => clearTimeout(longT));
     }
     function startReply(msg) {
-      replyingMsg = msg
-      replyArea.style.display = 'flex'
-      replyTextElem.textContent = `${msg.sender_name}: ${msg.content}`
+      replyingMsg = msg;
+      replyContext.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
+      replyContext.style.display = 'block';
     }
-
+    replyContext.onclick = () => {
+      replyingMsg = null;
+      replyContext.style.display = 'none';
+    };
   </script>
 </body>
 </html>
