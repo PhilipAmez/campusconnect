@@ -90,11 +90,30 @@
             justify-content: center;
             align-items: center;
             gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
         }
 
         .auth-button:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
+        }
+
+        .auth-button.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: loadingAnimation 1.5s infinite;
+            z-index: 1;
+        }
+
+        @keyframes loadingAnimation {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         .input-icon {
@@ -206,7 +225,7 @@
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-content">
-                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6"> Login</h2>
+                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 Login</h2>
                 <form id="loginForm" class="auth-form space-y-6">
                     <div class="input-group relative">
                         <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
@@ -246,12 +265,14 @@
         const form     = document.getElementById('loginForm')
         const emailEl  = document.getElementById('username')
         const passEl   = document.getElementById('password')
+        const button   = document.querySelector('.auth-button')
         const errorEl  = document.getElementById('errorMessage')
         const okEl     = document.getElementById('successMessage')
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault()
             errorEl.textContent = okEl.textContent = ''
+            button.classList.add('loading')
 
             const email    = emailEl.value.trim()
             const password = passEl.value
@@ -260,15 +281,23 @@
 
             if (error) {
                 errorEl.textContent = error.message
+                button.classList.remove('loading')
                 return
             }
-            okEl.textContent = 'Login successful! Redirecting…'
-            window.location = 'dashboard.html'
+            okEl.textContent = 'Login successful! Loading…'
+            setTimeout(() => {
+                window.location = 'dashboard.html'
+            }, 10000) // 10-second delay
         })
 
-        // Auto‑redirect if already signed in
+        // Auto-redirect if already signed in
         const { data: { session } } = await supabase.auth.getSession()
-        if (session) window.location = 'dashboard.html'
+        if (session) {
+            button.classList.add('loading')
+            setTimeout(() => {
+                window.location = 'dashboard.html'
+            }, 10000) // 10-second delay
+        }
     </script>
 </body>
 </html>
