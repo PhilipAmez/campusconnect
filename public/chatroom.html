@@ -23,6 +23,8 @@
       --accent: #4a90e2;
       --ai-bg-light: rgba(0, 102, 255, 0.1);
       --ai-bg-dark: rgba(0, 102, 255, 0.15);
+      --circle-bg-dark: rgba(255, 255, 255, 0.2);
+      --placeholder-fade: rgba(0, 0, 0, 0.3);
     }
     [data-theme="dark"] {
       --glass-bg: var(--glass-bg-dark);
@@ -30,6 +32,8 @@
       --msg-bg: var(--msg-bg-dark);
       --msg-hover: var(--msg-hover-dark);
       --ai-bg: var(--ai-bg-dark);
+      --circle-bg: var(--circle-bg-dark);
+      --placeholder-fade: rgba(255, 255, 255, 0.3);
     }
     [data-theme="light"] {
       --glass-bg: var(--glass-bg-light);
@@ -37,6 +41,7 @@
       --msg-bg: var(--msg-bg-light);
       --msg-hover: var(--msg-hover-light);
       --ai-bg: var(--ai-bg-light);
+      --circle-bg: var(--glass-bg-light);
     }
     * {
       margin: 0;
@@ -61,11 +66,10 @@
       height: 90vh;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.4rem;
     }
     .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list {
       background: var(--glass-bg);
-      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 15px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
@@ -131,45 +135,40 @@
       opacity: 0.7;
     }
     .chat-input-area {
-      padding: 1.2rem;
+      padding: 0.5rem;
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 0.5rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
       position: relative;
     }
-    .chat-input-wrapper {
+    .message-bar {
       flex: 1;
-      position: relative;
-    }
-    .chat-input {
-      width: 100%;
-      border: none; /* Removed textbox border */
-      padding: 1rem 6rem 1rem 1rem;
-      border-radius: 25px;
+      height: 40px;
+      border-radius: 20px;
       background: var(--msg-bg);
       color: var(--text);
-      font-size: 1.1rem;
+      font-size: 1rem;
+      cursor: text;
+      padding: 0 0.5rem;
       outline: none;
-      height: 60px;
       resize: none;
     }
-    .chat-input::placeholder {
-      color: rgba(0, 0, 0, 0.4);
-    }
-    [data-theme="dark"] .chat-input::placeholder {
-      color: rgba(255, 255, 255, 0.4);
+    .message-bar:empty:before {
+      content: attr(data-placeholder);
+      color: var(--placeholder-fade);
+      pointer-events: none;
     }
     .send-arrow {
       position: absolute;
-      right: 3.5rem;
+      right: 2.5rem;
       top: 50%;
       transform: translateY(-50%);
-      background: var(--glass-bg);
+      background: var(--circle-bg);
       border: none;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 35px;
+      height: 35px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -182,14 +181,14 @@
     }
     .audio-record {
       position: absolute;
-      right: 1rem;
+      right: 0.5rem;
       top: 50%;
       transform: translateY(-50%);
-      background: var(--glass-bg);
+      background: var(--circle-bg);
       border: none;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 35px;
+      height: 35px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -208,8 +207,8 @@
       background: var(--glass-bg);
       border: none;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 35px;
+      height: 35px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -223,7 +222,7 @@
     .emoji-picker, .mention-list {
       position: absolute;
       bottom: calc(100% + 10px);
-      left: 1rem;
+      left: 0.5rem;
       padding: 0.6rem;
       border-radius: 12px;
       display: none;
@@ -231,7 +230,6 @@
       max-width: 280px;
       z-index: 10;
       background: var(--glass-bg);
-      border: 1px solid rgba(255, 255, 255, 0.5);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
     .emoji-picker span, .mention-list div {
@@ -263,34 +261,28 @@
         padding: 0.8rem 1rem;
       }
       .chat-input-area {
-        padding: 0.9rem;
-        gap: 1rem;
+        padding: 0.5rem;
+        gap: 0.5rem;
       }
-      .chat-input-wrapper {
-        padding-right: 6rem; /* Adjusted to align input with buttons */
-      }
-      .chat-input {
-        padding: 0.7rem 0.7rem 0.7rem 0.7rem; /* Reduced padding to fit better */
-        font-size: 1rem;
-        height: 50px;
-        resize: none;
+      .message-bar {
+        height: 40px;
       }
       .send-arrow {
-        right: 3rem;
+        right: 2.5rem;
         width: 35px;
         height: 35px;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
       }
       .audio-record {
-        right: 0.8rem;
+        right: 0.5rem;
         width: 35px;
         height: 35px;
-        font-size: 1.1rem;
+        font-size: 1.3rem;
       }
       .icon-btn {
         width: 35px;
         height: 35px;
-        font-size: 1.1rem;
+        font-size: 1.3rem;
       }
       .header-actions {
         margin-left: auto;
@@ -315,33 +307,29 @@
         gap: 0.5rem;
       }
       .chat-input-area {
-        padding: 0.5rem;
-        gap: 0.7rem;
+        padding: 0.3rem;
+        gap: 0.3rem;
       }
-      .chat-input-wrapper {
-        padding-right: 5rem; /* Adjusted for small screens */
-      }
-      .chat-input {
-        padding: 0.5rem 0.5rem 0.5rem 0.5rem;
-        font-size: 0.9rem;
-        height: 40px;
+      .message-bar {
+        height: 36px;
+        padding: 0 0.3rem;
       }
       .send-arrow {
-        right: 2.5rem;
+        right: 2rem;
         width: 30px;
         height: 30px;
-        font-size: 1rem;
+        font-size: 1.1rem;
       }
       .audio-record {
-        right: 0.5rem;
+        right: 0.3rem;
         width: 30px;
         height: 30px;
-        font-size: 1rem;
+        font-size: 1.2rem;
       }
       .icon-btn {
         width: 30px;
         height: 30px;
-        font-size: 1rem;
+        font-size: 1.2rem;
       }
     }
   </style>
@@ -349,25 +337,23 @@
 <body>
   <div class="chat-arena">
     <div class="chat-header">
-      <h1 id="groupTitle">Loading...</h1> <!-- Renamed for clarity -->
+      <h1 id="groupTitle"></h1>
       <div class="header-actions">
         <button class="icon-btn" id="voiceCallButton"><i class="fas fa-phone"></i></button>
         <button class="icon-btn" id="videoCallButton"><i class="fas fa-video"></i></button>
         <button class="icon-btn" id="themeToggleButton">🌙</button>
       </div>
     </div>
-    <div class="chat-messages" id="messagePanel"></div> <!-- Renamed for clarity -->
+    <div class="chat-messages" id="messagePanel"></div>
     <div class="chat-input-area">
       <button class="icon-btn" id="emojiButton">😄</button>
       <button class="icon-btn" id="fileShareButton"><i class="fas fa-paperclip"></i></button>
-      <div class="chat-input-wrapper">
-        <textarea id="chatInputBox" placeholder="Drop your vibe…" rows="1"></textarea> <!-- Renamed for clarity -->
-        <button class="send-arrow" id="sendMessageButton">➤</button>
-        <button class="audio-record" id="recordAudioButton"><i class="fas fa-microphone"></i></button>
-      </div>
-      <div class="emoji-picker" id="emojiPickerBox"></div> <!-- Renamed for clarity -->
-      <div class="mention-list" id="mentionListBox"></div> <!-- Renamed for clarity -->
-      <div class="reply-context" id="replyContextBox"></div> <!-- Renamed for clarity -->
+      <textarea id="messageBar" class="message-bar" data-placeholder="Type here" rows="1"></textarea>
+      <button class="send-arrow" id="sendMessageButton">➤</button>
+      <button class="audio-record" id="recordAudioButton"><i class="fas fa-microphone"></i></button>
+      <div class="emoji-picker" id="emojiPickerBox"></div>
+      <div class="mention-list" id="mentionListBox"></div>
+      <div class="reply-context" id="replyContextBox"></div>
     </div>
   </div>
 
@@ -385,7 +371,7 @@
     const emojiButton = document.getElementById('emojiButton');
     const emojiPickerBox = document.getElementById('emojiPickerBox');
     const mentionListBox = document.getElementById('mentionListBox');
-    const chatInputBox = document.getElementById('chatInputBox');
+    const messageBar = document.getElementById('messageBar');
     const sendMessageButton = document.getElementById('sendMessageButton');
     const fileShareButton = document.getElementById('fileShareButton');
     const voiceCallButton = document.getElementById('voiceCallButton');
@@ -458,25 +444,25 @@
     });
     emojiPickerBox.onclick = (e) => {
       if (e.target.tagName === 'SPAN') {
-        chatInputBox.value += e.target.textContent;
+        messageBar.value += e.target.textContent;
         emojiPickerBox.style.display = 'none';
       }
     };
-    chatInputBox.oninput = () => {
-      const i = chatInputBox.value.lastIndexOf('@');
+    messageBar.oninput = () => {
+      const i = messageBar.value.lastIndexOf('@');
       mentionListBox.style.display = i >= 0 ? 'flex' : 'none';
     };
     mentionListBox.onclick = (e) => {
       if (e.target.matches('div')) {
-        const i = chatInputBox.value.lastIndexOf('@');
-        chatInputBox.value = chatInputBox.value.slice(0, i) + e.target.textContent + ' ';
+        const i = messageBar.value.lastIndexOf('@');
+        messageBar.value = messageBar.value.slice(0, i) + e.target.textContent + ' ';
         mentionListBox.style.display = 'none';
       }
     };
 
     // Sending
     async function sendMsg() {
-      const txt = chatInputBox.value.trim();
+      const txt = messageBar.value.trim();
       if (!txt) return;
       const res = await supabase.from('group_messages').insert({
         group_id: gid,
@@ -489,11 +475,11 @@
       });
       console.log('Supabase insert:', res.error ? 'Failed' : 'Succeeded', res);
       if (res.error) alert('Error: ' + res.error.message);
-      chatInputBox.value = '';
+      messageBar.value = '';
       await checkPeerloomAI(txt);
     }
     sendMessageButton.onclick = sendMsg;
-    chatInputBox.addEventListener('keydown', (e) => {
+    messageBar.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
 
