@@ -4,10 +4,10 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Peerloom-Chatroom</title>
- <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
-    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
+  <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script type="module" src="js/supabaseClient.js"></script>
   <style>
@@ -21,13 +21,22 @@
       --accent: #4a90e2;
       --ai-bg: rgba(0, 102, 255, 0.1);
     }
+    [data-theme="dark"] {
+      --glass-bg: rgba(0, 0, 0, 0.03);
+      --text: #f9fafb;
+      --text-light: #1f2937;
+      --msg-bg: rgba(255, 255, 255, 0.08);
+      --msg-hover: rgba(255, 255, 255, 0.15);
+      --accent: #60a5fa;
+      --ai-bg: rgba(0, 102, 255, 0.15);
+    }
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
     body {
-      background: transparent;
+      background: var(--glass-bg);
       backdrop-filter: blur(var(--blur));
       font-family: 'Arial', sans-serif;
       color: var(--text);
@@ -37,7 +46,7 @@
       justify-content: center;
       align-items: flex-start;
       padding-top: 10px;
-      transition: background 0.3s ease;
+      transition: background 0.3s ease, color 0.3s ease;
     }
     .chat-arena {
       width: 90%;
@@ -132,7 +141,7 @@
       border: none;
       padding: 1rem 6rem 1rem 1rem;
       border-radius: 25px;
-      background: rgba(0, 0, 0, 0.08);
+      background: var(--msg-bg);
       color: var(--text);
       font-size: 1.1rem;
       outline: none;
@@ -141,6 +150,9 @@
     }
     .chat-input::placeholder {
       color: rgba(0, 0, 0, 0.4);
+    }
+    [data-theme="dark"] .chat-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
     }
     .send-arrow {
       position: absolute;
@@ -224,7 +236,7 @@
       cursor: pointer;
     }
     .emoji-picker span:hover, .mention-list div:hover {
-      background: rgba(0, 0, 0, 0.15);
+      background: var(--msg-hover);
     }
     @media (max-width: 768px) {
       .chat-arena {
@@ -324,12 +336,11 @@
 
     // Theme toggle
     const applyTheme = (theme) => {
-      body.style.background = theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
-      document.documentElement.style.setProperty('--text', theme === 'dark' ? '#333333' : '#ffffff');
-      themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+      body.dataset.theme = theme;
+      themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
       localStorage.setItem('vibe-theme', theme);
     };
-    themeToggle.onclick = () => applyTheme(body.style.background.includes('0, 0, 0') ? 'light' : 'dark');
+    themeToggle.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
     applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
     // Load group and members
