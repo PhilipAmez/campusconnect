@@ -4,22 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About | Peerloom</title>
-  <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
     <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script type="module" src="js/supabaseClient.js"></script>
     <style>
         :root {
-            --primary: #7c3aed; /* Consistent with index.html and chatroom.html */
+            --primary: #7c3aed;
             --secondary: #4f46e5;
-            --bg-primary: #f3f4f6;
-            --bg-secondary: #ffffff;
+            --bg-primary: #f3e8ff;
+            --bg-secondary: #e0e7ff;
             --text-primary: #1f2937;
-            --text-secondary: #6b7280;
+            --text-secondary: #64748b;
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
         }
@@ -41,7 +40,8 @@
             transition: background-color 0.3s, color 0.3s;
         }
         header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(79, 70, 229, 0.9));
+            backdrop-filter: blur(5px);
             color: white;
             padding: 40px 20px;
             text-align: center;
@@ -51,35 +51,27 @@
         header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(
-                transparent,
-                rgba(255, 255, 255, 0.2),
-                transparent
-            );
-            animation: rotate 10s linear infinite;
-            z-index: 0;
-        }
-        @keyframes rotate {
-            100% { transform: rotate(360deg); }
+            top: -20%;
+            left: -20%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            opacity: 0.3;
         }
         header h1 {
             margin: 0;
             font-size: 2.8em;
             font-style: italic;
             font-weight: 400;
-            color: black;
+            color: var(--text-primary);
             position: relative;
             display: inline-block;
             padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             z-index: 1;
         }
         main {
@@ -96,7 +88,7 @@
         }
         .faq-item {
             margin-bottom: 30px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
             padding-bottom: 15px;
         }
         .faq-item h3 {
@@ -104,11 +96,16 @@
             font-weight: bold;
         }
         .assistant {
-            background-color: var(--bg-secondary);
-            padding: 25px;
-            border: 1px solid var(--text-secondary);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
+            padding: 25px;
             margin-top: 50px;
+            transition: transform 0.3s ease;
+        }
+        .assistant:hover {
+            transform: translateY(-5px);
         }
         .assistant h2 {
             margin-top: 0;
@@ -127,36 +124,30 @@
             border: 1px solid var(--text-secondary);
             border-radius: 6px;
             flex: 1 1 180px;
+            background: rgba(243, 244, 246, 0.8);
         }
         .chat-box button, .voice-button {
             font-style: italic;
             font-weight: 400;
-            color: black;
+            color: var(--text-dark);
             padding: 12px 18px;
             background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 6px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             flex: 0 0 auto;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: heartbeat 1.5s ease-in-out infinite;
+            transition: transform 0.2s, background 0.2s;
         }
         .chat-box button:hover, .voice-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             background: rgba(255, 255, 255, 0.3);
-        }
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
         }
         footer {
             text-align: center;
             padding: 25px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(79, 70, 229, 0.9));
+            backdrop-filter: blur(5px);
             color: white;
             margin-top: 60px;
         }
@@ -278,28 +269,10 @@
     </main>
 
     <footer>
-        <p>© 2025 Peerloop | Built with 💙 for University Students</p>
+        <p>© 2025 Peerloom | Built with 💙 for University Students</p>
     </footer>
 
     <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
-            authDomain: "campusconnect-48927.firebaseapp.com",
-            projectId: "campusconnect-48927",
-            storageBucket: "campusconnect-48927.appspot.com",
-            messagingSenderId: "252390549644",
-            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
-        };
-
-        // Initialize Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-            console.log("Firebase initialized successfully");
-        } catch (error) {
-            console.error("Error initializing Firebase:", error);
-        }
-
         // AI Assistant Responses
         const assistantResponses = {
             "what is peerloom": "Peerloom is a platform for University students to connect with coursemates, form study groups, and collaborate on academic projects. It’s a safe, free space to build community and thrive!",
