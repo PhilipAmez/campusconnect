@@ -15,10 +15,10 @@
     --hover-bg: rgba(243, 244, 246, 0.8);
     --accent: #10b981;
     --transition: all 0.3s cubic-bezier(.4,0,.2,1);
-    --glass-bg-light: rgba(255, 255, 255, 0.1);
-    --glass-bg-dark: rgba(0, 0, 0, 0.1);
-    --glass-border-light: rgba(255, 255, 255, 0.2);
-    --glass-border-dark: rgba(0, 0, 0, 0.2);
+    --glass-bg-light: rgba(255, 255, 255, 0.3); /* Transparent with visible glass effect */
+    --glass-bg-dark: rgba(0, 0, 0, 0.3); /* Transparent with visible glass effect */
+    --glass-border-light: rgba(255, 255, 255, 0.5); /* Stronger border for visibility */
+    --glass-border-dark: rgba(0, 0, 0, 0.5); /* Stronger border for visibility */
 }
 
 /* Navigation */
@@ -27,11 +27,10 @@
     width: 100%;
     top: 0;
     background: var(--glass-bg-light);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+    /* Removed backdrop-filter for transparent glass */
     z-index: 1000;
     padding: 1rem 2rem;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Enhanced shadow for glass depth */
     transition: background 0.3s ease;
 }
 
@@ -98,14 +97,14 @@
     flex-direction: column;
     gap: 1.5rem;
     background: var(--glass-bg-light);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+    /* Removed backdrop-filter for transparent glass */
     border: 1px solid var(--glass-border-light);
     border-radius: 1.5rem;
     padding: 2.5rem;
     max-width: 450px;
     margin: 0 auto;
     transition: transform 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Enhanced shadow for glass effect */
 }
 
 .auth-form:hover {
@@ -117,8 +116,9 @@
     padding: 1rem;
     border: 2px solid transparent;
     border-radius: 0.5rem;
-    background: var(--hover-bg);
+    background: var(--glass-bg-light); /* Transparent glass effect */
     transition: var(--transition);
+    color: var(--text-dark);
 }
 
 .auth-form input:focus {
@@ -126,18 +126,18 @@
     outline: none;
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
     transform: scale(1.02);
+    background: rgba(255, 255, 255, 0.5); /* Slightly stronger on focus */
 }
 
 .auth-form button {
-    background: var(--glass-bg-light);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px); /* Safari fallback */
+    background: var(--glass-bg-light); /* Transparent glass effect */
+    /* Removed backdrop-filter for transparent glass */
     color: var(--text-dark);
     width: 100%;
     padding: 1rem;
     border: 1px solid var(--glass-border-light);
     border-radius: 0.5rem;
-    font-weight: 600;
+    font-weight: 400; /* Non-bolded as per title style */
     cursor: pointer;
     transition: var(--transition);
     position: relative;
@@ -150,7 +150,24 @@
 
 .auth-form button:hover {
     transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.5); /* Stronger glass effect on hover */
+}
+
+.auth-form button.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent); /* No purple */
+    animation: loadingAnimation 1.5s infinite;
+    z-index: 1;
+}
+
+@keyframes loadingAnimation {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 /* Dashboard Styles */
@@ -167,7 +184,7 @@
     content: '';
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background: linear-gradient(90deg, var(--primary), var(--secondary)); /* Kept for progress bar */
     border-radius: 4px;
     transition: width 0.5s ease;
 }
@@ -181,11 +198,11 @@
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     background: var(--glass-bg-light);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+    /* Removed backdrop-filter for transparent glass */
     border: 1px solid var(--glass-border-light);
     border-radius: 1.5rem;
     padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Enhanced shadow for glass effect */
 }
 
 /* General Container Styles */
@@ -194,11 +211,11 @@
     margin: 0 auto;
     padding: 0 1rem;
     background: var(--glass-bg-light);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+    /* Removed backdrop-filter for transparent glass */
     border: 1px solid var(--glass-border-light);
     border-radius: 1.5rem;
     padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Enhanced shadow for glass effect */
 }
 
 /* Error and Success Messages */
@@ -208,25 +225,24 @@
     text-align: center;
     margin-top: 1rem;
     display: none;
-    background: var(--glass-bg-light);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px); /* Safari fallback */
+    background: var(--glass-bg-light); /* Transparent glass effect */
+    /* Removed backdrop-filter for transparent glass */
     border: 1px solid var(--glass-border-light);
 }
 
 .error-message {
-    background: rgba(254, 226, 226, 0.2);
+    background: rgba(254, 226, 226, 0.3); /* Adjusted for visibility */
     color: #dc2626;
 }
 
 .success-message {
-    background: rgba(209, 250, 229, 0.2);
+    background: rgba(209, 250, 229, 0.3); /* Adjusted for visibility */
     color: #059669;
 }
 
 /* Loading Spinner */
 .loading-spinner {
-    border: 4px solid rgba(243, 243, 243, 0.2);
+    border: 4px solid rgba(243, 243, 243, 0.3); /* Adjusted for visibility */
     border-top: 4px solid var(--primary);
     border-radius: 50%;
     width: 40px;
@@ -234,9 +250,8 @@
     animation: spin 1s linear infinite;
     margin: 1rem auto;
     display: none;
-    background: var(--glass-bg-light);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px); /* Safari fallback */
+    background: var(--glass-bg-light); /* Transparent glass effect */
+    /* Removed backdrop-filter for transparent glass */
 }
 
 @keyframes spin {
@@ -255,21 +270,22 @@ body:not(.tailwind-loaded) .auth-form input,
 body:not(.tailwind-loaded) .auth-form button,
 body:not(.tailwind-loaded) .dashboard-grid > * {
     background: var(--glass-bg-light);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+    /* Removed backdrop-filter for transparent glass */
     border: 1px solid var(--glass-border-light);
     border-radius: 8px;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
 }
 
 body:not(.tailwind-loaded) .auth-form input {
     border: 2px solid transparent;
     padding: 10px;
     margin: 5px 0;
+    background: var(--glass-bg-light); /* Transparent glass effect */
 }
 
 body:not(.tailwind-loaded) .auth-form button {
     background: var(--glass-bg-light);
+    /* Removed backdrop-filter for transparent glass */
     color: var(--text-dark);
     padding: 10px;
     border: 1px solid var(--glass-border-light);
@@ -281,9 +297,8 @@ body:not(.tailwind-loaded) .auth-form button {
     .main-nav {
         padding: 0.7rem 1rem;
         background: var(--glass-bg-light);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px); /* Safari fallback */
-        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+        /* Removed backdrop-filter for transparent glass */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
     }
 
     .nav-menu {
@@ -299,8 +314,7 @@ body:not(.tailwind-loaded) .auth-form button {
         right: 1rem;
         left: 1rem;
         background: var(--glass-bg-light);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+        /* Removed backdrop-filter for transparent glass */
         border: 1px solid var(--glass-border-light);
         border-radius: 0.7rem;
         padding: 1rem;
@@ -338,13 +352,24 @@ body:not(.tailwind-loaded) .auth-form button {
 
     .auth-form button {
         background: var(--glass-bg-light);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px); /* Safari fallback */
+        /* Removed backdrop-filter for transparent glass */
         border: 1px solid var(--glass-border-light);
     }
 
     .auth-form button:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.5); /* Stronger glass effect on hover */
+    }
+
+    .auth-form button.loading::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent); /* No purple */
+        animation: loadingAnimation 1.5s infinite;
+        z-index: 1;
     }
 }
 
