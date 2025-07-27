@@ -564,7 +564,7 @@
         async function loadSuggestedGroups() {
             const { data, error } = await supabase
                 .from('groups')
-                .select('id, name, course')
+                .select('id, name, course_code')
                 .limit(5);
             if (error) {
                 console.error('Error loading suggested groups:', error);
@@ -587,27 +587,65 @@
             });
         }
 
+        // // Load active groups for the user
+        // async function loadActiveGroups() {
+        //     const { data: { user } } = await supabase.auth.getUser();
+        //     const { data, error } = await supabase
+        //         .from('group_members')
+        //         .select('group_id')
+        //         .eq('user_id', user.id);
+        //         //.single();
+        //     if (error) {
+        //         console.error('Error loading active groups:', error);
+        //         return;
+        //     }
+        //     const groupListDiv = document.getElementById('groupList');
+        //     groupListDiv.innerHTML = '';
+        //     const groups = data.group_id || [];
+        //     for (const group of groups) {
+        //         const { data: groupData, error: groupError } = await supabase
+        //             .from('groups')
+        //             .select('id, name, course_code')
+        //             .eq('id', group.id);
+        //             //.single();
+        //         if (groupError) continue;
+        //         const div = document.createElement('div');
+        //         div.className = 'group-item';
+        //         div.innerHTML = `
+        //             <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
+        //             <div>
+        //                 <p class="font-semibold text-gray-800">${groupData.name}</p>
+        //                 <p class="text-gray-600">${groupData.course}</p>
+        //             </div>
+        //             <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
+        //         `;
+        //         groupListDiv.appendChild(div);
+        //     }
+        // }
+
+
         // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data, error } = await supabase
-                .from('profiles')
-                .select('groups')
-                .eq('id', user.id)
-                .single();
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', user.id);
+                //.single();
             if (error) {
                 console.error('Error loading active groups:', error);
                 return;
             }
             const groupListDiv = document.getElementById('groupList');
             groupListDiv.innerHTML = '';
-            const groups = data.groups || [];
+            const groups = data.group_id || [];
+            console.log(groups);
             for (const group of groups) {
                 const { data: groupData, error: groupError } = await supabase
                     .from('groups')
-                    .select('id, name, course')
-                    .eq('id', group.id)
-                    .single();
+                    .select('id, name, course_code')
+                    .eq('id', group);
+                    //.single();
                 if (groupError) continue;
                 const div = document.createElement('div');
                 div.className = 'group-item';
