@@ -162,7 +162,7 @@
     }
     .send-arrow {
       position: absolute;
-      right: 2.5rem;
+      right: 3.5rem; /* Increased spacing */
       top: 50%;
       transform: translateY(-50%);
       background: var(--circle-bg);
@@ -269,7 +269,7 @@
         height: 40px;
       }
       .send-arrow {
-        right: 2.5rem;
+        right: 3.5rem; /* Increased spacing */
         width: 35px;
         height: 35px;
         font-size: 1.2rem;
@@ -316,7 +316,7 @@
         padding: 0 0.3rem;
       }
       .send-arrow {
-        right: 2rem;
+        right: 2.5rem; /* Adjusted spacing for smaller screens */
         width: 30px;
         height: 30px;
         font-size: 1.1rem;
@@ -453,6 +453,7 @@
       if (e.target.tagName === 'SPAN') {
         messageBar.value += e.target.textContent;
         emojiPickerBox.style.display = 'none';
+        sendMessageButton.focus(); // Ensure send button is functional after emoji
       }
     };
     messageBar.oninput = () => {
@@ -464,6 +465,7 @@
         const i = messageBar.value.lastIndexOf('@');
         messageBar.value = messageBar.value.slice(0, i) + e.target.textContent + ' ';
         mentionListBox.style.display = 'none';
+        sendMessageButton.focus(); // Ensure send button is functional after mention
       }
     };
 
