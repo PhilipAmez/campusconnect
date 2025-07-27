@@ -393,17 +393,12 @@
     applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
     // Load group and members
-    console.log('loading group');
-    console.log(gid)
     const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
-    console.log('loaded grp');
-    console.log(grp);
     groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
-    console.log('accessed name');
     // const mem = await supabase.from('group_members').select('user_id').eq('group_id', gid);
     // const members = mem.data.map(r => r.users.user_metadata.full_name);
     // mentionListBox.innerHTML = members.map(n => `<div>@${n}</div>`).join('');
-    console.log('loaded group');
+    
 
     // Render messages
     function render(m) {
