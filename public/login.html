@@ -4,18 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Peerloom</title>
-    <link rel="icon" href="favicon.ico" onerror="console.warn('Favicon not found')">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" onerror="console.warn('Apple touch icon not found')">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" onerror="console.warn('Favicon 32x32 not found')">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" onerror="console.warn('Favicon 16x16 not found')">
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
     <style>
         .auth-container {
             min-height: 100vh;
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            background: linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -24,124 +22,106 @@
         }
 
         .auth-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px); /* Safari fallback */
             padding: 2.5rem;
             border-radius: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 100%;
             max-width: 450px;
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .auth-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .auth-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(
-                transparent,
-                rgba(124, 58, 237, 0.3),
-                transparent
-            );
-            animation: rotate 8s linear infinite;
-            z-index: -1;
-        }
-
-        @keyframes rotate {
-            100% { transform: rotate(360deg); }
+        .auth-title {
+            font-weight: 400;
+            color: #1f2937;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* Safari fallback */
+            border-radius: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
 
         .input-group input {
             transition: all 0.3s ease;
-            border: 2px solid transparent;
-            background: rgba(243, 244, 246, 0.8);
-            padding-right: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            border-radius: 0.6rem;
+            color: #1f2937;
+            width: 100%;
         }
 
         .input-group input:focus {
             border-color: #7c3aed;
-            background: white;
+            background: rgba(255, 255, 255, 0.5);
             transform: scale(1.02);
         }
 
         .auth-button {
-            font-style: italic;
             font-weight: 400;
-            color: black;
+            color: #1f2937;
             padding: 0.75rem 1.5rem;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px); /* Safari fallback */
+            border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            transition: transform 0.3s ease, background 0.3s ease;
             width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
             position: relative;
             overflow: hidden;
         }
 
         .auth-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.5);
         }
 
-        .auth-button::after {
+        .auth-button.loading::after {
             content: '';
             position: absolute;
             top: 0;
-            left: -100%;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-                120deg,
-                rgba(255, 255, 255, 0.1) 0%,
-                rgba(255, 255, 255, 0.4) 50%,
-                rgba(255, 255, 255, 0.1) 100%
-            );
-            transform: skewX(-20deg);
-            transition: left 0.6s ease;
-            pointer-events: none;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            animation: loadingAnimation 1.5s infinite;
+            z-index: 1;
         }
 
-        .auth-button:hover::after {
-            left: 100%;
+        @keyframes loadingAnimation {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         .input-icon {
             transition: color 0.3s ease;
             position: absolute;
-            right: 0.5rem;
-            top: 2.75rem;
+            right: 0.75rem;
+            top: 2.6rem;
+            color: #64748b;
         }
 
         .input-group input:focus + .input-icon {
             color: #7c3aed;
-        }
-
-        .auth-title {
-            font-style: italic;
-            font-weight: 400;
-            color: black;
-            position: relative;
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 1rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .error-message, .success-message {
@@ -162,27 +142,25 @@
             position: fixed;
             bottom: 10px;
             left: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px); /* Safari fallback */
+            border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             padding: 0.7rem 1.3rem;
-            color: black;
-            font-style: italic;
+            color: #1f2937;
             font-weight: 400;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            transition: transform 0.3s ease, background 0.3s ease;
             z-index: 1000;
         }
 
         .support-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.5);
         }
 
         @media (max-width: 768px) {
@@ -228,8 +206,7 @@
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-content">
-                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 𝐿𝑜𝑔𝑖𝑛
-</h2>
+                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 Login</h2>
                 <form id="loginForm" class="auth-form space-y-6">
                     <div class="input-group relative">
                         <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
@@ -262,153 +239,21 @@
         <span>Support</span>
     </a>
 
-    <!-- <script type="module">
-        // Import Firebase SDK
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9cCS-ef12hU31mgD6I8_78tJCQ_HLcA",
-            authDomain: "campusconnect-48927.firebaseapp.com",
-            projectId: "campusconnect-48927",
-            storageBucket: "campusconnect-48927.appspot.com",
-            messagingSenderId: "252390549644",
-            appId: "1:252390549644:web:c05d4cec93230b876cf3a9"
-        };
-
-        // Initialize Firebase
-        let auth, db;
-        try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            console.log("Firebase initialized successfully");
-        } catch (error) {
-            console.error("Firebase initialization error:", error.message, error.stack);
-            document.getElementById('errorMessage').textContent = "Error initializing Firebase. Please try again later.";
-            return;
-        }
-
-        // Handle form submission
-        try {
-            const loginForm = document.getElementById('loginForm');
-            if (!loginForm) throw new Error("Login form not found");
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = document.getElementById('username').value.trim();
-                const password = document.getElementById('password').value.trim();
-                const errorMessage = document.getElementById('errorMessage');
-                const successMessage = document.getElementById('successMessage');
-
-                // Clear previous messages
-                errorMessage.textContent = '';
-                successMessage.textContent = '';
-
-                // Validate username
-                if (!username.match(/^[a-zA-Z0-9._]{3,20}$/)) {
-                    errorMessage.textContent = 'Username must be 3-20 alphanumeric characters (dots allowed, no spaces).';
-                    return;
-                }
-
-                try {
-                    // Query Firestore for email associated with username
-                    const usersRef = collection(db, 'users');
-                    const q = query(usersRef, where('username', '==', username));
-                    const querySnapshot = await getDocs(q);
-
-                    if (querySnapshot.empty) {
-                        errorMessage.textContent = 'No account found with this username.';
-                        return;
-                    }
-
-                    // Ensure exactly one match
-                    if (querySnapshot.size > 1) {
-                        console.error("Multiple users found with username:", username);
-                        errorMessage.textContent = 'Error: Multiple accounts with this username. Please contact support.';
-                        return;
-                    }
-
-                    // Get email from the matching document
-                    let email;
-                    querySnapshot.forEach((doc) => {
-                        email = doc.data().email;
-                    });
-
-                    if (!email) {
-                        errorMessage.textContent = 'Error retrieving email for this username.';
-                        return;
-                    }
-
-                    // Sign in with Firebase
-                    await signInWithEmailAndPassword(auth, email, password);
-                    successMessage.textContent = 'Login successful! Redirecting...';
-                    // Clear form
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
-                } catch (error) {
-                    console.error("Login error:", error.message, error.stack);
-                    switch (error.code) {
-                        case 'auth/invalid-email':
-                            errorMessage.textContent = 'Invalid email format associated with this username.';
-                            break;
-                        case 'auth/user-not-found':
-                            errorMessage.textContent = 'No account found with this username.';
-                            break;
-                        case 'auth/wrong-password':
-                            errorMessage.textContent = 'Incorrect password.';
-                            break;
-                        case 'auth/too-many-requests':
-                            errorMessage.textContent = 'Too many attempts. Please try again later.';
-                            break;
-                        case 'auth/invalid-credential':
-                            errorMessage.textContent = 'Invalid username or password.';
-                            break;
-                        default:
-                            errorMessage.textContent = 'Error: ' + error.message;
-                    }
-                }
-            });
-        } catch (error) {
-            console.error("Form setup error:", error.message, error.stack);
-            document.getElementById('errorMessage').textContent = "Error setting up login form. Please try again.";
-        }
-
-        // Check auth state
-        try {
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    console.log("User authenticated:", user.uid);
-                    window.location.href = 'dashboard.html';
-                } else {
-                    console.log("No user authenticated, staying on login.html");
-                }
-            });
-        } catch (error) {
-            console.error("Auth state change error:", error.message, error.stack);
-            document.getElementById('errorMessage').textContent = "Authentication error. Please try again.";
-        }
-    </script> -->
-    <!-- Shared Supabase client -->
     <script type="module" src="js/supabaseClient.js"></script>
-    <!-- login.html –– Supabase logic -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js'
 
         const form     = document.getElementById('loginForm')
-        const emailEl  = document.getElementById('username')   // reuse existing field
+        const emailEl  = document.getElementById('username')
         const passEl   = document.getElementById('password')
+        const button   = document.querySelector('.auth-button')
         const errorEl  = document.getElementById('errorMessage')
         const okEl     = document.getElementById('successMessage')
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault()
             errorEl.textContent = okEl.textContent = ''
+            button.classList.add('loading')
 
             const email    = emailEl.value.trim()
             const password = passEl.value
@@ -416,17 +261,24 @@
             const { error } = await supabase.auth.signInWithPassword({ email, password })
 
             if (error) {
-            errorEl.textContent = error.message
-            return
+                errorEl.textContent = error.message
+                button.classList.remove('loading')
+                return
             }
-            okEl.textContent = 'Login successful! Redirecting…'
-            window.location = 'dashboard.html'
+            okEl.textContent = 'Login successful! Loading…'
+            setTimeout(() => {
+                window.location = 'dashboard.html'
+            }, 10000) // 10-second delay
         })
 
-        // Auto‑redirect if already signed in
+        // Auto-redirect if already signed in
         const { data: { session } } = await supabase.auth.getSession()
-        if (session) window.location = 'dashboard.html'
+        if (session) {
+            button.classList.add('loading')
+            setTimeout(() => {
+                window.location = 'dashboard.html'
+            }, 10000) // 10-second delay
+        }
     </script>
-
 </body>
 </html>

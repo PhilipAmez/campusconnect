@@ -4,167 +4,167 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Peerloom</title>
+  <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
     <link rel="icon" href="favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary: #6b46c1;
-            --secondary: #4a2ab1;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.2);
+            --primary: #4c51bf;
+            --secondary: #2a2f8e;
             --text-dark: #1a202c;
-            --text-light: #718096;
-            --hover-bg: rgba(255, 255, 255, 0.1);
-            --accent: #38a169;
-            --transition: all 0.3s ease;
+            --text-light: #a0aec0;
+            --accent: #2f855a;
+            --blur: 8px;
+            --transition: all 0.3s ease-in-out;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Arial', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #e2e8f0, #edf2f7);
+            background: linear-gradient(135deg, #e6e8f0, #f0f2f5);
             min-height: 100vh;
-            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            padding-top: 60px;
+            transition: background var(--transition);
         }
 
         .navbar {
             position: fixed;
-            width: 100%;
             top: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
             padding: 0.75rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             z-index: 1000;
-            transition: background 0.3s ease;
+            transition: background var(--transition);
         }
 
         .navbar.scrolled {
-            background: rgba(255, 255, 255, 1);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         .logo img {
-            height: 32px;
-            transition: transform 0.3s ease;
+            height: 30px;
+            transition: transform var(--transition);
         }
 
         .logo img:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .nav-link {
+        .nav-links a {
             color: var(--text-dark);
             text-decoration: none;
             font-weight: 500;
-            font-size: 0.9rem;
-            position: relative;
-            transition: color 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: color var(--transition), background var(--transition);
         }
 
-        .nav-link:hover {
+        .nav-links a:hover {
             color: var(--primary);
+            background: var(--glass-hover);
         }
 
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -4px;
-            left: 0;
-            background: var(--primary);
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after {
-            width: 100%;
-        }
-
-        .profile-container {
-            max-width: 650px;
-            margin: 80px auto 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+        .profile-card {
+            max-width: 600px;
+            width: 90%;
+            margin: 20px auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
             border-radius: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            position: relative;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform var(--transition), box-shadow var(--transition);
         }
 
-        .profile-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        .profile-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
         }
 
-        .profile-cover {
-            height: 150px;
+        .cover-photo {
+            height: 140px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            padding-left: 1.5rem;
         }
 
-        .profile-cover::before {
+        .cover-photo::before {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: rotate 8s linear infinite;
+            top: -40%;
+            left: -40%;
+            width: 180%;
+            height: 180%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+            animation: ripple 6s infinite ease-in-out;
             z-index: 0;
         }
 
-        @keyframes rotate {
-            100% { transform: rotate(360deg); }
+        @keyframes ripple {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.2); opacity: 0; }
         }
 
-        .profile-avatar {
-            width: 90px;
-            height: 90px;
-            background: var(--primary);
+        .avatar-container {
+            position: relative;
+            margin-top: -60px;
+            margin-left: 1.5rem;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.95);
-            position: absolute;
-            bottom: -45px;
-            left: 30px;
+            border: 4px solid rgba(255, 255, 255, 0.9);
+            background: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 2rem;
             color: white;
             font-weight: bold;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease;
+            cursor: pointer;
+            transition: transform var(--transition);
         }
 
-        .profile-avatar:hover {
+        .avatar:hover {
             transform: scale(1.1);
         }
 
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .avatar-upload {
+            display: none;
+        }
+
         .profile-content {
-            padding: 2rem 2.5rem 2rem;
-            margin-top: 50px;
+            padding: 2rem 1.5rem 1.5rem;
         }
 
         .profile-header {
@@ -173,289 +173,223 @@
             margin-bottom: 1.5rem;
         }
 
-        .profile-avatar-container {
-            margin-right: 1.5rem;
-        }
-
-        .profile-identity {
+        .profile-info {
             flex-grow: 1;
+            margin-left: 1rem;
         }
 
-        .profile-identity h1 {
-            margin: 0;
-            font-size: 2rem;
+        .profile-info h1 {
+            font-size: 1.8rem;
             color: var(--text-dark);
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
-        .profile-details {
-            color: var(--text-light);
-            margin-top: 0.3rem;
-        }
-
-        .profile-buttons {
+        .verified-badge {
+            width: 18px;
+            height: 18px;
+            background: var(--accent);
+            border-radius: 50%;
             display: flex;
-            gap: 0.8rem;
-            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
         }
 
-        .btn {
-            font-style: italic;
-            font-weight: 400;
-            color: black;
-            padding: 0.7rem 1.4rem;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        .profile-info p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-selector {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            background: var(--glass-bg);
+            border: none;
+            color: var(--text-dark);
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            font-size: 0.95rem;
+            transition: background var(--transition);
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-            background: rgba(255, 255, 255, 0.3);
+        .status-selector:hover {
+            background: var(--glass-hover);
         }
 
-        .btn::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0.1) 100%);
-            transform: skewX(-20deg);
-            transition: left 0.6s ease;
-            pointer-events: none;
+        .academic-details {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border-radius: 0.75rem;
+            color: var(--text-light);
         }
 
-        .btn:hover::after {
-            left: 100%;
+        .academic-details p {
+            margin: 0.25rem 0;
+        }
+
+        .groups-list {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border-radius: 0.75rem;
+        }
+
+        .group-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: background var(--transition);
+        }
+
+        .group-item:hover {
+            background: var(--glass-hover);
+        }
+
+        .admin-badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
         }
 
         .bio-section {
-            margin-bottom: 1.5rem;
+            margin-top: 1.5rem;
         }
 
         .bio-display {
+            padding: 1rem;
+            background: var(--glass-bg);
+            border-radius: 0.75rem;
             color: var(--text-dark);
             line-height: 1.6;
-            font-size: 1.1rem;
-            background: var(--hover-bg);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            transition: var(--transition);
+            cursor: pointer;
+            transition: background var(--transition);
         }
 
         .bio-display:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--glass-hover);
         }
 
         .bio-edit {
             width: 100%;
             padding: 1rem;
-            border: 2px solid transparent;
+            border: none;
             border-radius: 0.75rem;
+            background: var(--glass-bg);
+            color: var(--text-dark);
+            font-size: 1rem;
             resize: vertical;
-            min-height: 120px;
-            font-size: 1.1rem;
-            background: var(--hover-bg);
             display: none;
-            transition: var(--transition);
+            transition: transform var(--transition);
         }
 
         .bio-edit:focus {
-            border-color: var(--primary);
             outline: none;
-            box-shadow: 0 0 0 4px rgba(107, 70, 193, 0.1);
             transform: scale(1.02);
+            box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.8rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
+        .theme-toggle, .privacy-toggle {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border-radius: 0.75rem;
         }
 
-        .stats-grid::after {
-            content: '';
-            display: block;
-            clear: both;
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 0.7rem 1.4rem;
-            border-radius: 0.5rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            transition: var(--transition);
-            position: relative;
-            border-radius: 0.5rem !important; /* Override any circular styling */
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .stat-number {
-            font-size: 1.2rem;
-            color: var(--accent);
-            font-weight: bold;
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            margin-top: 0.2rem;
-        }
-
-        .settings-panel {
-            display: none;
-            max-width: 650px;
-            margin: 1rem auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            position: relative;
-        }
-
-        .setting-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .setting-group h3 {
+        .theme-toggle button, .privacy-toggle div {
+            padding: 0.5rem 1rem;
+            background: var(--glass-bg);
+            border: none;
+            border-radius: 0.375rem;
             color: var(--text-dark);
-            font-size: 1.2rem;
-            margin-bottom: 0.8rem;
-        }
-
-        .setting-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.7rem 1.4rem;
-            background: var(--hover-bg);
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            transition: var(--transition);
-        }
-
-        .setting-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .setting-toggle {
             cursor: pointer;
+            transition: background var(--transition);
         }
 
-        .support-button {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.45);
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 0.7rem 1.4rem;
-            color: black;
-            font-style: italic;
-            font-weight: 400;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-            z-index: 1000;
-            font-size: 0.95rem;
+        .theme-toggle button:hover, .privacy-toggle div:hover {
+            background: var(--glass-hover);
+        }
+
+        .save-button {
+            margin-top: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--glass-bg);
+            border: none;
+            border-radius: 0.375rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform var(--transition), background var(--transition);
+            position: relative;
             overflow: hidden;
-            min-width: 120px;
         }
 
-        .support-button:hover {
+        .save-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-            background: rgba(255, 255, 255, 0.45);
+            background: var(--glass-hover);
         }
 
-        .support-button::after {
+        .save-button::after {
             content: '';
             position: absolute;
             top: 0;
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0.25) 100%);
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0.1) 100%);
             transform: skewX(-20deg);
-            transition: left 0.6s ease;
+            transition: left 0.5s ease;
             pointer-events: none;
         }
 
-        .support-button:hover::after {
+        .save-button:hover::after {
             left: 100%;
         }
 
+        .save-button.saved {
+            background: rgba(47, 133, 90, 0.2);
+            color: var(--accent);
+        }
+
         @media (max-width: 768px) {
-            .profile-container, .settings-panel {
-                max-width: 90%;
-                margin: 70px auto 15px;
+            .profile-card {
+                width: 95%;
+                margin: 15px auto;
             }
-            .profile-cover {
+            .cover-photo {
                 height: 120px;
+                padding-left: 1rem;
             }
-            .profile-avatar {
-                width: 80px;
-                height: 80px;
-                bottom: -40px;
-                left: 20px;
-                font-size: 32px;
-                border: 4px solid rgba(255, 255, 255, 0.95);
-            }
-            .profile-content, .settings-panel {
-                padding: 1.5rem 2rem;
-                margin-top: 40px;
-            }
-            .profile-identity h1 {
+            .avatar {
+                width: 100px;
+                height: 100px;
                 font-size: 1.7rem;
+                margin-top: -50px;
+                margin-left: 1rem;
             }
-            .profile-details {
-                font-size: 0.9rem;
+            .profile-content {
+                padding: 1.5rem 1rem;
             }
-            .btn {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
+            .profile-info h1 {
+                font-size: 1.5rem;
             }
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.8rem;
+            .profile-info p {
+                font-size: 0.85rem;
             }
-            .stat-number {
-                font-size: 1.1rem;
+            .status-selector {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
             }
-            .stat-label {
-                font-size: 0.8rem;
-            }
-            .support-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
-                min-width: 110px;
+            .academic-details, .groups-list, .bio-section, .theme-toggle, .privacy-toggle {
+                padding: 0.8rem;
+                margin-top: 1rem;
             }
         }
 
@@ -464,61 +398,43 @@
                 padding: 0.5rem 1rem;
             }
             .logo img {
-                height: 28px;
+                height: 25px;
             }
-            .nav-link {
-                font-size: 0.8rem;
-                gap: 0.3rem;
+            .profile-card {
+                width: 98%;
+                margin: 10px auto;
             }
-            .profile-container, .settings-panel {
-                max-width: 95%;
-                margin: 60px auto 10px;
-            }
-            .profile-cover {
+            .cover-photo {
                 height: 100px;
+                padding-left: 0.75rem;
             }
-            .profile-avatar {
-                width: 70px;
-                height: 70px;
-                bottom: -35px;
-                left: 15px;
-                font-size: 28px;
-                border: 3px solid rgba(255, 255, 255, 0.95);
+            .avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 1.4rem;
+                margin-top: -40px;
+                margin-left: 0.75rem;
             }
-            .profile-content, .settings-panel {
-                padding: 1.2rem;
-                margin-top: 30px;
+            .profile-content {
+                padding: 1rem;
             }
-            .profile-identity h1 {
-                font-size: 1.5rem;
+            .profile-info h1 {
+                font-size: 1.3rem;
             }
-            .profile-details {
-                font-size: 0.85rem;
+            .profile-info p {
+                font-size: 0.8rem;
             }
-            .btn {
-                padding: 0.5rem 1rem;
-                font-size: 0.85rem;
+            .status-selector {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
             }
-            .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 0.6rem;
+            .academic-details, .groups-list, .bio-section, .theme-toggle, .privacy-toggle {
+                padding: 0.6rem;
+                margin-top: 0.8rem;
             }
-            .stat-number {
-                font-size: 1rem;
-            }
-            .stat-label {
-                font-size: 0.75rem;
-            }
-            .support-button {
-                padding: 0.5rem 1rem;
-                font-size: 0.85rem;
-                min-width: 100px;
-            }
-            .setting-group h3 {
-                font-size: 1.1rem;
-            }
-            .setting-item {
-                padding: 0.5rem 1rem;
+            .save-button {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -526,216 +442,209 @@
 <body>
     <nav class="navbar" id="navbar">
         <a href="index.html" class="logo">
-            <img src="logo.png" alt="Peerloom">
+            <img src="logo.png" alt="Peerloom Logo">
         </a>
         <div class="nav-links">
-            <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="index.html" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>
 
-    <div class="profile-container">
-        <div class="profile-cover">
-            <div class="profile-avatar" id="avatar"></div>
+    <div class="profile-card">
+        <div class="cover-photo">
+            <div class="avatar-container">
+                <label for="avatarUpload" class="avatar" id="avatar"></label>
+                <input type="file" id="avatarUpload" accept="image/*" class="avatar-upload" onchange="uploadAvatar(event)">
+            </div>
         </div>
         <div class="profile-content">
             <div class="profile-header">
-                <div class="profile-avatar-container">
-                    <!-- Removed duplicate avatar -->
+                <div class="profile-info">
+                    <h1 id="fullName"></h1>
+                    <p id="username"></p>
+                    <p id="joinDate"></p>
+                    <select id="statusSelector" class="status-selector mt-2">
+                        <option value="online">Online</option>
+                        <option value="busy">Busy</option>
+                        <option value="dnd">Do Not Disturb</option>
+                        <option value="offline">Offline</option>
+                    </select>
                 </div>
-                <div class="profile-identity">
-                    <h1 id="userName"></h1>
-                    <div class="profile-details" id="userDetails"></div>
-                </div>
-                <div class="profile-buttons">
-                    <button class="btn" id="editProfileBtn"><i class="fas fa-edit"></i> Edit Profile</button>
-                    <button class="btn" id="settingsBtn"><i class="fas fa-cog"></i> Settings</button>
-                </div>
+                <div id="verifiedBadge" class="verified-badge hidden"></div>
+            </div>
+            <div class="academic-details" id="academicDetails">
+                <p><strong>Campus:</strong> <span id="campus"></span></p>
+                <p><strong>Level:</strong> <span id="level"></span></p>
+                <p><strong>Department:</strong> <span id="department"></span></p>
+            </div>
+            <div class="groups-list" id="groupsList">
+                <h3 class="text-lg font-medium text-text-dark">Groups</h3>
+                <ul class="mt-2 space-y-1"></ul>
             </div>
             <div class="bio-section">
-                <p class="bio-display" id="bioDisplay"></p>
-                <textarea class="bio-edit" id="bioEdit" placeholder="Tell us about yourself..."></textarea>
+                <div class="bio-display" id="bioDisplay"></div>
+                <textarea class="bio-edit" id="bioEdit" placeholder="Share a bit about yourself..."></textarea>
             </div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="postsCount"></div>
-                    <div class="stat-label">Posts</div>
+            <div class="theme-toggle">
+                <button id="themeToggle">Switch Theme</button>
+            </div>
+            <div class="privacy-toggle">
+                <div class="flex justify-between items-center">
+                    <span>Hide Academic Details</span>
+                    <input type="checkbox" id="hideAcademicToggle">
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="friendsCount"></div>
-                    <div class="stat-label">Friends</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="joinedDate"></div>
-                    <div class="stat-label">Joined</div>
+                <div class="flex justify-between items-center mt-2">
+                    <span>Hide Groups</span>
+                    <input type="checkbox" id="hideGroupsToggle">
                 </div>
             </div>
+            <button id="saveChangesBtn" class="save-button w-full mt-4">Save Changes</button>
         </div>
     </div>
-
-    <div class="settings-panel" id="settingsPanel">
-        <h2 class="text-2xl font-bold text-text-dark mb-4">Settings</h2>
-        <div class="setting-group">
-            <h3>Privacy</h3>
-            <div class="setting-item">
-                <span>Private Profile</span>
-                <input type="checkbox" class="setting-toggle" id="privateToggle">
-            </div>
-            <div class="setting-item">
-                <span>Hide Friends List</span>
-                <input type="checkbox" class="setting-toggle" id="hideFriendsToggle">
-            </div>
-        </div>
-        <div class="setting-group">
-            <h3>Notifications</h3>
-            <div class="setting-item">
-                <span>Email Notifications</span>
-                <input type="checkbox" class="setting-toggle" id="emailToggle">
-            </div>
-            <div class="setting-item">
-                <span>Push Notifications</span>
-                <input type="checkbox" class="setting-toggle" id="pushToggle">
-            </div>
-        </div>
-        <div class="setting-group">
-            <h3>Account Security</h3>
-            <div class="setting-item">
-                <span>Two-Factor Authentication</span>
-                <input type="checkbox" class="setting-toggle" id="twoFAToggle">
-            </div>
-            <div class="setting-item">
-                <span>Change Password</span>
-                <button class="btn" id="changePasswordBtn">Change</button>
-            </div>
-        </div>
-        <div class="setting-group">
-            <h3>Appearance</h3>
-            <div class="setting-item">
-                <span>Dark Mode</span>
-                <input type="checkbox" class="setting-toggle" id="darkModeToggle">
-            </div>
-        </div>
-        <div class="setting-group">
-            <h3>Account</h3>
-            <div class="setting-item">
-                <span>Deactivate Account</span>
-                <button class="btn" id="deactivateBtn">Deactivate</button>
-            </div>
-        </div>
-    </div>
-
-    <a href="support.html" class="support-button">
-        <i class="fas fa-headset"></i>
-        <span>Support</span>
-    </a>
 
     <script type="module" src="js/supabaseClient.js"></script>
     <script type="module">
-        import { supabase } from './js/supabaseClient.js'
+        import { supabase } from './js/supabaseClient.js';
 
         // Navbar scroll effect
         window.addEventListener('scroll', () => {
             const navbar = document.getElementById('navbar');
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
+            if (window.scrollY > 50) navbar.classList.add('scrolled');
+            else navbar.classList.remove('scrolled');
         });
 
-        // Load user profile
+        // Load profile
         async function loadProfile() {
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError || !user) {
-                    console.error('Auth error:', authError?.message);
-                    alert('Please log in to view your profile.');
+                    alert('Please log in.');
                     window.location = 'login.html';
                     return;
                 }
 
-                const { firstName, lastName } = user.user_metadata || {};
+                const { firstName, lastName, campus, level, department } = user.user_metadata || {};
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .select('username, bio, posts, friends, created_at')
+                    .select('full_name, username, bio, status, join_date, verified, groups, theme, privacy')
                     .eq('id', user.id)
                     .single();
 
-                if (profileError) {
-                    console.error('Profile fetch error:', profileError.message);
-                    alert('Error loading profile. Please try again.');
-                    return;
-                }
+                if (profileError) throw profileError;
 
-                const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.username || 'User';
-                const displayBio = profile.bio || 'No bio yet...';
-                const displayPosts = profile.posts || 0;
-                const displayFriends = profile.friends || 0;
-                const displayJoined = profile.created_at
-                    ? new Date(profile.created_at).toLocaleString('default', { month: 'short', year: 'numeric' })
-                    : 'Unknown';
+                const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.full_name || 'User';
+                document.getElementById('fullName').textContent = displayName;
+                document.getElementById('username').textContent = `Username: ${profile.username || 'N/A'}`;
+                document.getElementById('joinDate').textContent = profile.join_date
+                    ? new Date(profile.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                    : 'N/A';
+                document.getElementById('bioDisplay').textContent = profile.bio || 'No bio yet...';
+                document.getElementById('bioEdit').value = profile.bio || '';
+                document.getElementById('campus').textContent = campus || 'N/A';
+                document.getElementById('level').textContent = level || 'N/A';
+                document.getElementById('department').textContent = department || 'N/A';
+                document.getElementById('statusSelector').value = profile.status || 'online';
+                if (profile.verified) document.getElementById('verifiedBadge').classList.remove('hidden');
 
-                document.getElementById('userName').textContent = displayName;
-                document.getElementById('bioDisplay').textContent = displayBio;
-                document.getElementById('bioEdit').value = displayBio;
-                document.getElementById('postsCount').textContent = displayPosts;
-                document.getElementById('friendsCount').textContent = displayFriends;
-                document.getElementById('joinedDate').textContent = displayJoined;
-                document.getElementById('userDetails').textContent = `${profile.username ? 'Username: ' + profile.username + ' | ' : ''}Joined ${displayJoined}`;
-                document.getElementById('avatar').textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
+                const avatar = document.getElementById('avatar');
+                avatar.textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
+
+                const groupsList = document.getElementById('groupsList').querySelector('ul');
+                profile.groups?.forEach(group => {
+                    const li = document.createElement('li');
+                    li.className = 'group-item';
+                    li.innerHTML = `${group.name} ${group.is_admin ? '<span class="admin-badge">Admin</span>' : ''}`;
+                    groupsList.appendChild(li);
+                });
+
+                const privacy = profile.privacy || {};
+                document.getElementById('hideAcademicToggle').checked = privacy.hideAcademic || false;
+                document.getElementById('hideGroupsToggle').checked = privacy.hideGroups || false;
+                document.getElementById('academicDetails').style.display = privacy.hideAcademic ? 'none' : 'block';
+                document.getElementById('groupsList').style.display = privacy.hideGroups ? 'none' : 'block';
+
+                if (profile.theme === 'dark') toggleTheme(true);
             } catch (error) {
-                console.error('Load profile error:', error.message);
-                alert('Error loading profile. Please try again.');
+                console.error('Load error:', error.message);
+                alert('Error loading profile.');
             }
         }
 
-        // Toggle edit mode
-        document.getElementById('editProfileBtn').addEventListener('click', () => {
-            const bioDisplay = document.getElementById('bioDisplay');
-            const bioEdit = document.getElementById('bioEdit');
-            bioDisplay.style.display = 'none';
-            bioEdit.style.display = 'block';
-            bioEdit.focus();
+        // Upload avatar
+        async function uploadAvatar(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const { data, error } = await supabase.storage
+                .from('avatars')
+                .upload(`public/${user.id}/${Date.now()}_${file.name}`, file, { upsert: true });
+            if (error) {
+                console.error('Upload error:', error.message);
+                alert('Error uploading avatar.');
+            } else {
+                const url = supabase.storage.from('avatars').getPublicUrl(`public/${user.id}/${Date.now()}_${file.name}`).data.publicUrl;
+                document.getElementById('avatar').innerHTML = `<img src="${url}" alt="Avatar">`;
+            }
+        }
+
+        // Toggle theme
+        function toggleTheme(isDark) {
+            const body = document.body;
+            const textDark = isDark ? '#e6e8f0' : '#1a202c';
+            const textLight = isDark ? '#a0aec0' : '#718096';
+            const bg = isDark ? 'linear-gradient(135deg, #2d3748, #4a5568)' : 'linear-gradient(135deg, #e6e8f0, #f0f2f5)';
+            document.documentElement.style.setProperty('--text-dark', textDark);
+            document.documentElement.style.setProperty('--text-light', textLight);
+            body.style.background = bg;
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            const currentTheme = (await supabase.from('profiles').select('theme').eq('id', user.id).single()).data.theme;
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
+            toggleTheme(newTheme === 'dark');
         });
 
-        // Toggle settings panel
-        document.getElementById('settingsBtn').addEventListener('click', () => {
-            const settingsPanel = document.getElementById('settingsPanel');
-            settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+        // Toggle bio edit
+        document.getElementById('bioDisplay').addEventListener('click', () => {
+            document.getElementById('bioDisplay').style.display = 'none';
+            document.getElementById('bioEdit').style.display = 'block';
+            document.getElementById('bioEdit').focus();
         });
 
-        // Save bio
-        document.getElementById('bioEdit').addEventListener('blur', async () => {
+        document.getElementById('bioEdit').addEventListener('blur', () => {
+            document.getElementById('bioDisplay').style.display = 'block';
+            document.getElementById('bioEdit').style.display = 'none';
+        });
+
+        // Save changes
+        document.getElementById('saveChangesBtn').addEventListener('click', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
             const bio = document.getElementById('bioEdit').value.trim();
-            try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError || !user) {
-                    alert('Please log in to update your bio.');
-                    window.location = 'login.html';
-                    return;
-                }
+            const status = document.getElementById('statusSelector').value;
+            const hideAcademic = document.getElementById('hideAcademicToggle').checked;
+            const hideGroups = document.getElementById('hideGroupsToggle').checked;
 
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ bio })
-                    .eq('id', user.id);
+            const { error } = await supabase
+                .from('profiles')
+                .update({ bio, status, privacy: { hideAcademic, hideGroups } })
+                .eq('id', user.id);
 
-                if (error) {
-                    console.error('Bio update error:', error.message);
-                    alert('Error updating bio. Please try again.');
-                    return;
-                }
-
+            if (error) {
+                console.error('Save error:', error.message);
+                alert('Error saving changes.');
+            } else {
                 document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
-                document.getElementById('bioDisplay').style.display = 'block';
-                document.getElementById('bioEdit').style.display = 'none';
-            } catch (error) {
-                console.error('Save bio error:', error.message);
-                alert('Error updating bio. Please try again.');
+                document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
+                document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
+                const saveBtn = document.getElementById('saveChangesBtn');
+                saveBtn.classList.add('saved');
+                setTimeout(() => saveBtn.classList.remove('saved'), 1500);
             }
         });
 
-        // Initialize profile
+        // Initialize
         loadProfile();
     </script>
 </body>
