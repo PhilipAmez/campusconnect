@@ -393,7 +393,7 @@
     // Theme toggle
     const applyTheme = (theme) => {
       body.dataset.theme = theme;
-      themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
+      themeToggleButton.textContent = theme === 'dark' ? '☀' : '🌙';
       localStorage.setItem('vibe-theme', theme);
     };
     themeToggleButton.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
@@ -401,23 +401,40 @@
 
     // Load group and members
     const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
-    groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
+    groupTitle.textContent = ${grp.data.name} - *${grp.data.description}*;
     // const mem = await supabase.from('group_members').select('user_id').eq('group_id', gid);
     // const members = mem.data.map(r => r.users.user_metadata.full_name);
-    // mentionListBox.innerHTML = members.map(n => `<div>@${n}</div>`).join('');
+    // mentionListBox.innerHTML = members.map(n => <div>@${n}</div>).join('');
     
 
     // Render messages
-    function render(m) {
+    async function render(m) {
       const mine = m.sender_id === user.id;
-      const senderName = mine ? user.user_metadata.full_name : m.sender_name || 'Unknown';
+      let senderName = m.sender_name || (m.sender_id === 'peerloom-ai' ? 'Peerloom AI' : null);
+      if (!senderName && m.sender_id) {
+        try {
+          const { data: authUser, error } = await supabase.auth.admin.getUserById(m.sender_id);
+          if (error) throw error;
+          senderName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0] || 'Unknown';
+          // Split full_name into first and last if possible
+          if (senderName.includes(' ')) {
+            senderName = senderName; // Already in "First Last" format
+          } else if (authUser.user.email) {
+            senderName = authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' ' + 
+                        (authUser.user.email.split('@')[0].split('.').length > 1 ? authUser.user.email.split('@')[0].split('.')[1] : 'User');
+          }
+        } catch (error) {
+          console.error(Failed to fetch name for sender_id ${m.sender_id}:, error.message);
+          senderName = 'Unknown';
+        }
+      }
       const div = document.createElement('div');
-      div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
+      div.className = msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'};
       div.dataset.id = m.id;
       if (m.reply_to) {
         const br = document.createElement('div');
         br.className = 'reply-banner';
-        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
+        br.textContent = ${m.reply_to_sender}: ${m.reply_to_text};
         div.append(br);
       }
       const nameTag = document.createElement('div');
@@ -437,11 +454,13 @@
     async function loadHistory() {
       const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
       messagePanel.innerHTML = '';
-      data.forEach(render);
+      for (const msg of data) {
+        await render(msg);
+      }
     }
     await loadHistory();
-    supabase.channel(`grp_${gid}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
+    supabase.channel(grp_${gid})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: group_id=eq.${gid} },
         payload => render(payload.new))
       .subscribe();
 
@@ -483,7 +502,7 @@
       const res = await supabase.from('group_messages').insert({
         group_id: gid,
         sender_id: user.id,
-        sender_name: user.user_metadata.full_name,
+        sender_name: user.user_metadata?.full_name || user.email.split('@')[0],
         content: txt,
         reply_to: replyingMsg?.id,
         reply_to_sender: replyingMsg?.sender_name,
@@ -506,7 +525,7 @@
         const response = await fetch('https://campusconnect-omep.onrender.com/peerloom-ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, user: user.user_metadata.full_name })
+          body: JSON.stringify({ message, user: user.user_metadata?.full_name || user.email.split('@')[0] })
         });
         const data = await response.json();
         if (data.reply) {
@@ -577,7 +596,7 @@
     }
     function startReply(msg) {
       replyingMsg = msg;
-      replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
+      replyContextBox.textContent = Replying to ${msg.sender_name}: ${msg.content};
       replyContextBox.style.display = 'block';
     }
     replyContextBox.onclick = () => {
