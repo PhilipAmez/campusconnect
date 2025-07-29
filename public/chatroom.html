@@ -393,7 +393,7 @@
     // Theme toggle
     const applyTheme = (theme) => {
       body.dataset.theme = theme;
-      themeToggleButton.textContent = theme === 'dark' ? '☀' : '🌙';
+      themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
       localStorage.setItem('vibe-theme', theme);
     };
     themeToggleButton.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
@@ -404,82 +404,43 @@
     groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
     // const mem = await supabase.from('group_members').select('user_id').eq('group_id', gid);
     // const members = mem.data.map(r => r.users.user_metadata.full_name);
-    // mentionListBox.innerHTML = members.map(n => <div>@${n}</div>).join('');
+    // mentionListBox.innerHTML = members.map(n => `<div>@${n}</div>`).join('');
     
 
-    // Consider moving the user check higher up or ensuring `user` is always available.
-// const user = session.data.session.user; // Assuming 'user' is correctly available from the main scope
-
-async function render(m) {
-    const mine = m.sender_id === user.id;
-    let senderName = m.sender_name; // Prioritize sender_name stored with the message
-
-    // If sender_name is not stored with the message, or if it's the AI, handle fallbacks.
-    if (!senderName) {
-        if (m.sender_id === 'peerloom-ai') {
-            senderName = 'Peerloom AI';
-        } else {
-            // !!! IMPORTANT: AVOID supabase.auth.admin.getUserById ON CLIENT-SIDE !!!
-            // This block should ideally be replaced by fetching sender_name through RLS
-            // on a 'profiles' table (if you have one) or ensuring sender_name is stored.
-
-            // For now, as a temporary measure if you MUST fetch, use the regular supabase client
-            // and ensure RLS is configured to allow read access to user profiles.
-            try {
-                // Assuming you have a 'profiles' table linked to auth.users with full_name
-                const { data: profileData, error: profileError } = await supabase
-                    .from('profiles') // Or 'users' table if you store profiles there
-                    .select('full_name') // Select only what's needed
-                    .eq('id', m.sender_id) // Assuming 'id' in profiles matches auth.users.id
-                    .single();
-
-                if (profileError) throw profileError;
-
-                senderName = profileData?.full_name || m.sender_id.substring(0, 8) + '...'; // Fallback to partial ID
-            } catch (error) {
-                console.error(`Failed to fetch profile for sender_id ${m.sender_id}:`, error.message);
-                senderName = 'Unknown User'; // Default fallback
-            }
-        }
-    }
-
-    const div = document.createElement('div');
-    div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`; // Corrected template literal
-    div.dataset.id = m.id;
-
-    if (m.reply_to) {
+    // Render messages
+    function render(m) {
+      const mine = m.sender_id === user.id;
+      const senderName = mine ? user.user_metadata.full_name : m.sender_name || 'Unknown';
+      const div = document.createElement('div');
+      div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
+      div.dataset.id = m.id;
+      if (m.reply_to) {
         const br = document.createElement('div');
         br.className = 'reply-banner';
-        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`; // Corrected template literal
+        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
         div.append(br);
+      }
+      const nameTag = document.createElement('div');
+      nameTag.className = 'sender-name';
+      nameTag.textContent = senderName;
+      const ct = document.createElement('div');
+      ct.textContent = m.content;
+      const ts = document.createElement('div');
+      ts.className = 'timestamp';
+      ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      div.append(nameTag, ct, ts);
+      messagePanel.append(div);
+      messagePanel.scrollTop = messagePanel.scrollHeight;
+      attachGestures(div, mine, m);
     }
-
-    const nameTag = document.createElement('div');
-    nameTag.className = 'sender-name';
-    nameTag.textContent = senderName; // Use the determined senderName
-
-    const ct = document.createElement('div');
-    ct.textContent = m.content;
-
-    const ts = document.createElement('div');
-    ts.className = 'timestamp';
-    ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    div.append(nameTag, ct, ts);
-    messagePanel.append(div);
-    messagePanel.scrollTop = messagePanel.scrollHeight;
-    attachGestures(div, mine, m);
-}
 
     async function loadHistory() {
       const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
       messagePanel.innerHTML = '';
-      for (const msg of data) {
-        await render(msg);
-      }
+      data.forEach(render);
     }
     await loadHistory();
-    supabase.channel(grp_$,{gid})
+    supabase.channel(`grp_${gid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
         payload => render(payload.new))
       .subscribe();
@@ -522,7 +483,7 @@ async function render(m) {
       const res = await supabase.from('group_messages').insert({
         group_id: gid,
         sender_id: user.id,
-        sender_name: user.user_metadata?.full_name || user.email.split('@')[0],
+        sender_name: user.user_metadata.full_name,
         content: txt,
         reply_to: replyingMsg?.id,
         reply_to_sender: replyingMsg?.sender_name,
@@ -545,7 +506,7 @@ async function render(m) {
         const response = await fetch('https://campusconnect-omep.onrender.com/peerloom-ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, user: user.user_metadata?.full_name || user.email.split('@')[0] })
+          body: JSON.stringify({ message, user: user.user_metadata.full_name })
         });
         const data = await response.json();
         if (data.reply) {
@@ -616,7 +577,7 @@ async function render(m) {
     }
     function startReply(msg) {
       replyingMsg = msg;
-      replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content};`
+      replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
       replyContextBox.style.display = 'block';
     }
     replyContextBox.onclick = () => {
