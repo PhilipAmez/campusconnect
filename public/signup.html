@@ -224,39 +224,126 @@
         const form = document.getElementById('signupForm')
 
         form.addEventListener('submit', async (e) => {
-            e.preventDefault()
+            e.preventDefault();
 
-            const firstName       = document.getElementById('firstName').value.trim()
-            const lastName        = document.getElementById('lastName').value.trim()
-            const contact         = document.getElementById('contact').value.trim()
-            const email           = document.getElementById('email').value.trim()
-            const password        = document.getElementById('password').value
-            const confirmPassword = document.getElementById('confirmPassword').value
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
 
             if (password !== confirmPassword) {
-                return alert('Passwords do not match.')
+                return alert('Passwords do not match.');
             }
 
-            const { data, error } = await supabase.auth.signUp({
+            // Step 1: Attempt to sign up the user with email and password
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: { 
-                    data: { 
+                options: {
+                    data: { // This data goes into auth.users.user_metadata
                         firstName,
                         lastName,
-                        contact
-                    } 
+                        contact // Note: contact can also go here, but usually for auth-specific meta
+                    }
                 }
-            })
+            });
 
-            if (error) {
-                console.error(error)
-                return alert(error.message)
+            // Handle signup errors immediately
+            if (signUpError) {
+                console.error('Sign up error:', signUpError);
+                return alert('Sign up failed: ' + signUpError.message);
             }
 
-            alert('Sign-up success! Check your inbox to verify, then log in.')
-            window.location = 'login.html'
-        })
+            // If signup is successful, proceed to insert into profiles table
+            // The user object contains the user ID needed for the profiles table
+            const newUser = signUpData.user;
+
+            // Check if user object is available (it might be null if email confirmation is required and no session is returned immediately)
+            if (!newUser) {
+                alert('Sign-up initiated! Check your inbox to verify your email. You will be able to log in after verification.');
+                window.location = 'login.html'; // Redirect to login for verification flow
+                return; // Exit here as no user ID for profile insert yet
+            }
+
+            const fullName = `${firstName} ${lastName}`.trim(); // Combine first and last name
+
+            // Step 2: Insert user data into the 'profiles' table
+            // It's crucial to use the user.id from the signup response
+            console.log(newUser.id)
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: newUser.id, // Link the profile to the auth.users entry
+                    full_name: fullName, // Use `full_name` to match common Supabase patterns
+                    contact: contact,
+                    email: newUser.email // Store email for easier lookups
+                    // Add any other profile fields here
+                });
+
+            // Handle profile insertion errors
+            if (profileError) {
+                console.error('Profile insertion error:', profileError);
+                // Important: If profile insertion fails, you might want to log this and potentially
+                // consider cleaning up the auth.users entry or notifying an admin.
+                // For now, we'll alert the user about the profile issue.
+                alert('Sign-up successful, but there was an error saving your profile details: ' + profileError.message);
+                // You might still want to proceed to login, as the user account exists,
+                // but their profile data might be incomplete.
+                window.location = 'login.html';
+                return;
+            }
+
+            // If both signup and profile insertion are successful
+            alert('Sign-up successful! Check your inbox to verify your email, then log in.');
+            window.location = 'login.html';
+        });
+
+        // form.addEventListener('submit', async (e) => {
+        //     e.preventDefault()
+
+        //     const firstName       = document.getElementById('firstName').value.trim()
+        //     const lastName        = document.getElementById('lastName').value.trim()
+        //     const contact         = document.getElementById('contact').value.trim()
+        //     const email           = document.getElementById('email').value.trim()
+        //     const password        = document.getElementById('password').value
+        //     const confirmPassword = document.getElementById('confirmPassword').value
+
+        //     if (password !== confirmPassword) {
+        //         return alert('Passwords do not match.')
+        //     }
+
+        //     const { data, error } = await supabase.auth.signUp({
+        //         email,
+        //         password,
+        //         options: { 
+        //             data: { 
+        //                 firstName,
+        //                 lastName,
+        //                 contact
+        //             } 
+        //         }
+        //     })
+
+        //     const { data: grp, Error } = await supabase
+        //     .from('profiles')
+        //     .insert({
+        //     fullName: name,
+        //     contact : contact,
+            
+        //     })
+
+        //     if (error) { console.error(error); return alert(error.message) }
+
+        //     if (error) {
+        //         console.error(error)
+        //         return alert(error.message)
+        //     }
+
+        //     alert('Sign-up success! Check your inbox to verify, then log in.')
+        //     window.location = 'login.html'
+        // })
     </script>
 </body>
 </html>

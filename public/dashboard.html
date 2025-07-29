@@ -581,7 +581,7 @@
         async function loadSuggestedGroups() {
             const { data, error } = await supabase
                 .from('groups')
-                .select('id, name, course')
+                .select('id, name, course_code')
                 .limit(5);
             if (error) {
                 console.error('Error loading suggested groups:', error);
@@ -608,10 +608,10 @@
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data, error } = await supabase
-                .from('profiles')
-                .select('groups')
-                .eq('id', user.id)
-                .single();
+                .from('groups')
+                .select('id, name, course_code')
+                .eq('id', user.id);
+                //.single();
             if (error) {
                 console.error('Error loading active groups:', error);
                 return;
