@@ -201,9 +201,58 @@
     <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
         <form id="signupForm">
+            <div class="profile-photo-upload" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
+                <label for="profilePhoto" style="cursor:pointer;">
+                    <img id="profilePhotoPreview" src="https://ui-avatars.com/api/?name=User&background=random&rounded=true" alt="Profile Photo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #a78bfa;">
+                    <input type="file" id="profilePhoto" accept="image/*" style="display:none;">
+                </label>
+                <span style="font-size: 0.9em; color: var(--text-light); margin-top: 0.5rem;">Upload profile photo</span>
+            </div>
             <input type="text" id="firstName" class="input-field" placeholder="First name" required>
             <input type="text" id="lastName" class="input-field" placeholder="Last name" required>
+            <input type="text" id="username" class="input-field" placeholder="Username (e.g., @charles_fx)" pattern="^@?\w{3,}$" title="Start with @ or a letter, at least 3 characters, only letters, numbers, and underscores." required>
             <input type="tel" id="contact" class="input-field" placeholder="Contact - phone or WhatsApp" required>
+            <select id="campus" class="input-field" required>
+                <option value="" disabled selected>Select your campus</option>
+                <option value="University of Ghana">University of Ghana</option>
+                <option value="Kwame Nkrumah University of Science and Technology">Kwame Nkrumah University of Science and Technology</option>
+                <option value="Ashesi University">Ashesi University</option>
+                <option value="Presbyterian Boys' Secondary School (PRESEC)">Presbyterian Boys' Secondary School (PRESEC)</option>
+                <option value="Wesley Girls' High School">Wesley Girls' High School</option>
+                <option value="Achimota School">Achimota School</option>
+                <option value="Mfantsipim School">Mfantsipim School</option>
+                <option value="Adisadel College">Adisadel College</option>
+                <option value="St. Augustine's College">St. Augustine's College</option>
+                <option value="Opoku Ware School">Opoku Ware School</option>
+                <option value="KNUST Senior High School">KNUST Senior High School</option>
+                <option value="Tema International School">Tema International School</option>
+                <option value="SOS-Hermann Gmeiner International College">SOS-Hermann Gmeiner International College</option>
+                <option value="Ghana International School">Ghana International School</option>
+                <option value="University of Oxford">University of Oxford</option>
+                <option value="Harvard University">Harvard University</option>
+                <option value="Massachusetts Institute of Technology">Massachusetts Institute of Technology</option>
+                <option value="Stanford University">Stanford University</option>
+                <option value="Yale University">Yale University</option>
+                <option value="Other">Other (Type Your School)</option>
+            </select>
+            <input type="text" id="customCampus" class="input-field" placeholder="Type your school" style="display:none; margin-bottom: 1rem;">
+            <select id="level" class="input-field" required>
+                <option value="" disabled selected>Select your level</option>
+                <option value="JHS 1">JHS 1</option>
+                <option value="JHS 2">JHS 2</option>
+                <option value="JHS 3">JHS 3</option>
+                <option value="SHS 1">SHS 1</option>
+                <option value="SHS 2">SHS 2</option>
+                <option value="SHS 3">SHS 3</option>
+                <option value="University 1st Year">University 1st Year</option>
+                <option value="University 2nd Year">University 2nd Year</option>
+                <option value="University 3rd Year">University 3rd Year</option>
+                <option value="University 4th Year">University 4th Year</option>
+                <option value="University 5th Year">University 5th Year</option>
+                <option value="Master’s / PhD">Master’s / PhD</option>
+                <option value="Other">Other (Type Your Level)</option>
+            </select>
+            <input type="text" id="customLevel" class="input-field" placeholder="Type your level" style="display:none; margin-bottom: 1rem;">
             <input type="email" id="email" class="input-field" placeholder="Email" required>
             <input type="password" id="password" class="input-field" placeholder="Password" required>
             <input type="password" id="confirmPassword" class="input-field" placeholder="Confirm Password" required>
@@ -221,129 +270,152 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js'
 
-        const form = document.getElementById('signupForm')
+        // Preview selected profile photo
+        const profilePhotoInput = document.getElementById('profilePhoto');
+        const profilePhotoPreview = document.getElementById('profilePhotoPreview');
+
+        profilePhotoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                profilePhotoPreview.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Auto-generate initials avatar if no photo is uploaded
+        function generateInitialsAvatar(firstName, lastName) {
+            const initials = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase();
+            // Use ui-avatars.com for a circular avatar with initials
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random&rounded=true`;
+        }
+
+        const form = document.getElementById('signupForm');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
+            const username = document.getElementById('username').value.trim();
             const contact = document.getElementById('contact').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const campusSelect = document.getElementById('campus');
+            const customCampusInput = document.getElementById('customCampus');
+            const campus = campusSelect.value === 'Other' ? customCampusInput.value.trim() : campusSelect.value;
+            const levelSelect = document.getElementById('level');
+            const customLevelInput = document.getElementById('customLevel');
+            const level = levelSelect.value === 'Other' ? customLevelInput.value.trim() : levelSelect.value;
 
             if (password !== confirmPassword) {
                 return alert('Passwords do not match.');
             }
 
-            // Step 1: Attempt to sign up the user with email and password
+            // 1. Upload profile photo to Supabase Storage (if selected)
+            let profilePhotoUrl = '';
+            if (profilePhotoInput.files.length > 0) {
+                const file = profilePhotoInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const filePath = `avatars/${Date.now()}_${Math.random().toString(36).substr(2, 8)}.${fileExt}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+                if (uploadError) {
+                    alert('Profile photo upload failed: ' + uploadError.message);
+                    return;
+                }
+                // Get public URL
+                const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                profilePhotoUrl = urlData.publicUrl;
+            } else {
+                // No photo uploaded, use initials avatar
+                profilePhotoUrl = generateInitialsAvatar(firstName, lastName);
+            }
+
+            // 2. Add profilePhotoUrl to both signUp and profile insert
             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    data: { // This data goes into auth.users.user_metadata
+                    data: {
                         firstName,
                         lastName,
-                        contact // Note: contact can also go here, but usually for auth-specific meta
+                        username,
+                        contact,
+                        profilePhoto: profilePhotoUrl,
+                        campus,
+                        level
                     }
                 }
             });
 
-            // Handle signup errors immediately
             if (signUpError) {
                 console.error('Sign up error:', signUpError);
                 return alert('Sign up failed: ' + signUpError.message);
             }
 
-            // If signup is successful, proceed to insert into profiles table
-            // The user object contains the user ID needed for the profiles table
             const newUser = signUpData.user;
 
-            // Check if user object is available (it might be null if email confirmation is required and no session is returned immediately)
             if (!newUser) {
                 alert('Sign-up initiated! Check your inbox to verify your email. You will be able to log in after verification.');
-                window.location = 'login.html'; // Redirect to login for verification flow
-                return; // Exit here as no user ID for profile insert yet
-            }
-
-            const fullName = `${firstName} ${lastName}`.trim(); // Combine first and last name
-
-            // Step 2: Insert user data into the 'profiles' table
-            // It's crucial to use the user.id from the signup response
-            console.log(newUser.id)
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .insert({
-                    id: newUser.id, // Link the profile to the auth.users entry
-                    full_name: fullName, // Use `full_name` to match common Supabase patterns
-                    contact: contact,
-                    email: newUser.email // Store email for easier lookups
-                    // Add any other profile fields here
-                });
-
-            // Handle profile insertion errors
-            if (profileError) {
-                console.error('Profile insertion error:', profileError);
-                // Important: If profile insertion fails, you might want to log this and potentially
-                // consider cleaning up the auth.users entry or notifying an admin.
-                // For now, we'll alert the user about the profile issue.
-                alert('Sign-up successful, but there was an error saving your profile details: ' + profileError.message);
-                // You might still want to proceed to login, as the user account exists,
-                // but their profile data might be incomplete.
                 window.location = 'login.html';
                 return;
             }
 
-            // If both signup and profile insertion are successful
+            const fullName = `${firstName} ${lastName}`.trim();
+
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: newUser.id,
+                    full_name: fullName,
+                    username,
+                    contact: contact,
+                    email: newUser.email,
+                    profile_photo: profilePhotoUrl,
+                    campus,
+                    level
+                });
+
+            if (profileError) {
+                console.error('Profile insertion error:', profileError);
+                alert('Sign-up successful, but there was an error saving your profile details: ' + profileError.message);
+                window.location = 'login.html';
+                return;
+            }
+
             alert('Sign-up successful! Check your inbox to verify your email, then log in.');
             window.location = 'login.html';
         });
 
-        // form.addEventListener('submit', async (e) => {
-        //     e.preventDefault()
+        // Show/hide custom campus input
+        const campusSelect = document.getElementById('campus');
+        const customCampusInput = document.getElementById('customCampus');
+        campusSelect.addEventListener('change', function() {
+            if (this.value === 'Other') {
+                customCampusInput.style.display = '';
+                customCampusInput.required = true;
+            } else {
+                customCampusInput.style.display = 'none';
+                customCampusInput.required = false;
+            }
+        });
 
-        //     const firstName       = document.getElementById('firstName').value.trim()
-        //     const lastName        = document.getElementById('lastName').value.trim()
-        //     const contact         = document.getElementById('contact').value.trim()
-        //     const email           = document.getElementById('email').value.trim()
-        //     const password        = document.getElementById('password').value
-        //     const confirmPassword = document.getElementById('confirmPassword').value
-
-        //     if (password !== confirmPassword) {
-        //         return alert('Passwords do not match.')
-        //     }
-
-        //     const { data, error } = await supabase.auth.signUp({
-        //         email,
-        //         password,
-        //         options: { 
-        //             data: { 
-        //                 firstName,
-        //                 lastName,
-        //                 contact
-        //             } 
-        //         }
-        //     })
-
-        //     const { data: grp, Error } = await supabase
-        //     .from('profiles')
-        //     .insert({
-        //     fullName: name,
-        //     contact : contact,
-            
-        //     })
-
-        //     if (error) { console.error(error); return alert(error.message) }
-
-        //     if (error) {
-        //         console.error(error)
-        //         return alert(error.message)
-        //     }
-
-        //     alert('Sign-up success! Check your inbox to verify, then log in.')
-        //     window.location = 'login.html'
-        // })
+        // Show/hide custom level input
+        const levelSelect = document.getElementById('level');
+        const customLevelInput = document.getElementById('customLevel');
+        levelSelect.addEventListener('change', function() {
+            if (this.value === 'Other') {
+                customLevelInput.style.display = '';
+                customLevelInput.required = true;
+            } else {
+                customLevelInput.style.display = 'none';
+                customLevelInput.required = false;
+            }
+        });
     </script>
 </body>
 </html>
