@@ -37,7 +37,7 @@ export async function loadGroups () {
     supabase.from('groups')
             .select('id, name, course_code')
             .eq('is_public', true)
-            .not('id', 'in', `(${myGroupIds.join(',') || 0})`)   // 0 → empty list safe‑guard
+            .not('id', 'in', `(${myGroupIds.join(',')})`)   // 0 → empty list safe‑guard
             .order('created_at', { ascending: false })
   ])
 
@@ -110,7 +110,7 @@ window.createGroup = async () => {
 window.joinGroup = async (groupId) => {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return alert('Please log in')
-
+  console.log('about to member inserted')
   await supabase
         .from('group_members')
         .insert(

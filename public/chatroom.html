@@ -426,7 +426,7 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
     // Render messages
     function render(m) {
       const mine = m.sender_id === user.id;
-      const senderName = mine ? user.user_metadata.full_name : m.sender_name || 'Unknown';
+      const senderName = mine ? user.user_metadata.firstName : m.sender_name || 'Unknown';
       const div = document.createElement('div');
       div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
       div.dataset.id = m.id;
@@ -494,12 +494,12 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
     // Sending
     async function sendMsg() {
       const txt = messageBar.value.trim();
-      console.log('sending')
+
       if (!txt) return;
       const res = await supabase.from('group_messages').insert({
         group_id: gid,
         sender_id: user.id,
-        sender_name: user.user_metadata.full_name,
+        sender_name: user.user_metadata.firstName,
         content: txt,
         reply_to: replyingMsg?.id,
         reply_to_sender: replyingMsg?.sender_name,

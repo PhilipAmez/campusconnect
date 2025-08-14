@@ -461,8 +461,8 @@
             <div class="profile-header">
                 <div class="profile-info">
                     <h1 id="fullName"></h1>
-                    <p id="username"></p>
-                    <p id="joinDate"></p>
+                    <!-- <p id="username"></p> -->
+                    <!-- <p id="joinDate"></p> -->
                     <select id="statusSelector" class="status-selector mt-2">
                         <option value="online">Online</option>
                         <option value="busy">Busy</option>
@@ -526,23 +526,30 @@
                 const { firstName, lastName, campus, level, department } = user.user_metadata || {};
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .select('full_name, username, bio, status, join_date, verified, groups, theme, privacy')
+                    .select('full_name, level, campus, department, bio')
                     .eq('id', user.id)
                     .single();
 
                 if (profileError) throw profileError;
 
+                const { data: groups, error: groupsError } = await supabase
+                .from('group_members')
+                .select('groups (name)')
+                .eq('user_id', user.id);
+
+                if (groupsError) throw groupsError;
+
                 const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.full_name || 'User';
                 document.getElementById('fullName').textContent = displayName;
-                document.getElementById('username').textContent = `Username: ${profile.username || 'N/A'}`;
-                document.getElementById('joinDate').textContent = profile.join_date
-                    ? new Date(profile.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                    : 'N/A';
+                // document.getElementById('username').textContent = `Username: ${profile.username || 'N/A'}`;
+                // document.getElementById('joinDate').textContent = profile.join_date
+                //     ? new Date(profile.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                //     : 'N/A';
                 document.getElementById('bioDisplay').textContent = profile.bio || 'No bio yet...';
                 document.getElementById('bioEdit').value = profile.bio || '';
-                document.getElementById('campus').textContent = campus || 'N/A';
-                document.getElementById('level').textContent = level || 'N/A';
-                document.getElementById('department').textContent = department || 'N/A';
+                document.getElementById('campus').textContent = profile.campus || 'N/A';
+                document.getElementById('level').textContent = profile.level || 'N/A';
+                document.getElementById('department').textContent = profile.department || 'N/A';
                 document.getElementById('statusSelector').value = profile.status || 'online';
                 if (profile.verified) document.getElementById('verifiedBadge').classList.remove('hidden');
 
@@ -550,10 +557,10 @@
                 avatar.textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
 
                 const groupsList = document.getElementById('groupsList').querySelector('ul');
-                profile.groups?.forEach(group => {
+                groups.forEach(gm => {
                     const li = document.createElement('li');
                     li.className = 'group-item';
-                    li.innerHTML = `${group.name} ${group.is_admin ? '<span class="admin-badge">Admin</span>' : ''}`;
+                    li.textContent = gm.groups?.name || 'Unnamed group';
                     groupsList.appendChild(li);
                 });
 
