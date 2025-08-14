@@ -120,7 +120,43 @@
       gap: 1rem;
       margin-top: 0.5rem;
     }
-    .post-actions button {
+    .like-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.9rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.5rem;
+      transition: color 0.3s ease;
+    }
+    .like-btn:hover {
+      color: var(--hover-glow);
+    }
+    .like-btn .like-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 0.5rem;
+      animation: water-fill 0.5s forwards;
+      opacity: 0;
+    }
+    .like-btn.liked .like-fill {
+      opacity: 1;
+    }
+    @keyframes water-fill {
+      0% { width: 0; }
+      100% { width: 100%; }
+    }
+    .comment-btn, .share-btn {
       background: none;
       border: none;
       color: var(--accent);
@@ -128,8 +164,36 @@
       font-size: 0.9rem;
       transition: color 0.3s ease;
     }
-    .post-actions button:hover {
+    .comment-btn:hover, .share-btn:hover {
       color: var(--hover-glow);
+    }
+    .comment-section {
+      margin-top: 0.5rem;
+      display: none;
+    }
+    .comment-section.active {
+      display: block;
+    }
+    .comment-section textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 0.6rem;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      resize: vertical;
+      margin-bottom: 0.5rem;
+    }
+    .comment-section button {
+      padding: 0.3rem 0.8rem;
+      border-radius: 0.6rem;
+      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
     }
     .delete-zone {
       position: absolute;
@@ -355,31 +419,56 @@
       div.innerHTML = `
         <div class="post-content">
           <div class="author">${authorName}</div>
-          <div class="text">${p.content}</div>
+          <div class="text">${p.content || 'Loading post content...'}</div>
           <div class="time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
         <div class="post-actions">
-          <button class="like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> ${p.likes || 0}</button>
+          <button class="like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
+            <div class="like-fill"></div>
+          </button>
           <button class="comment-btn" data-id="${p.id}"><i class="fas fa-comment"></i> Comment</button>
           <button class="share-btn" data-id="${p.id}"><i class="fas fa-share"></i> Share</button>
+        </div>
+        <div class="comment-section" data-id="${p.id}">
+          <textarea placeholder="Add a comment..."></textarea>
+          <button>Post Comment</button>
         </div>
         <div class="delete-zone">Delete</div>
       `;
       feedPanel.appendChild(div);
 
-      // Like
+      // Like with water-fill animation
       const likeBtn = div.querySelector('.like-btn');
+      const likeFill = likeBtn.querySelector('.like-fill');
       if (p.author_id !== user.id) {
         likeBtn.addEventListener('click', async () => {
+          likeBtn.classList.add('liked');
+          setTimeout(() => likeBtn.classList.remove('liked'), 500); // Reset animation
           const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
-          if (!error) renderPost({ ...p, likes: data[0].likes });
+          if (!error) {
+            likeBtn.querySelector('.like-count').textContent = data[0].likes;
+          }
         });
       } else {
         likeBtn.style.display = 'none';
       }
 
-      // Comment (placeholder)
-      div.querySelector('.comment-btn').addEventListener('click', () => alert('Comment feature coming soon!'));
+      // Comment section toggle
+      const commentBtn = div.querySelector('.comment-btn');
+      const commentSection = div.querySelector('.comment-section');
+      commentBtn.addEventListener('click', () => {
+        commentSection.classList.toggle('active');
+      });
+
+      // Comment submission (placeholder)
+      commentSection.querySelector('button').addEventListener('click', () => {
+        const commentText = commentSection.querySelector('textarea').value.trim();
+        if (commentText) {
+          alert('Comment posted! (Backend integration pending)');
+          commentSection.querySelector('textarea').value = '';
+          commentSection.classList.remove('active');
+        }
+      });
 
       // Share
       const shareBtn = div.querySelector('.share-btn');
