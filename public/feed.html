@@ -120,7 +120,7 @@
       gap: 1rem;
       margin-top: 0.5rem;
     }
-    .like-btn {
+    .post-action-btn {
       background: none;
       border: none;
       color: var(--accent);
@@ -133,10 +133,11 @@
       gap: 0.3rem;
       padding: 0.2rem 0.5rem;
       border-radius: 0.5rem;
-      transition: color 0.3s ease;
+      transition: transform 0.3s ease, color 0.3s ease;
     }
-    .like-btn:hover {
+    .post-action-btn:hover {
       color: var(--hover-glow);
+      transform: scale(1.05);
     }
     .like-btn .like-fill {
       position: absolute;
@@ -155,17 +156,6 @@
     @keyframes water-fill {
       0% { width: 0; }
       100% { width: 100%; }
-    }
-    .comment-btn, .share-btn {
-      background: none;
-      border: none;
-      color: var(--accent);
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: color 0.3s ease;
-    }
-    .comment-btn:hover, .share-btn:hover {
-      color: var(--hover-glow);
     }
     .comment-section {
       margin-top: 0.5rem;
@@ -219,11 +209,11 @@
     }
     .post-form {
       position: absolute;
-      top: 120px; /* Increased spacing from header */
+      top: 120px;
       left: 50%;
       transform: translateX(-50%);
-      width: 40%; /* Half the original width */
-      max-width: 250px; /* Half the original max-width */
+      width: 40%;
+      max-width: 250px;
       padding: 0.8rem;
       border-radius: 1.5rem;
       background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
@@ -242,7 +232,7 @@
       background: var(--glass-bg);
       color: var(--text);
       font-size: 0.9rem;
-      height: 60px; /* Reduced height */
+      height: 60px;
     }
     .post-form button {
       align-self: flex-end;
@@ -258,26 +248,15 @@
       width: 80px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
-    .post-form button::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(120deg, transparent, rgba(124, 58, 237, 0.6), transparent);
-      animation: ripple 1.5s infinite;
-      opacity: 0;
-      transition: opacity 0.1s ease;
+    .post-form button:active {
+      animation: wobble 0.3s ease;
     }
-    .post-form button:active::after {
-      opacity: 1;
-      animation-play-state: running;
-    }
-    @keyframes ripple {
-      0% { left: -100%; }
-      20% { left: 0; }
-      100% { left: 100%; }
+    @keyframes wobble {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px) rotate(-5deg); }
+      50% { transform: translateX(5px) rotate(5deg); }
+      75% { transform: translateX(-5px) rotate(-5deg); }
+      100% { transform: translateX(0) rotate(0); }
     }
     .post-form button:hover {
       transform: translateY(-5px);
@@ -305,7 +284,7 @@
         width: 50%;
         max-width: 200px;
         padding: 0.6rem;
-        top: 100px; /* Adjusted for mobile */
+        top: 100px;
       }
       .post-form textarea {
         padding: 0.4rem;
@@ -423,11 +402,11 @@
           <div class="time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
         <div class="post-actions">
-          <button class="like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
+          <button class="post-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
             <div class="like-fill"></div>
           </button>
-          <button class="comment-btn" data-id="${p.id}"><i class="fas fa-comment"></i> Comment</button>
-          <button class="share-btn" data-id="${p.id}"><i class="fas fa-share"></i> Share</button>
+          <button class="post-action-btn comment-btn" data-id="${p.id}"><i class="fas fa-comment"></i> Comment</button>
+          <button class="post-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i> Share</button>
         </div>
         <div class="comment-section" data-id="${p.id}">
           <textarea placeholder="Add a comment..."></textarea>
