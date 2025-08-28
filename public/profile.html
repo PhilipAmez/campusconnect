@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Peerloom</title>
-  <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
-  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <link rel="icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -107,6 +107,7 @@
             display: flex;
             align-items: center;
             padding-left: 1.5rem;
+            touch-action: pan-x;
         }
 
         .cover-photo::before {
@@ -296,14 +297,14 @@
             box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
         }
 
-        .theme-toggle, .privacy-toggle {
+        .privacy-toggle {
             margin-top: 1.5rem;
             padding: 1rem;
             background: var(--glass-bg);
             border-radius: 0.75rem;
         }
 
-        .theme-toggle button, .privacy-toggle div {
+        .privacy-toggle div {
             padding: 0.5rem 1rem;
             background: var(--glass-bg);
             border: none;
@@ -313,7 +314,24 @@
             transition: background var(--transition);
         }
 
-        .theme-toggle button:hover, .privacy-toggle div:hover {
+        .privacy-toggle div:hover {
+            background: var(--glass-hover);
+        }
+
+        .edit-profile-btn {
+            margin-top: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--glass-bg);
+            border: none;
+            border-radius: 0.375rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform var(--transition), background var(--transition);
+        }
+
+        .edit-profile-btn:hover {
+            transform: translateY(-2px);
             background: var(--glass-hover);
         }
 
@@ -358,6 +376,23 @@
             color: var(--accent);
         }
 
+        .editable-field {
+            background: var(--glass-bg);
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            width: 100%;
+            display: none;
+        }
+
+        .editable-field:focus {
+            outline: none;
+            transform: scale(1.02);
+            box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
+        }
+
         @media (max-width: 768px) {
             .profile-card {
                 width: 95%;
@@ -387,9 +422,13 @@
                 font-size: 0.85rem;
                 padding: 0.4rem 0.8rem;
             }
-            .academic-details, .groups-list, .bio-section, .theme-toggle, .privacy-toggle {
+            .academic-details, .groups-list, .bio-section, .privacy-toggle {
                 padding: 0.8rem;
                 margin-top: 1rem;
+            }
+            .edit-profile-btn, .save-button {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
             }
         }
 
@@ -428,11 +467,11 @@
                 font-size: 0.8rem;
                 padding: 0.3rem 0.6rem;
             }
-            .academic-details, .groups-list, .bio-section, .theme-toggle, .privacy-toggle {
+            .academic-details, .groups-list, .bio-section, .privacy-toggle {
                 padding: 0.6rem;
                 margin-top: 0.8rem;
             }
-            .save-button {
+            .edit-profile-btn, .save-button {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
@@ -461,8 +500,6 @@
             <div class="profile-header">
                 <div class="profile-info">
                     <h1 id="fullName"></h1>
-                    <!-- <p id="username"></p> -->
-                    <!-- <p id="joinDate"></p> -->
                     <select id="statusSelector" class="status-selector mt-2">
                         <option value="online">Online</option>
                         <option value="busy">Busy</option>
@@ -485,9 +522,6 @@
                 <div class="bio-display" id="bioDisplay"></div>
                 <textarea class="bio-edit" id="bioEdit" placeholder="Share a bit about yourself..."></textarea>
             </div>
-            <div class="theme-toggle">
-                <button id="themeToggle">Switch Theme</button>
-            </div>
             <div class="privacy-toggle">
                 <div class="flex justify-between items-center">
                     <span>Hide Academic Details</span>
@@ -498,6 +532,7 @@
                     <input type="checkbox" id="hideGroupsToggle">
                 </div>
             </div>
+            <button id="editProfileBtn" class="edit-profile-btn w-full mt-4">Edit Profile</button>
             <button id="saveChangesBtn" class="save-button w-full mt-4">Save Changes</button>
         </div>
     </div>
@@ -533,18 +568,14 @@
                 if (profileError) throw profileError;
 
                 const { data: groups, error: groupsError } = await supabase
-                .from('group_members')
-                .select('groups (name)')
-                .eq('user_id', user.id);
+                    .from('group_members')
+                    .select('groups (name)')
+                    .eq('user_id', user.id);
 
                 if (groupsError) throw groupsError;
 
                 const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.full_name || 'User';
                 document.getElementById('fullName').textContent = displayName;
-                // document.getElementById('username').textContent = `Username: ${profile.username || 'N/A'}`;
-                // document.getElementById('joinDate').textContent = profile.join_date
-                //     ? new Date(profile.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                //     : 'N/A';
                 document.getElementById('bioDisplay').textContent = profile.bio || 'No bio yet...';
                 document.getElementById('bioEdit').value = profile.bio || '';
                 document.getElementById('campus').textContent = profile.campus || 'N/A';
@@ -594,7 +625,57 @@
             }
         }
 
-        // Toggle theme
+        // Toggle theme with swipe on cover photo
+        let startX;
+        const coverPhoto = document.querySelector('.cover-photo');
+        coverPhoto.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            coverPhoto.style.transition = 'none';
+        });
+        coverPhoto.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) {
+                const dx = e.clientX - startX;
+                if (dx < -50) coverPhoto.classList.add('active');
+                else if (dx > -50) coverPhoto.classList.remove('active');
+            }
+        });
+        coverPhoto.addEventListener('mouseup', async () => {
+            coverPhoto.style.transition = 'transform 0.3s ease';
+            if (coverPhoto.classList.contains('active')) {
+                const { data: { user } } = await supabase.auth.getUser();
+                const currentTheme = (await supabase.from('profiles').select('theme').eq('id', user.id).single()).data.theme;
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
+                toggleTheme(newTheme === 'dark');
+            }
+            coverPhoto.classList.remove('active');
+        });
+        coverPhoto.addEventListener('mouseleave', () => {
+            coverPhoto.style.transition = 'transform 0.3s ease';
+            coverPhoto.classList.remove('active');
+        });
+
+        coverPhoto.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            coverPhoto.style.transition = 'none';
+        });
+        coverPhoto.addEventListener('touchmove', (e) => {
+            const dx = e.touches[0].clientX - startX;
+            if (dx < -50) coverPhoto.classList.add('active');
+            else if (dx > -50) coverPhoto.classList.remove('active');
+        });
+        coverPhoto.addEventListener('touchend', async () => {
+            coverPhoto.style.transition = 'transform 0.3s ease';
+            if (coverPhoto.classList.contains('active')) {
+                const { data: { user } } = await supabase.auth.getUser();
+                const currentTheme = (await supabase.from('profiles').select('theme').eq('id', user.id).single()).data.theme;
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
+                toggleTheme(newTheme === 'dark');
+            }
+            coverPhoto.classList.remove('active');
+        });
+
         function toggleTheme(isDark) {
             const body = document.body;
             const textDark = isDark ? '#e6e8f0' : '#1a202c';
@@ -604,14 +685,6 @@
             document.documentElement.style.setProperty('--text-light', textLight);
             body.style.background = bg;
         }
-
-        document.getElementById('themeToggle').addEventListener('click', async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            const currentTheme = (await supabase.from('profiles').select('theme').eq('id', user.id).single()).data.theme;
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
-            toggleTheme(newTheme === 'dark');
-        });
 
         // Toggle bio edit
         document.getElementById('bioDisplay').addEventListener('click', () => {
@@ -625,6 +698,37 @@
             document.getElementById('bioEdit').style.display = 'none';
         });
 
+        // Toggle edit mode
+        document.getElementById('editProfileBtn').addEventListener('click', () => {
+            const academicDetails = document.getElementById('academicDetails');
+            const saveButton = document.getElementById('saveChangesBtn');
+            const campusSpan = document.getElementById('campus');
+            const levelSpan = document.getElementById('level');
+            const departmentSpan = document.getElementById('department');
+            const campusEdit = document.createElement('input');
+            const levelEdit = document.createElement('input');
+            const departmentEdit = document.createElement('input');
+
+            campusEdit.type = 'text';
+            campusEdit.className = 'editable-field';
+            campusEdit.value = campusSpan.textContent || '';
+            levelEdit.type = 'text';
+            levelEdit.className = 'editable-field';
+            levelEdit.value = levelSpan.textContent || '';
+            departmentEdit.type = 'text';
+            departmentEdit.className = 'editable-field';
+            departmentEdit.value = departmentSpan.textContent || '';
+
+            academicDetails.innerHTML = `
+                <p><strong>Campus:</strong> </p><div>${campusEdit.outerHTML}</div>
+                <p><strong>Level:</strong> </p><div>${levelEdit.outerHTML}</div>
+                <p><strong>Department:</strong> </p><div>${departmentEdit.outerHTML}</div>
+            `;
+            academicDetails.style.display = 'block';
+            saveButton.style.display = 'block';
+            document.getElementById('editProfileBtn').style.display = 'none';
+        });
+
         // Save changes
         document.getElementById('saveChangesBtn').addEventListener('click', async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -632,10 +736,16 @@
             const status = document.getElementById('statusSelector').value;
             const hideAcademic = document.getElementById('hideAcademicToggle').checked;
             const hideGroups = document.getElementById('hideGroupsToggle').checked;
+            const campusEdit = document.querySelector('.editable-field:nth-child(2)');
+            const levelEdit = document.querySelector('.editable-field:nth-child(4)');
+            const departmentEdit = document.querySelector('.editable-field:nth-child(6)');
+            const campus = campusEdit ? campusEdit.value.trim() : document.getElementById('campus').textContent;
+            const level = levelEdit ? levelEdit.value.trim() : document.getElementById('level').textContent;
+            const department = departmentEdit ? departmentEdit.value.trim() : document.getElementById('department').textContent;
 
             const { error } = await supabase
                 .from('profiles')
-                .update({ bio, status, privacy: { hideAcademic, hideGroups } })
+                .update({ bio, status, campus, level, department, privacy: { hideAcademic, hideGroups } })
                 .eq('id', user.id);
 
             if (error) {
@@ -643,11 +753,21 @@
                 alert('Error saving changes.');
             } else {
                 document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
+                document.getElementById('campus').textContent = campus || 'N/A';
+                document.getElementById('level').textContent = level || 'N/A';
+                document.getElementById('department').textContent = department || 'N/A';
+                document.getElementById('academicDetails').innerHTML = `
+                    <p><strong>Campus:</strong> <span id="campus">${campus || 'N/A'}</span></p>
+                    <p><strong>Level:</strong> <span id="level">${level || 'N/A'}</span></p>
+                    <p><strong>Department:</strong> <span id="department">${department || 'N/A'}</span></p>
+                `;
                 document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
                 document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
                 const saveBtn = document.getElementById('saveChangesBtn');
                 saveBtn.classList.add('saved');
                 setTimeout(() => saveBtn.classList.remove('saved'), 1500);
+                saveBtn.style.display = 'none';
+                document.getElementById('editProfileBtn').style.display = 'block';
             }
         });
 
