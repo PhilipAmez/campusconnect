@@ -237,21 +237,6 @@
             margin-bottom: 0.5rem;
         }
 
-        .status-selector {
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            background: var(--glass-bg);
-            border: none;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: background var(--transition);
-        }
-
-        .status-selector:hover {
-            background: var(--glass-hover);
-        }
-
         .academic-details {
             margin-top: 1.5rem;
             padding: 1rem;
@@ -416,7 +401,6 @@
             color: var(--text-dark);
             font-size: 0.9rem;
             width: 100%;
-            display: none;
         }
 
         .editable-field:focus {
@@ -449,10 +433,6 @@
             }
             .profile-info p {
                 font-size: 0.85rem;
-            }
-            .status-selector {
-                font-size: 0.85rem;
-                padding: 0.4rem 0.8rem;
             }
             .academic-details, .groups-list, .bio-section, .privacy-toggle {
                 padding: 0.8rem;
@@ -495,10 +475,6 @@
             .profile-info p {
                 font-size: 0.8rem;
             }
-            .status-selector {
-                font-size: 0.8rem;
-                padding: 0.3rem 0.6rem;
-            }
             .academic-details, .groups-list, .bio-section, .privacy-toggle {
                 padding: 0.6rem;
                 margin-top: 0.8rem;
@@ -532,12 +508,6 @@
             <div class="profile-header">
                 <div class="profile-info">
                     <h1 id="fullName"></h1>
-                    <select id="statusSelector" class="status-selector mt-2">
-                        <option value="online">Online</option>
-                        <option value="busy">Busy</option>
-                        <option value="dnd">Do Not Disturb</option>
-                        <option value="offline">Offline</option>
-                    </select>
                 </div>
                 <div id="verifiedBadge" class="verified-badge hidden"></div>
             </div>
@@ -613,7 +583,6 @@
                 document.getElementById('campus').textContent = profile.campus || 'N/A';
                 document.getElementById('level').textContent = profile.level || 'N/A';
                 document.getElementById('department').textContent = profile.department || 'N/A';
-                document.getElementById('statusSelector').value = profile.status || 'online';
                 if (profile.verified) document.getElementById('verifiedBadge').classList.remove('hidden');
 
                 const avatar = document.getElementById('avatar');
@@ -689,9 +658,9 @@
             departmentEdit.value = departmentSpan.textContent || '';
 
             academicDetails.innerHTML = `
-                <p><strong>Campus:</strong> </p><div>${campusEdit.outerHTML}</div>
-                <p><strong>Level:</strong> </p><div>${levelEdit.outerHTML}</div>
-                <p><strong>Department:</strong> </p><div>${departmentEdit.outerHTML}</div>
+                <p><strong>Campus:</strong> <input class="editable-field" value="${campusSpan.textContent || ''}"></p>
+                <p><strong>Level:</strong> <input class="editable-field" value="${levelSpan.textContent || ''}"></p>
+                <p><strong>Department:</strong> <input class="editable-field" value="${departmentSpan.textContent || ''}"></p>
             `;
             academicDetails.style.display = 'block';
             saveButton.style.display = 'block';
@@ -702,19 +671,15 @@
         document.getElementById('saveChangesBtn').addEventListener('click', async () => {
             const { data: { user } } = await supabase.auth.getUser();
             const bio = document.getElementById('bioEdit').value.trim();
-            const status = document.getElementById('statusSelector').value;
+            const campus = document.querySelector('.academic-details input:nth-child(2)').value.trim() || 'N/A';
+            const level = document.querySelector('.academic-details input:nth-child(4)').value.trim() || 'N/A';
+            const department = document.querySelector('.academic-details input:nth-child(6)').value.trim() || 'N/A';
             const hideAcademic = document.getElementById('hideAcademicToggle').checked;
             const hideGroups = document.getElementById('hideGroupsToggle').checked;
-            const campusEdit = document.querySelector('.editable-field:nth-child(2)');
-            const levelEdit = document.querySelector('.editable-field:nth-child(4)');
-            const departmentEdit = document.querySelector('.editable-field:nth-child(6)');
-            const campus = campusEdit ? campusEdit.value.trim() : document.getElementById('campus').textContent;
-            const level = levelEdit ? levelEdit.value.trim() : document.getElementById('level').textContent;
-            const department = departmentEdit ? departmentEdit.value.trim() : document.getElementById('department').textContent;
 
             const { error } = await supabase
                 .from('profiles')
-                .update({ bio, status, campus, level, department, privacy: { hideAcademic, hideGroups } })
+                .update({ bio, campus, level, department, privacy: { hideAcademic, hideGroups } })
                 .eq('id', user.id);
 
             if (error) {
@@ -722,13 +687,13 @@
                 alert('Error saving changes.');
             } else {
                 document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
-                document.getElementById('campus').textContent = campus || 'N/A';
-                document.getElementById('level').textContent = level || 'N/A';
-                document.getElementById('department').textContent = department || 'N/A';
+                document.getElementById('campus').textContent = campus;
+                document.getElementById('level').textContent = level;
+                document.getElementById('department').textContent = department;
                 document.getElementById('academicDetails').innerHTML = `
-                    <p><strong>Campus:</strong> <span id="campus">${campus || 'N/A'}</span></p>
-                    <p><strong>Level:</strong> <span id="level">${level || 'N/A'}</span></p>
-                    <p><strong>Department:</strong> <span id="department">${department || 'N/A'}</span></p>
+                    <p><strong>Campus:</strong> <span id="campus">${campus}</span></p>
+                    <p><strong>Level:</strong> <span id="level">${level}</span></p>
+                    <p><strong>Department:</strong> <span id="department">${department}</span></p>
                 `;
                 document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
                 document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
