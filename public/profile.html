@@ -38,6 +38,37 @@
             justify-content: center;
             padding-top: 60px;
             transition: background var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.dark-mode::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            z-index: -1;
+        }
+
+        body.dark-mode::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/%3E%3C/svg%3E');
+            background-size: 10px 10px;
+            animation: fall 10s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
         }
 
         .navbar {
@@ -53,6 +84,7 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             z-index: 1000;
             transition: background var(--transition);
+            touch-action: pan-x;
         }
 
         .navbar.scrolled {
@@ -107,7 +139,6 @@
             display: flex;
             align-items: center;
             padding-left: 1.5rem;
-            touch-action: pan-x;
         }
 
         .cover-photo::before {
@@ -347,6 +378,7 @@
             transition: transform var(--transition), background var(--transition);
             position: relative;
             overflow: hidden;
+            display: none;
         }
 
         .save-button:hover {
@@ -600,8 +632,6 @@
                 document.getElementById('hideGroupsToggle').checked = privacy.hideGroups || false;
                 document.getElementById('academicDetails').style.display = privacy.hideAcademic ? 'none' : 'block';
                 document.getElementById('groupsList').style.display = privacy.hideGroups ? 'none' : 'block';
-
-                if (profile.theme === 'dark') toggleTheme(true);
             } catch (error) {
                 console.error('Load error:', error.message);
                 alert('Error loading profile.');
@@ -623,67 +653,6 @@
                 const url = supabase.storage.from('avatars').getPublicUrl(`public/${user.id}/${Date.now()}_${file.name}`).data.publicUrl;
                 document.getElementById('avatar').innerHTML = `<img src="${url}" alt="Avatar">`;
             }
-        }
-
-        // Toggle theme with swipe on cover photo
-        let startX;
-        const coverPhoto = document.querySelector('.cover-photo');
-        coverPhoto.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            coverPhoto.style.transition = 'none';
-        });
-        coverPhoto.addEventListener('mousemove', (e) => {
-            if (e.buttons === 1) {
-                const dx = e.clientX - startX;
-                if (dx < -50) coverPhoto.classList.add('active');
-                else if (dx > -50) coverPhoto.classList.remove('active');
-            }
-        });
-        coverPhoto.addEventListener('mouseup', async () => {
-            coverPhoto.style.transition = 'transform 0.3s ease';
-            if (coverPhoto.classList.contains('active')) {
-                const { data: { user } } = await supabase.auth.getUser();
-                const currentTheme = (await supabase.from('profiles').select('theme').eq('id', user.id).single()).data.theme;
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
-                toggleTheme(newTheme === 'dark');
-            }
-            coverPhoto.classList.remove('active');
-        });
-        coverPhoto.addEventListener('mouseleave', () => {
-            coverPhoto.style.transition = 'transform 0.3s ease';
-            coverPhoto.classList.remove('active');
-        });
-
-        coverPhoto.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            coverPhoto.style.transition = 'none';
-        });
-        coverPhoto.addEventListener('touchmove', (e) => {
-            const dx = e.touches[0].clientX - startX;
-            if (dx < -50) coverPhoto.classList.add('active');
-            else if (dx > -50) coverPhoto.classList.remove('active');
-        });
-        coverPhoto.addEventListener('touchend', async () => {
-            coverPhoto.style.transition = 'transform 0.3s ease';
-            if (coverPhoto.classList.contains('active')) {
-                const { data: { user } } = await supabase.auth.getUser();
-                const currentTheme = (await supabase.from('profiles').select('theme').eq('id', user.id).single()).data.theme;
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
-                toggleTheme(newTheme === 'dark');
-            }
-            coverPhoto.classList.remove('active');
-        });
-
-        function toggleTheme(isDark) {
-            const body = document.body;
-            const textDark = isDark ? '#e6e8f0' : '#1a202c';
-            const textLight = isDark ? '#a0aec0' : '#718096';
-            const bg = isDark ? 'linear-gradient(135deg, #2d3748, #4a5568)' : 'linear-gradient(135deg, #e6e8f0, #f0f2f5)';
-            document.documentElement.style.setProperty('--text-dark', textDark);
-            document.documentElement.style.setProperty('--text-light', textLight);
-            body.style.background = bg;
         }
 
         // Toggle bio edit
@@ -770,6 +739,39 @@
                 document.getElementById('editProfileBtn').style.display = 'block';
             }
         });
+
+        // Toggle light/dark mode with swipe on navbar
+        let startX;
+        const navbar = document.getElementById('navbar');
+        navbar.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            navbar.style.transition = 'none';
+        }, { passive: true });
+        navbar.addEventListener('touchmove', (e) => {
+            const dx = e.touches[0].clientX - startX;
+            if (dx < 0) navbar.classList.add('active');
+        }, { passive: true });
+        navbar.addEventListener('touchend', () => {
+            navbar.style.transition = 'transform 0.3s ease';
+            if (navbar.classList.contains('active')) {
+                const body = document.body;
+                const isDark = body.classList.contains('dark-mode');
+                const textDark = isDark ? '#e6e8f0' : '#1a202c';
+                const textLight = isDark ? '#a0aec0' : '#718096';
+                if (isDark) {
+                    body.classList.remove('dark-mode');
+                    document.documentElement.style.setProperty('--text-dark', '#1a202c');
+                    document.documentElement.style.setProperty('--text-light', '#a0aec0');
+                    body.style.background = 'linear-gradient(135deg, #e6e8f0, #f0f2f5)';
+                } else {
+                    body.classList.add('dark-mode');
+                    document.documentElement.style.setProperty('--text-dark', '#e6e8f0');
+                    document.documentElement.style.setProperty('--text-light', '#a0aec0');
+                    body.style.background = 'linear-gradient(135deg, #2d3748, #4a5568)';
+                }
+            }
+            navbar.classList.remove('active');
+        }, { passive: true });
 
         // Initialize
         loadProfile();
