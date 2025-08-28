@@ -382,224 +382,216 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
   </div>
 
   <script type="module">
-    import { supabase } from './js/supabaseClient.js';
-    const session = await supabase.auth.getSession();
-    if (!session.data.session) location = 'login.html';
-    const user = session.data.session.user;
-    const gid = new URLSearchParams(location.search).get('groupId');
-    let replyingMsg = null;
-    let isRecording = false;
+import { supabase } from './js/supabaseClient.js';
+const session = await supabase.auth.getSession();
+if (!session.data.session) location = 'login.html';
+const user = session.data.session.user;
+const gid = new URLSearchParams(location.search).get('groupId');
+let replyingMsg = null;
+let isRecording = false;
 
-    // Elements
-    const messagePanel = document.getElementById('messagePanel');
-    const emojiButton = document.getElementById('emojiButton');
-    const emojiPickerBox = document.getElementById('emojiPickerBox');
-    const mentionListBox = document.getElementById('mentionListBox');
-    const messageBar = document.getElementById('messageBar');
-    const sendMessageButton = document.getElementById('sendMessageButton');
-    const fileShareButton = document.getElementById('fileShareButton');
-    const voiceCallButton = document.getElementById('voiceCallButton');
-    const videoCallButton = document.getElementById('videoCallButton');
-    const recordAudioButton = document.getElementById('recordAudioButton');
-    const groupTitle = document.getElementById('groupTitle');
-    const themeToggleButton = document.getElementById('themeToggleButton');
-    const replyContextBox = document.getElementById('replyContextBox');
-    const body = document.body;
+// Elements
+const messagePanel = document.getElementById('messagePanel');
+const emojiButton = document.getElementById('emojiButton');
+const emojiPickerBox = document.getElementById('emojiPickerBox');
+const mentionListBox = document.getElementById('mentionListBox');
+const messageBar = document.getElementById('messageBar');
+const sendMessageButton = document.getElementById('sendMessageButton');
+const fileShareButton = document.getElementById('fileShareButton');
+const voiceCallButton = document.getElementById('voiceCallButton');
+const videoCallButton = document.getElementById('videoCallButton');
+const recordAudioButton = document.getElementById('recordAudioButton');
+const groupTitle = document.getElementById('groupTitle');
+const themeToggleButton = document.getElementById('themeToggleButton');
+const replyContextBox = document.getElementById('replyContextBox');
+const body = document.body;
 
-    // Theme toggle
-    const applyTheme = (theme) => {
-      body.dataset.theme = theme;
-      themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
-      localStorage.setItem('vibe-theme', theme);
-    };
-    themeToggleButton.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
-    applyTheme(localStorage.getItem('vibe-theme') || 'dark');
+// Theme toggle
+const applyTheme = (theme) => {
+  body.dataset.theme = theme;
+  themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('vibe-theme', theme);
+};
+themeToggleButton.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
+applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
-    // Load group and members
-    const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
-    groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
-    // const mem = await supabase.from('group_members').select('user_id').eq('group_id', gid);
-    // const members = mem.data.map(r => r.users.user_metadata.full_name);
-    // mentionListBox.innerHTML = members.map(n => `<div>@${n}</div>`).join('');
-    
+// Load group info
+const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
+groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-    // Render messages
-    function render(m) {
-      const mine = m.sender_id === user.id;
-      const senderName = mine ? user.user_metadata.firstName : m.sender_name || 'Unknown';
-      const div = document.createElement('div');
-      div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
-      div.dataset.id = m.id;
-      if (m.reply_to) {
-        const br = document.createElement('div');
-        br.className = 'reply-banner';
-        br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
-        div.append(br);
-      }
-      const nameTag = document.createElement('div');
-      nameTag.className = 'sender-name';
-      nameTag.textContent = senderName;
-      const ct = document.createElement('div');
-      ct.textContent = m.content;
-      const ts = document.createElement('div');
-      ts.className = 'timestamp';
-      ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      div.append(nameTag, ct, ts);
-      messagePanel.append(div);
-      messagePanel.scrollTop = messagePanel.scrollHeight;
-      attachGestures(div, mine, m);
-    }
+// Render messages
+function render(m) {
+  const mine = m.sender_id === user.id;
+  const senderName = mine ? user.user_metadata.firstName : m.sender_name || 'Unknown';
+  const div = document.createElement('div');
+  div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
+  div.dataset.id = m.id;
 
-    async function loadHistory() {
-      const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
-      messagePanel.innerHTML = '';
-      data.forEach(render);
-    }
-    await loadHistory();
-    supabase.channel(`grp_${gid}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
-        payload => render(payload.new))
-      .subscribe();
+  if (m.reply_to) {
+    const br = document.createElement('div');
+    br.className = 'reply-banner';
+    br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
+    div.append(br);
+  }
 
-    // Emoji and mention handling
-    emojiButton.onclick = () => {
-      emojiPickerBox.style.display = emojiPickerBox.style.display === 'flex' ? 'none' : 'flex';
-      mentionListBox.style.display = 'none';
-    };
-    document.addEventListener('click', (e) => {
-      if (!emojiButton.contains(e.target) && !emojiPickerBox.contains(e.target)) {
-        emojiPickerBox.style.display = 'none';
-      }
+  const nameTag = document.createElement('div');
+  nameTag.className = 'sender-name';
+  nameTag.textContent = senderName;
+  const ct = document.createElement('div');
+  ct.textContent = m.content;
+  const ts = document.createElement('div');
+  ts.className = 'timestamp';
+  ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  div.append(nameTag, ct, ts);
+  messagePanel.append(div);
+  messagePanel.scrollTop = messagePanel.scrollHeight;
+
+  attachGestures(div, mine, m);
+}
+
+// Load history
+async function loadHistory() {
+  const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
+  messagePanel.innerHTML = '';
+  data.forEach(render);
+}
+await loadHistory();
+
+// Real-time updates
+supabase.channel(`grp_${gid}`)
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
+    payload => {
+      // Only append if not self (to avoid double rendering)
+      if (payload.new.sender_id !== user.id) render(payload.new);
+    })
+  .subscribe();
+
+// Emoji and mention handling
+emojiButton.onclick = () => {
+  emojiPickerBox.style.display = emojiPickerBox.style.display === 'flex' ? 'none' : 'flex';
+  mentionListBox.style.display = 'none';
+};
+document.addEventListener('click', (e) => {
+  if (!emojiButton.contains(e.target) && !emojiPickerBox.contains(e.target)) {
+    emojiPickerBox.style.display = 'none';
+  }
+});
+emojiPickerBox.onclick = (e) => {
+  if (e.target.tagName === 'SPAN') {
+    messageBar.value += e.target.textContent;
+    emojiPickerBox.style.display = 'none';
+    sendMessageButton.focus();
+  }
+};
+messageBar.oninput = () => {
+  const i = messageBar.value.lastIndexOf('@');
+  mentionListBox.style.display = i >= 0 ? 'flex' : 'none';
+};
+mentionListBox.onclick = (e) => {
+  if (e.target.matches('div')) {
+    const i = messageBar.value.lastIndexOf('@');
+    messageBar.value = messageBar.value.slice(0, i) + e.target.textContent + ' ';
+    mentionListBox.style.display = 'none';
+    sendMessageButton.focus();
+  }
+};
+
+// Send message
+async function sendMsg() {
+  const txt = messageBar.value.trim();
+  if (!txt) return;
+
+  const { data, error } = await supabase.from('group_messages').insert({
+    group_id: gid,
+    sender_id: user.id,
+    sender_name: user.user_metadata.firstName,
+    content: txt,
+    reply_to: replyingMsg?.id,
+    reply_to_sender: replyingMsg?.sender_name,
+    reply_to_text: replyingMsg?.content
+  }).select().single();
+
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
+  // Render immediately
+  render(data);
+  messageBar.value = '';
+  replyingMsg = null;
+  replyContextBox.style.display = 'none';
+
+  await checkPeerloomAI(txt);
+}
+sendMessageButton.onclick = sendMsg;
+messageBar.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+// PeerLoom AI
+async function checkPeerloomAI(message) {
+  if (!message.toLowerCase().includes('@peerloom ai')) return;
+  try {
+    const response = await fetch('https://campusconnect-omep.onrender.com/peerloom-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, user: user.user_metadata.full_name })
     });
-    emojiPickerBox.onclick = (e) => {
-      if (e.target.tagName === 'SPAN') {
-        messageBar.value += e.target.textContent;
-        emojiPickerBox.style.display = 'none';
-        sendMessageButton.focus(); // Ensure send button is functional after emoji
-      }
-    };
-    messageBar.oninput = () => {
-      const i = messageBar.value.lastIndexOf('@');
-      mentionListBox.style.display = i >= 0 ? 'flex' : 'none';
-    };
-    mentionListBox.onclick = (e) => {
-      if (e.target.matches('div')) {
-        const i = messageBar.value.lastIndexOf('@');
-        messageBar.value = messageBar.value.slice(0, i) + e.target.textContent + ' ';
-        mentionListBox.style.display = 'none';
-        sendMessageButton.focus(); // Ensure send button is functional after mention
-      }
-    };
-
-    // Sending
-    async function sendMsg() {
-      const txt = messageBar.value.trim();
-
-      if (!txt) return;
-      const res = await supabase.from('group_messages').insert({
+    const data = await response.json();
+    if (data.reply) {
+      await supabase.from('group_messages').insert({
         group_id: gid,
-        sender_id: user.id,
-        sender_name: user.user_metadata.firstName,
-        content: txt,
-        reply_to: replyingMsg?.id,
-        reply_to_sender: replyingMsg?.sender_name,
-        reply_to_text: replyingMsg?.content
+        sender_id: 'peerloom-ai',
+        sender_name: 'Peerloom AI',
+        content: data.reply,
+        role: 'ai'
       });
-      console.log('Supabase insert:', res.error ? 'Failed' : 'Succeeded', res);
-      if (res.error) alert('Error: ' + res.error.message);
-      messageBar.value = '';
-      await checkPeerloomAI(txt);
     }
-    sendMessageButton.onclick = sendMsg;
-    messageBar.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
-    });
+  } catch (error) {
+    console.error('Peerloom AI Error:', error);
+  }
+}
 
-    // Peerloom AI
-    async function checkPeerloomAI(message) {
-      if (!message.toLowerCase().includes('@peerloom ai')) return;
-      try {
-        const response = await fetch('https://campusconnect-omep.onrender.com/peerloom-ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, user: user.user_metadata.full_name })
-        });
-        const data = await response.json();
-        if (data.reply) {
-          await supabase.from('group_messages').insert({
-            group_id: gid,
-            sender_id: 'peerloom-ai',
-            sender_name: 'Peerloom AI',
-            content: data.reply,
-            role: 'ai'
-          });
-        }
-      } catch (error) {
-        console.error('Peerloom AI Error:', error);
-      }
+// Placeholder audio & file
+recordAudioButton.onclick = () => {
+  isRecording = !isRecording;
+  recordAudioButton.classList.toggle('active', isRecording);
+  alert(isRecording ? 'Recording started...' : 'Recording stopped...');
+};
+fileShareButton.onclick = () => alert('File upload coming soon!');
+voiceCallButton.onclick = () => alert('Starting voice call...');
+videoCallButton.onclick = () => alert('Starting video call...');
+
+// Gestures & replies
+function attachGestures(el, mine, msg) {
+  let startX, longT;
+  el.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    if (mine) longT = setTimeout(() => { if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); }, 800);
+  });
+  el.addEventListener('mousemove', (e) => { if (e.buttons === 1 && e.clientX - startX > 120) startReply(msg); });
+  el.addEventListener('mouseup', () => clearTimeout(longT));
+  el.addEventListener('dblclick', () => {
+    if (mine) {
+      const u = prompt('Edit msg:', msg.content);
+      if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
     }
-
-    // Audio recording (placeholder)
-    recordAudioButton.onclick = () => {
-      isRecording = !isRecording;
-      recordAudioButton.classList.toggle('active', isRecording);
-      if (isRecording) {
-        alert('Recording started... (Placeholder)');
-      } else {
-        alert('Recording stopped... (Placeholder)');
-      }
-    };
-
-    // File upload (placeholder)
-    fileShareButton.onclick = () => alert('File upload feature coming soon😊! (Supabase integration pending)');
-
-    // Call buttons (placeholder)
-    voiceCallButton.onclick = () => alert('Starting voice call...');
-    videoCallButton.onclick = () => alert('Starting video call...');
-
-    // Gestures
-    function attachGestures(el, mine, msg) {
-      let startX, longT;
-      el.addEventListener('mousedown', (e) => {
-        startX = e.clientX;
-        if (mine) {
-          longT = setTimeout(() => {
-            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id);
-          }, 800);
-        }
-      });
-      el.addEventListener('mousemove', (e) => {
-        if (e.buttons === 1 && e.clientX - startX > 120) startReply(msg);
-      });
-      el.addEventListener('mouseup', () => clearTimeout(longT));
-      el.addEventListener('dblclick', () => {
-        if (mine) {
-          const u = prompt('Edit msg:', msg.content);
-          if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
-        }
-      });
-      el.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        if (mine) {
-          longT = setTimeout(() => {
-            if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id);
-          }, 800);
-        }
-      });
-      el.addEventListener('touchmove', (e) => {
-        if (e.touches[0].clientX - startX > 120) startReply(msg);
-      });
-      el.addEventListener('touchend', () => clearTimeout(longT));
-    }
-    function startReply(msg) {
-      replyingMsg = msg;
-      replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
-      replyContextBox.style.display = 'block';
-    }
-    replyContextBox.onclick = () => {
-      replyingMsg = null;
-      replyContextBox.style.display = 'none';
-    };
-  </script>
+  });
+  el.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    if (mine) longT = setTimeout(() => { if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); }, 800);
+  });
+  el.addEventListener('touchmove', (e) => { if (e.touches[0].clientX - startX > 120) startReply(msg); });
+  el.addEventListener('touchend', () => clearTimeout(longT));
+}
+function startReply(msg) {
+  replyingMsg = msg;
+  replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
+  replyContextBox.style.display = 'block';
+}
+replyContextBox.onclick = () => { replyingMsg = null; replyContextBox.style.display = 'none'; };
+</script>
 </body>
 </html>
