@@ -417,41 +417,7 @@
         </div>
     </nav>
 
-    <div class="dashboard lg:flex lg:flex-row">
-        <div class="sidebar">
-            <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
-            <div class="search-container">
-                <input type="text" id="courseSearch" class="search-bar" placeholder="Search course videos..." />
-                <button class="btn search-btn" onclick="searchCourses()">Search</button>
-                <div id="courseLoading" class="loading"></div>
-            </div>
-            <div id="courseList">
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-book"></i> AI 101 - College Writing
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-calculator"></i> MATH 115 - Calculus I
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/WUvTyaaNkzM" title="MATH 115 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/FSyAehMdpyI" title="CHEM 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
+   
 
         <div class="main-content">
             <div class="card">
@@ -498,298 +464,345 @@
             </div>
         </div>
 
-        <div class="connections">
-            <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
-            <div class="search-container">
-                <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
-                <button class="btn search-btn" onclick="searchConnections()">Search</button>
-                <div id="connectionLoading" class="loading"></div>
-            </div>
-            <div id="connectionList">
-                <div class="connection-item" data-userid="john_doe" data-name="John Doe">
-                    <div class="avatar">J</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">John Doe</p>
-                        <p class="text-gray-600">CS 201 • Online</p>
-                    </div>
-                    <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, 'john_doe')">Add</button>
-                </div>
-                <div class="connection-item" data-userid="sarah_smith" data-name="Sarah Smith">
-                    <div class="avatar">S</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">Sarah Smith</p>
-                        <p class="text-gray-600">CHEM 101 • Offline</p>
-                    </div>
-                    <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, 'sarah_smith')">Add</button>
-                </div>
-                <div class="connection-item" data-userid="mike_chen" data-name="Mike Chen">
-                    <div class="avatar">M</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">Mike Chen</p>
-                        <p class="text-gray-600">PHYS 202 • Online</p>
-                    </div>
-                    <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, 'mike_chen')">Add</button>
-                </div>
-            </div>
-        </div>
+     <div class="connections">
+    <h3 class="auth-title text-xl">
+        <i class="fas fa-user-plus"></i> University Connections
+    </h3>
+
+    <div class="search-container">
+        <input 
+            type="text" 
+            id="connectionSearch" 
+            class="search-bar" 
+            placeholder="Search for coursemates..." 
+        />
+        <button id="searchConnectionsBtn">Search</button>
+        <div id="connectionLoading" class="loading"></div>
     </div>
 
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js';
+    <div id="connectionList">
+        <!-- John Doe -->
+        <div class="connection-item" data-userid="john_doe" data-name="John Doe">
+            <div class="avatar">J</div>
+            <div>
+                <p class="font-semibold text-gray-800">John Doe</p>
+                <p class="text-gray-600">CS 201 • Online</p>
+            </div>
+            <button 
+                class="btn add-btn" 
+                style="margin-left: auto;" 
+                onclick="addFriend(this, 'john_doe')"
+            >
+                Add
+            </button>
+        </div>
 
-        // Gate-keep the page
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            window.location.replace('login.html');
-        }
+        <!-- Sarah Smith -->
+        <div class="connection-item" data-userid="sarah_smith" data-name="Sarah Smith">
+            <div class="avatar">S</div>
+            <div>
+                <p class="font-semibold text-gray-800">Sarah Smith</p>
+                <p class="text-gray-600">CHEM 101 • Offline</p>
+            </div>
+            <button 
+                class="btn add-btn" 
+                style="margin-left: auto;" 
+                onclick="addFriend(this, 'sarah_smith')"
+            >
+                Add
+            </button>
+        </div>
 
-        // Hook up both “Logout” links
-        const logoutButtons = ['logout', 'logoutMobile']
-            .map(id => document.getElementById(id))
-            .filter(Boolean);
+        <!-- Mike Chen -->
+        <div class="connection-item" data-userid="mike_chen" data-name="Mike Chen">
+            <div class="avatar">M</div>
+            <div>
+                <p class="font-semibold text-gray-800">Mike Chen</p>
+                <p class="text-gray-600">MATH 301 • Online</p>
+            </div>
+            <button 
+                class="btn add-btn" 
+                style="margin-left: auto;" 
+                onclick="addFriend(this, 'mike_chen')"
+            >
+                Add
+            </button>
+        </div>
+    </div>
+</div>
 
-        logoutButtons.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const { error } = await supabase.auth.signOut();
-                if (error) {
-                    console.error('Logout failed:', error);
-                    return;
-                }
-                window.location.href = 'logout.html'; // Redirect to logout page
-            });
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
+    // Gate-keep the page
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        window.location.replace('login.html');
+    }
+
+    // Hook up both “Logout” links
+    const logoutButtons = ['logout', 'logoutMobile']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+
+    logoutButtons.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error('Logout failed:', error);
+                return;
+            }
+            window.location.href = 'logout.html'; // Redirect to logout page
+        });
+    });
+
+    // Burger-menu toggler with touch support
+    const navToggle = document.getElementById('navToggle');
+    const navLinksMobile = document.getElementById('navLinksMobile');
+    if (navToggle && navLinksMobile) {
+        navToggle.addEventListener('click', () => {
+            navLinksMobile.classList.toggle('show');
         });
 
-        // Burger-menu toggler with touch support
-        const navToggle = document.getElementById('navToggle');
-        const navLinksMobile = document.getElementById('navLinksMobile');
-        if (navToggle && navLinksMobile) {
-            navToggle.addEventListener('click', () => {
-                navLinksMobile.classList.toggle('show');
-            });
+        // Close menu when clicking outside or on a link
+        document.addEventListener('click', (e) => {
+            if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
+                navLinksMobile.classList.remove('show');
+            }
+        });
 
-            // Close menu when clicking outside or on a link
-            document.addEventListener('click', (e) => {
-                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-                    navLinksMobile.classList.remove('show');
-                }
-            });
+        // Prevent scrolling when menu is open
+        navLinksMobile.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+    }
 
-            // Prevent scrolling when menu is open
-            navLinksMobile.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-            }, { passive: false });
+    // Load suggested groups
+    async function loadSuggestedGroups() {
+        const { data, error } = await supabase
+            .from('groups')
+            .select('id, name, course_code')
+            .limit(5);
+        if (error) {
+            console.error('Error loading suggested groups:', error);
+            return;
         }
+        const suggestedGroupsDiv = document.getElementById('suggestedGroups');
+        suggestedGroupsDiv.innerHTML = '';
+        data.forEach(group => {
+            const div = document.createElement('div');
+            div.className = 'group-item';
+            div.innerHTML = `
+                <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
+                <div>
+                    <p class="font-semibold text-gray-800">${group.name}</p>
+                    <p class="text-gray-600">${group.course}</p>
+                </div>
+                <a href="chatroom.html?groupId=${group.id}" class="btn">Join</a>
+            `;
+            suggestedGroupsDiv.appendChild(div);
+        });
+    }
 
-        // Load suggested groups
-        async function loadSuggestedGroups() {
-            const { data, error } = await supabase
-                .from('groups')
-                .select('id, name, course_code')
-                .limit(5);
-            if (error) {
-                console.error('Error loading suggested groups:', error);
-                return;
-            }
-            const suggestedGroupsDiv = document.getElementById('suggestedGroups');
-            suggestedGroupsDiv.innerHTML = '';
-            data.forEach(group => {
-                const div = document.createElement('div');
-                div.className = 'group-item';
-                div.innerHTML = `
-                    <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">${group.name}</p>
-                        <p class="text-gray-600">${group.course}</p>
-                    </div>
-                    <a href="chatroom.html?groupId=${group.id}" class="btn">Join</a>
-                `;
-                suggestedGroupsDiv.appendChild(div);
-            });
+    // Load active groups for the user
+    async function loadActiveGroups() {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data, error } = await supabase
+            .from('groups')
+            .select('id, name, course_code')
+            .eq('id', user.id);
+        if (error) {
+            console.error('Error loading active groups:', error);
+            return;
         }
-
-        // Load active groups for the user
-        async function loadActiveGroups() {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data, error } = await supabase
+        const groupListDiv = document.getElementById('groupList');
+        groupListDiv.innerHTML = '';
+        const groups = data.groups || [];
+        for (const group of groups) {
+            const { data: groupData, error: groupError } = await supabase
                 .from('groups')
-                .select('id, name, course_code')
-                .eq('id', user.id);
-                //.single();
-            if (error) {
-                console.error('Error loading active groups:', error);
-                return;
-            }
-            const groupListDiv = document.getElementById('groupList');
-            groupListDiv.innerHTML = '';
-            const groups = data.groups || [];
-            for (const group of groups) {
-                const { data: groupData, error: groupError } = await supabase
-                    .from('groups')
-                    .select('id, name, course')
-                    .eq('id', group.id)
-                    .single();
-                if (groupError) continue;
-                const div = document.createElement('div');
-                div.className = 'group-item';
-                div.innerHTML = `
-                    <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">${groupData.name}</p>
-                        <p class="text-gray-600">${groupData.course}</p>
-                    </div>
-                    <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
-                `;
-                groupListDiv.appendChild(div);
-            }
-        }
-
-        // Create group
-        async function createGroup() {
-            const groupName = document.getElementById('groupName').value.trim();
-            const course = document.getElementById('groupCourse').value;
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!groupName || !course) {
-                alert('Please fill in all fields.');
-                return;
-            }
-            const { data, error } = await supabase
-                .from('groups')
-                .insert({
-                    name: groupName,
-                    course: course,
-                    created_by: user.id,
-                    description: `${course} Study Group`
-                })
-                .select()
+                .select('id, name, course')
+                .eq('id', group.id)
                 .single();
-            if (error) {
-                console.error('Error creating group:', error);
-                alert('Failed to create group.');
-            } else {
-                alert('Group created successfully!');
-                document.getElementById('groupName').value = '';
-                document.getElementById('groupCourse').value = '';
-                const { error: memberError } = await supabase
-                    .from('group_members')
-                    .insert({ group_id: data.id, user_id: user.id, is_admin: true });
-                if (memberError) console.error('Error adding creator as member:', memberError);
-                loadActiveGroups(); // Refresh active groups
-                loadSuggestedGroups(); // Refresh suggested groups
-            }
+            if (groupError) continue;
+            const div = document.createElement('div');
+            div.className = 'group-item';
+            div.innerHTML = `
+                <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
+                <div>
+                    <p class="font-semibold text-gray-800">${groupData.name}</p>
+                    <p class="text-gray-600">${groupData.course}</p>
+                </div>
+                <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
+            `;
+            groupListDiv.appendChild(div);
         }
+    }
 
-        // Search courses with YouTube API
-        async function searchCourses() {
-            const courseSearch = document.getElementById('courseSearch').value.trim();
-            const courseLoading = document.getElementById('courseLoading');
-            const courseList = document.getElementById('courseList');
-            if (!courseSearch) return;
+    // Create group
+    async function createGroup() {
+        const groupName = document.getElementById('groupName').value.trim();
+        const course = document.getElementById('groupCourse').value;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!groupName || !course) {
+            alert('Please fill in all fields.');
+            return;
+        }
+        const { data, error } = await supabase
+            .from('groups')
+            .insert({
+                name: groupName,
+                course: course,
+                created_by: user.id,
+                description: `${course} Study Group`
+            })
+            .select()
+            .single();
+        if (error) {
+            console.error('Error creating group:', error);
+            alert('Failed to create group.');
+        } else {
+            alert('Group created successfully!');
+            document.getElementById('groupName').value = '';
+            document.getElementById('groupCourse').value = '';
+            const { error: memberError } = await supabase
+                .from('group_members')
+                .insert({ group_id: data.id, user_id: user.id, is_admin: true });
+            if (memberError) console.error('Error adding creator as member:', memberError);
+            loadActiveGroups(); // Refresh active groups
+            loadSuggestedGroups(); // Refresh suggested groups
+        }
+    }
 
-            courseLoading.style.display = 'block'; // Show loading immediately
-            let loadingTimeout = setTimeout(() => {}, 8000); // Ensure 8 seconds minimum
+    // Search courses with YouTube API
+    async function searchCourses() {
+        const courseSearch = document.getElementById('courseSearch').value.trim();
+        const courseLoading = document.getElementById('courseLoading');
+        const courseList = document.getElementById('courseList');
+        if (!courseSearch) return;
 
-            try {
-                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(courseSearch + ' tutorial')}&type=video&maxResults=10&key=AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y`;
-                const response = await fetch(url, {
-                    method: 'GET'
+        courseLoading.style.display = 'block'; // Show loading immediately
+        let loadingTimeout = setTimeout(() => {}, 8000); // Ensure 8 seconds minimum
+
+        try {
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(courseSearch + ' tutorial')}&type=video&maxResults=10&key=AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y`;
+            const response = await fetch(url, {
+                method: 'GET'
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message || 'YouTube API error');
+            if (data.items && data.items.length > 0) {
+                console.log('Videos found:', data.items);
+                courseList.innerHTML = '';
+                data.items.slice(0, 3).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-book"></i> ${item.snippet.title}
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/${item.id.videoId}" title="${item.snippet.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    `;
+                    courseList.appendChild(div);
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message || 'YouTube API error');
-                if (data.items && data.items.length > 0) {
-                    console.log('Videos found:', data.items);
-                    courseList.innerHTML = '';
-                    data.items.slice(0, 3).forEach(item => {
-                        const div = document.createElement('div');
-                        div.className = 'card';
-                        div.innerHTML = `
-                            <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                                <i class="fas fa-book"></i> ${item.snippet.title}
-                            </h4>
-                            <div class="video-container">
-                                <iframe src="https://www.youtube.com/embed/${item.id.videoId}" title="${item.snippet.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                            </div>
-                        `;
-                        courseList.appendChild(div);
-                    });
-                } else {
-                    courseList.innerHTML = '<p class="text-center text-gray-500">No videos found or invalid query.</p>';
-                }
-            } catch (error) {
-                console.error('Fetch error:', error.message);
-                courseList.innerHTML = `<p class="text-center text-red-500">Error loading videos: ${error.message}. Check console for details.</p>`;
-            } finally {
-                clearTimeout(loadingTimeout);
-                loadingTimeout = setTimeout(() => {
-                    courseLoading.style.display = 'none'; // Hide after 8 seconds
-                }, 8000);
+            } else {
+                courseList.innerHTML = '<p class="text-center text-gray-500">No videos found or invalid query.</p>';
             }
+        } catch (error) {
+            console.error('Fetch error:', error.message);
+            courseList.innerHTML = `<p class="text-center text-red-500">Error loading videos: ${error.message}. Check console for details.</p>`;
+        } finally {
+            clearTimeout(loadingTimeout);
+            loadingTimeout = setTimeout(() => {
+                courseLoading.style.display = 'none'; // Hide after 8 seconds
+            }, 8000);
         }
+    }
 
-        // Search connections with loading animation
-        async function searchConnections() {
-            const connectionSearch = document.getElementById('connectionSearch').value.trim();
-            const connectionLoading = document.getElementById('connectionLoading');
-            const connectionList = document.getElementById('connectionList');
-            if (!connectionSearch) return;
+    // Search connections with loading animation
+    async function searchConnections() {
+        const connectionSearch = document.getElementById('connectionSearch').value.trim();
+        const connectionLoading = document.getElementById('connectionLoading');
+        const connectionList = document.getElementById('connectionList');
+        if (!connectionSearch) return;
 
-            connectionLoading.style.display = 'block'; // Show loading immediately
-            let loadingTimeout = setTimeout(() => {}, 8000); // Ensure 8 seconds minimum
+        connectionLoading.style.display = 'block'; // Show loading immediately
+        let loadingTimeout = setTimeout(() => {}, 8000); // Ensure 8 seconds minimum
 
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('id, user_metadata (full_name, status)') // Adjusted for potential schema
-                    .ilike('user_metadata.full_name', `%${connectionSearch}%`)
-                    .limit(5);
-                if (error) throw error;
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, user_metadata (full_name, status)')
+                .ilike('user_metadata.full_name', `%${connectionSearch}%`)
+                .limit(5);
+            if (error) throw error;
 
-                connectionList.innerHTML = '';
-                if (data && data.length > 0) {
-                    data.forEach(user => {
-                        const fullName = user.user_metadata?.full_name || 'Unknown';
-                        const status = user.user_metadata?.status || 'Offline';
-                        const div = document.createElement('div');
-                        div.className = 'connection-item';
-                        div.dataset.userid = user.id;
-                        div.dataset.name = fullName;
-                        div.innerHTML = `
-                            <div class="avatar">${fullName.charAt(0).toUpperCase()}</div>
-                            <div>
-                                <p class="font-semibold text-gray-800">${fullName}</p>
-                                <p class="text-gray-600">${status}</p>
-                            </div>
-                            <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, '${user.id}')">Add</button>
-                        `;
-                        connectionList.appendChild(div);
-                    });
-                } else {
-                    connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
-                }
-            } catch (error) {
-                console.error('Connection search error:', error.message);
-                connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}. Check console for details.</p>`;
-            } finally {
-                clearTimeout(loadingTimeout);
-                loadingTimeout = setTimeout(() => {
-                    connectionLoading.style.display = 'none'; // Hide after 8 seconds
-                }, 8000);
+            connectionList.innerHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(user => {
+                    const fullName = user.user_metadata?.full_name || 'Unknown';
+                    const status = user.user_metadata?.status || 'Offline';
+                    const div = document.createElement('div');
+                    div.className = 'connection-item';
+                    div.dataset.userid = user.id;
+                    div.dataset.name = fullName;
+                    div.innerHTML = `
+                        <div class="avatar">${fullName.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <p class="font-semibold text-gray-800">${fullName}</p>
+                            <p class="text-gray-600">${status}</p>
+                        </div>
+                        <button class="btn add-btn" style="margin-left: auto;">Add</button>
+                    `;
+
+                    // Hook up Add button
+                    div.querySelector('button').addEventListener('click', () => addFriend(div.querySelector('button'), user.id));
+
+                    connectionList.appendChild(div);
+                });
+            } else {
+                connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
             }
+        } catch (error) {
+            console.error('Connection search error:', error.message);
+            connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}. Check console for details.</p>`;
+        } finally {
+            clearTimeout(loadingTimeout);
+            loadingTimeout = setTimeout(() => {
+                connectionLoading.style.display = 'none'; // Hide after 8 seconds
+            }, 8000);
         }
+    }
 
-        // Add friend (placeholder)
-        function addFriend(button, userId) {
-            console.log(`Adding friend with ID: ${userId}`);
-            button.textContent = 'Added';
-            button.disabled = true;
-            button.style.background = '#d1d5db';
-        }
+    // Add friend (placeholder)
+    function addFriend(button, userId) {
+        console.log(`Adding friend with ID: ${userId}`);
+        button.textContent = 'Added';
+        button.disabled = true;
+        button.style.background = '#d1d5db';
+    }
 
-        // Initial load
-        loadSuggestedGroups();
-        loadActiveGroups();
-    </script>
-    <script type="module" src="js/dashboardGroups.js"></script>
+    // Initial load
+    loadSuggestedGroups();
+    loadActiveGroups();
+
+    // Hook up searchConnections button (instead of inline onclick)
+    const searchBtn = document.getElementById('searchConnectionsBtn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', searchConnections);
+    }
+
+    // Hook up searchCourses button too
+    const courseBtn = document.getElementById('searchCoursesBtn');
+    if (courseBtn) {
+        courseBtn.addEventListener('click', searchCourses);
+    }
+</script>
+
+<script type="module" src="js/dashboardGroups.js"></script>
 </body>
-</html>
+
