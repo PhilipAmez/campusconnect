@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,741 +5,131 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Peerloom</title>
     <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
-    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link rel="icon" href="favicon.ico">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.08);
-            --glass-hover: rgba(255, 255, 255, 0.2);
-            --primary: #4c51bf;
-            --secondary: #2a2f8e;
-            --text-dark: #1a202c;
-            --text-light: #a0aec0;
-            --accent: #2f855a;
-            --blur: 8px;
-            --transition: all 0.3s ease-in-out;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #e6e8f0, #f0f2f5);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            padding-top: 60px;
-            transition: background var(--transition);
-            position: relative;
-            overflow: hidden;
-        }
-
-        body.dark-mode::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #2d3748, #4a5568);
-            z-index: -1;
-        }
-
-        body.dark-mode::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/%3E%3C/svg%3E');
-            background-size: 10px 10px;
-            animation: fall 10s linear infinite;
-            z-index: -1;
-        }
-
-        @keyframes fall {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            z-index: 1000;
-            transition: background var(--transition);
-            touch-action: pan-x;
-        }
-
-        .navbar.scrolled {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .logo img {
-            height: 30px;
-            transition: transform var(--transition);
-        }
-
-        .logo img:hover {
-            transform: scale(1.05);
-        }
-
-        .nav-links a {
-            color: var(--text-dark);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            transition: color var(--transition), background var(--transition);
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-            background: var(--glass-hover);
-        }
-
-        .profile-card {
-            max-width: 600px;
-            width: 90%;
-            margin: 20px auto;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border-radius: 1.5rem;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            transition: transform var(--transition), box-shadow var(--transition);
-        }
-
-        .profile-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
-        }
-
-        .cover-photo {
-            height: 140px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            padding-left: 1.5rem;
-        }
-
-        .cover-photo::before {
-            content: '';
-            position: absolute;
-            top: -40%;
-            left: -40%;
-            width: 180%;
-            height: 180%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-            animation: ripple 6s infinite ease-in-out;
-            z-index: 0;
-        }
-
-        @keyframes ripple {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.2); opacity: 0; }
-        }
-
-        .avatar-container {
-            position: relative;
-            margin-top: -60px;
-            margin-left: 1.5rem;
-        }
-
-        .avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.9);
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform var(--transition);
-        }
-
-        .avatar:hover {
-            transform: scale(1.1);
-        }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-
-        .avatar-upload {
-            display: none;
-        }
-
-        .profile-content {
-            padding: 2rem 1.5rem 1.5rem;
-        }
-
-        .profile-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .profile-info {
-            flex-grow: 1;
-            margin-left: 1rem;
-        }
-
-        .profile-info h1 {
-            font-size: 1.8rem;
-            color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .verified-badge {
-            width: 18px;
-            height: 18px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: white;
-        }
-
-        .profile-info p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .academic-details {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--glass-bg);
-            border-radius: 0.75rem;
-            color: var(--text-light);
-        }
-
-        .academic-details p {
-            margin: 0.25rem 0;
-        }
-
-        .groups-list {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--glass-bg);
-            border-radius: 0.75rem;
-        }
-
-        .group-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            transition: background var(--transition);
-        }
-
-        .group-item:hover {
-            background: var(--glass-hover);
-        }
-
-        .admin-badge {
-            background: var(--accent);
-            color: white;
-            padding: 0.15rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.7rem;
-        }
-
-        .bio-section {
-            margin-top: 1.5rem;
-        }
-
-        .bio-display {
-            padding: 1rem;
-            background: var(--glass-bg);
-            border-radius: 0.75rem;
-            color: var(--text-dark);
-            line-height: 1.6;
-            cursor: pointer;
-            transition: background var(--transition);
-        }
-
-        .bio-display:hover {
-            background: var(--glass-hover);
-        }
-
-        .bio-edit {
-            width: 100%;
-            padding: 1rem;
-            border: none;
-            border-radius: 0.75rem;
-            background: var(--glass-bg);
-            color: var(--text-dark);
-            font-size: 1rem;
-            resize: vertical;
-            display: none;
-            transition: transform var(--transition);
-        }
-
-        .bio-edit:focus {
-            outline: none;
-            transform: scale(1.02);
-            box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
-        }
-
-        .privacy-toggle {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--glass-bg);
-            border-radius: 0.75rem;
-        }
-
-        .privacy-toggle div {
-            padding: 0.5rem 1rem;
-            background: var(--glass-bg);
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: background var(--transition);
-        }
-
-        .privacy-toggle div:hover {
-            background: var(--glass-hover);
-        }
-
-        .edit-profile-btn {
-            margin-top: 1.5rem;
-            padding: 0.75rem 1.5rem;
-            background: var(--glass-bg);
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform var(--transition), background var(--transition);
-        }
-
-        .edit-profile-btn:hover {
-            transform: translateY(-2px);
-            background: var(--glass-hover);
-        }
-
-        .save-button {
-            margin-top: 1.5rem;
-            padding: 0.75rem 1.5rem;
-            background: var(--glass-bg);
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform var(--transition), background var(--transition);
-            position: relative;
-            overflow: hidden;
-            display: none;
-        }
-
-        .save-button:hover {
-            transform: translateY(-2px);
-            background: var(--glass-hover);
-        }
-
-        .save-button::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0.1) 100%);
-            transform: skewX(-20deg);
-            transition: left 0.5s ease;
-            pointer-events: none;
-        }
-
-        .save-button:hover::after {
-            left: 100%;
-        }
-
-        .save-button.saved {
-            background: rgba(47, 133, 90, 0.2);
-            color: var(--accent);
-        }
-
-        .editable-field {
-            background: var(--glass-bg);
-            border: none;
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-            width: 100%;
-        }
-
-        .editable-field:focus {
-            outline: none;
-            transform: scale(1.02);
-            box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
-        }
-
-        @media (max-width: 768px) {
-            .profile-card {
-                width: 95%;
-                margin: 15px auto;
-            }
-            .cover-photo {
-                height: 120px;
-                padding-left: 1rem;
-            }
-            .avatar {
-                width: 100px;
-                height: 100px;
-                font-size: 1.7rem;
-                margin-top: -50px;
-                margin-left: 1rem;
-            }
-            .profile-content {
-                padding: 1.5rem 1rem;
-            }
-            .profile-info h1 {
-                font-size: 1.5rem;
-            }
-            .profile-info p {
-                font-size: 0.85rem;
-            }
-            .academic-details, .groups-list, .bio-section, .privacy-toggle {
-                padding: 0.8rem;
-                margin-top: 1rem;
-            }
-            .edit-profile-btn, .save-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .navbar {
-                padding: 0.5rem 1rem;
-            }
-            .logo img {
-                height: 25px;
-            }
-            .profile-card {
-                width: 98%;
-                margin: 10px auto;
-            }
-            .cover-photo {
-                height: 100px;
-                padding-left: 0.75rem;
-            }
-            .avatar {
-                width: 80px;
-                height: 80px;
-                font-size: 1.4rem;
-                margin-top: -40px;
-                margin-left: 0.75rem;
-            }
-            .profile-content {
-                padding: 1rem;
-            }
-            .profile-info h1 {
-                font-size: 1.3rem;
-            }
-            .profile-info p {
-                font-size: 0.8rem;
-            }
-            .academic-details, .groups-list, .bio-section, .privacy-toggle {
-                padding: 0.6rem;
-                margin-top: 0.8rem;
-            }
-            .edit-profile-btn, .save-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
-<body>
-    <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo">
-            <img src="logo.png" alt="Peerloom Logo">
-        </a>
-        <div class="nav-links">
-            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-    </nav>
+<body class="bg-gray-100">
 
-    <div class="profile-card">
-        <div class="cover-photo">
-            <div class="avatar-container">
-                <label for="avatarUpload" class="avatar" id="avatar"></label>
-                <input type="file" id="avatarUpload" accept="image/*" class="avatar-upload" onchange="uploadAvatar(event)">
+    <!-- Profile container -->
+    <div class="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-2xl p-6">
+        <div class="flex flex-col items-center">
+            <div id="avatar" class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+                <span class="text-gray-400">No Image</span>
             </div>
-        </div>
-        <div class="profile-content">
-            <div class="profile-header">
-                <div class="profile-info">
-                    <h1 id="fullName"></h1>
-                </div>
-                <div id="verifiedBadge" class="verified-badge hidden"></div>
+            <input type="file" id="avatar-upload" class="hidden" accept="image/*">
+            <button onclick="document.getElementById('avatar-upload').click()" class="text-blue-500 text-sm mb-4">Change Avatar</button>
+
+            <h2 id="full_name" class="text-xl font-semibold"></h2>
+            <p id="level" class="text-gray-600"></p>
+            <p id="campus" class="text-gray-600"></p>
+            <p id="department" class="text-gray-600"></p>
+            <p id="bio" class="text-gray-500 italic mt-2"></p>
+
+            <div id="verified" class="mt-2"></div>
+
+            <div class="mt-4 w-full">
+                <h3 class="font-semibold mb-2">Groups Joined:</h3>
+                <ul id="groups" class="list-disc pl-6 text-gray-700"></ul>
             </div>
-            <div class="academic-details" id="academicDetails">
-                <p><strong>Campus:</strong> <span id="campus"></span></p>
-                <p><strong>Level:</strong> <span id="level"></span></p>
-                <p><strong>Department:</strong> <span id="department"></span></p>
-            </div>
-            <div class="groups-list" id="groupsList">
-                <h3 class="text-lg font-medium text-text-dark">Groups</h3>
-                <ul class="mt-2 space-y-1"></ul>
-            </div>
-            <div class="bio-section">
-                <div class="bio-display" id="bioDisplay"></div>
-                <textarea class="bio-edit" id="bioEdit" placeholder="Share a bit about yourself..."></textarea>
-            </div>
-            <div class="privacy-toggle">
-                <div class="flex justify-between items-center">
-                    <span>Hide Academic Details</span>
-                    <input type="checkbox" id="hideAcademicToggle">
-                </div>
-                <div class="flex justify-between items-center mt-2">
-                    <span>Hide Groups</span>
-                    <input type="checkbox" id="hideGroupsToggle">
-                </div>
-            </div>
-            <button id="editProfileBtn" class="edit-profile-btn w-full mt-4">Edit Profile</button>
-            <button id="saveChangesBtn" class="save-button w-full mt-4">Save Changes</button>
         </div>
     </div>
 
-    <script type="module" src="js/supabaseClient.js"></script>
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js';
+    <script>
+        const supabaseUrl = "https://hktvulwosprmltvcldci.supabase.co";
+        const supabaseKey = "YOUR_PUBLIC_ANON_KEY"; // replace with your real anon key
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Navbar scroll effect
-        window.addEventListener('scroll', () => {
-            const navbar = document.getElementById('navbar');
-            if (window.scrollY > 50) navbar.classList.add('scrolled');
-            else navbar.classList.remove('scrolled');
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadProfile();
+            document.getElementById('avatar-upload').addEventListener('change', uploadAvatar);
         });
 
-        // Load profile
         async function loadProfile() {
-            try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError || !user) {
-                    alert('Please log in.');
-                    window.location = 'login.html';
-                    return;
-                }
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                console.error("User fetch error:", userError);
+                alert("User not logged in");
+                return;
+            }
 
-                const { firstName, lastName, campus, level, department } = user.user_metadata || {};
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('full_name, level, campus, department, bio')
-                    .eq('id', user.id)
-                    .single();
+            // ✅ include verified + privacy so they’re available
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('full_name, level, campus, department, bio, verified, privacy')
+                .eq('id', user.id)
+                .single();
 
-                if (profileError) throw profileError;
+            if (profileError) {
+                console.error("Profile fetch error:", profileError);
+                alert("Error loading profile");
+                return;
+            }
 
-                const { data: groups, error: groupsError } = await supabase
-                    .from('group_members')
-                    .select('groups (name)')
-                    .eq('user_id', user.id);
+            document.getElementById("full_name").innerText = profile.full_name || "No Name";
+            document.getElementById("level").innerText = profile.level || "No Level";
+            document.getElementById("campus").innerText = profile.campus || "No Campus";
+            document.getElementById("department").innerText = profile.department || "No Department";
+            document.getElementById("bio").innerText = profile.bio || "No Bio";
 
-                if (groupsError) throw groupsError;
+            // ✅ verified check
+            if (profile.verified) {
+                document.getElementById("verified").innerHTML =
+                    '<span class="text-green-500 font-bold">✔ Verified</span>';
+            }
 
-                const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.full_name || 'User';
-                document.getElementById('fullName').textContent = displayName;
-                document.getElementById('bioDisplay').textContent = profile.bio || 'No bio yet...';
-                document.getElementById('bioEdit').value = profile.bio || '';
-                document.getElementById('campus').textContent = profile.campus || 'N/A';
-                document.getElementById('level').textContent = profile.level || 'N/A';
-                document.getElementById('department').textContent = profile.department || 'N/A';
-                if (profile.verified) document.getElementById('verifiedBadge').classList.remove('hidden');
+            // ✅ groups query
+            const { data: groups, error: groupsError } = await supabase
+                .from('group_members')
+                .select('groups(name)')
+                .eq('user_id', user.id);
 
-                const avatar = document.getElementById('avatar');
-                avatar.textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
+            if (groupsError) {
+                console.error("Groups fetch error:", groupsError);
+                return;
+            }
 
-                const groupsList = document.getElementById('groupsList').querySelector('ul');
-                groups.forEach(gm => {
-                    const li = document.createElement('li');
-                    li.className = 'group-item';
-                    li.textContent = gm.groups?.name || 'Unnamed group';
+            const groupsList = document.getElementById("groups");
+            groupsList.innerHTML = "";
+            if (groups && groups.length > 0) {
+                groups.forEach(g => {
+                    const li = document.createElement("li");
+                    li.innerText = g.groups?.name || "Unnamed Group";
                     groupsList.appendChild(li);
                 });
-
-                const privacy = profile.privacy || {};
-                document.getElementById('hideAcademicToggle').checked = privacy.hideAcademic || false;
-                document.getElementById('hideGroupsToggle').checked = privacy.hideGroups || false;
-                document.getElementById('academicDetails').style.display = privacy.hideAcademic ? 'none' : 'block';
-                document.getElementById('groupsList').style.display = privacy.hideGroups ? 'none' : 'block';
-            } catch (error) {
-                console.error('Load error:', error.message);
-                alert('Error loading profile.');
+            } else {
+                groupsList.innerHTML = "<li>No Groups Joined</li>";
             }
         }
 
-        // Upload avatar
         async function uploadAvatar(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const { data, error } = await supabase.storage
-                .from('avatars')
-                .upload(`public/${user.id}/${Date.now()}_${file.name}`, file, { upsert: true });
-            if (error) {
-                console.error('Upload error:', error.message);
-                alert('Error uploading avatar.');
-            } else {
-                const url = supabase.storage.from('avatars').getPublicUrl(`public/${user.id}/${Date.now()}_${file.name}`).data.publicUrl;
-                document.getElementById('avatar').innerHTML = `<img src="${url}" alt="Avatar">`;
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                console.error("User fetch error:", userError);
+                return;
+            }
+
+            const filePath = `public/${user.id}/${Date.now()}_${file.name}`;
+            const { error: uploadError } = await supabase.storage
+                .from("avatars")
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) {
+                console.error("Upload error:", uploadError);
+                return;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+                .from("avatars")
+                .getPublicUrl(filePath);
+
+            if (publicUrlData?.publicUrl) {
+                document.getElementById("avatar").innerHTML =
+                    `<img src="${publicUrlData.publicUrl}" alt="Avatar" class="w-24 h-24 rounded-full">`;
             }
         }
-
-        // Toggle bio edit
-        document.getElementById('bioDisplay').addEventListener('click', () => {
-            document.getElementById('bioDisplay').style.display = 'none';
-            document.getElementById('bioEdit').style.display = 'block';
-            document.getElementById('bioEdit').focus();
-        });
-
-        document.getElementById('bioEdit').addEventListener('blur', () => {
-            document.getElementById('bioDisplay').style.display = 'block';
-            document.getElementById('bioEdit').style.display = 'none';
-        });
-
-        // Toggle edit mode
-        document.getElementById('editProfileBtn').addEventListener('click', () => {
-            const academicDetails = document.getElementById('academicDetails');
-            const saveButton = document.getElementById('saveChangesBtn');
-            const campusSpan = document.getElementById('campus');
-            const levelSpan = document.getElementById('level');
-            const departmentSpan = document.getElementById('department');
-            const campusEdit = document.createElement('input');
-            const levelEdit = document.createElement('input');
-            const departmentEdit = document.createElement('input');
-
-            campusEdit.type = 'text';
-            campusEdit.className = 'editable-field';
-            campusEdit.value = campusSpan.textContent || '';
-            levelEdit.type = 'text';
-            levelEdit.className = 'editable-field';
-            levelEdit.value = levelSpan.textContent || '';
-            departmentEdit.type = 'text';
-            departmentEdit.className = 'editable-field';
-            departmentEdit.value = departmentSpan.textContent || '';
-
-            academicDetails.innerHTML = `
-                <p><strong>Campus:</strong> <input class="editable-field" value="${campusSpan.textContent || ''}"></p>
-                <p><strong>Level:</strong> <input class="editable-field" value="${levelSpan.textContent || ''}"></p>
-                <p><strong>Department:</strong> <input class="editable-field" value="${departmentSpan.textContent || ''}"></p>
-            `;
-            academicDetails.style.display = 'block';
-            saveButton.style.display = 'block';
-            document.getElementById('editProfileBtn').style.display = 'none';
-        });
-
-        // Save changes
-        document.getElementById('saveChangesBtn').addEventListener('click', async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            const bio = document.getElementById('bioEdit').value.trim();
-            const campus = document.querySelector('.academic-details input:nth-child(2)').value.trim() || 'N/A';
-            const level = document.querySelector('.academic-details input:nth-child(4)').value.trim() || 'N/A';
-            const department = document.querySelector('.academic-details input:nth-child(6)').value.trim() || 'N/A';
-            const hideAcademic = document.getElementById('hideAcademicToggle').checked;
-            const hideGroups = document.getElementById('hideGroupsToggle').checked;
-
-            const { error } = await supabase
-                .from('profiles')
-                .update({ bio, campus, level, department, privacy: { hideAcademic, hideGroups } })
-                .eq('id', user.id);
-
-            if (error) {
-                console.error('Save error:', error.message);
-                alert('Error saving changes.');
-            } else {
-                document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
-                document.getElementById('campus').textContent = campus;
-                document.getElementById('level').textContent = level;
-                document.getElementById('department').textContent = department;
-                document.getElementById('academicDetails').innerHTML = `
-                    <p><strong>Campus:</strong> <span id="campus">${campus}</span></p>
-                    <p><strong>Level:</strong> <span id="level">${level}</span></p>
-                    <p><strong>Department:</strong> <span id="department">${department}</span></p>
-                `;
-                document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
-                document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
-                const saveBtn = document.getElementById('saveChangesBtn');
-                saveBtn.classList.add('saved');
-                setTimeout(() => saveBtn.classList.remove('saved'), 1500);
-                saveBtn.style.display = 'none';
-                document.getElementById('editProfileBtn').style.display = 'block';
-            }
-        });
-
-        // Toggle light/dark mode with swipe on navbar
-        let startX;
-        const navbar = document.getElementById('navbar');
-        navbar.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            navbar.style.transition = 'none';
-        }, { passive: true });
-        navbar.addEventListener('touchmove', (e) => {
-            const dx = e.touches[0].clientX - startX;
-            if (dx < 0) navbar.classList.add('active');
-        }, { passive: true });
-        navbar.addEventListener('touchend', () => {
-            navbar.style.transition = 'transform 0.3s ease';
-            if (navbar.classList.contains('active')) {
-                const body = document.body;
-                const isDark = body.classList.contains('dark-mode');
-                const textDark = isDark ? '#e6e8f0' : '#1a202c';
-                const textLight = isDark ? '#a0aec0' : '#718096';
-                if (isDark) {
-                    body.classList.remove('dark-mode');
-                    document.documentElement.style.setProperty('--text-dark', '#1a202c');
-                    document.documentElement.style.setProperty('--text-light', '#a0aec0');
-                    body.style.background = 'linear-gradient(135deg, #e6e8f0, #f0f2f5)';
-                } else {
-                    body.classList.add('dark-mode');
-                    document.documentElement.style.setProperty('--text-dark', '#e6e8f0');
-                    document.documentElement.style.setProperty('--text-light', '#a0aec0');
-                    body.style.background = 'linear-gradient(135deg, #2d3748, #4a5568)';
-                }
-            }
-            navbar.classList.remove('active');
-        }, { passive: true });
-
-        // Initialize
-        loadProfile();
     </script>
 </body>
 </html>
