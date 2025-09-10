@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -557,26 +555,35 @@
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError || !user) {
-                    alert('Please log in.');
-                    window.location = 'login.html';
-                    return;
+                    console.error('Auth error:', authError?.message || 'No user logged in');
+                    document.getElementById('fullName').textContent = 'Please log in';
+                    document.getElementById('academicDetails').innerHTML = '<p>No data available. Log in to view profile.</p>';
+                    document.getElementById('groupsList').innerHTML = '<p>No groups available.</p>';
+                    document.getElementById('bioDisplay').textContent = 'No bio available.';
+                    return; // Stop further execution but show partial UI
                 }
 
                 const { firstName, lastName, campus, level, department } = user.user_metadata || {};
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .select('full_name, level, campus, department, bio')
+                    .select('full_name, level, campus, department, bio, verified')
                     .eq('id', user.id)
                     .single();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('Profile fetch error:', profileError.message);
+                    throw profileError;
+                }
 
                 const { data: groups, error: groupsError } = await supabase
                     .from('group_members')
                     .select('groups (name)')
                     .eq('user_id', user.id);
 
-                if (groupsError) throw groupsError;
+                if (groupsError) {
+                    console.error('Groups fetch error:', groupsError.message);
+                    throw groupsError;
+                }
 
                 const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.full_name || 'User';
                 document.getElementById('fullName').textContent = displayName;
@@ -591,6 +598,7 @@
                 avatar.textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
 
                 const groupsList = document.getElementById('groupsList').querySelector('ul');
+                groupsList.innerHTML = ''; // Clear existing
                 groups.forEach(gm => {
                     const li = document.createElement('li');
                     li.className = 'group-item';
@@ -605,7 +613,10 @@
                 document.getElementById('groupsList').style.display = privacy.hideGroups ? 'none' : 'block';
             } catch (error) {
                 console.error('Load error:', error.message);
-                alert('Error loading profile.');
+                document.getElementById('fullName').textContent = 'Error loading profile';
+                document.getElementById('academicDetails').innerHTML = '<p>Failed to load academic details.</p>';
+                document.getElementById('groupsList').innerHTML = '<p>Failed to load groups.</p>';
+                document.getElementById('bioDisplay').textContent = 'Failed to load bio.';
             }
         }
 
@@ -616,12 +627,12 @@
 
             const { data, error } = await supabase.storage
                 .from('avatars')
-                .upload(`public/${user.id}/${Date.now()}_${file.name}`, file, { upsert: true });
+                .upload(`public/${supabase.auth.getUser().data.user.id}/${Date.now()}_${file.name}`, file, { upsert: true });
             if (error) {
                 console.error('Upload error:', error.message);
                 alert('Error uploading avatar.');
             } else {
-                const url = supabase.storage.from('avatars').getPublicUrl(`public/${user.id}/${Date.now()}_${file.name}`).data.publicUrl;
+                const url = supabase.storage.from('avatars').getPublicUrl(`public/${supabase.auth.getUser().data.user.id}/${Date.now()}_${file.name}`).data.publicUrl;
                 document.getElementById('avatar').innerHTML = `<img src="${url}" alt="Avatar">`;
             }
         }
@@ -645,19 +656,6 @@
             const campusSpan = document.getElementById('campus');
             const levelSpan = document.getElementById('level');
             const departmentSpan = document.getElementById('department');
-            const campusEdit = document.createElement('input');
-            const levelEdit = document.createElement('input');
-            const departmentEdit = document.createElement('input');
-
-            campusEdit.type = 'text';
-            campusEdit.className = 'editable-field';
-            campusEdit.value = campusSpan.textContent || '';
-            levelEdit.type = 'text';
-            levelEdit.className = 'editable-field';
-            levelEdit.value = levelSpan.textContent || '';
-            departmentEdit.type = 'text';
-            departmentEdit.className = 'editable-field';
-            departmentEdit.value = departmentSpan.textContent || '';
 
             academicDetails.innerHTML = `
                 <p><strong>Campus:</strong> <input class="editable-field" value="${campusSpan.textContent || ''}"></p>
