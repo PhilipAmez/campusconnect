@@ -585,11 +585,13 @@
             }, { passive: false });
         }
 
-        // Load suggested groups
+        // Load suggested groups (excluding your own)
         async function loadSuggestedGroups() {
+            const { data: { user } } = await supabase.auth.getUser();
             const { data, error } = await supabase
                 .from('groups')
                 .select('id, name, course_code')
+                .neq('created_by', user.id) // Exclude groups you created
                 .limit(5);
             if (error) {
                 console.error('Error loading suggested groups:', error);
@@ -604,11 +606,32 @@
                     <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
                     <div>
                         <p class="font-semibold text-gray-800">${group.name}</p>
-                        <p class="text-gray-600">${group.course}</p>
+                        <p class="text-gray-600">${group.course_code}</p>
                     </div>
-                    <a href="chatroom.html?groupId=${group.id}" class="btn">Join</a>
+                    <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
                 `;
                 suggestedGroupsDiv.appendChild(div);
+            });
+
+            // Add join handlers
+            document.querySelectorAll('.join-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const groupId = btn.dataset.groupid;
+                    const { data: { user } } = await supabase.auth.getUser();
+                    const { error } = await supabase
+                        .from('group_members')
+                        .insert({ group_id: groupId, user_id: user.id, is_admin: false });
+                    if (error) {
+                        console.error('Error joining group:', error);
+                        alert('Failed to join group.');
+                    } else {
+                        alert('Joined group successfully!');
+                        loadActiveGroups(); // Refresh active groups
+                        loadSuggestedGroups(); // Refresh suggested groups to remove joined group
+                        btn.remove(); // Remove the join button after joining
+                    }
+                });
             });
         }
 
@@ -616,22 +639,21 @@
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data, error } = await supabase
-                .from('groups')
-                .select('id, name, course_code')
-                .eq('id', user.id);
-                //.single();
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', user.id);
             if (error) {
                 console.error('Error loading active groups:', error);
                 return;
             }
             const groupListDiv = document.getElementById('groupList');
             groupListDiv.innerHTML = '';
-            const groups = data.groups || [];
-            for (const group of groups) {
+            const groupIds = data.map(m => m.group_id);
+            for (const groupId of groupIds) {
                 const { data: groupData, error: groupError } = await supabase
                     .from('groups')
-                    .select('id, name, course')
-                    .eq('id', group.id)
+                    .select('id, name, course_code')
+                    .eq('id', groupId)
                     .single();
                 if (groupError) continue;
                 const div = document.createElement('div');
@@ -640,7 +662,7 @@
                     <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
                     <div>
                         <p class="font-semibold text-gray-800">${groupData.name}</p>
-                        <p class="text-gray-600">${groupData.course}</p>
+                        <p class="text-gray-600">${groupData.course_code}</p>
                     </div>
                     <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
                 `;
@@ -661,7 +683,7 @@
                 .from('groups')
                 .insert({
                     name: groupName,
-                    course: course,
+                    course_code: course,
                     created_by: user.id,
                     description: `${course} Study Group`
                 })
