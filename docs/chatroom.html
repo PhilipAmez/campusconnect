@@ -13,28 +13,29 @@
   <style>
     :root {
       --glass-bg-light: rgba(255, 255, 255, 0.3);
-      --glass-bg-dark: rgba(0, 0, 0, 0.3);
+      --glass-bg-dark: rgba(20, 22, 28, 0.98);
       --text-light: #333333;
       --text-dark: #f9fafb;
       --msg-bg-light: rgba(0, 0, 0, 0.08);
-      --msg-bg-dark: rgba(255, 255, 255, 0.08);
+      --msg-bg-dark: rgba(40, 42, 54, 0.98);
       --msg-hover-light: rgba(0, 0, 0, 0.15);
-      --msg-hover-dark: rgba(255, 255, 255, 0.15);
+      --msg-hover-dark: rgba(60, 62, 74, 1);
       --accent: #4a90e2;
       --ai-bg-light: rgba(0, 102, 255, 0.1);
-      --ai-bg-dark: rgba(0, 102, 255, 0.15);
-      --circle-bg-dark: rgba(255, 255, 255, 0.2);
+      --ai-bg-dark: rgba(0, 102, 255, 0.18);
+      --circle-bg-dark: rgba(30, 32, 38, 0.98);
       --placeholder-fade: rgba(0, 0, 0, 0.3);
     }
     [data-theme="dark"] {
-      --glass-bg: rgba(20, 22, 28, 0.98);         /* Almost black, high opacity */
-      --text: #f1f1f1;                            /* Very light text */
-      --msg-bg: rgba(40, 42, 54, 0.98);           /* Dark message background */
-      --msg-hover: rgba(60, 62, 74, 1);           /* Slightly lighter for hover */
-      --ai-bg: rgba(0, 102, 255, 0.18);           /* Keep AI bg with more contrast */
-      --circle-bg: rgba(30, 32, 38, 0.98);        /* For buttons, etc. */
+      --glass-bg: var(--glass-bg-dark);
+      --text: var(--text-dark);
+      --msg-bg: var(--msg-bg-dark);
+      --msg-hover: var(--msg-hover-dark);
+      --ai-bg: var(--ai-bg-dark);
+      --circle-bg: var(--circle-bg-dark);
       --placeholder-fade: rgba(200, 200, 200, 0.3);
-      
+      --scroll-bg: #181920;
+      --scroll-thumb: #23242b;
     }
     [data-theme="light"] {
       --glass-bg: var(--glass-bg-light);
@@ -43,6 +44,8 @@
       --msg-hover: var(--msg-hover-light);
       --ai-bg: var(--ai-bg-light);
       --circle-bg: var(--glass-bg-light);
+      --scroll-bg: #f1f1f1;
+      --scroll-thumb: #d1d1d1;
     }
     * {
       margin: 0;
@@ -68,9 +71,8 @@
       display: flex;
       flex-direction: column;
       gap: 1.4rem;
-      
     }
-    .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list {
+    .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list, .edit-modal {
       background: var(--glass-bg);
       border-radius: 15px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -97,6 +99,16 @@
       flex-direction: column;
       gap: 1.5rem;
     }
+    .chat-messages::-webkit-scrollbar {
+      width: 8px;
+    }
+    .chat-messages::-webkit-scrollbar-track {
+      background: var(--scroll-bg);
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--scroll-thumb);
+      border-radius: 4px;
+    }
     .msg {
       max-width: 70%;
       padding: 1rem 1.5rem;
@@ -122,6 +134,25 @@
     }
     .msg:hover {
       background: var(--msg-hover);
+    }
+    .msg-actions {
+      display: none;
+      position: absolute;
+      right: -2rem;
+      top: 0.5rem;
+      gap: 0.5rem;
+    }
+    .msg:hover .msg-actions {
+      display: flex;
+    }
+    .msg-actions button {
+      background: var(--circle-bg);
+      border: none;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      font-size: 0.9rem;
+      cursor: pointer;
     }
     .sender-name {
       font-size: 0.9rem;
@@ -159,7 +190,7 @@
       color: var(--text);
       font-size: 1rem;
       cursor: text;
-      padding:  0 5.0rem 0 0.5rem;
+      padding: 0 5.0rem 0 0.5rem;
       padding-top: 7px;
       outline: none;
       resize: none;
@@ -171,7 +202,7 @@
     }
     .send-arrow {
       position: absolute;
-      right: 3.5rem; /* Increased spacing */
+      right: 3.5rem;
       top: 50%;
       transform: translateY(-50%);
       background: var(--circle-bg);
@@ -253,19 +284,28 @@
     .emoji-picker span:hover, .mention-list div:hover {
       background: var(--msg-hover);
     }
-    body[data-theme="dark"] ::-webkit-scrollbar {
-  background: #181920;
-}
-body[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #23242b;
-}
-[data-theme="dark"] .chat-header,
-[data-theme="dark"] .chat-messages,
-[data-theme="dark"] .chat-input-area,
-[data-theme="dark"] .emoji-picker,
-[data-theme="dark"] .mention-list {
-  border: 1px solid #23242b;
-}
+    .edit-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1rem;
+      background: var(--glass-bg);
+      border-radius: 15px;
+      z-index: 1000;
+      display: none;
+    }
+    .edit-modal.show {
+      display: block;
+    }
+    .edit-modal textarea {
+      width: 100%;
+      min-height: 100px;
+      margin-bottom: 0.5rem;
+      background: var(--msg-bg);
+      border-radius: 10px;
+      padding: 0.5rem;
+    }
     @media (max-width: 768px) {
       .chat-arena {
         width: 95%;
@@ -292,7 +332,7 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
         height: 40px;
       }
       .send-arrow {
-        right: 3.5rem; /* Increased spacing */
+        right: 3.5rem;
         width: 35px;
         height: 35px;
         font-size: 1.2rem;
@@ -339,7 +379,7 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
         padding: 0 0.3rem;
       }
       .send-arrow {
-        right: 2.5rem; /* Adjusted spacing for smaller screens */
+        right: 2.5rem;
         width: 30px;
         height: 30px;
         font-size: 1.1rem;
@@ -379,6 +419,11 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       <div class="mention-list" id="mentionListBox"></div>
       <div class="reply-context" id="replyContextBox"></div>
     </div>
+    <div class="edit-modal" id="editModal">
+      <textarea id="editContent"></textarea>
+      <button class="btn" onclick="saveEdit()">Save</button>
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+    </div>
   </div>
 
   <script type="module">
@@ -405,6 +450,8 @@ const groupTitle = document.getElementById('groupTitle');
 const themeToggleButton = document.getElementById('themeToggleButton');
 const replyContextBox = document.getElementById('replyContextBox');
 const body = document.body;
+const editModal = document.getElementById('editModal');
+const editContent = document.getElementById('editContent');
 
 // Theme toggle
 const applyTheme = (theme) => {
@@ -443,27 +490,36 @@ function render(m) {
   ts.className = 'timestamp';
   ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  div.append(nameTag, ct, ts);
+  const actions = document.createElement('div');
+  actions.className = 'msg-actions';
+  if (mine) {
+    actions.innerHTML = `
+      <button onclick="deleteMessage('${m.id}')"><i class="fas fa-trash"></i></button>
+      <button onclick="showEditModal('${m.id}', '${m.content.replace(/'/g, "\\'")}')"><i class="fas fa-edit"></i></button>
+    `;
+  }
+  div.append(nameTag, ct, ts, actions);
   messagePanel.append(div);
   messagePanel.scrollTop = messagePanel.scrollHeight;
-
-  attachGestures(div, mine, m);
 }
 
 // Load history
 async function loadHistory() {
-  const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
-  messagePanel.innerHTML = '';
-  data.forEach(render);
+  const { data, error } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
+  if (error) console.error('Error loading history:', error);
+  else {
+    messagePanel.innerHTML = '';
+    data.forEach(render);
+  }
 }
 await loadHistory();
 
 // Real-time updates
 supabase.channel(`grp_${gid}`)
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
     payload => {
-      // Only append if not self (to avoid double rendering)
-      if (payload.new.sender_id !== user.id) render(payload.new);
+      if (payload.eventType === 'INSERT' && payload.new.sender_id !== user.id) render(payload.new);
+      else if (payload.eventType === 'DELETE' || payload.eventType === 'UPDATE') loadHistory();
     })
   .subscribe();
 
@@ -481,7 +537,7 @@ emojiPickerBox.onclick = (e) => {
   if (e.target.tagName === 'SPAN') {
     messageBar.value += e.target.textContent;
     emojiPickerBox.style.display = 'none';
-    sendMessageButton.focus();
+    messageBar.focus();
   }
 };
 messageBar.oninput = () => {
@@ -493,7 +549,7 @@ mentionListBox.onclick = (e) => {
     const i = messageBar.value.lastIndexOf('@');
     messageBar.value = messageBar.value.slice(0, i) + e.target.textContent + ' ';
     mentionListBox.style.display = 'none';
-    sendMessageButton.focus();
+    messageBar.focus();
   }
 };
 
@@ -513,11 +569,10 @@ async function sendMsg() {
   }).select().single();
 
   if (error) {
-    alert('Error: ' + error.message);
+    alert('Error sending message: ' + error.message);
     return;
   }
 
-  // Render immediately
   render(data);
   messageBar.value = '';
   replyingMsg = null;
@@ -530,6 +585,44 @@ messageBar.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
+// Delete message
+async function deleteMessage(messageId) {
+  if (confirm('Delete message?')) {
+    const { error } = await supabase.from('group_messages').delete().eq('id', messageId);
+    if (error) alert('Error deleting message: ' + error.message);
+    else loadHistory(); // Refresh to reflect deletion
+  }
+}
+
+// Edit message
+function showEditModal(messageId, content) {
+  editContent.value = content;
+  editModal.dataset.messageId = messageId;
+  editModal.classList.add('show');
+}
+
+function closeEditModal() {
+  editModal.classList.remove('show');
+}
+
+async function saveEdit() {
+  const messageId = editModal.dataset.messageId;
+  const newContent = editContent.value.trim();
+  if (newContent) {
+    const { error } = await supabase.from('group_messages').update({
+      content: newContent,
+      updated_at: new Date().toISOString()
+    }).eq('id', messageId);
+    if (error) alert('Error editing message: ' + error.message);
+    else {
+      closeEditModal();
+      loadHistory(); // Refresh to reflect edit
+    }
+  } else {
+    alert('Content cannot be empty');
+  }
+}
+
 // PeerLoom AI
 async function checkPeerloomAI(message) {
   if (!message.toLowerCase().includes('@peerloom ai')) return;
@@ -539,18 +632,21 @@ async function checkPeerloomAI(message) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, user: user.user_metadata.full_name })
     });
+    if (!response.ok) throw new Error('Network response was not ok');
     const data = await response.json();
     if (data.reply) {
-      await supabase.from('group_messages').insert({
+      const { error } = await supabase.from('group_messages').insert({
         group_id: gid,
         sender_id: 'peerloom-ai',
         sender_name: 'Peerloom AI',
         content: data.reply,
         role: 'ai'
       });
+      if (error) console.error('AI response insert error:', error);
     }
   } catch (error) {
     console.error('Peerloom AI Error:', error);
+    alert('Failed to get AI response: ' + error.message);
   }
 }
 
@@ -564,28 +660,7 @@ fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
-// Gestures & replies
-function attachGestures(el, mine, msg) {
-  let startX, longT;
-  el.addEventListener('mousedown', (e) => {
-    startX = e.clientX;
-    if (mine) longT = setTimeout(() => { if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); }, 800);
-  });
-  el.addEventListener('mousemove', (e) => { if (e.buttons === 1 && e.clientX - startX > 120) startReply(msg); });
-  el.addEventListener('mouseup', () => clearTimeout(longT));
-  el.addEventListener('dblclick', () => {
-    if (mine) {
-      const u = prompt('Edit msg:', msg.content);
-      if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
-    }
-  });
-  el.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-    if (mine) longT = setTimeout(() => { if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); }, 800);
-  });
-  el.addEventListener('touchmove', (e) => { if (e.touches[0].clientX - startX > 120) startReply(msg); });
-  el.addEventListener('touchend', () => clearTimeout(longT));
-}
+// Reply
 function startReply(msg) {
   replyingMsg = msg;
   replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
