@@ -324,6 +324,9 @@
             filter: blur(5px);
             pointer-events: none; /* Prevent interaction while blurred */
         }
+        body.blur {
+            filter: blur(5px); /* Apply blur to the entire body */
+        }
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -667,7 +670,9 @@
                         console.error('Error joining group:', error);
                         showNotification('Failed to join group.');
                     } else {
-                        showNotification('Group inserted');
+                        showNotification('Welcome', () => {
+                            window.location.href = `chatroom.html?groupId=${groupId}`;
+                        });
                         loadActiveGroups(); // Refresh active groups
                         loadSuggestedGroups(); // Refresh suggested groups to remove joined group
                         btn.remove(); // Remove the join button after joining
@@ -854,17 +859,18 @@
         }
 
         // Show notification with blur effect
-        function showNotification(message) {
+        function showNotification(message, callback) {
             const modal = document.getElementById('notificationModal');
-            const dashboard = document.querySelector('.dashboard');
+            const body = document.body;
             const modalMessage = document.getElementById('modalMessage');
             modalMessage.textContent = message;
             modal.classList.add('show');
-            dashboard.classList.add('blur');
+            body.classList.add('blur');
 
             setTimeout(() => {
                 modal.classList.remove('show');
-                dashboard.classList.remove('blur');
+                body.classList.remove('blur');
+                if (callback) callback();
             }, 4000); // 4 seconds
         }
 
