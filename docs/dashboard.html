@@ -537,11 +537,15 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        // Gate-keep the page
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            window.location.replace('login.html');
-        }
+        // Gate-keep the dashboard page
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.replace('login.html');
+            } else {
+                console.log("User authenticated, loading dashboard");
+            }
+        });
 
         // Hook up both “Logout” links
         const logoutButtons = ['logout', 'logoutMobile']
