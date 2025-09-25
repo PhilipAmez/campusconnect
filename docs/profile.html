@@ -22,6 +22,7 @@
             --accent: #2f855a;
             --blur: 8px;
             --transition: all 0.3s ease-in-out;
+            --liquid-color: #4c51bf; /* Base color for liquid effect */
         }
 
         * {
@@ -122,7 +123,8 @@
             backdrop-filter: blur(var(--blur));
             border-radius: 1.5rem;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            overflow-y: auto; /* Enable scrolling */
+            max-height: calc(100vh - 100px); /* Adjust based on navbar height */
             transition: transform var(--transition), box-shadow var(--transition);
         }
 
@@ -334,58 +336,46 @@
             background: var(--glass-hover);
         }
 
-        .edit-profile-btn {
-            margin-top: 1.5rem;
-            padding: 0.75rem 1.5rem;
-            background: var(--glass-bg);
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform var(--transition), background var(--transition);
-        }
-
-        .edit-profile-btn:hover {
-            transform: translateY(-2px);
-            background: var(--glass-hover);
-        }
-
-        .save-button {
-            margin-top: 1.5rem;
-            padding: 0.75rem 1.5rem;
-            background: var(--glass-bg);
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform var(--transition), background var(--transition);
+        .liquid-glass-btn {
             position: relative;
+            padding: 0.75rem 1.5rem;
+            background: var(--glass-bg);
+            border: none;
+            border-radius: 0.375rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            cursor: pointer;
             overflow: hidden;
-            display: none;
+            backdrop-filter: blur(var(--blur));
+            transition: transform var(--transition), background var(--transition);
         }
 
-        .save-button:hover {
-            transform: translateY(-2px);
-            background: var(--glass-hover);
-        }
-
-        .save-button::after {
+        .liquid-glass-btn::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0.1) 100%);
-            transform: skewX(-20deg);
-            transition: left 0.5s ease;
-            pointer-events: none;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1), var(--liquid-color), rgba(255, 255, 255, 0.1));
+            animation: liquidFlow 4s ease-in-out infinite;
+            transform: translateX(-100%);
+            z-index: -1;
         }
 
-        .save-button:hover::after {
-            left: 100%;
+        .liquid-glass-btn:hover {
+            transform: translateY(-2px);
+            background: var(--glass-hover);
+        }
+
+        .liquid-glass-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        @keyframes liquidFlow {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
         }
 
         .save-button.saved {
@@ -407,6 +397,46 @@
             outline: none;
             transform: scale(1.02);
             box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--glass-bg);
+            border: none;
+            border-radius: 0.375rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--glass-hover);
         }
 
         @media (max-width: 768px) {
@@ -438,7 +468,7 @@
                 padding: 0.8rem;
                 margin-top: 1rem;
             }
-            .edit-profile-btn, .save-button {
+            .liquid-glass-btn {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
@@ -479,7 +509,7 @@
                 padding: 0.6rem;
                 margin-top: 0.8rem;
             }
-            .edit-profile-btn, .save-button {
+            .liquid-glass-btn {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
@@ -534,8 +564,16 @@
                     <input type="checkbox" id="hideGroupsToggle">
                 </div>
             </div>
-            <button id="editProfileBtn" class="edit-profile-btn w-full mt-4">Edit Profile</button>
-            <button id="saveChangesBtn" class="save-button w-full mt-4">Save Changes</button>
+            <button id="editProfileBtn" class="liquid-glass-btn w-full mt-4">Edit Profile</button>
+            <button id="saveChangesBtn" class="liquid-glass-btn w-full mt-4">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <p id="modalMessage">An error occurred. Please try again.</p>
+            <button id="closeModal" class="modal-close">Close</button>
         </div>
     </div>
 
@@ -631,7 +669,7 @@
                 .upload(`public/${supabase.auth.getUser().data.user.id}/${Date.now()}_${file.name}`, file, { upsert: true });
             if (error) {
                 console.error('Upload error:', error.message);
-                alert('Error uploading avatar.');
+                showModal('Error uploading avatar.');
             } else {
                 const url = supabase.storage.from('avatars').getPublicUrl(`public/${supabase.auth.getUser().data.user.id}/${Date.now()}_${file.name}`).data.publicUrl;
                 document.getElementById('avatar').innerHTML = `<img src="${url}" alt="Avatar">`;
@@ -688,7 +726,7 @@
 
             if (error) {
                 console.error('Save error:', error.message);
-                alert('Error saving changes.');
+                showModal(`Error saving changes: ${error.message}`);
             } else {
                 document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
                 document.getElementById('campus').textContent = campus;
@@ -742,6 +780,18 @@
             }
             navbar.classList.remove('active');
         }, { passive: true });
+
+        // Modal functions
+        function showModal(message) {
+            const modal = document.getElementById('errorModal');
+            const modalMessage = document.getElementById('modalMessage');
+            modalMessage.textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('errorModal').style.display = 'none';
+        });
 
         // Initialize
         loadProfile();
