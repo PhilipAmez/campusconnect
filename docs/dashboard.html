@@ -422,7 +422,7 @@
             <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
             <div class="search-container">
                 <input type="text" id="courseSearch" class="search-bar" placeholder="Search course videos..." />
-                <button class="btn search-btn" onclick="searchCourses()">Search</button>
+                <button class="btn search-btn" id="searchCoursesBtn">Search</button>
                 <div id="courseLoading" class="loading"></div>
             </div>
             <div id="courseList">
@@ -502,7 +502,7 @@
             <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
             <div class="search-container">
                 <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
-                <button class="btn search-btn" onclick="searchConnections()">Search</button>
+                <button class="btn search-btn" id="searchConnectionsBtn">Search</button>
                 <div id="connectionLoading" class="loading"></div>
             </div>
             <div id="connectionList">
@@ -789,6 +789,19 @@
             button.disabled = true;
             button.style.background = '#d1d5db';
         }
+
+        // Add event listeners after DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchConnectionsBtn = document.getElementById('searchConnectionsBtn');
+            if (searchConnectionsBtn) {
+                searchConnectionsBtn.addEventListener('click', searchConnections);
+            }
+
+            const searchCoursesBtn = document.getElementById('searchCoursesBtn');
+            if (searchCoursesBtn) {
+                searchCoursesBtn.addEventListener('click', searchCourses);
+            }
+        });
 
         // Initial load
         loadSuggestedGroups();
