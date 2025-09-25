@@ -224,7 +224,7 @@
             height: 18px;
             background: var(--accent);
             border-radius: 50%;
-            display: flex;
+            display: none; /* Hidden by default */
             align-items: center;
             justify-content: center;
             font-size: 10px;
@@ -517,7 +517,7 @@
                 <p><strong>Department:</strong> <span id="department"></span></p>
             </div>
             <div class="groups-list" id="groupsList">
-                <h3 class="text-lg font-medium text-text-dark">Groups</h3>
+                <h3 class="text-lg font-medium text-text-dark">Groups <span id="groupCount">(0)</span></h3>
                 <ul class="mt-2 space-y-1"></ul>
             </div>
             <div class="bio-section">
@@ -560,7 +560,7 @@
                     document.getElementById('academicDetails').innerHTML = '<p>No data available. Log in to view profile.</p>';
                     document.getElementById('groupsList').innerHTML = '<p>No groups available.</p>';
                     document.getElementById('bioDisplay').textContent = 'No bio available.';
-                    return; // Stop further execution but show partial UI
+                    return;
                 }
 
                 const { firstName, lastName, campus, level, department } = user.user_metadata || {};
@@ -605,6 +605,7 @@
                     li.textContent = gm.groups?.name || 'Unnamed group';
                     groupsList.appendChild(li);
                 });
+                document.getElementById('groupCount').textContent = `(${groups.length})`;
 
                 const privacy = profile.privacy || {};
                 document.getElementById('hideAcademicToggle').checked = privacy.hideAcademic || false;
@@ -671,9 +672,12 @@
         document.getElementById('saveChangesBtn').addEventListener('click', async () => {
             const { data: { user } } = await supabase.auth.getUser();
             const bio = document.getElementById('bioEdit').value.trim();
-            const campus = document.querySelector('.academic-details input:nth-child(2)').value.trim() || 'N/A';
-            const level = document.querySelector('.academic-details input:nth-child(4)').value.trim() || 'N/A';
-            const department = document.querySelector('.academic-details input:nth-child(6)').value.trim() || 'N/A';
+            const campusInput = document.querySelector('.academic-details input:nth-child(2)');
+            const levelInput = document.querySelector('.academic-details input:nth-child(4)');
+            const departmentInput = document.querySelector('.academic-details input:nth-child(6)');
+            const campus = campusInput ? campusInput.value.trim() : 'N/A';
+            const level = levelInput ? levelInput.value.trim() : 'N/A';
+            const department = departmentInput ? departmentInput.value.trim() : 'N/A';
             const hideAcademic = document.getElementById('hideAcademicToggle').checked;
             const hideGroups = document.getElementById('hideGroupsToggle').checked;
 
@@ -702,6 +706,7 @@
                 setTimeout(() => saveBtn.classList.remove('saved'), 1500);
                 saveBtn.style.display = 'none';
                 document.getElementById('editProfileBtn').style.display = 'block';
+                await loadProfile(); // Reload to update groups count
             }
         });
 
