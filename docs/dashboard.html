@@ -745,7 +745,7 @@
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('id, full_name, status')
-                    .ilike('full_name', `%${connectionSearch}%`)
+                    .ilike('full_name', `${connectionSearch}%`) // Match start of full_name
                     .limit(5);
                 if (error) throw error;
 
