@@ -408,48 +408,20 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        // Gate-keep the page
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            // Not logged in - stay on index.html
-            console.log("No user authenticated, staying on index.html");
-        } else {
-            console.log("User authenticated:", session.user.id);
-            window.location.href = 'dashboard.html';
-        }
+        // Gate-keep the page, but allow staying on index.html if navigated to
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const currentPath = window.location.pathname;
 
-        // Mobile nav toggle
-        document.addEventListener('DOMContentLoaded', () => {
-            const navToggle = document.getElementById('navToggle');
-            const navLinksMobile = document.getElementById('navLinksMobile');
-            if (navToggle && navLinksMobile) {
-                navToggle.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    navLinksMobile.classList.toggle('show');
-                });
-
-                // Hide mobile nav when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-                        navLinksMobile.classList.remove('show');
-                    }
-                });
-
-                // Close menu when a link is clicked
-                navLinksMobile.querySelectorAll('a').forEach(link => {
-                    link.addEventListener('click', () => {
-                        navLinksMobile.classList.remove('show');
-                    });
-                });
-            }
-        });
-
-        // Add scroll effect to navbar
-        window.addEventListener('scroll', () => {
-            const navbar = document.getElementById('navbar');
-            if (navbar) {
-                navbar.classList.toggle('scrolled', window.scrollY > 50);
+            if (!session && currentPath === '/index.html') {
+                // Stay on index.html if not logged in
+                console.log("No user authenticated, staying on index.html");
+            } else if (!session && currentPath !== '/index.html') {
+                // Redirect to login if not logged in and not on index.html
+                window.location.href = 'login.html';
+            } else if (session && currentPath !== '/index.html' && currentPath !== '/dashboard.html') {
+                // Redirect to dashboard if logged in and not on index or dashboard
+                window.location.href = 'dashboard.html';
             }
         });
     </script>
