@@ -38,6 +38,7 @@
             min-height: 100vh;
             color: var(--text-dark);
             overflow-x: hidden;
+            transition: filter 0.3s ease;
         }
         .navbar {
             position: fixed;
@@ -153,6 +154,7 @@
             margin-left: auto;
             margin-right: auto;
             min-width: 0;
+            transition: filter 0.3s ease;
         }
         .sidebar, .main-content, .connections {
             background: rgba(255, 255, 255, 0.1);
@@ -292,6 +294,30 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Glassmorphism Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            color: var(--text-dark);
+            text-align: center;
+            font-style: italic;
+            font-size: 1.2rem;
+        }
+        .modal.show {
+            display: block;
+        }
+        .blur {
+            filter: blur(5px);
+        }
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -389,6 +415,10 @@
             }
             .video-container iframe {
                 height: 110px;
+            }
+            .modal {
+                padding: 1rem 1.5rem;
+                font-size: 1rem;
             }
         }
     </style>
@@ -534,6 +564,11 @@
         </div>
     </div>
 
+    <!-- Glassmorphism Modal -->
+    <div id="notificationModal" class="modal">
+        <span id="modalMessage">Group inserted</span>
+    </div>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -624,9 +659,9 @@
                         .insert({ group_id: groupId, user_id: user.id, is_admin: false });
                     if (error) {
                         console.error('Error joining group:', error);
-                        alert('Failed to join group.');
+                        showNotification('Failed to join group.');
                     } else {
-                        alert('Joined group successfully!');
+                        showNotification('Group inserted');
                         loadActiveGroups(); // Refresh active groups
                         loadSuggestedGroups(); // Refresh suggested groups to remove joined group
                         btn.remove(); // Remove the join button after joining
@@ -676,7 +711,7 @@
             const course = document.getElementById('groupCourse').value;
             const { data: { user } } = await supabase.auth.getUser();
             if (!groupName || !course) {
-                alert('Please fill in all fields.');
+                showNotification('Please fill in all fields.');
                 return;
             }
             const { data, error } = await supabase
@@ -691,9 +726,9 @@
                 .single();
             if (error) {
                 console.error('Error creating group:', error);
-                alert('Failed to create group.');
+                showNotification('Failed to create group.');
             } else {
-                alert('Group created successfully!');
+                showNotification('Group inserted');
                 document.getElementById('groupName').value = '';
                 document.getElementById('groupCourse').value = '';
                 const { error: memberError } = await supabase
@@ -810,6 +845,20 @@
             button.textContent = 'Added';
             button.disabled = true;
             button.style.background = '#d1d5db';
+        }
+
+        // Show notification with blur effect
+        function showNotification(message) {
+            const modal = document.getElementById('notificationModal');
+            const dashboard = document.querySelector('.dashboard');
+            document.getElementById('modalMessage').textContent = message;
+            modal.classList.add('show');
+            dashboard.classList.add('blur');
+
+            setTimeout(() => {
+                modal.classList.remove('show');
+                dashboard.classList.remove('blur');
+            }, 4000); // 4 seconds
         }
 
         // Add event listeners after DOM is loaded
