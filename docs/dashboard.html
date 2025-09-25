@@ -744,16 +744,16 @@
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('id, user_metadata (full_name, status)') // Adjusted for potential schema
-                    .ilike('user_metadata.full_name', `%${connectionSearch}%`)
+                    .select('id, full_name, status')
+                    .ilike('full_name', `%${connectionSearch}%`)
                     .limit(5);
                 if (error) throw error;
 
                 connectionList.innerHTML = '';
                 if (data && data.length > 0) {
                     data.forEach(user => {
-                        const fullName = user.user_metadata?.full_name || 'Unknown';
-                        const status = user.user_metadata?.status || 'Offline';
+                        const fullName = user.full_name || 'Unknown';
+                        const status = user.status || 'Offline';
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.dataset.userid = user.id;
