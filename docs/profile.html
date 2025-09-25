@@ -22,7 +22,7 @@
             --accent: #2f855a;
             --blur: 8px;
             --transition: all 0.3s ease-in-out;
-            --liquid-color: #4c51bf;
+            --liquid-color: #7c3aed;
         }
 
         * {
@@ -78,6 +78,7 @@
             width: 100%;
             background: var(--glass-bg);
             backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             padding: 0.75rem 1.5rem;
             display: flex;
             justify-content: space-between;
@@ -121,10 +122,11 @@
             margin: 20px auto;
             background: var(--glass-bg);
             backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border-radius: 1.5rem;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            overflow-y: auto; /* Ensure scrolling */
-            max-height: calc(100vh - 100px); /* Adjust for navbar and padding */
+            overflow-y: auto;
+            max-height: calc(100vh - 100px);
             transition: transform var(--transition), box-shadow var(--transition);
         }
 
@@ -199,7 +201,7 @@
 
         .profile-content {
             padding: 2rem 1.5rem 1.5rem;
-            min-height: 100%; /* Ensure content fills the scrollable area */
+            min-height: 100%;
         }
 
         .profile-header {
@@ -244,6 +246,8 @@
             margin-top: 1.5rem;
             padding: 1rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border-radius: 0.75rem;
             color: var(--text-light);
         }
@@ -256,6 +260,8 @@
             margin-top: 1.5rem;
             padding: 1rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border-radius: 0.75rem;
         }
 
@@ -286,6 +292,8 @@
         .bio-display {
             padding: 1rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border-radius: 0.75rem;
             color: var(--text-dark);
             line-height: 1.6;
@@ -303,6 +311,8 @@
             border: none;
             border-radius: 0.75rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             color: var(--text-dark);
             font-size: 1rem;
             resize: vertical;
@@ -320,12 +330,16 @@
             margin-top: 1.5rem;
             padding: 1rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border-radius: 0.75rem;
         }
 
         .privacy-toggle div {
             padding: 0.5rem 1rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border: none;
             border-radius: 0.375rem;
             color: var(--text-dark);
@@ -337,55 +351,51 @@
             background: var(--glass-hover);
         }
 
-        .liquid-glass-btn {
-            position: relative;
-            padding: 0.75rem 1.5rem;
-            background: var(--glass-bg);
+        .custom-button {
+            padding: 10px 20px;
             border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            font-weight: 500;
+            border-radius: 25px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
+            position: relative;
             overflow: hidden;
-            backdrop-filter: blur(var(--blur));
-            transition: transform var(--transition), background var(--transition);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: linear-gradient(45deg, #7c3aed, #a78bfa);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4), inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+            width: 100%;
+            margin-top: 1rem;
         }
 
-        .liquid-glass-btn::before {
+        .custom-button::before {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1), var(--liquid-color), rgba(255, 255, 255, 0.1));
-            animation: liquidFlow 4s ease-in-out infinite;
-            transform: translateX(-100%);
-            z-index: -1;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
         }
 
-        .liquid-glass-btn:hover {
+        .custom-button:hover {
             transform: translateY(-2px);
-            background: var(--glass-hover);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6), inset 0 0 0 2px rgba(255, 255, 255, 0.5);
         }
 
-        .liquid-glass-btn:hover::before {
-            transform: translateX(100%);
-        }
-
-        @keyframes liquidFlow {
-            0% { transform: translateX(-100%); }
-            50% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .save-button.saved {
-            background: rgba(47, 133, 90, 0.2);
-            color: var(--accent);
+        .custom-button:hover::before {
+            width: 300px;
+            height: 300px;
         }
 
         .editable-field {
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border: none;
             border-radius: 0.375rem;
             padding: 0.5rem;
@@ -416,6 +426,7 @@
         .modal-content {
             background: var(--glass-bg);
             backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             padding: 1.5rem;
             border-radius: 0.75rem;
             max-width: 400px;
@@ -428,6 +439,8 @@
             margin-top: 1rem;
             padding: 0.5rem 1rem;
             background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border: none;
             border-radius: 0.375rem;
             color: var(--text-dark);
@@ -468,7 +481,7 @@
                 padding: 0.8rem;
                 margin-top: 1rem;
             }
-            .liquid-glass-btn {
+            .custom-button {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
@@ -509,7 +522,7 @@
                 padding: 0.6rem;
                 margin-top: 0.8rem;
             }
-            .liquid-glass-btn {
+            .custom-button {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
@@ -549,7 +562,6 @@
             <div class="groups-list" id="groupsList">
                 <h3 class="text-lg font-medium text-text-dark">Groups <span id="groupCount">(0)</span></h3>
                 <ul class="mt-2 space-y-1">
-                    <!-- Add test groups if needed -->
                     <li class="group-item">Group 1</li>
                     <li class="group-item">Group 2</li>
                     <li class="group-item">Group 3</li>
@@ -569,8 +581,7 @@
                     <input type="checkbox" id="hideGroupsToggle">
                 </div>
             </div>
-            <button id="editProfileBtn" class="liquid-glass-btn w-full mt-4">Edit Profile</button>
-            <button id="saveChangesBtn" class="liquid-glass-btn w-full mt-4">Save Changes</button>
+            <button id="profileBtn" class="custom-button">Edit Profile</button>
         </div>
     </div>
 
@@ -585,14 +596,12 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        // Navbar scroll effect
         window.addEventListener('scroll', () => {
             const navbar = document.getElementById('navbar');
             if (window.scrollY > 50) navbar.classList.add('scrolled');
             else navbar.classList.remove('scrolled');
         });
 
-        // Load profile
         async function loadProfile() {
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -640,7 +649,7 @@
                 avatar.textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
 
                 const groupsList = document.getElementById('groupsList').querySelector('ul');
-                groupsList.innerHTML = ''; // Clear existing
+                groupsList.innerHTML = '';
                 groups.forEach(gm => {
                     const li = document.createElement('li');
                     li.className = 'group-item';
@@ -663,7 +672,6 @@
             }
         }
 
-        // Upload avatar
         async function uploadAvatar(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -680,7 +688,6 @@
             }
         }
 
-        // Toggle bio edit
         document.getElementById('bioDisplay').addEventListener('click', () => {
             document.getElementById('bioDisplay').style.display = 'none';
             document.getElementById('bioEdit').style.display = 'block';
@@ -692,67 +699,58 @@
             document.getElementById('bioEdit').style.display = 'none';
         });
 
-        // Toggle edit mode
-        document.getElementById('editProfileBtn').addEventListener('click', () => {
+        document.getElementById('profileBtn').addEventListener('click', async () => {
+            const button = document.getElementById('profileBtn');
             const academicDetails = document.getElementById('academicDetails');
-            const saveButton = document.getElementById('saveChangesBtn');
             const campusSpan = document.getElementById('campus');
             const levelSpan = document.getElementById('level');
             const departmentSpan = document.getElementById('department');
 
-            academicDetails.innerHTML = `
-                <p><strong>Campus:</strong> <input class="editable-field" value="${campusSpan.textContent || ''}"></p>
-                <p><strong>Level:</strong> <input class="editable-field" value="${levelSpan.textContent || ''}"></p>
-                <p><strong>Department:</strong> <input class="editable-field" value="${departmentSpan.textContent || ''}"></p>
-            `;
-            academicDetails.style.display = 'block';
-            saveButton.style.display = 'block';
-            document.getElementById('editProfileBtn').style.display = 'none';
-        });
-
-        // Save changes
-        document.getElementById('saveChangesBtn').addEventListener('click', async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            const bio = document.getElementById('bioEdit').value.trim();
-            const campusInput = document.querySelector('.academic-details input:nth-child(2)');
-            const levelInput = document.querySelector('.academic-details input:nth-child(4)');
-            const departmentInput = document.querySelector('.academic-details input:nth-child(6)');
-            const campus = campusInput ? campusInput.value.trim() : 'N/A';
-            const level = levelInput ? levelInput.value.trim() : 'N/A';
-            const department = departmentInput ? departmentInput.value.trim() : 'N/A';
-            const hideAcademic = document.getElementById('hideAcademicToggle').checked;
-            const hideGroups = document.getElementById('hideGroupsToggle').checked;
-
-            const { error } = await supabase
-                .from('profiles')
-                .update({ bio, campus, level, department, privacy: { hideAcademic, hideGroups } })
-                .eq('id', user.id);
-
-            if (error) {
-                console.error('Save error:', error.message);
-                showModal(`Error saving changes: ${error.message}`);
-            } else {
-                document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
-                document.getElementById('campus').textContent = campus;
-                document.getElementById('level').textContent = level;
-                document.getElementById('department').textContent = department;
-                document.getElementById('academicDetails').innerHTML = `
-                    <p><strong>Campus:</strong> <span id="campus">${campus}</span></p>
-                    <p><strong>Level:</strong> <span id="level">${level}</span></p>
-                    <p><strong>Department:</strong> <span id="department">${department}</span></p>
+            if (button.textContent === 'Edit Profile') {
+                academicDetails.innerHTML = `
+                    <p><strong>Campus:</strong> <input class="editable-field" value="${campusSpan.textContent || ''}"></p>
+                    <p><strong>Level:</strong> <input class="editable-field" value="${levelSpan.textContent || ''}"></p>
+                    <p><strong>Department:</strong> <input class="editable-field" value="${departmentSpan.textContent || ''}"></p>
                 `;
-                document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
-                document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
-                const saveBtn = document.getElementById('saveChangesBtn');
-                saveBtn.classList.add('saved');
-                setTimeout(() => saveBtn.classList.remove('saved'), 1500);
-                saveBtn.style.display = 'none';
-                document.getElementById('editProfileBtn').style.display = 'block';
-                await loadProfile(); // Reload to update groups count
+                academicDetails.style.display = 'block';
+                button.textContent = 'Save Changes';
+            } else {
+                const { data: { user } } = await supabase.auth.getUser();
+                const bio = document.getElementById('bioEdit').value.trim();
+                const campusInput = document.querySelector('.academic-details input:nth-child(2)');
+                const levelInput = document.querySelector('.academic-details input:nth-child(4)');
+                const departmentInput = document.querySelector('.academic-details input:nth-child(6)');
+                const campus = campusInput ? campusInput.value.trim() : 'N/A';
+                const level = levelInput ? levelInput.value.trim() : 'N/A';
+                const department = departmentInput ? departmentInput.value.trim() : 'N/A';
+                const hideAcademic = document.getElementById('hideAcademicToggle').checked;
+                const hideGroups = document.getElementById('hideGroupsToggle').checked;
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ bio, campus, level, department, privacy: { hideAcademic, hideGroups } })
+                    .eq('id', user.id);
+
+                if (error) {
+                    console.error('Save error:', error.message);
+                    showModal(`Error saving changes: ${error.message}`);
+                } else {
+                    document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
+                    document.getElementById('campus').textContent = campus;
+                    document.getElementById('level').textContent = level;
+                    document.getElementById('department').textContent = department;
+                    document.getElementById('academicDetails').innerHTML = `
+                        <p><strong>Campus:</strong> <span id="campus">${campus}</span></p>
+                        <p><strong>Level:</strong> <span id="level">${level}</span></p>
+                        <p><strong>Department:</strong> <span id="department">${department}</span></p>
+                    `;
+                    document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
+                    document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
+                    button.textContent = 'Edit Profile';
+                }
             }
         });
 
-        // Toggle light/dark mode with swipe on navbar
         let startX;
         const navbar = document.getElementById('navbar');
         navbar.addEventListener('touchstart', (e) => {
@@ -785,7 +783,6 @@
             navbar.classList.remove('active');
         }, { passive: true });
 
-        // Modal functions
         function showModal(message) {
             const modal = document.getElementById('errorModal');
             const modalMessage = document.getElementById('modalMessage');
@@ -797,7 +794,6 @@
             document.getElementById('errorModal').style.display = 'none';
         });
 
-        // Initialize
         loadProfile();
     </script>
 </body>
