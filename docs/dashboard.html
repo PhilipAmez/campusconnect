@@ -301,7 +301,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.9); /* Increased opacity for visibility */
             backdrop-filter: blur(10px);
             border-radius: 1rem;
             padding: 1.5rem 2rem;
@@ -320,12 +320,9 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        .blur {
+        .blur-background {
             filter: blur(5px);
             pointer-events: none; /* Prevent interaction while blurred */
-        }
-        body.blur {
-            filter: blur(5px); /* Apply blur to the entire body */
         }
         @media (min-width: 1024px) {
             .dashboard {
@@ -861,15 +858,15 @@
         // Show notification with blur effect
         function showNotification(message, callback) {
             const modal = document.getElementById('notificationModal');
-            const body = document.body;
+            const body = document.querySelector('.dashboard'); // Blur only the dashboard
             const modalMessage = document.getElementById('modalMessage');
             modalMessage.textContent = message;
             modal.classList.add('show');
-            body.classList.add('blur');
+            body.classList.add('blur-background');
 
             setTimeout(() => {
                 modal.classList.remove('show');
-                body.classList.remove('blur');
+                body.classList.remove('blur-background');
                 if (callback) callback();
             }, 4000); // 4 seconds
         }
