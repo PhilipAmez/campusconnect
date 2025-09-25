@@ -311,39 +311,12 @@
             text-align: center;
             font-style: italic;
             font-size: 1.2rem;
-            animation: fadeIn 0.3s ease;
         }
         .modal.show {
             display: block;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
         .blur {
             filter: blur(5px);
-            pointer-events: none;
-        }
-        /* Liquid Glass Box for Welcome Message */
-        .welcome-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(167, 139, 250, 0.1));
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
-            z-index: 2001;
-            text-align: center;
-            font-style: italic;
-            color: var(--text-dark);
-            display: none;
-        }
-        .welcome-box.show {
-            display: block;
         }
         @media (min-width: 1024px) {
             .dashboard {
@@ -446,9 +419,6 @@
             .modal {
                 padding: 1rem 1.5rem;
                 font-size: 1rem;
-            }
-            .welcome-box {
-                padding: 1.5rem;
             }
         }
     </style>
@@ -554,22 +524,6 @@
                 <h3 class="auth-title text-xl"><i class="fas fa-lightbulb"></i> Suggested Groups</h3>
                 <div id="suggestedGroups" class="space-y-2">
                     <!-- populated by Supabase with existing groups -->
-                    <div class="group-item">
-                        <div class="avatar">G</div>
-                        <div>
-                            <p class="font-semibold text-gray-800">Group Alpha</p>
-                            <p class="text-gray-600">CS 201</p>
-                        </div>
-                        <a href="#" class="btn join-btn" data-groupid="1">Join</a>
-                    </div>
-                    <div class="group-item">
-                        <div class="avatar">B</div>
-                        <div>
-                            <p class="font-semibold text-gray-800">Beta Study</p>
-                            <p class="text-gray-600">CHEM 101</p>
-                        </div>
-                        <a href="#" class="btn join-btn" data-groupid="2">Join</a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -610,9 +564,9 @@
         </div>
     </div>
 
-    <!-- Liquid Glass Welcome Box -->
-    <div id="welcomeBox" class="welcome-box">
-        <span id="welcomeMessage"></span>
+    <!-- Glassmorphism Modal -->
+    <div id="notificationModal" class="modal">
+        <span id="modalMessage">Group inserted</span>
     </div>
 
     <script type="module">
@@ -689,7 +643,7 @@
                         <p class="font-semibold text-gray-800">${group.name}</p>
                         <p class="text-gray-600">${group.course_code}</p>
                     </div>
-                    <a href="#" class="btn join-btn" data-groupid="${group.id}" data-groupname="${group.name}">Join</a>
+                    <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
                 `;
                 suggestedGroupsDiv.appendChild(div);
             });
@@ -699,38 +653,18 @@
                 btn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     const groupId = btn.dataset.groupid;
-                    const groupName = btn.dataset.groupname;
                     const { data: { user } } = await supabase.auth.getUser();
-                    const dashboard = document.querySelector('.dashboard');
-                    try {
-                        const { error } = await supabase
-                            .from('group_members')
-                            .insert({ group_id: groupId, user_id: user.id, is_admin: false })
-                            .select();
-                        if (error) {
-                            console.error('Join error:', error.message);
-                            if (error.code === '23505') {
-                                showNotification('You are already a member of this group.');
-                            } else {
-                                showNotification('Failed to join group. Check console for details.');
-                            }
-                        } else {
-                            dashboard.classList.add('blur');
-                            const welcomeBox = document.getElementById('welcomeBox');
-                            const welcomeMessage = document.getElementById('welcomeMessage');
-                            welcomeMessage.textContent = `Welcome to the group: ${groupName}`;
-                            welcomeBox.classList.add('show');
-                            setTimeout(() => {
-                                welcomeBox.classList.remove('show');
-                                dashboard.classList.remove('blur');
-                                loadActiveGroups(); // Refresh active groups
-                                loadSuggestedGroups(); // Refresh suggested groups to remove joined group
-                                btn.remove(); // Remove the join button after joining
-                            }, 4000);
-                        }
-                    } catch (err) {
-                        console.error('Unexpected error:', err);
-                        showNotification('An unexpected error occurred. Check console.');
+                    const { error } = await supabase
+                        .from('group_members')
+                        .insert({ group_id: groupId, user_id: user.id, is_admin: false });
+                    if (error) {
+                        console.error('Error joining group:', error);
+                        showNotification('Failed to join group.');
+                    } else {
+                        showNotification('Group inserted');
+                        loadActiveGroups(); // Refresh active groups
+                        loadSuggestedGroups(); // Refresh suggested groups to remove joined group
+                        btn.remove(); // Remove the join button after joining
                     }
                 });
             });
@@ -913,12 +847,11 @@
             button.style.background = '#d1d5db';
         }
 
-        // Show notification with blur effect (for errors)
+        // Show notification with blur effect
         function showNotification(message) {
             const modal = document.getElementById('notificationModal');
             const dashboard = document.querySelector('.dashboard');
-            const modalMessage = document.getElementById('modalMessage');
-            modalMessage.textContent = message;
+            document.getElementById('modalMessage').textContent = message;
             modal.classList.add('show');
             dashboard.classList.add('blur');
 
