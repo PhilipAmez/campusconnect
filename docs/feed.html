@@ -332,6 +332,51 @@
       cursor: pointer;
       margin-top: 1rem;
     }
+    .progress-container {
+      display: none;
+      position: fixed;
+      z-index: 30;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .progress-content {
+      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      padding: 2rem;
+      border-radius: 1.5rem;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      color: var(--text);
+    }
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 1rem;
+      border: 1px solid var(--glass-border);
+    }
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      color: var(--text);
+    }
     @media (max-width: 768px) {
       .header {
         padding: 0.8rem 1rem;
@@ -346,7 +391,7 @@
         height: 50px;
         font-size: 1.5rem;
       }
-      .modal-content {
+      .modal-content, .progress-content {
         margin: 20% auto;
         width: 90%;
         padding: 1.5rem;
@@ -388,6 +433,17 @@
     </div>
   </div>
 
+  <!-- Progress Bar Container -->
+  <div id="progressContainer" class="progress-container">
+    <div class="progress-content">
+      <h2>Uploading...</h2>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text" id="progressText">0%</div>
+    </div>
+  </div>
+
   <script type="module">
     import { supabase } from './js/supabaseClient.js';
 
@@ -409,6 +465,9 @@
       const themeToggle = document.getElementById('themeToggle');
       const header = document.querySelector('.header');
       const body = document.body;
+      const progressContainer = document.getElementById('progressContainer');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
 
       let mediaRecorder;
       let recordedChunks = [];
@@ -604,9 +663,24 @@
         const fileExt = file.type.split('/')[1] || 'webm';
         const fileName = `${Date.now()}.${fileExt}`;
         console.log('Uploading:', fileName, 'Size:', file.size, 'Type:', file.type);
+
+        // Show progress bar
+        progressContainer.style.display = 'flex';
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('facts')
-          .upload(fileName, file, { upsert: true });
+          .upload(fileName, file, {
+            upsert: true,
+            onUploadProgress: (progress) => {
+              const percent = Math.round((progress.loaded / progress.total) * 100);
+              progressFill.style.width = `${percent}%`;
+              progressText.textContent = `${percent}%`;
+            }
+          });
+        progressContainer.style.display = 'none';
+
         if (uploadError) {
           console.error('Upload error:', uploadError);
           alert('Upload failed: ' + uploadError.message);
