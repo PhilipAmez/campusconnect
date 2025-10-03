@@ -35,7 +35,6 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      padding: 0;
       transition: background 0.3s ease, color 0.3s ease;
       position: relative;
     }
@@ -474,7 +473,6 @@
         entries.forEach(entry => {
           const video = entry.target.querySelector('video');
           if (entry.isIntersecting) {
-            // Lazy load src if not set
             if (!video.src && video.dataset.src) {
               video.src = video.dataset.src;
               video.load();
@@ -508,7 +506,7 @@
         makePostModal.style.display = 'none';
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'video/*';
+        input.accept = 'video/mp4,video/webm';
         input.onchange = (e) => handleVideoUpload(e.target.files[0]);
         input.click();
       });
@@ -522,6 +520,7 @@
           recordingContainer.style.display = 'block';
           recordBtn.textContent = '●';
         } catch (err) {
+          console.error('Camera error:', err);
           alert('Camera access denied or not supported.');
         }
       });
@@ -543,6 +542,7 @@
             if (e.data.size > 0) recordedChunks.push(e.data);
           };
           mediaRecorder.onstop = () => {
+            console.log('Recorded chunks:', recordedChunks);
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             videoPreview.srcObject = null;
@@ -582,37 +582,56 @@
 
       // Handle video upload/post
       async function handleVideoUpload(file) {
-        if (!file) return;
-        if (session.data.session) {
-          const fileExt = file.type.split('/')[1] || 'webm';
-          const fileName = `${Date.now()}.${fileExt}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('reels')
-            .upload(fileName, file, { upsert: true });
-          if (uploadError) {
-            alert('Upload failed: ' + uploadError.message);
-            return;
-          }
-          const { data: publicUrlData } = supabase.storage.from('reels').getPublicUrl(fileName);
-          const videoUrl = publicUrlData.publicUrl;
+        if (!file) {
+          alert('No file selected');
+          return;
+        }
+        if (!session.data.session) {
+          alert('Please log in to upload');
+          location = 'login.html';
+          return;
+        }
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+          alert('File too large. Max 50MB.');
+          return;
+        }
+        const validTypes = ['video/mp4', 'video/webm'];
+        if (!validTypes.includes(file.type)) {
+          alert('Please upload an MP4 or WebM video');
+          return;
+        }
+        const fileExt = file.type.split('/')[1] || 'webm';
+        const fileName = `${Date.now()}.${fileExt}`;
+        console.log('Uploading:', fileName, 'Size:', file.size, 'Type:', file.type);
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('facts')
+          .upload(fileName, file, { upsert: true });
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          alert('Upload failed: ' + uploadError.message);
+          return;
+        }
+        const { data: publicUrlData } = supabase.storage.from('facts').getPublicUrl(fileName);
+        const videoUrl = publicUrlData.publicUrl;
+        console.log('Uploaded video URL:', videoUrl);
 
-          const { error } = await supabase.from('posts').insert({
-            author_id: user.id,
-            author_name: user.user_metadata?.full_name || user.email.split('@')[0],
-            video_url: videoUrl,
-            created_at: new Date().toISOString(),
-            likes: 0
-          });
-          if (!error) {
-            // Reload to show new reel
-            loadReels();
-          } else {
-            alert('Post failed: ' + error.message);
-          }
+        const { error } = await supabase.from('facts').insert({
+          author_id: user.id,
+          author_name: user.user_metadata?.full_name || user.email.split('@')[0],
+          video_url: videoUrl,
+          created_at: new Date().toISOString(),
+          likes: 0
+        });
+        if (error) {
+          console.error('Insert error:', error);
+          alert('Post failed: ' + error.message);
+        } else {
+          loadReels();
         }
       }
 
-      // Render reel (unchanged)
+      // Render reel
       async function renderReel(p) {
         let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
         if (!authorName && p.author_id) {
@@ -620,11 +639,8 @@
             const { data: authUser, error } = await supabase.auth.admin.getUserById(p.author_id);
             if (error) throw error;
             authorName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
-            if (authorName.includes(' ')) {
-              authorName = authorName;
-            } else if (authUser.user.email) {
-              authorName = authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' ' +
-                          (authUser.user.email.split('@')[0].split('.').length > 1 ? authUser.user.email.split('@')[0].split('.')[1] : 'User');
+            if (!authorName.includes(' ')) {
+              authorName = authUser.user.email ? authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' User' : 'Unknown';
             }
           } catch (error) {
             console.error(`Failed to fetch name for author_id ${p.author_id}:`, error.message);
@@ -658,14 +674,15 @@
 
         // Like with water-fill animation
         const likeBtn = div.querySelector('.like-btn');
-        const likeFill = likeBtn.querySelector('.like-fill');
         if (p.author_id !== user.id) {
           likeBtn.addEventListener('click', async () => {
             likeBtn.classList.add('liked');
-            setTimeout(() => likeBtn.classList.remove('liked'), 500); // Reset animation
+            setTimeout(() => likeBtn.classList.remove('liked'), 500);
             const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
             if (!error) {
               likeBtn.querySelector('.like-count').textContent = data[0].likes;
+            } else {
+              console.error('Like error:', error);
             }
           });
         } else {
@@ -676,8 +693,8 @@
         const shareBtn = div.querySelector('.share-btn');
         if (p.author_id !== user.id) {
           shareBtn.addEventListener('click', () => {
-            const shareUrl = `${window.location.origin}/reels.html?reel=${p.id}`;
-            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard! Share anywhere!'));
+            const shareUrl = `${window.location.origin}/facts.html?reel=${p.id}`;
+            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard!'));
           });
         } else {
           shareBtn.style.display = 'none';
@@ -701,13 +718,12 @@
           div.addEventListener('mouseup', async () => {
             div.style.transition = 'transform 0.2s ease';
             if (div.classList.contains('deleting')) {
-              // Also delete from storage
-              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
+              const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('reels').remove([videoPath]);
+                await supabase.storage.from('facts').remove([videoPath]);
               }
-              await supabase.from('posts').delete().eq('id', p.id);
+              await supabase.from('facts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
             } else {
               div.style.transform = 'translateX(0)';
@@ -734,13 +750,12 @@
           div.addEventListener('touchend', async () => {
             div.style.transition = 'transform 0.2s ease';
             if (div.classList.contains('deleting')) {
-              // Also delete from storage
-              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
+              const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('reels').remove([videoPath]);
+                await supabase.storage.from('facts').remove([videoPath]);
               }
-              await supabase.from('posts').delete().eq('id', p.id);
+              await supabase.from('facts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
             } else {
               div.style.transform = 'translateX(0)';
@@ -750,17 +765,21 @@
         }
       }
 
-      // Load and subscribe to reels
+      // Load and subscribe to facts
       async function loadReels() {
-        const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false }).limit(20);
+        const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
+        if (error) {
+          console.error('Load error:', error);
+          return;
+        }
         reelsContainer.innerHTML = '';
         for (const reel of data) {
           await renderReel(reel);
         }
       }
       await loadReels();
-      supabase.channel('posts')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
+      supabase.channel('facts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'facts' },
           payload => renderReel(payload.new))
         .subscribe();
     })();
