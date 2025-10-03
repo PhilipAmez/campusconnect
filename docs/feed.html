@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Peerloom - Feed</title>
+  <title>Peerloom - Facts</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
@@ -35,24 +35,28 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      padding: 10px;
+      padding: 0;
       transition: background 0.3s ease, color 0.3s ease;
       position: relative;
     }
     .header {
-      padding: 1.2rem 2rem;
-      border-radius: 1.5rem;
+      padding: 1rem 1.5rem;
+      border-radius: 0 0 1.5rem 1.5rem;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       position: relative;
       overflow: hidden;
       background: var(--glass-purple);
       backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
+      border-bottom: 1px solid var(--glass-border);
       touch-action: pan-x;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .header h1 {
       font-weight: 400;
-      font-size: 2rem;
+      font-size: 1.8rem;
       margin: 0;
       text-align: center;
       padding: 0.5rem 1rem;
@@ -62,7 +66,7 @@
     }
     .theme-toggle {
       position: absolute;
-      right: 2rem;
+      right: 1.5rem;
       top: 50%;
       transform: translateY(-50%);
       background: none;
@@ -76,68 +80,78 @@
     .header.active .theme-toggle {
       opacity: 1;
     }
-    .feed {
+    .reels-container {
       flex: 1;
-      padding: 1.5rem;
       overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
       display: flex;
       flex-direction: column;
-      gap: 1.2rem;
     }
-    .post {
-      max-width: 75%;
-      padding: 1.2rem 1.8rem;
-      border-radius: 1.5rem;
-      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    .reel {
+      height: 100vh;
+      scroll-snap-align: start;
       position: relative;
-      transition: transform 0.3s ease;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      overflow: hidden;
     }
-    .post-content {
-      flex: 1;
+    .reel video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-    .post .author {
+    .reel-overlay {
+      position: absolute;
+      bottom: 2rem;
+      left: 2rem;
+      right: 2rem;
+      color: white;
+      z-index: 2;
+    }
+    .reel-author {
       font-weight: 600;
       color: var(--accent);
-      margin-bottom: 0.3rem;
-    }
-    .post .text {
-      flex: 1;
       margin-bottom: 0.5rem;
+      font-size: 1.2rem;
     }
-    .post .time {
-      font-size: 0.85rem;
+    .reel-time {
+      font-size: 0.9rem;
       opacity: 0.7;
-      text-align: right;
+      margin-bottom: 1rem;
     }
-    .post-actions {
+    .reel-actions {
       display: flex;
-      gap: 1rem;
-      margin-top: 0.5rem;
+      justify-content: space-between;
+      align-items: flex-end;
     }
-    .post-action-btn {
+    .reel-like-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .reel-action-btn {
       background: none;
       border: none;
-      color: var(--accent);
+      color: white;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 2rem;
       position: relative;
       overflow: hidden;
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 0.3rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 50%;
       transition: transform 0.3s ease, color 0.3s ease;
     }
-    .post-action-btn:hover {
-      color: var(--hover-glow);
-      transform: scale(1.05);
+    .reel-action-btn:hover {
+      color: var(--accent);
+      transform: scale(1.1);
     }
     .like-btn .like-fill {
       position: absolute;
@@ -146,7 +160,7 @@
       width: 0;
       height: 100%;
       background: var(--accent);
-      border-radius: 0.5rem;
+      border-radius: 50%;
       animation: water-fill 0.5s forwards;
       opacity: 0;
     }
@@ -156,34 +170,6 @@
     @keyframes water-fill {
       0% { width: 0; }
       100% { width: 100%; }
-    }
-    .comment-section {
-      margin-top: 0.5rem;
-      display: none;
-    }
-    .comment-section.active {
-      display: block;
-    }
-    .comment-section textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border-radius: 0.6rem;
-      border: 1px solid var(--glass-border);
-      background: var(--glass-bg);
-      color: var(--text);
-      font-size: 0.9rem;
-      resize: vertical;
-      margin-bottom: 0.5rem;
-    }
-    .comment-section button {
-      padding: 0.3rem 0.8rem;
-      border-radius: 0.6rem;
-      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      color: var(--text);
-      cursor: pointer;
-      font-size: 0.8rem;
     }
     .delete-zone {
       position: absolute;
@@ -200,349 +186,584 @@
       transform: translateX(100%);
       transition: transform 0.2s ease;
       font-weight: 600;
+      font-size: 0.9rem;
+      z-index: 3;
     }
-    .post.deleting .delete-zone {
+    .reel.deleting .delete-zone {
       transform: translateX(0);
     }
-    .post:hover {
-      transform: translateY(-5px);
+    .reel:hover {
+      transform: scale(1.005);
     }
-    .post-form {
-      position: absolute;
-      top: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 40%;
-      max-width: 250px;
-      padding: 0.8rem;
-      border-radius: 1.5rem;
+    .plus-button {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: white;
+      font-size: 2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+      transition: transform 0.3s ease;
+      z-index: 10;
+    }
+    .plus-button:hover {
+      transform: scale(1.1);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 20;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
       background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
       backdrop-filter: blur(15px);
       border: 1px solid var(--glass-border);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
+      margin: 15% auto;
+      padding: 2rem;
+      border-radius: 1.5rem;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      color: var(--text);
     }
-    .post-form textarea {
-      resize: none;
-      padding: 0.5rem;
-      border-radius: 0.6rem;
+    .modal h2 {
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+    }
+    .modal-option {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border-radius: 1rem;
       border: 1px solid var(--glass-border);
       background: var(--glass-bg);
       color: var(--text);
-      font-size: 0.9rem;
-      height: 60px;
-    }
-    .post-form button {
-      align-self: flex-end;
-      padding: 0.5rem 1rem;
-      border-radius: 1.5rem;
-      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      color: var(--text);
       cursor: pointer;
-      font-size: 0.9rem;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      width: 80px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease;
     }
-    .post-form button:active {
-      animation: wobble 0.3s ease;
+    .modal-option:hover {
+      background: var(--glass-purple);
     }
-    @keyframes wobble {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(-5px) rotate(-5deg); }
-      50% { transform: translateX(5px) rotate(5deg); }
-      75% { transform: translateX(-5px) rotate(-5deg); }
-      100% { transform: translateX(0) rotate(0); }
+    .close {
+      color: var(--text);
+      float: right;
+      font-size: 2rem;
+      font-weight: bold;
+      cursor: pointer;
     }
-    .post-form button:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.2);
+    .close:hover {
+      color: var(--accent);
+    }
+    .recording-container {
+      display: none;
+      position: fixed;
+      z-index: 20;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+    }
+    .recording-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    #videoPreview {
+      width: 80%;
+      max-width: 400px;
+      height: 60vh;
+      background: #000;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+    }
+    .record-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .record-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
+    .record-btn.recording {
+      background: #dc2626;
+      color: white;
+      transform: scale(1.1);
+    }
+    .record-btn:not(.recording) {
+      background: var(--accent);
+      color: white;
+    }
+    .upload-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      border: none;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      margin-top: 1rem;
     }
     @media (max-width: 768px) {
       .header {
-        padding: 1rem;
+        padding: 0.8rem 1rem;
       }
       .header h1 {
+        font-size: 1.4rem;
+      }
+      .plus-button {
+        bottom: 1rem;
+        right: 1rem;
+        width: 50px;
+        height: 50px;
         font-size: 1.5rem;
       }
-      .feed {
-        padding: 1rem;
-        gap: 1rem;
+      .modal-content {
+        margin: 20% auto;
+        width: 90%;
+        padding: 1.5rem;
       }
-      .post {
-        max-width: 85%;
-        padding: 1rem;
-      }
-      .delete-zone {
-        width: 60px;
-      }
-      .post-form {
-        width: 50%;
-        max-width: 200px;
-        padding: 0.6rem;
-        top: 100px;
-      }
-      .post-form textarea {
-        padding: 0.4rem;
-        font-size: 0.8rem;
-        height: 50px;
-      }
-      .post-form button {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.8rem;
-        width: 70px;
+      #videoPreview {
+        width: 90%;
+        height: 50vh;
       }
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>Feed</h1>
+    <h1>Facts</h1>
     <button class="theme-toggle" id="themeToggle">🌙</button>
   </div>
-  <div class="feed" id="feedPanel"></div>
-  <div class="post-form" id="postForm">
-    <textarea id="postText" placeholder="What's on your mind?"></textarea>
-    <button id="postButton">Post</button>
+  <div class="reels-container" id="reelsContainer"></div>
+  <button class="plus-button" id="plusButton">+</button>
+
+  <!-- Make a Post Modal -->
+  <div id="makePostModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeModal">&times;</span>
+      <h2>Make a Post</h2>
+      <button class="modal-option" id="uploadOption">📁 Upload from Gallery</button>
+      <button class="modal-option" id="recordOption">📹 Record with Camera</button>
+    </div>
+  </div>
+
+  <!-- Recording Container -->
+  <div id="recordingContainer" class="recording-container">
+    <div class="recording-content">
+      <video id="videoPreview" autoplay playsinline muted></video>
+      <div class="record-controls">
+        <button class="record-btn" id="recordBtn">●</button>
+        <button class="upload-btn" id="stopAndUpload" style="display: none;">Post</button>
+      </div>
+      <button class="close" id="closeRecording" style="position: absolute; top: 1rem; right: 1rem; color: white; font-size: 2rem;">&times;</button>
+    </div>
   </div>
 
   <script type="module">
     import { supabase } from './js/supabaseClient.js';
-    const session = await supabase.auth.getSession();
-    if (!session.data.session) location = 'login.html';
-    const user = session.data.session.user;
-    const feedPanel = document.getElementById('feedPanel');
-    const postForm = document.getElementById('postForm');
-    const postText = document.getElementById('postText');
-    const postButton = document.getElementById('postButton');
-    const themeToggle = document.getElementById('themeToggle');
-    const header = document.querySelector('.header');
-    const body = document.body;
 
-    // Theme toggle with swipe
-    let startX;
-    header.addEventListener('mousedown', (e) => {
-      startX = e.clientX;
-      header.style.transition = 'none';
-    });
-    header.addEventListener('mousemove', (e) => {
-      if (e.buttons === 1) {
-        const dx = e.clientX - startX;
+    (async () => {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) location = 'login.html';
+      const user = session.data.session.user;
+      const reelsContainer = document.getElementById('reelsContainer');
+      const plusButton = document.getElementById('plusButton');
+      const makePostModal = document.getElementById('makePostModal');
+      const closeModal = document.getElementById('closeModal');
+      const uploadOption = document.getElementById('uploadOption');
+      const recordOption = document.getElementById('recordOption');
+      const recordingContainer = document.getElementById('recordingContainer');
+      const closeRecording = document.getElementById('closeRecording');
+      const videoPreview = document.getElementById('videoPreview');
+      const recordBtn = document.getElementById('recordBtn');
+      const stopAndUpload = document.getElementById('stopAndUpload');
+      const themeToggle = document.getElementById('themeToggle');
+      const header = document.querySelector('.header');
+      const body = document.body;
+
+      let mediaRecorder;
+      let recordedChunks = [];
+      let stream;
+
+      // Theme toggle with swipe
+      let startX;
+      header.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        header.style.transition = 'none';
+      });
+      header.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1) {
+          const dx = e.clientX - startX;
+          if (dx < -50) header.classList.add('active');
+          else if (dx > -50) header.classList.remove('active');
+        }
+      });
+      header.addEventListener('mouseup', () => {
+        header.style.transition = 'transform 0.3s ease';
+        if (header.classList.contains('active')) {
+          applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
+        }
+        header.classList.remove('active');
+      });
+      header.addEventListener('mouseleave', () => {
+        header.style.transition = 'transform 0.3s ease';
+        header.classList.remove('active');
+      });
+
+      // Touch events for mobile
+      header.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        header.style.transition = 'none';
+      });
+      header.addEventListener('touchmove', (e) => {
+        const dx = e.touches[0].clientX - startX;
         if (dx < -50) header.classList.add('active');
         else if (dx > -50) header.classList.remove('active');
-      }
-    });
-    header.addEventListener('mouseup', () => {
-      header.style.transition = 'transform 0.3s ease';
-      if (header.classList.contains('active')) {
-        applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
-      }
-      header.classList.remove('active');
-    });
-    header.addEventListener('mouseleave', () => {
-      header.style.transition = 'transform 0.3s ease';
-      header.classList.remove('active');
-    });
+      });
+      header.addEventListener('touchend', () => {
+        header.style.transition = 'transform 0.3s ease';
+        if (header.classList.contains('active')) {
+          applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
+        }
+        header.classList.remove('active');
+      });
 
-    // Touch events for mobile
-    header.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      header.style.transition = 'none';
-    });
-    header.addEventListener('touchmove', (e) => {
-      const dx = e.touches[0].clientX - startX;
-      if (dx < -50) header.classList.add('active');
-      else if (dx > -50) header.classList.remove('active');
-    });
-    header.addEventListener('touchend', () => {
-      header.style.transition = 'transform 0.3s ease';
-      if (header.classList.contains('active')) {
-        applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
-      }
-      header.classList.remove('active');
-    });
+      const applyTheme = (theme) => {
+        body.dataset.theme = theme;
+        localStorage.setItem('vibe-theme', theme);
+      };
+      applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
-    const applyTheme = (theme) => {
-      body.dataset.theme = theme;
-      localStorage.setItem('vibe-theme', theme);
-    };
-    applyTheme(localStorage.getItem('vibe-theme') || 'dark');
+      // Video play/pause management with lazy loading
+      const observerOptions = {
+        root: null,
+        threshold: 0.5,
+        rootMargin: '0px'
+      };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const video = entry.target.querySelector('video');
+          if (entry.isIntersecting) {
+            // Lazy load src if not set
+            if (!video.src && video.dataset.src) {
+              video.src = video.dataset.src;
+              video.load();
+            }
+            video.play().catch(e => console.log('Play failed:', e));
+            entry.target.classList.add('active');
+          } else {
+            video.pause();
+            entry.target.classList.remove('active');
+          }
+        });
+      }, observerOptions);
 
-    // Render post
-    async function renderPost(p) {
-      let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
-      if (!authorName && p.author_id) {
+      // Plus button click
+      plusButton.addEventListener('click', () => {
+        makePostModal.style.display = 'block';
+      });
+
+      // Close modal
+      closeModal.addEventListener('click', () => {
+        makePostModal.style.display = 'none';
+      });
+      window.addEventListener('click', (e) => {
+        if (e.target === makePostModal) {
+          makePostModal.style.display = 'none';
+        }
+      });
+
+      // Upload option
+      uploadOption.addEventListener('click', () => {
+        makePostModal.style.display = 'none';
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/*';
+        input.onchange = (e) => handleVideoUpload(e.target.files[0]);
+        input.click();
+      });
+
+      // Record option
+      recordOption.addEventListener('click', async () => {
+        makePostModal.style.display = 'none';
         try {
-          const { data: authUser, error } = await supabase.auth.admin.getUserById(p.author_id);
-          if (error) throw error;
-          authorName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
-          if (authorName.includes(' ')) {
-            authorName = authorName;
-          } else if (authUser.user.email) {
-            authorName = authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' ' +
-                        (authUser.user.email.split('@')[0].split('.').length > 1 ? authUser.user.email.split('@')[0].split('.')[1] : 'User');
-          }
-        } catch (error) {
-          console.error(`Failed to fetch name for author_id ${p.author_id}:`, error.message);
-          authorName = 'Unknown';
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+          videoPreview.srcObject = stream;
+          recordingContainer.style.display = 'block';
+          recordBtn.textContent = '●';
+        } catch (err) {
+          alert('Camera access denied or not supported.');
+        }
+      });
+
+      // Close recording
+      closeRecording.addEventListener('click', () => {
+        stopRecording();
+        recordingContainer.style.display = 'none';
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      });
+
+      // Record button
+      recordBtn.addEventListener('click', () => {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+          };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            videoPreview.srcObject = null;
+            videoPreview.src = url;
+            stopAndUpload.style.display = 'inline-block';
+            recordBtn.textContent = '✓';
+          };
+          mediaRecorder.start();
+          recordBtn.classList.add('recording');
+          recordBtn.textContent = '⏹';
+        } else if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          recordBtn.classList.remove('recording');
+          recordedChunks = [];
+        }
+      });
+
+      // Stop and upload
+      stopAndUpload.addEventListener('click', async () => {
+        const videoSrc = videoPreview.src;
+        if (videoSrc.startsWith('blob:')) {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          await handleVideoUpload(blob);
+        }
+        stopRecording();
+        recordingContainer.style.display = 'none';
+      });
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
         }
       }
 
-      const div = document.createElement('div');
-      div.className = 'post';
-      div.dataset.id = p.id;
-      div.innerHTML = `
-        <div class="post-content">
-          <div class="author">${authorName}</div>
-          <div class="text">${p.content || 'Loading post content...'}</div>
-          <div class="time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        </div>
-        <div class="post-actions">
-          <button class="post-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
-            <div class="like-fill"></div>
-          </button>
-          <button class="post-action-btn comment-btn" data-id="${p.id}"><i class="fas fa-comment"></i> Comment</button>
-          <button class="post-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i> Share</button>
-        </div>
-        <div class="comment-section" data-id="${p.id}">
-          <textarea placeholder="Add a comment..."></textarea>
-          <button>Post Comment</button>
-        </div>
-        <div class="delete-zone">Delete</div>
-      `;
-      feedPanel.appendChild(div);
+      // Handle video upload/post
+      async function handleVideoUpload(file) {
+        if (!file) return;
+        if (session.data.session) {
+          const fileExt = file.type.split('/')[1] || 'webm';
+          const fileName = `${Date.now()}.${fileExt}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('reels')
+            .upload(fileName, file, { upsert: true });
+          if (uploadError) {
+            alert('Upload failed: ' + uploadError.message);
+            return;
+          }
+          const { data: publicUrlData } = supabase.storage.from('reels').getPublicUrl(fileName);
+          const videoUrl = publicUrlData.publicUrl;
 
-      // Like with water-fill animation
-      const likeBtn = div.querySelector('.like-btn');
-      const likeFill = likeBtn.querySelector('.like-fill');
-      if (p.author_id !== user.id) {
-        likeBtn.addEventListener('click', async () => {
-          likeBtn.classList.add('liked');
-          setTimeout(() => likeBtn.classList.remove('liked'), 500); // Reset animation
-          const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
+          const { error } = await supabase.from('posts').insert({
+            author_id: user.id,
+            author_name: user.user_metadata?.full_name || user.email.split('@')[0],
+            video_url: videoUrl,
+            created_at: new Date().toISOString(),
+            likes: 0
+          });
           if (!error) {
-            likeBtn.querySelector('.like-count').textContent = data[0].likes;
+            // Reload to show new reel
+            loadReels();
+          } else {
+            alert('Post failed: ' + error.message);
           }
-        });
-      } else {
-        likeBtn.style.display = 'none';
-      }
-
-      // Comment section toggle
-      const commentBtn = div.querySelector('.comment-btn');
-      const commentSection = div.querySelector('.comment-section');
-      commentBtn.addEventListener('click', () => {
-        commentSection.classList.toggle('active');
-      });
-
-      // Comment submission (placeholder)
-      commentSection.querySelector('button').addEventListener('click', () => {
-        const commentText = commentSection.querySelector('textarea').value.trim();
-        if (commentText) {
-          alert('Comment posted! (Backend integration pending)');
-          commentSection.querySelector('textarea').value = '';
-          commentSection.classList.remove('active');
         }
-      });
-
-      // Share
-      const shareBtn = div.querySelector('.share-btn');
-      if (p.author_id !== user.id) {
-        shareBtn.addEventListener('click', () => {
-          const shareUrl = `${window.location.origin}/feed.html?post=${p.id}`;
-          navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard! Share anywhere!'));
-        });
-      } else {
-        shareBtn.style.display = 'none';
       }
 
-      // Delete (only for author)
-      if (p.author_id === user.id) {
-        let startX;
-        div.addEventListener('mousedown', (e) => {
-          startX = e.clientX;
-          div.style.transition = 'none';
-        });
-        div.addEventListener('mousemove', (e) => {
-          if (e.buttons === 1) {
-            const dx = e.clientX - startX;
+      // Render reel (unchanged)
+      async function renderReel(p) {
+        let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
+        if (!authorName && p.author_id) {
+          try {
+            const { data: authUser, error } = await supabase.auth.admin.getUserById(p.author_id);
+            if (error) throw error;
+            authorName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
+            if (authorName.includes(' ')) {
+              authorName = authorName;
+            } else if (authUser.user.email) {
+              authorName = authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' ' +
+                          (authUser.user.email.split('@')[0].split('.').length > 1 ? authUser.user.email.split('@')[0].split('.')[1] : 'User');
+            }
+          } catch (error) {
+            console.error(`Failed to fetch name for author_id ${p.author_id}:`, error.message);
+            authorName = 'Unknown';
+          }
+        }
+
+        const div = document.createElement('div');
+        div.className = 'reel';
+        div.dataset.id = p.id;
+        div.innerHTML = `
+          <video data-src="${p.video_url}" muted loop playsinline preload="none"></video>
+          <div class="reel-overlay">
+            <div class="reel-author">${authorName}</div>
+            <div class="reel-time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="reel-actions">
+              <div class="reel-like-section">
+                <button class="reel-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
+                  <div class="like-fill"></div>
+                </button>
+              </div>
+              <div class="reel-like-section">
+                <button class="reel-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="delete-zone">Delete</div>
+        `;
+        reelsContainer.appendChild(div);
+        observer.observe(div);
+
+        // Like with water-fill animation
+        const likeBtn = div.querySelector('.like-btn');
+        const likeFill = likeBtn.querySelector('.like-fill');
+        if (p.author_id !== user.id) {
+          likeBtn.addEventListener('click', async () => {
+            likeBtn.classList.add('liked');
+            setTimeout(() => likeBtn.classList.remove('liked'), 500); // Reset animation
+            const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
+            if (!error) {
+              likeBtn.querySelector('.like-count').textContent = data[0].likes;
+            }
+          });
+        } else {
+          likeBtn.style.display = 'none';
+        }
+
+        // Share
+        const shareBtn = div.querySelector('.share-btn');
+        if (p.author_id !== user.id) {
+          shareBtn.addEventListener('click', () => {
+            const shareUrl = `${window.location.origin}/reels.html?reel=${p.id}`;
+            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard! Share anywhere!'));
+          });
+        } else {
+          shareBtn.style.display = 'none';
+        }
+
+        // Delete (only for author)
+        if (p.author_id === user.id) {
+          let startX;
+          div.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            div.style.transition = 'none';
+          });
+          div.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) {
+              const dx = e.clientX - startX;
+              if (dx < -50) div.classList.add('deleting');
+              else if (dx > -50) div.classList.remove('deleting');
+              div.style.transform = `translateX(${dx}px)`;
+            }
+          });
+          div.addEventListener('mouseup', async () => {
+            div.style.transition = 'transform 0.2s ease';
+            if (div.classList.contains('deleting')) {
+              // Also delete from storage
+              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
+              if (postData?.video_url) {
+                const videoPath = postData.video_url.split('/').slice(-2).join('/');
+                await supabase.storage.from('reels').remove([videoPath]);
+              }
+              await supabase.from('posts').delete().eq('id', p.id);
+              reelsContainer.removeChild(div);
+            } else {
+              div.style.transform = 'translateX(0)';
+              div.classList.remove('deleting');
+            }
+          });
+          div.addEventListener('mouseleave', () => {
+            div.style.transition = 'transform 0.2s ease';
+            div.style.transform = 'translateX(0)';
+            div.classList.remove('deleting');
+          });
+
+          // Touch events for mobile
+          div.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            div.style.transition = 'none';
+          });
+          div.addEventListener('touchmove', (e) => {
+            const dx = e.touches[0].clientX - startX;
             if (dx < -50) div.classList.add('deleting');
             else if (dx > -50) div.classList.remove('deleting');
             div.style.transform = `translateX(${dx}px)`;
-          }
-        });
-        div.addEventListener('mouseup', () => {
-          div.style.transition = 'transform 0.2s ease';
-          if (div.classList.contains('deleting')) {
-            supabase.from('posts').delete().eq('id', p.id);
-            feedPanel.removeChild(div);
-          } else {
-            div.style.transform = 'translateX(0)';
-            div.classList.remove('deleting');
-          }
-        });
-        div.addEventListener('mouseleave', () => {
-          div.style.transition = 'transform 0.2s ease';
-          div.style.transform = 'translateX(0)';
-          div.classList.remove('deleting');
-        });
-
-        // Touch events for mobile
-        div.addEventListener('touchstart', (e) => {
-          startX = e.touches[0].clientX;
-          div.style.transition = 'none';
-        });
-        div.addEventListener('touchmove', (e) => {
-          const dx = e.touches[0].clientX - startX;
-          if (dx < -50) div.classList.add('deleting');
-          else if (dx > -50) div.classList.remove('deleting');
-          div.style.transform = `translateX(${dx}px)`;
-        });
-        div.addEventListener('touchend', () => {
-          div.style.transition = 'transform 0.2s ease';
-          if (div.classList.contains('deleting')) {
-            supabase.from('posts').delete().eq('id', p.id);
-            feedPanel.removeChild(div);
-          } else {
-            div.style.transform = 'translateX(0)';
-            div.classList.remove('deleting');
-          }
-        });
+          });
+          div.addEventListener('touchend', async () => {
+            div.style.transition = 'transform 0.2s ease';
+            if (div.classList.contains('deleting')) {
+              // Also delete from storage
+              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
+              if (postData?.video_url) {
+                const videoPath = postData.video_url.split('/').slice(-2).join('/');
+                await supabase.storage.from('reels').remove([videoPath]);
+              }
+              await supabase.from('posts').delete().eq('id', p.id);
+              reelsContainer.removeChild(div);
+            } else {
+              div.style.transform = 'translateX(0)';
+              div.classList.remove('deleting');
+            }
+          });
+        }
       }
-    }
 
-    // Load and subscribe to posts
-    async function loadPosts() {
-      const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-      feedPanel.innerHTML = '';
-      for (const post of data) {
-        await renderPost(post);
+      // Load and subscribe to reels
+      async function loadReels() {
+        const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false }).limit(20);
+        reelsContainer.innerHTML = '';
+        for (const reel of data) {
+          await renderReel(reel);
+        }
       }
-    }
-    await loadPosts();
-    supabase.channel('posts')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
-        payload => renderPost(payload.new))
-      .subscribe();
-
-    // Post submission
-    postButton.addEventListener('click', async () => {
-      const content = postText.value.trim();
-      if (content && session.data.session) {
-        const { error } = await supabase.from('posts').insert({
-          author_id: user.id,
-          author_name: user.user_metadata?.full_name || user.email.split('@')[0],
-          content,
-          created_at: new Date().toISOString(),
-          likes: 0
-        });
-        if (!error) postText.value = '';
-      }
-    });
+      await loadReels();
+      supabase.channel('posts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
+          payload => renderReel(payload.new))
+        .subscribe();
+    })();
   </script>
 </body>
 </html>
