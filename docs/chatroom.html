@@ -531,10 +531,10 @@ messageBar.addEventListener('keydown', (e) => {
 });
 
 // PeerLoom AI
-async function checkPeerloomAI(message) {
-  if (!message.toLowerCase().includes('@peerloom ai')) return;
+async function checkPeerpalAI(message) {
+  if (!message.toLowerCase().includes('@peerpal ai')) return;
   try {
-    const response = await fetch('https://peerloom.online/peerloom-ai', {
+    const response = await fetch('https://peerloom.online/peerpal-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, user: user.user_metadata.full_name })
@@ -543,14 +543,14 @@ async function checkPeerloomAI(message) {
     if (data.reply) {
       await supabase.from('group_messages').insert({
         group_id: gid,
-        sender_id: 'peerloom-ai',
-        sender_name: 'Peerloom AI',
+        sender_id: 'peerpal-ai',
+        sender_name: 'Peerpal AI',
         content: data.reply,
         role: 'ai'
       });
     }
   } catch (error) {
-    console.error('Peerloom AI Error:', error);
+    console.error('Peerpal AI Error:', error);
   }
 }
 
