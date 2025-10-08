@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -333,7 +334,6 @@
       margin-top: 1rem;
     }
     .progress-container {
-      visibility: hidden;
       display: none;
       position: fixed;
       z-index: 30;
@@ -343,7 +343,6 @@
       height: 100%;
       background-color: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(5px);
-      display: flex;
       align-items: center;
       justify-content: center;
     }
@@ -666,8 +665,6 @@
         console.log('Uploading:', fileName, 'Size:', file.size, 'Type:', file.type);
 
         // Show progress bar
-        if(maxSize >= file.size && validTypes.include(file.type)){
-        progressContainer.style.visibilty = 'visible';
         progressContainer.style.display = 'flex';
         progressFill.style.width = '0%';
         progressText.textContent = '0%';
@@ -680,15 +677,17 @@
               const percent = Math.round((progress.loaded / progress.total) * 100);
               progressFill.style.width = `${percent}%`;
               progressText.textContent = `${percent}%`;
-            }}
+            }
           });
-        progressContainer.style.display = 'none';
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
           alert('Upload failed: ' + uploadError.message);
+          progressContainer.style.display = 'none';
           return;
         }
+        progressContainer.style.display = 'none';
+
         const { data: publicUrlData } = supabase.storage.from('facts').getPublicUrl(fileName);
         const videoUrl = publicUrlData.publicUrl;
         console.log('Uploaded video URL:', videoUrl);
