@@ -392,7 +392,6 @@
       background: var(--glass-bg);
       backdrop-filter: blur(15px);
       border: 1px solid var(--glass-border);
-      border-radius: 2rem;
       box-shadow: 0 4px 20px var(--hover-glow);
       z-index: 15;
       transition: opacity 0.3s ease;
@@ -532,7 +531,7 @@
           const data = await response.json();
           if (data.error) {
             console.error('YouTube API error:', data.error);
-            return [];
+            return hardcodedYoutubeShorts; // Fallback to hardcoded if API fails
           }
           return data.items.map((item, index) => ({
             id: `yt-${index}`,
@@ -544,21 +543,32 @@
           }));
         } catch (err) {
           console.error('Fetch error:', err);
-          return [];
+          return hardcodedYoutubeShorts; // Fallback to hardcoded
         }
       }
 
-      // Hardcoded educational TikTok shorts (since no public API; extracted from search)
+      // Hardcoded educational YouTube Shorts for fallback or default
+      const hardcodedYoutubeShorts = [
+        { id: 'yt-1', videoId: 'MhVjGqkPFuw', author_name: 'University of Sheffield', created_at: '2024-04-30T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-2', videoId: '26Ga4N0b2BQ', author_name: 'FundaTube', created_at: '2024-01-26T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-3', videoId: 'vtc-9KrwhQQ', author_name: 'Next Admit', created_at: '2021-05-15T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-4', videoId: 'B5dFy4j7C9Q', author_name: 'George Fox University', created_at: '2025-04-10T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-5', videoId: '0kqk66XvBR0', author_name: 'FundaTube', created_at: '2024-03-02T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-6', videoId: 'yiwl9rtYb5Q', author_name: 'Manchild', created_at: '2025-08-01T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-7', videoId: 'KZ3pDHLNfhA', author_name: 'University of Essex', created_at: '2023-06-21T00:00:00Z', likes: 0, isYoutube: true }
+      ];
+
+      // Hardcoded educational TikTok shorts with valid IDs
       const tiktokShorts = [
         { id: 'tt-1', videoId: '7456554285178916139', author_name: 'Daniel Willingham', created_at: '2025-01-05T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-2', videoId: '7541413703430737165', author_name: 'Dr. Rubin, MD', created_at: '2025-08-22T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-3', videoId: '7325285881168825606', author_name: 'Laeticiahh', created_at: '2024-01-17T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-4', videoId: '7342410211086306567', author_name: 'Sarah Rav', created_at: '2024-03-03T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-5', videoId: '7469977848384605447', author_name: 'Reiley Dunlop', created_at: '2025-02-10T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-6', videoId: '7548804502661483798', author_name: 'Myaonthecoast', created_at: '2025-09-11T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-7', videoId: '7489093841245588758', author_name: 'A+ Student Tips', created_at: '2025-04-03T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-8', videoId: '7456948141498191122', author_name: 'Sarah Rav', created_at: '2025-01-06T00:00:00Z', likes: 0, isTiktok: true },
-        { id: 'tt-9', videoId: '7461564439851011335', author_name: 'Reiley Dunlop', created_at: '2025-01-19T00:00:00Z', likes: 0, isTiktok: true }
+        { id: 'tt-2', videoId: '7314261626423741714', author_name: 'Dr. Justin Sung', created_at: '2023-12-19T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-3', videoId: '7541413703430737165', author_name: 'Dr. Rubin, MD', created_at: '2025-08-22T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-4', videoId: '7325285881168825606', author_name: 'Laeticiahh', created_at: '2024-01-17T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-5', videoId: '7342410211086306567', author_name: 'Sarah Rav', created_at: '2024-03-03T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-6', videoId: '7174972379704200490', author_name: 'thebeekid', created_at: '2022-12-08T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-7', videoId: '7377728839692122127', author_name: 'Dr. Justin Sung', created_at: '2024-06-13T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-8', videoId: '7438286525395209502', author_name: 'Daniel Willingham', created_at: '2024-11-17T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-9', videoId: '7350714834515660065', author_name: 'Jesstudy', created_at: '2024-03-27T00:00:00Z', likes: 0, isTiktok: true }
       ];
 
       // Theme toggle with swipe
@@ -1002,33 +1012,34 @@
         }
       }
 
-      // Load and subscribe to facts (user posts + YouTube + TikTok shorts)
+      // Load and subscribe to facts (user posts + default/hardcoded shorts + searched)
       async function loadReels(searchQuery = null) {
         reelsContainer.innerHTML = '';
-        const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
-        if (error) {
-          console.error('Load error:', error);
-          return;
+        let userPosts = [];
+        try {
+          const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
+          if (error) throw error;
+          userPosts = data;
+        } catch (err) {
+          console.error('Supabase load error:', err);
         }
         // Render user posts first
-        for (const reel of data) {
+        for (const reel of userPosts) {
           await renderReel(reel);
         }
+        let shorts = [];
         if (searchQuery) {
-          // If searching, load searched YouTube shorts only
-          const ytShorts = await fetchYoutubeShorts(searchQuery);
-          for (const ytReel of ytShorts) {
-            await renderReel(ytReel);
-          }
+          // If searching, load searched YouTube shorts
+          shorts = await fetchYoutubeShorts(searchQuery);
         } else {
-          // Default load: YouTube + TikTok
-          const ytShorts = await fetchYoutubeShorts();
-          for (const ytReel of ytShorts) {
-            await renderReel(ytReel);
-          }
-          for (const ttReel of tiktokShorts) {
-            await renderReel(ttReel);
-          }
+          // Default: Hardcoded YouTube and TikTok
+          shorts = [...hardcodedYoutubeShorts, ...tiktokShorts];
+        }
+        for (const short of shorts) {
+          await renderReel(short);
+        }
+        if (shorts.length === 0 && userPosts.length === 0) {
+          reelsContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">No shorts available. Try uploading one!</div>';
         }
       }
       await loadReels();
