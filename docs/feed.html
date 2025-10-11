@@ -487,185 +487,564 @@
       <div class="progress-text" id="progressText">0%</div>
     </div>
   </div>
-
 <script type="module">
-import { supabase } from './js/supabaseClient.js';
+    import { supabase } from './js/supabaseClient.js';
 
-(async () => {
-  const session = await supabase.auth.getSession();
-  if (!session.data.session) location = 'login.html';
-  const user = session.data.session.user;
+    (async () => {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) location = 'login.html';
+      const user = session.data.session.user;
+      const reelsContainer = document.getElementById('reelsContainer');
+      const plusButton = document.getElementById('plusButton');
+      const makePostModal = document.getElementById('makePostModal');
+      const closeModal = document.getElementById('closeModal');
+      const uploadOption = document.getElementById('uploadOption');
+      const recordOption = document.getElementById('recordOption');
+      const recordingContainer = document.getElementById('recordingContainer');
+      const closeRecording = document.getElementById('closeRecording');
+      const videoPreview = document.getElementById('videoPreview');
+      const recordBtn = document.getElementById('recordBtn');
+      const stopAndUpload = document.getElementById('stopAndUpload');
+      const themeToggle = document.getElementById('themeToggle');
+      const header = document.querySelector('.header');
+      const body = document.body;
+      const progressContainer = document.getElementById('progressContainer');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      const searchBar = document.getElementById('searchBar');
+      const searchInput = document.getElementById('searchInput');
+      const searchBtn = document.getElementById('searchBtn');
 
-  const reelsContainer = document.getElementById('reelsContainer');
-  const plusButton = document.getElementById('plusButton');
-  const makePostModal = document.getElementById('makePostModal');
-  const closeModal = document.getElementById('closeModal');
-  const uploadOption = document.getElementById('uploadOption');
-  const recordOption = document.getElementById('recordOption');
-  const recordingContainer = document.getElementById('recordingContainer');
-  const closeRecording = document.getElementById('closeRecording');
-  const videoPreview = document.getElementById('videoPreview');
-  const recordBtn = document.getElementById('recordBtn');
-  const stopAndUpload = document.getElementById('stopAndUpload');
-  const themeToggle = document.getElementById('themeToggle');
-  const header = document.querySelector('.header');
-  const body = document.body;
-  const progressContainer = document.getElementById('progressContainer');
-  const progressFill = document.getElementById('progressFill');
-  const progressText = document.getElementById('progressText');
-  const searchBar = document.getElementById('searchBar');
-  const searchInput = document.getElementById('searchInput');
-  const searchBtn = document.getElementById('searchBtn');
+      let mediaRecorder;
+      let recordedChunks = [];
+      let stream;
+      let ytPlayers = {}; // Store YouTube players by videoId
+      const youtubeApiKey = 'AIzaSyDLLDIJ7TGkEoXpSIt9Yg98jWKEKdSCMWw'; // Updated API key
 
-  let mediaRecorder, recordedChunks = [], stream;
-  let ytPlayers = {};
-  const youtubeApiKey = 'AIzaSyDLLDIJ7TGkEoXpSIt9Yg98jWKEKdSCMWw';
-
-  // Fetch YouTube Shorts dynamically
-  async function fetchYoutubeShorts(searchQuery = 'study tips for students') {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=short&q=${encodeURIComponent(searchQuery)}&maxResults=10&key=${youtubeApiKey}`;
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.error) {
-        console.error('YouTube API error:', data.error);
-        return hardcodedYoutubeShorts;
-      }
-      return data.items.map((item, index) => ({
-        id: `yt-${index}`,
-        videoId: item.id.videoId,
-        author_name: item.snippet.channelTitle,
-        created_at: item.snippet.publishedAt,
-        likes: 0,
-        isYoutube: true
-      }));
-    } catch (err) {
-      console.error('Fetch error:', err);
-      return hardcodedYoutubeShorts;
-    }
-  }
-
-  const hardcodedYoutubeShorts = [
-    { id: 'yt-1', videoId: 'MhVjGqkPFuw', author_name: 'University of Sheffield', created_at: '2024-04-30T00:00:00Z', likes: 0, isYoutube: true },
-    { id: 'yt-2', videoId: '26Ga4N0b2BQ', author_name: 'FundaTube', created_at: '2024-01-26T00:00:00Z', likes: 0, isYoutube: true },
-    { id: 'yt-3', videoId: 'vtc-9KrwhQQ', author_name: 'Next Admit', created_at: '2021-05-15T00:00:00Z', likes: 0, isYoutube: true },
-    { id: 'yt-4', videoId: 'B5dFy4j7C9Q', author_name: 'George Fox University', created_at: '2025-04-10T00:00:00Z', likes: 0, isYoutube: true },
-    { id: 'yt-5', videoId: '0kqk66XvBR0', author_name: 'FundaTube', created_at: '2024-03-02T00:00:00Z', likes: 0, isYoutube: true },
-    { id: 'yt-6', videoId: 'yiwl9rtYb5Q', author_name: 'Manchild', created_at: '2025-08-01T00:00:00Z', likes: 0, isYoutube: true },
-    { id: 'yt-7', videoId: 'KZ3pDHLNfhA', author_name: 'University of Essex', created_at: '2023-06-21T00:00:00Z', likes: 0, isYoutube: true }
-  ];
-
-  // Theme logic
-  const applyTheme = (theme) => {
-    body.dataset.theme = theme;
-    localStorage.setItem('vibe-theme', theme);
-  };
-  applyTheme(localStorage.getItem('vibe-theme') || 'dark');
-
-  // Observer for video play/pause
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const reel = entry.target;
-      const video = reel.querySelector('video');
-      const iframe = reel.querySelector('iframe');
-      if (entry.isIntersecting) {
-        if (video) {
-          if (!video.src && video.dataset.src) {
-            video.src = video.dataset.src;
-            video.load();
+      // Fetch educational shorts dynamically from YouTube API
+      async function fetchYoutubeShorts(searchQuery = 'study tips for students') {
+        const query = searchQuery;
+        const url = https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=short&q=${encodeURIComponent(query)}&maxResults=10&key=${youtubeApiKey};
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+          if (data.error) {
+            console.error('YouTube API error:', data.error);
+            return hardcodedYoutubeShorts; // Fallback to hardcoded if API fails
           }
-          video.play().catch(() => {});
-        } else if (reel.dataset.isYoutube && !ytPlayers[reel.dataset.videoId]) {
-          ytPlayers[reel.dataset.videoId] = new YT.Player(iframe.id, {
-            events: {
-              onReady: (event) => {
-                event.target.mute();
-                event.target.playVideo();
+          return data.items.map((item, index) => ({
+            id: yt-${index},
+            videoId: item.id.videoId,
+            author_name: item.snippet.channelTitle,
+            created_at: item.snippet.publishedAt,
+            likes: 0,
+            isYoutube: true
+          }));
+        } catch (err) {
+          console.error('Fetch error:', err);
+          return hardcodedYoutubeShorts; // Fallback to hardcoded
+        }
+      }
+
+      // Hardcoded educational YouTube Shorts for fallback or default
+      const hardcodedYoutubeShorts = [
+        { id: 'yt-1', videoId: 'MhVjGqkPFuw', author_name: 'University of Sheffield', created_at: '2024-04-30T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-2', videoId: '26Ga4N0b2BQ', author_name: 'FundaTube', created_at: '2024-01-26T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-3', videoId: 'vtc-9KrwhQQ', author_name: 'Next Admit', created_at: '2021-05-15T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-4', videoId: 'B5dFy4j7C9Q', author_name: 'George Fox University', created_at: '2025-04-10T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-5', videoId: '0kqk66XvBR0', author_name: 'FundaTube', created_at: '2024-03-02T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-6', videoId: 'yiwl9rtYb5Q', author_name: 'Manchild', created_at: '2025-08-01T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-7', videoId: 'KZ3pDHLNfhA', author_name: 'University of Essex', created_at: '2023-06-21T00:00:00Z', likes: 0, isYoutube: true }
+      ];
+   
+
+      // Theme toggle with swipe
+      let startX;
+      header.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        header.style.transition = 'none';
+      });
+      header.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1) {
+          const dx = e.clientX - startX;
+          if (dx < -50) header.classList.add('active');
+          else if (dx > -50) header.classList.remove('active');
+        }
+      });
+      header.addEventListener('mouseup', () => {
+        header.style.transition = 'transform 0.3s ease';
+        if (header.classList.contains('active')) {
+          applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
+        }
+        header.classList.remove('active');
+      });
+      header.addEventListener('mouseleave', () => {
+        header.style.transition = 'transform 0.3s ease';
+        header.classList.remove('active');
+      });
+
+      // Touch events for mobile
+      header.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        header.style.transition = 'none';
+      });
+      header.addEventListener('touchmove', (e) => {
+        const dx = e.touches[0].clientX - startX;
+        if (dx < -50) header.classList.add('active');
+        else if (dx > -50) header.classList.remove('active');
+      });
+      header.addEventListener('touchend', () => {
+        header.style.transition = 'transform 0.3s ease';
+        if (header.classList.contains('active')) {
+          applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
+        }
+        header.classList.remove('active');
+      });
+
+      const applyTheme = (theme) => {
+        body.dataset.theme = theme;
+        localStorage.setItem('vibe-theme', theme);
+      };
+      applyTheme(localStorage.getItem('vibe-theme') || 'dark');
+
+      // Video/iframe play/pause management with lazy loading
+      const observerOptions = {
+        root: null,
+        threshold: 0.5,
+        rootMargin: '0px'
+      };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const reel = entry.target;
+          const video = reel.querySelector('video');
+          const iframe = reel.querySelector('iframe');
+          if (entry.isIntersecting) {
+            if (video) {
+              if (!video.src && video.dataset.src) {
+                video.src = video.dataset.src;
+                video.load();
               }
+              video.play().catch(e => console.log('Play failed:', e));
+            } else if (iframe && reel.dataset.videoId) {
+              const videoId = reel.dataset.videoId;
+              if (reel.dataset.isYoutube && !ytPlayers[videoId]) {
+                ytPlayers[videoId] = new YT.Player(iframe.id, {
+                  events: {
+                    onReady: (event) => {
+                      event.target.mute();
+                      event.target.playVideo();
+                    }
+                  }
+                });
+              } else if (reel.dataset.isYoutube) {
+                ytPlayers[videoId].playVideo();
+              }
+              // For TikTok, iframes may auto-play; no JS API for control
+            }
+            reel.classList.add('active');
+          } else {
+            if (video) {
+              video.pause();
+            } else if (reel.dataset.isYoutube && reel.dataset.videoId && ytPlayers[reel.dataset.videoId]) {
+              ytPlayers[reel.dataset.videoId].pauseVideo();
+            }
+            // For TikTok, no pause control
+            reel.classList.remove('active');
+          }
+        });
+      }, observerOptions);
+
+      // Plus button click
+      plusButton.addEventListener('click', () => {
+        makePostModal.style.display = 'block';
+      });
+
+      // Close modal
+      closeModal.addEventListener('click', () => {
+        makePostModal.style.display = 'none';
+      });
+      window.addEventListener('click', (e) => {
+        if (e.target === makePostModal) {
+          makePostModal.style.display = 'none';
+        }
+      });
+
+      // Upload option
+      uploadOption.addEventListener('click', () => {
+        makePostModal.style.display = 'none';
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/mp4,video/webm';
+        input.onchange = (e) => handleVideoUpload(e.target.files[0]);
+        input.click();
+      });
+
+      // Record option
+      recordOption.addEventListener('click', async () => {
+        makePostModal.style.display = 'none';
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+          videoPreview.srcObject = stream;
+          recordingContainer.style.display = 'block';
+          recordBtn.textContent = '●';
+        } catch (err) {
+          console.error('Camera error:', err);
+          alert('Camera access denied or not supported.');
+        }
+      });
+
+      // Close recording
+      closeRecording.addEventListener('click', () => {
+        stopRecording();
+        recordingContainer.style.display = 'none';
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      });
+
+      // Record button
+      recordBtn.addEventListener('click', () => {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+          };
+          mediaRecorder.onstop = () => {
+            console.log('Recorded chunks:', recordedChunks);
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            videoPreview.srcObject = null;
+            videoPreview.src = url;
+            stopAndUpload.style.display = 'inline-block';
+            recordBtn.textContent = '✓';
+          };
+          mediaRecorder.start();
+          recordBtn.classList.add('recording');
+          recordBtn.textContent = '⏹';
+        } else if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          recordBtn.classList.remove('recording');
+          recordedChunks = [];
+        }
+      });
+
+      // Stop and upload
+      stopAndUpload.addEventListener('click', async () => {
+        const videoSrc = videoPreview.src;
+        if (videoSrc.startsWith('blob:')) {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          await handleVideoUpload(blob);
+        }
+        stopRecording();
+        recordingContainer.style.display = 'none';
+      });
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      }
+
+      // Handle video upload/post
+      async function handleVideoUpload(file) {
+        if (!file) {
+          alert('No file selected');
+          return;
+        }
+        if (!session.data.session) {
+          alert('Please log in to upload');
+          location = 'login.html';
+          return;
+        }
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+          alert('File too large. Max 50MB.');
+          return;
+        }
+        const validTypes = ['video/mp4', 'video/webm'];
+        if (!validTypes.includes(file.type)) {
+          alert('Please upload an MP4 or WebM video');
+          return;
+        }
+        const fileExt = file.type.split('/')[1] || 'webm';
+        const fileName = ${Date.now()}.${fileExt};
+        console.log('Uploading:', fileName, 'Size:', file.size, 'Type:', file.type);
+
+        // Show progress bar
+        progressContainer.style.display = 'flex';
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('facts')
+          .upload(fileName, file, {
+            upsert: true,
+            onUploadProgress: (progress) => {
+              const percent = Math.round((progress.loaded / progress.total) * 100);
+              progressFill.style.width = ${percent}%;
+              progressText.textContent = ${percent}%;
             }
           });
-        } else if (reel.dataset.isYoutube) {
-          ytPlayers[reel.dataset.videoId].playVideo();
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          alert('Upload failed: ' + uploadError.message);
+          progressContainer.style.display = 'none';
+          return;
         }
-      } else {
-        if (video) video.pause();
-        else if (reel.dataset.isYoutube && ytPlayers[reel.dataset.videoId])
-          ytPlayers[reel.dataset.videoId].pauseVideo();
+        progressContainer.style.display = 'none';
+
+        const { data: publicUrlData } = supabase.storage.from('facts').getPublicUrl(fileName);
+        const videoUrl = publicUrlData.publicUrl;
+        console.log('Uploaded video URL:', videoUrl);
+
+        const { error } = await supabase.from('facts').insert({
+          author_id: user.id,
+          author_name: user.user_metadata?.full_name || user.email.split('@')[0],
+          video_url: videoUrl,
+          created_at: new Date().toISOString(),
+          likes: 0
+        });
+        if (error) {
+          console.error('Insert error:', error);
+          alert('Post failed: ' + error.message);
+        } else {
+          loadReels();
+        }
       }
-    });
-  }, { threshold: 0.5 });
 
-  // Upload + recording + Supabase logic remain unchanged
-  // (omitted here for brevity but unchanged from your script)
+      // Render reel (handles user videos, YouTube, and TikTok shorts)
+      async function renderReel(p) {
+        let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
+        if (!authorName && p.author_id) {
+          try {
+            const { data: authUser, error } = await supabase.auth.admin.getUserById(p.author_id);
+            if (error) throw error;
+            authorName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
+            if (!authorName.includes(' ')) {
+              authorName = authUser.user.email ? authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' User' : 'Unknown';
+            }
+          } catch (error) {
+            console.error(Failed to fetch name for author_id ${p.author_id}:, error.message);
+            authorName = 'Unknown';
+          }
+        }
 
-  // Render reel (YouTube + user videos only)
-  async function renderReel(p) {
-    let authorName = p.author_name || 'Unknown';
-    const div = document.createElement('div');
-    div.className = 'reel';
-    div.dataset.id = p.id;
-    div.dataset.videoId = p.videoId || '';
-    div.dataset.isYoutube = p.isYoutube ? 'true' : '';
+        const div = document.createElement('div');
+        div.className = 'reel';
+        div.dataset.id = p.id;
+        div.dataset.videoId = p.videoId || '';
+        div.dataset.isYoutube = p.isYoutube ? 'true' : '';
+        div.dataset.isTiktok = p.isTiktok ? 'true' : '';
 
-    let mediaHtml = '';
-    if (p.isYoutube) {
-      const embedUrl = `https://www.youtube.com/embed/${p.videoId}?enablejsapi=1&mute=1&loop=1&playlist=${p.videoId}&controls=0&rel=0&modestbranding=2&iv_load_policy=3&showinfo=0`;
-      mediaHtml = `<iframe id="ytplayer-${p.videoId}" data-src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture"></iframe>`;
-    } else {
-      mediaHtml = `<video data-src="${p.video_url}" muted loop playsinline preload="none"></video>`;
-    }
+        let mediaHtml = '';
+        if (p.isYoutube) {
+          const embedUrl = https://www.youtube.com/embed/${p.videoId}?enablejsapi=1&mute=1&loop=1&playlist=${p.videoId}&controls=0&rel=0&modestbranding=2&iv_load_policy=3&showinfo=0;
+          mediaHtml = <iframe id="ytplayer-${p.videoId}" data-src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture"></iframe>;
+        } else if (p.isTiktok) {
+          const embedUrl = https://www.tiktok.com/embed/${p.videoId};
+          mediaHtml = <iframe src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture" allowfullscreen></iframe>;
+        } else {
+          mediaHtml = <video data-src="${p.video_url}" muted loop playsinline preload="none"></video>;
+        }
 
-    div.innerHTML = `
-      ${mediaHtml}
-      <div class="reel-overlay">
-        <div class="reel-author">${authorName}</div>
-        <div class="reel-time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        <div class="reel-actions" ${p.isYoutube ? 'style="display: none;"' : ''}>
-          <button class="reel-action-btn like-btn" data-id="${p.id}">
-            <i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
-          </button>
-          <button class="reel-action-btn share-btn" data-id="${p.id}">
-            <i class="fas fa-share"></i>
-          </button>
-        </div>
-      </div>
-    `;
+        div.innerHTML = 
+          ${mediaHtml}
+          <div class="reel-overlay">
+            <div class="reel-author">${authorName}</div>
+            <div class="reel-time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="reel-actions">
+              <div class="reel-like-section" ${p.isYoutube || p.isTiktok ? 'style="display: none;"' : ''}>
+                <button class="reel-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
+                  <div class="like-fill"></div>
+                </button>
+              </div>
+              <div class="reel-like-section" ${p.isYoutube || p.isTiktok ? 'style="display: none;"' : ''}>
+                <button class="reel-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="delete-zone" ${p.isYoutube || p.isTiktok ? 'style="display: none;"' : ''}>Delete</div>
+        ;
+        reelsContainer.appendChild(div);
+        observer.observe(div);
 
-    reelsContainer.appendChild(div);
-    observer.observe(div);
-  }
+        // Add click to pause/play and show search bar if paused (for user videos and YouTube)
+        div.addEventListener('click', (e) => {
+          if (e.target.closest('.reel-action-btn') || e.target.closest('.delete-zone')) return; // Ignore clicks on buttons
+          const video = div.querySelector('video');
+          const iframe = div.querySelector('iframe');
+          const videoId = div.dataset.videoId;
+          if (video) {
+            if (video.paused) {
+              video.play();
+              searchBar.style.display = 'none';
+            } else {
+              video.pause();
+              searchBar.style.display = 'block';
+            }
+          } else if (div.dataset.isYoutube && ytPlayers[videoId]) {
+            if (ytPlayers[videoId].getPlayerState() === YT.PlayerState.PLAYING) {
+              ytPlayers[videoId].pauseVideo();
+              searchBar.style.display = 'block';
+            } else {
+              ytPlayers[videoId].playVideo();
+              searchBar.style.display = 'none';
+            }
+          }
+          // For TikTok, no control, so no search bar trigger
+        });
 
-  // Load reels (user + YouTube Shorts)
-  async function loadReels(searchQuery = null) {
-    reelsContainer.innerHTML = '';
-    let userPosts = [];
-    try {
-      const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
-      if (!error) userPosts = data;
-    } catch (err) {
-      console.error('Supabase load error:', err);
-    }
+        if (!p.isYoutube && !p.isTiktok) {
+          // Like with water-fill animation
+          const likeBtn = div.querySelector('.like-btn');
+          if (p.author_id !== user.id) {
+            likeBtn.addEventListener('click', async () => {
+              likeBtn.classList.add('liked');
+              setTimeout(() => likeBtn.classList.remove('liked'), 500);
+              const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
+              if (!error) {
+                likeBtn.querySelector('.like-count').textContent = data[0].likes;
+              } else {
+                console.error('Like error:', error);
+              }
+            });
+          } else {
+            likeBtn.style.display = 'none';
+          }
 
-    for (const reel of userPosts) await renderReel(reel);
-    const shorts = searchQuery ? await fetchYoutubeShorts(searchQuery) : hardcodedYoutubeShorts;
-    for (const short of shorts) await renderReel(short);
+          // Share
+          const shareBtn = div.querySelector('.share-btn');
+          if (p.author_id !== user.id) {
+            shareBtn.addEventListener('click', () => {
+              const shareUrl = ${window.location.origin}/facts.html?reel=${p.id};
+              navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard!'));
+            });
+          } else {
+            shareBtn.style.display = 'none';
+          }
 
-    if (shorts.length === 0 && userPosts.length === 0)
-      reelsContainer.innerHTML = '<div style="color:white;text-align:center;padding:20px;">No shorts available. Try uploading one!</div>';
-  }
+          // Delete (only for author)
+          if (p.author_id === user.id) {
+            let startX;
+            div.addEventListener('mousedown', (e) => {
+              startX = e.clientX;
+              div.style.transition = 'none';
+            });
+            div.addEventListener('mousemove', (e) => {
+              if (e.buttons === 1) {
+                const dx = e.clientX - startX;
+                if (dx < -50) div.classList.add('deleting');
+                else if (dx > -50) div.classList.remove('deleting');
+                div.style.transform = translateX(${dx}px);
+              }
+            });
+            div.addEventListener('mouseup', async () => {
+              div.style.transition = 'transform 0.2s ease';
+              if (div.classList.contains('deleting')) {
+                const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
+                if (postData?.video_url) {
+                  const videoPath = postData.video_url.split('/').slice(-2).join('/');
+                  await supabase.storage.from('facts').remove([videoPath]);
+                }
+                await supabase.from('facts').delete().eq('id', p.id);
+                reelsContainer.removeChild(div);
+              } else {
+                div.style.transform = 'translateX(0)';
+                div.classList.remove('deleting');
+              }
+            });
+            div.addEventListener('mouseleave', () => {
+              div.style.transition = 'transform 0.2s ease';
+              div.style.transform = 'translateX(0)';
+              div.classList.remove('deleting');
+            });
 
-  await loadReels();
-  supabase.channel('facts')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'facts' }, payload => renderReel(payload.new))
-    .subscribe();
+            // Touch events for mobile
+            div.addEventListener('touchstart', (e) => {
+              startX = e.touches[0].clientX;
+              div.style.transition = 'none';
+            });
+            div.addEventListener('touchmove', (e) => {
+              const dx = e.touches[0].clientX - startX;
+              if (dx < -50) div.classList.add('deleting');
+              else if (dx > -50) div.classList.remove('deleting');
+              div.style.transform = translateX(${dx}px);
+            });
+            div.addEventListener('touchend', async () => {
+              div.style.transition = 'transform 0.2s ease';
+              if (div.classList.contains('deleting')) {
+                const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
+                if (postData?.video_url) {
+                  const videoPath = postData.video_url.split('/').slice(-2).join('/');
+                  await supabase.storage.from('facts').remove([videoPath]);
+                }
+                await supabase.from('facts').delete().eq('id', p.id);
+                reelsContainer.removeChild(div);
+              } else {
+                div.style.transform = 'translateX(0)';
+                div.classList.remove('deleting');
+              }
+            });
+          }
+        } else {
+          // For YouTube/TikTok, set src when first observed (handled in observer for YouTube; TikTok loads directly)
+          if (p.isYoutube) {
+            const iframeEl = div.querySelector('iframe');
+            iframeEl.src = ''; // Start empty for lazy load
+          }
+        }
+      }
 
-  searchBtn.addEventListener('click', async () => {
-    const query = searchInput.value.trim();
-    if (query) {
-      searchBar.style.display = 'none';
-      await loadReels(query);
-      searchInput.value = '';
-    }
-  });
-})();
-</script>
+      // Load and subscribe to facts (user posts + default/hardcoded shorts + searched)
+      async function loadReels(searchQuery = null) {
+        reelsContainer.innerHTML = '';
+        let userPosts = [];
+        try {
+          const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
+          if (error) throw error;
+          userPosts = data;
+        } catch (err) {
+          console.error('Supabase load error:', err);
+        }
+        // Render user posts first
+        for (const reel of userPosts) {
+          await renderReel(reel);
+        }
+        let shorts = [];
+        if (searchQuery) {
+          // If searching, load searched YouTube shorts
+          shorts = await fetchYoutubeShorts(searchQuery);
+        } else {
+          // Default: Hardcoded YouTube and TikTok
+          shorts = [...hardcodedYoutubeShorts,];
+        }
+        for (const short of shorts) {
+          await renderReel(short);
+        }
+        if (shorts.length === 0 && userPosts.length === 0) {
+          reelsContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">No shorts available. Try uploading one!</div>';
+        }
+      }
+      await loadReels();
+      supabase.channel('facts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'facts' },
+          payload => renderReel(payload.new))
+        .subscribe();
+
+      // Search button click
+      searchBtn.addEventListener('click', async () => {
+        const query = searchInput.value.trim();
+        if (query) {
+          searchBar.style.display = 'none';
+          await loadReels(query);
+          searchInput.value = '';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
