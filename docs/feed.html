@@ -87,6 +87,7 @@
       -webkit-overflow-scrolling: touch;
       display: flex;
       flex-direction: column;
+      scroll-behavior: smooth; /* Smoothen scroll animation */
     }
     .reel {
       height: 100vh;
@@ -97,6 +98,7 @@
       justify-content: center;
       background: #000;
       overflow: hidden;
+      transition: transform 0.3s ease; /* Add smooth transition for any effects */
     }
     .reel video, .reel iframe {
       width: 100%;
@@ -378,6 +380,44 @@
       font-size: 1rem;
       color: var(--text);
     }
+    #searchBar {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 500px;
+      padding: 10px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 2rem;
+      box-shadow: 0 4px 20px var(--hover-glow);
+      z-index: 15;
+      transition: opacity 0.3s ease;
+    }
+    #searchInput {
+      width: calc(100% - 60px);
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+    #searchBtn {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 1rem;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    #searchBtn:hover {
+      transform: scale(1.05);
+    }
     @media (max-width: 768px) {
       .header {
         padding: 0.8rem 1rem;
@@ -408,6 +448,10 @@
   <div class="header">
     <h1>Skrolz</h1>
     <button class="theme-toggle" id="themeToggle">🌙</button>
+  </div>
+  <div id="searchBar">
+    <input type="text" id="searchInput" placeholder="Search for shorts...">
+    <button id="searchBtn">Search</button>
   </div>
   <div class="reels-container" id="reelsContainer"></div>
   <button class="plus-button" id="plusButton">+</button>
@@ -469,16 +513,19 @@
       const progressContainer = document.getElementById('progressContainer');
       const progressFill = document.getElementById('progressFill');
       const progressText = document.getElementById('progressText');
+      const searchBar = document.getElementById('searchBar');
+      const searchInput = document.getElementById('searchInput');
+      const searchBtn = document.getElementById('searchBtn');
 
       let mediaRecorder;
       let recordedChunks = [];
       let stream;
       let ytPlayers = {}; // Store YouTube players by videoId
-      const youtubeApiKey = 'AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y'; // Your provided API key
+      const youtubeApiKey = 'AIzaSyDLLDIJ7TGkEoXpSIt9Yg98jWKEKdSCMWw'; // Updated API key
 
       // Fetch educational shorts dynamically from YouTube API
-      async function fetchYoutubeShorts() {
-        const query = 'study tips for students'; // Customize this query for educational content
+      async function fetchYoutubeShorts(searchQuery = 'study tips for students') {
+        const query = searchQuery;
         const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=short&q=${encodeURIComponent(query)}&maxResults=10&key=${youtubeApiKey}`;
         try {
           const response = await fetch(url);
@@ -500,6 +547,19 @@
           return [];
         }
       }
+
+      // Hardcoded educational TikTok shorts (since no public API; extracted from search)
+      const tiktokShorts = [
+        { id: 'tt-1', videoId: '7456554285178916139', author_name: 'Daniel Willingham', created_at: '2025-01-05T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-2', videoId: '7541413703430737165', author_name: 'Dr. Rubin, MD', created_at: '2025-08-22T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-3', videoId: '7325285881168825606', author_name: 'Laeticiahh', created_at: '2024-01-17T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-4', videoId: '7342410211086306567', author_name: 'Sarah Rav', created_at: '2024-03-03T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-5', videoId: '7469977848384605447', author_name: 'Reiley Dunlop', created_at: '2025-02-10T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-6', videoId: '7548804502661483798', author_name: 'Myaonthecoast', created_at: '2025-09-11T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-7', videoId: '7489093841245588758', author_name: 'A+ Student Tips', created_at: '2025-04-03T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-8', videoId: '7456948141498191122', author_name: 'Sarah Rav', created_at: '2025-01-06T00:00:00Z', likes: 0, isTiktok: true },
+        { id: 'tt-9', videoId: '7461564439851011335', author_name: 'Reiley Dunlop', created_at: '2025-01-19T00:00:00Z', likes: 0, isTiktok: true }
+      ];
 
       // Theme toggle with swipe
       let startX;
@@ -570,7 +630,7 @@
               video.play().catch(e => console.log('Play failed:', e));
             } else if (iframe && reel.dataset.videoId) {
               const videoId = reel.dataset.videoId;
-              if (!ytPlayers[videoId]) {
+              if (reel.dataset.isYoutube && !ytPlayers[videoId]) {
                 ytPlayers[videoId] = new YT.Player(iframe.id, {
                   events: {
                     onReady: (event) => {
@@ -579,17 +639,19 @@
                     }
                   }
                 });
-              } else {
+              } else if (reel.dataset.isYoutube) {
                 ytPlayers[videoId].playVideo();
               }
+              // For TikTok, iframes may auto-play; no JS API for control
             }
             reel.classList.add('active');
           } else {
             if (video) {
               video.pause();
-            } else if (reel.dataset.videoId && ytPlayers[reel.dataset.videoId]) {
+            } else if (reel.dataset.isYoutube && reel.dataset.videoId && ytPlayers[reel.dataset.videoId]) {
               ytPlayers[reel.dataset.videoId].pauseVideo();
             }
+            // For TikTok, no pause control
             reel.classList.remove('active');
           }
         });
@@ -757,7 +819,7 @@
         }
       }
 
-      // Render reel (handles both user videos and YouTube shorts)
+      // Render reel (handles user videos, YouTube, and TikTok shorts)
       async function renderReel(p) {
         let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
         if (!authorName && p.author_id) {
@@ -777,12 +839,17 @@
         const div = document.createElement('div');
         div.className = 'reel';
         div.dataset.id = p.id;
-        div.dataset.videoId = p.videoId || ''; // For YouTube
+        div.dataset.videoId = p.videoId || '';
+        div.dataset.isYoutube = p.isYoutube ? 'true' : '';
+        div.dataset.isTiktok = p.isTiktok ? 'true' : '';
 
         let mediaHtml = '';
         if (p.isYoutube) {
           const embedUrl = `https://www.youtube.com/embed/${p.videoId}?enablejsapi=1&mute=1&loop=1&playlist=${p.videoId}&controls=0&rel=0&modestbranding=2&iv_load_policy=3&showinfo=0`;
           mediaHtml = `<iframe id="ytplayer-${p.videoId}" data-src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture"></iframe>`;
+        } else if (p.isTiktok) {
+          const embedUrl = `https://www.tiktok.com/embed/${p.videoId}`;
+          mediaHtml = `<iframe src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         } else {
           mediaHtml = `<video data-src="${p.video_url}" muted loop playsinline preload="none"></video>`;
         }
@@ -793,22 +860,48 @@
             <div class="reel-author">${authorName}</div>
             <div class="reel-time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             <div class="reel-actions">
-              <div class="reel-like-section" ${p.isYoutube ? 'style="display: none;"' : ''}>
+              <div class="reel-like-section" ${p.isYoutube || p.isTiktok ? 'style="display: none;"' : ''}>
                 <button class="reel-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
                   <div class="like-fill"></div>
                 </button>
               </div>
-              <div class="reel-like-section" ${p.isYoutube ? 'style="display: none;"' : ''}>
+              <div class="reel-like-section" ${p.isYoutube || p.isTiktok ? 'style="display: none;"' : ''}>
                 <button class="reel-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i></button>
               </div>
             </div>
           </div>
-          <div class="delete-zone" ${p.isYoutube ? 'style="display: none;"' : ''}>Delete</div>
+          <div class="delete-zone" ${p.isYoutube || p.isTiktok ? 'style="display: none;"' : ''}>Delete</div>
         `;
         reelsContainer.appendChild(div);
         observer.observe(div);
 
-        if (!p.isYoutube) {
+        // Add click to pause/play and show search bar if paused (for user videos and YouTube)
+        div.addEventListener('click', (e) => {
+          if (e.target.closest('.reel-action-btn') || e.target.closest('.delete-zone')) return; // Ignore clicks on buttons
+          const video = div.querySelector('video');
+          const iframe = div.querySelector('iframe');
+          const videoId = div.dataset.videoId;
+          if (video) {
+            if (video.paused) {
+              video.play();
+              searchBar.style.display = 'none';
+            } else {
+              video.pause();
+              searchBar.style.display = 'block';
+            }
+          } else if (div.dataset.isYoutube && ytPlayers[videoId]) {
+            if (ytPlayers[videoId].getPlayerState() === YT.PlayerState.PLAYING) {
+              ytPlayers[videoId].pauseVideo();
+              searchBar.style.display = 'block';
+            } else {
+              ytPlayers[videoId].playVideo();
+              searchBar.style.display = 'none';
+            }
+          }
+          // For TikTok, no control, so no search bar trigger
+        });
+
+        if (!p.isYoutube && !p.isTiktok) {
           // Like with water-fill animation
           const likeBtn = div.querySelector('.like-btn');
           if (p.author_id !== user.id) {
@@ -901,28 +994,41 @@
             });
           }
         } else {
-          // For YouTube, set src when first observed (handled in observer)
-          const iframeEl = div.querySelector('iframe');
-          iframeEl.src = ''; // Start empty
+          // For YouTube/TikTok, set src when first observed (handled in observer for YouTube; TikTok loads directly)
+          if (p.isYoutube) {
+            const iframeEl = div.querySelector('iframe');
+            iframeEl.src = ''; // Start empty for lazy load
+          }
         }
       }
 
-      // Load and subscribe to facts (user posts + dynamic YouTube shorts)
-      async function loadReels() {
+      // Load and subscribe to facts (user posts + YouTube + TikTok shorts)
+      async function loadReels(searchQuery = null) {
+        reelsContainer.innerHTML = '';
         const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
         if (error) {
           console.error('Load error:', error);
           return;
         }
-        reelsContainer.innerHTML = '';
         // Render user posts first
         for (const reel of data) {
           await renderReel(reel);
         }
-        // Then append dynamic educational shorts from YouTube
-        const ytShorts = await fetchYoutubeShorts();
-        for (const ytReel of ytShorts) {
-          await renderReel(ytReel);
+        if (searchQuery) {
+          // If searching, load searched YouTube shorts only
+          const ytShorts = await fetchYoutubeShorts(searchQuery);
+          for (const ytReel of ytShorts) {
+            await renderReel(ytReel);
+          }
+        } else {
+          // Default load: YouTube + TikTok
+          const ytShorts = await fetchYoutubeShorts();
+          for (const ytReel of ytShorts) {
+            await renderReel(ytReel);
+          }
+          for (const ttReel of tiktokShorts) {
+            await renderReel(ttReel);
+          }
         }
       }
       await loadReels();
@@ -930,6 +1036,16 @@
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'facts' },
           payload => renderReel(payload.new))
         .subscribe();
+
+      // Search button click
+      searchBtn.addEventListener('click', async () => {
+        const query = searchInput.value.trim();
+        if (query) {
+          searchBar.style.display = 'none';
+          await loadReels(query);
+          searchInput.value = '';
+        }
+      });
     })();
   </script>
 </body>
