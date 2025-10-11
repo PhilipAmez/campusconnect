@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Peerloom - Skrolz</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://www.youtube.com/iframe_api"></script> <!-- For YouTube player control -->
   <style>
     :root {
       --bg-gradient-light: linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%);
@@ -97,10 +98,11 @@
       background: #000;
       overflow: hidden;
     }
-    .reel video {
+    .reel video, .reel iframe {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      border: none;
     }
     .reel-overlay {
       position: absolute;
@@ -471,6 +473,19 @@
       let mediaRecorder;
       let recordedChunks = [];
       let stream;
+      let ytPlayers = {}; // Store YouTube players by videoId
+
+      // Hardcoded educational YouTube Shorts (study tips for students)
+      const youtubeShorts = [
+        { id: 'yt-1', videoId: '26Ga4N0b2BQ', author_name: 'FundaTube', created_at: '2024-01-26T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-2', videoId: 'vtc-9KrwhQQ', author_name: 'Next Admit', created_at: '2021-05-15T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-3', videoId: 'MhVjGqkPFuw', author_name: 'University of Sheffield', created_at: '2024-04-30T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-4', videoId: 'yiwl9rtYb5Q', author_name: 'Manchild', created_at: '2025-08-01T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-5', videoId: 'fsusB0q2p_4', author_name: 'WKU', created_at: '2025-04-29T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-6', videoId: 'B5dFy4j7C9Q', author_name: 'George Fox University', created_at: '2025-04-10T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-7', videoId: '0kqk66XvBR0', author_name: 'FundaTube', created_at: '2024-03-02T00:00:00Z', likes: 0, isYoutube: true },
+        { id: 'yt-8', videoId: 'Php4hG8jpNs', author_name: 'Study With Me', created_at: '2025-02-21T00:00:00Z', likes: 0, isYoutube: true }
+      ];
 
       // Theme toggle with swipe
       let startX;
@@ -521,7 +536,7 @@
       };
       applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
-      // Video play/pause management with lazy loading
+      // Video/iframe play/pause management with lazy loading
       const observerOptions = {
         root: null,
         threshold: 0.5,
@@ -529,17 +544,39 @@
       };
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          const video = entry.target.querySelector('video');
+          const reel = entry.target;
+          const video = reel.querySelector('video');
+          const iframe = reel.querySelector('iframe');
           if (entry.isIntersecting) {
-            if (!video.src && video.dataset.src) {
-              video.src = video.dataset.src;
-              video.load();
+            if (video) {
+              if (!video.src && video.dataset.src) {
+                video.src = video.dataset.src;
+                video.load();
+              }
+              video.play().catch(e => console.log('Play failed:', e));
+            } else if (iframe && reel.dataset.videoId) {
+              const videoId = reel.dataset.videoId;
+              if (!ytPlayers[videoId]) {
+                ytPlayers[videoId] = new YT.Player(iframe.id, {
+                  events: {
+                    onReady: (event) => {
+                      event.target.mute();
+                      event.target.playVideo();
+                    }
+                  }
+                });
+              } else {
+                ytPlayers[videoId].playVideo();
+              }
             }
-            video.play().catch(e => console.log('Play failed:', e));
-            entry.target.classList.add('active');
+            reel.classList.add('active');
           } else {
-            video.pause();
-            entry.target.classList.remove('active');
+            if (video) {
+              video.pause();
+            } else if (reel.dataset.videoId && ytPlayers[reel.dataset.videoId]) {
+              ytPlayers[reel.dataset.videoId].pauseVideo();
+            }
+            reel.classList.remove('active');
           }
         });
       }, observerOptions);
@@ -706,7 +743,7 @@
         }
       }
 
-      // Render reel
+      // Render reel (handles both user videos and YouTube shorts)
       async function renderReel(p) {
         let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
         if (!authorName && p.author_id) {
@@ -726,121 +763,137 @@
         const div = document.createElement('div');
         div.className = 'reel';
         div.dataset.id = p.id;
+        div.dataset.videoId = p.videoId || ''; // For YouTube
+
+        let mediaHtml = '';
+        if (p.isYoutube) {
+          const embedUrl = `https://www.youtube.com/embed/${p.videoId}?enablejsapi=1&mute=1&loop=1&playlist=${p.videoId}&controls=0&rel=0&modestbranding=1`;
+          mediaHtml = `<iframe id="ytplayer-${p.videoId}" data-src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture"></iframe>`;
+        } else {
+          mediaHtml = `<video data-src="${p.video_url}" muted loop playsinline preload="none"></video>`;
+        }
+
         div.innerHTML = `
-          <video data-src="${p.video_url}" muted loop playsinline preload="none"></video>
+          ${mediaHtml}
           <div class="reel-overlay">
             <div class="reel-author">${authorName}</div>
             <div class="reel-time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             <div class="reel-actions">
-              <div class="reel-like-section">
+              <div class="reel-like-section" ${p.isYoutube ? 'style="display: none;"' : ''}>
                 <button class="reel-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
                   <div class="like-fill"></div>
                 </button>
               </div>
-              <div class="reel-like-section">
+              <div class="reel-like-section" ${p.isYoutube ? 'style="display: none;"' : ''}>
                 <button class="reel-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i></button>
               </div>
             </div>
           </div>
-          <div class="delete-zone">Delete</div>
+          <div class="delete-zone" ${p.isYoutube ? 'style="display: none;"' : ''}>Delete</div>
         `;
         reelsContainer.appendChild(div);
         observer.observe(div);
 
-        // Like with water-fill animation
-        const likeBtn = div.querySelector('.like-btn');
-        if (p.author_id !== user.id) {
-          likeBtn.addEventListener('click', async () => {
-            likeBtn.classList.add('liked');
-            setTimeout(() => likeBtn.classList.remove('liked'), 500);
-            const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
-            if (!error) {
-              likeBtn.querySelector('.like-count').textContent = data[0].likes;
-            } else {
-              console.error('Like error:', error);
-            }
-          });
-        } else {
-          likeBtn.style.display = 'none';
-        }
+        if (!p.isYoutube) {
+          // Like with water-fill animation
+          const likeBtn = div.querySelector('.like-btn');
+          if (p.author_id !== user.id) {
+            likeBtn.addEventListener('click', async () => {
+              likeBtn.classList.add('liked');
+              setTimeout(() => likeBtn.classList.remove('liked'), 500);
+              const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
+              if (!error) {
+                likeBtn.querySelector('.like-count').textContent = data[0].likes;
+              } else {
+                console.error('Like error:', error);
+              }
+            });
+          } else {
+            likeBtn.style.display = 'none';
+          }
 
-        // Share
-        const shareBtn = div.querySelector('.share-btn');
-        if (p.author_id !== user.id) {
-          shareBtn.addEventListener('click', () => {
-            const shareUrl = `${window.location.origin}/facts.html?reel=${p.id}`;
-            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard!'));
-          });
-        } else {
-          shareBtn.style.display = 'none';
-        }
+          // Share
+          const shareBtn = div.querySelector('.share-btn');
+          if (p.author_id !== user.id) {
+            shareBtn.addEventListener('click', () => {
+              const shareUrl = `${window.location.origin}/facts.html?reel=${p.id}`;
+              navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard!'));
+            });
+          } else {
+            shareBtn.style.display = 'none';
+          }
 
-        // Delete (only for author)
-        if (p.author_id === user.id) {
-          let startX;
-          div.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            div.style.transition = 'none';
-          });
-          div.addEventListener('mousemove', (e) => {
-            if (e.buttons === 1) {
-              const dx = e.clientX - startX;
+          // Delete (only for author)
+          if (p.author_id === user.id) {
+            let startX;
+            div.addEventListener('mousedown', (e) => {
+              startX = e.clientX;
+              div.style.transition = 'none';
+            });
+            div.addEventListener('mousemove', (e) => {
+              if (e.buttons === 1) {
+                const dx = e.clientX - startX;
+                if (dx < -50) div.classList.add('deleting');
+                else if (dx > -50) div.classList.remove('deleting');
+                div.style.transform = `translateX(${dx}px)`;
+              }
+            });
+            div.addEventListener('mouseup', async () => {
+              div.style.transition = 'transform 0.2s ease';
+              if (div.classList.contains('deleting')) {
+                const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
+                if (postData?.video_url) {
+                  const videoPath = postData.video_url.split('/').slice(-2).join('/');
+                  await supabase.storage.from('facts').remove([videoPath]);
+                }
+                await supabase.from('facts').delete().eq('id', p.id);
+                reelsContainer.removeChild(div);
+              } else {
+                div.style.transform = 'translateX(0)';
+                div.classList.remove('deleting');
+              }
+            });
+            div.addEventListener('mouseleave', () => {
+              div.style.transition = 'transform 0.2s ease';
+              div.style.transform = 'translateX(0)';
+              div.classList.remove('deleting');
+            });
+
+            // Touch events for mobile
+            div.addEventListener('touchstart', (e) => {
+              startX = e.touches[0].clientX;
+              div.style.transition = 'none';
+            });
+            div.addEventListener('touchmove', (e) => {
+              const dx = e.touches[0].clientX - startX;
               if (dx < -50) div.classList.add('deleting');
               else if (dx > -50) div.classList.remove('deleting');
               div.style.transform = `translateX(${dx}px)`;
-            }
-          });
-          div.addEventListener('mouseup', async () => {
-            div.style.transition = 'transform 0.2s ease';
-            if (div.classList.contains('deleting')) {
-              const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
-              if (postData?.video_url) {
-                const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('facts').remove([videoPath]);
+            });
+            div.addEventListener('touchend', async () => {
+              div.style.transition = 'transform 0.2s ease';
+              if (div.classList.contains('deleting')) {
+                const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
+                if (postData?.video_url) {
+                  const videoPath = postData.video_url.split('/').slice(-2).join('/');
+                  await supabase.storage.from('facts').remove([videoPath]);
+                }
+                await supabase.from('facts').delete().eq('id', p.id);
+                reelsContainer.removeChild(div);
+              } else {
+                div.style.transform = 'translateX(0)';
+                div.classList.remove('deleting');
               }
-              await supabase.from('facts').delete().eq('id', p.id);
-              reelsContainer.removeChild(div);
-            } else {
-              div.style.transform = 'translateX(0)';
-              div.classList.remove('deleting');
-            }
-          });
-          div.addEventListener('mouseleave', () => {
-            div.style.transition = 'transform 0.2s ease';
-            div.style.transform = 'translateX(0)';
-            div.classList.remove('deleting');
-          });
-
-          // Touch events for mobile
-          div.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            div.style.transition = 'none';
-          });
-          div.addEventListener('touchmove', (e) => {
-            const dx = e.touches[0].clientX - startX;
-            if (dx < -50) div.classList.add('deleting');
-            else if (dx > -50) div.classList.remove('deleting');
-            div.style.transform = `translateX(${dx}px)`;
-          });
-          div.addEventListener('touchend', async () => {
-            div.style.transition = 'transform 0.2s ease';
-            if (div.classList.contains('deleting')) {
-              const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
-              if (postData?.video_url) {
-                const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('facts').remove([videoPath]);
-              }
-              await supabase.from('facts').delete().eq('id', p.id);
-              reelsContainer.removeChild(div);
-            } else {
-              div.style.transform = 'translateX(0)';
-              div.classList.remove('deleting');
-            }
-          });
+            });
+          }
+        } else {
+          // For YouTube, set src when first observed (handled in observer)
+          const iframeEl = div.querySelector('iframe');
+          iframeEl.src = ''; // Start empty
         }
       }
 
-      // Load and subscribe to facts
+      // Load and subscribe to facts (user posts + YouTube shorts)
       async function loadReels() {
         const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
         if (error) {
@@ -848,8 +901,13 @@
           return;
         }
         reelsContainer.innerHTML = '';
+        // Render user posts first
         for (const reel of data) {
           await renderReel(reel);
+        }
+        // Then append YouTube educational shorts
+        for (const ytReel of youtubeShorts) {
+          await renderReel(ytReel);
         }
       }
       await loadReels();
