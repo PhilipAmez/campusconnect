@@ -474,18 +474,32 @@
       let recordedChunks = [];
       let stream;
       let ytPlayers = {}; // Store YouTube players by videoId
+      const youtubeApiKey = 'AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y'; // Your provided API key
 
-      // Hardcoded educational YouTube Shorts (study tips for students)
-      const youtubeShorts = [
-        { id: 'yt-1', videoId: '26Ga4N0b2BQ', author_name: 'FundaTube', created_at: '2024-01-26T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-2', videoId: 'vtc-9KrwhQQ', author_name: 'Next Admit', created_at: '2021-05-15T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-3', videoId: 'MhVjGqkPFuw', author_name: 'University of Sheffield', created_at: '2024-04-30T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-4', videoId: 'yiwl9rtYb5Q', author_name: 'Manchild', created_at: '2025-08-01T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-5', videoId: 'fsusB0q2p_4', author_name: 'WKU', created_at: '2025-04-29T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-6', videoId: 'B5dFy4j7C9Q', author_name: 'George Fox University', created_at: '2025-04-10T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-7', videoId: '0kqk66XvBR0', author_name: 'FundaTube', created_at: '2024-03-02T00:00:00Z', likes: 0, isYoutube: true },
-        { id: 'yt-8', videoId: 'Php4hG8jpNs', author_name: 'Study With Me', created_at: '2025-02-21T00:00:00Z', likes: 0, isYoutube: true }
-      ];
+      // Fetch educational shorts dynamically from YouTube API
+      async function fetchYoutubeShorts() {
+        const query = 'study tips for students'; // Customize this query for educational content
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=short&q=${encodeURIComponent(query)}&maxResults=10&key=${youtubeApiKey}`;
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+          if (data.error) {
+            console.error('YouTube API error:', data.error);
+            return [];
+          }
+          return data.items.map((item, index) => ({
+            id: `yt-${index}`,
+            videoId: item.id.videoId,
+            author_name: item.snippet.channelTitle,
+            created_at: item.snippet.publishedAt,
+            likes: 0,
+            isYoutube: true
+          }));
+        } catch (err) {
+          console.error('Fetch error:', err);
+          return [];
+        }
+      }
 
       // Theme toggle with swipe
       let startX;
@@ -767,7 +781,7 @@
 
         let mediaHtml = '';
         if (p.isYoutube) {
-          const embedUrl = `https://www.youtube.com/embed/${p.videoId}?enablejsapi=1&mute=1&loop=1&playlist=${p.videoId}&controls=0&rel=0&modestbranding=1`;
+          const embedUrl = `https://www.youtube.com/embed/${p.videoId}?enablejsapi=1&mute=1&loop=1&playlist=${p.videoId}&controls=0&rel=0&modestbranding=2&iv_load_policy=3&showinfo=0`;
           mediaHtml = `<iframe id="ytplayer-${p.videoId}" data-src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media; accelerometer; clipboard-write; gyroscope; picture-in-picture"></iframe>`;
         } else {
           mediaHtml = `<video data-src="${p.video_url}" muted loop playsinline preload="none"></video>`;
@@ -893,7 +907,7 @@
         }
       }
 
-      // Load and subscribe to facts (user posts + YouTube shorts)
+      // Load and subscribe to facts (user posts + dynamic YouTube shorts)
       async function loadReels() {
         const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
         if (error) {
@@ -905,8 +919,9 @@
         for (const reel of data) {
           await renderReel(reel);
         }
-        // Then append YouTube educational shorts
-        for (const ytReel of youtubeShorts) {
+        // Then append dynamic educational shorts from YouTube
+        const ytShorts = await fetchYoutubeShorts();
+        for (const ytReel of ytShorts) {
           await renderReel(ytReel);
         }
       }
