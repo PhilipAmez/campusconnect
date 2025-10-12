@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Peerloom - Skrolz</title>
+  <title>Peerloom - Facts</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
@@ -35,6 +35,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      padding: 0;
       transition: background 0.3s ease, color 0.3s ease;
       position: relative;
     }
@@ -332,50 +333,6 @@
       cursor: pointer;
       margin-top: 1rem;
     }
-    .progress-container {
-      display: none;
-      position: fixed;
-      z-index: 30;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
-      align-items: center;
-      justify-content: center;
-    }
-    .progress-content {
-      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      padding: 2rem;
-      border-radius: 1.5rem;
-      width: 80%;
-      max-width: 400px;
-      text-align: center;
-      color: var(--text);
-    }
-    .progress-bar {
-      width: 100%;
-      height: 20px;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-top: 1rem;
-      border: 1px solid var(--glass-border);
-    }
-    .progress-fill {
-      width: 0%;
-      height: 100%;
-      background: var(--accent);
-      transition: width 0.3s ease;
-    }
-    .progress-text {
-      margin-top: 0.5rem;
-      font-size: 1rem;
-      color: var(--text);
-    }
     @media (max-width: 768px) {
       .header {
         padding: 0.8rem 1rem;
@@ -390,7 +347,7 @@
         height: 50px;
         font-size: 1.5rem;
       }
-      .modal-content, .progress-content {
+      .modal-content {
         margin: 20% auto;
         width: 90%;
         padding: 1.5rem;
@@ -407,10 +364,27 @@
     <h1>Skrolz</h1>
     <button class="theme-toggle" id="themeToggle">🌙</button>
   </div>
-  <div class="reels-container" id="reelsContainer"></div>
+
+  <div class="shorts-wrapper">
+    <div class="short-frame">
+      <video class="short-video" src="https://www.w3schools.com/html/mov_bbb.mp4" autoplay muted loop></video>
+
+      <div class="short-info">
+        <div class="username">@StudentAI</div>
+        <div class="caption">Learning made fun 🎓🔥</div>
+      </div>
+
+      <div class="short-actions">
+        <div class="action-btn like-btn">❤️<span class="like-count">12000</span></div>
+        <div class="action-btn">💬</div>
+        <div class="action-btn">↗️</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Your existing buttons and modals -->
   <button class="plus-button" id="plusButton">+</button>
 
-  <!-- Make a Post Modal -->
   <div id="makePostModal" class="modal">
     <div class="modal-content">
       <span class="close" id="closeModal">&times;</span>
@@ -420,7 +394,6 @@
     </div>
   </div>
 
-  <!-- Recording Container -->
   <div id="recordingContainer" class="recording-container">
     <div class="recording-content">
       <video id="videoPreview" autoplay playsinline muted></video>
@@ -432,7 +405,6 @@
     </div>
   </div>
 
-  <!-- Progress Bar Container -->
   <div id="progressContainer" class="progress-container">
     <div class="progress-content">
       <h2>Uploading...</h2>
@@ -442,6 +414,100 @@
       <div class="progress-text" id="progressText">0%</div>
     </div>
   </div>
+
+  <style>
+    .shorts-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      background: #000;
+    }
+
+    .short-frame {
+      position: relative;
+      width: 360px;
+      height: 640px;
+      border-radius: 20px;
+      overflow: hidden;
+      scroll-snap-align: start;
+      margin: 20px 0;
+      box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+    }
+
+    .short-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .short-info {
+      position: absolute;
+      bottom: 30px;
+      left: 15px;
+      color: #fff;
+      font-family: Poppins, sans-serif;
+    }
+
+    .short-info .username {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .short-actions {
+      position: absolute;
+      right: 15px;
+      bottom: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .action-btn {
+      font-size: 1.7rem;
+      color: #fff;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+
+    .action-btn:hover {
+      transform: scale(1.2);
+    }
+
+    .like-btn.liked {
+      animation: bounceLike 0.4s ease;
+      color: #A5F1F6;
+      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      padding: 8px;
+    }
+
+    @keyframes bounceLike {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.4); }
+      60% { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    .like-count {
+      font-size: 0.8rem;
+      margin-left: 4px;
+    }
+
+    .shorts-wrapper::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+
+  
+</body>
+
 
   <script type="module">
     import { supabase } from './js/supabaseClient.js';
@@ -464,9 +530,6 @@
       const themeToggle = document.getElementById('themeToggle');
       const header = document.querySelector('.header');
       const body = document.body;
-      const progressContainer = document.getElementById('progressContainer');
-      const progressFill = document.getElementById('progressFill');
-      const progressText = document.getElementById('progressText');
 
       let mediaRecorder;
       let recordedChunks = [];
@@ -531,6 +594,7 @@
         entries.forEach(entry => {
           const video = entry.target.querySelector('video');
           if (entry.isIntersecting) {
+            // Lazy load src if not set
             if (!video.src && video.dataset.src) {
               video.src = video.dataset.src;
               video.load();
@@ -564,7 +628,7 @@
         makePostModal.style.display = 'none';
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'video/mp4,video/webm';
+        input.accept = 'video/*';
         input.onchange = (e) => handleVideoUpload(e.target.files[0]);
         input.click();
       });
@@ -578,7 +642,6 @@
           recordingContainer.style.display = 'block';
           recordBtn.textContent = '●';
         } catch (err) {
-          console.error('Camera error:', err);
           alert('Camera access denied or not supported.');
         }
       });
@@ -600,7 +663,6 @@
             if (e.data.size > 0) recordedChunks.push(e.data);
           };
           mediaRecorder.onstop = () => {
-            console.log('Recorded chunks:', recordedChunks);
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             videoPreview.srcObject = null;
@@ -691,22 +753,23 @@
         const videoUrl = publicUrlData.publicUrl;
         console.log('Uploaded video URL:', videoUrl);
 
-        const { error } = await supabase.from('facts').insert({
-          author_id: user.id,
-          author_name: user.user_metadata?.full_name || user.email.split('@')[0],
-          video_url: videoUrl,
-          created_at: new Date().toISOString(),
-          likes: 0
-        });
-        if (error) {
-          console.error('Insert error:', error);
-          alert('Post failed: ' + error.message);
-        } else {
-          loadReels();
+          const { error } = await supabase.from('posts').insert({
+            author_id: user.id,
+            author_name: user.user_metadata?.full_name || user.email.split('@')[0],
+            video_url: videoUrl,
+            created_at: new Date().toISOString(),
+            likes: 0
+          });
+          if (!error) {
+            // Reload to show new reel
+            loadReels();
+          } else {
+            alert('Post failed: ' + error.message);
+          }
         }
       }
 
-      // Render reel
+      // Render reel (unchanged)
       async function renderReel(p) {
         let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
         if (!authorName && p.author_id) {
@@ -714,8 +777,11 @@
             const { data: authUser, error } = await supabase.auth.admin.getUserById(p.author_id);
             if (error) throw error;
             authorName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
-            if (!authorName.includes(' ')) {
-              authorName = authUser.user.email ? authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' User' : 'Unknown';
+            if (authorName.includes(' ')) {
+              authorName = authorName;
+            } else if (authUser.user.email) {
+              authorName = authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' ' +
+                          (authUser.user.email.split('@')[0].split('.').length > 1 ? authUser.user.email.split('@')[0].split('.')[1] : 'User');
             }
           } catch (error) {
             console.error(`Failed to fetch name for author_id ${p.author_id}:`, error.message);
@@ -749,15 +815,14 @@
 
         // Like with water-fill animation
         const likeBtn = div.querySelector('.like-btn');
+        const likeFill = likeBtn.querySelector('.like-fill');
         if (p.author_id !== user.id) {
           likeBtn.addEventListener('click', async () => {
             likeBtn.classList.add('liked');
-            setTimeout(() => likeBtn.classList.remove('liked'), 500);
+            setTimeout(() => likeBtn.classList.remove('liked'), 500); // Reset animation
             const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
             if (!error) {
               likeBtn.querySelector('.like-count').textContent = data[0].likes;
-            } else {
-              console.error('Like error:', error);
             }
           });
         } else {
@@ -768,8 +833,8 @@
         const shareBtn = div.querySelector('.share-btn');
         if (p.author_id !== user.id) {
           shareBtn.addEventListener('click', () => {
-            const shareUrl = `${window.location.origin}/facts.html?reel=${p.id}`;
-            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard!'));
+            const shareUrl = `${window.location.origin}/reels.html?reel=${p.id}`;
+            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard! Share anywhere!'));
           });
         } else {
           shareBtn.style.display = 'none';
@@ -793,12 +858,13 @@
           div.addEventListener('mouseup', async () => {
             div.style.transition = 'transform 0.2s ease';
             if (div.classList.contains('deleting')) {
-              const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
+              // Also delete from storage
+              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
                 await supabase.storage.from('Facts').remove([videoPath]);
               }
-              await supabase.from('facts').delete().eq('id', p.id);
+              await supabase.from('posts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
             } else {
               div.style.transform = 'translateX(0)';
@@ -825,12 +891,13 @@
           div.addEventListener('touchend', async () => {
             div.style.transition = 'transform 0.2s ease';
             if (div.classList.contains('deleting')) {
-              const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
+              // Also delete from storage
+              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
                 await supabase.storage.from('Facts').remove([videoPath]);
               }
-              await supabase.from('facts').delete().eq('id', p.id);
+              await supabase.from('posts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
             } else {
               div.style.transform = 'translateX(0)';
@@ -840,21 +907,17 @@
         }
       }
 
-      // Load and subscribe to facts
+      // Load and subscribe to reels
       async function loadReels() {
-        const { data, error } = await supabase.from('facts').select('*').order('created_at', { ascending: false }).limit(20);
-        if (error) {
-          console.error('Load error:', error);
-          return;
-        }
+        const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false }).limit(20);
         reelsContainer.innerHTML = '';
         for (const reel of data) {
           await renderReel(reel);
         }
       }
       await loadReels();
-      supabase.channel('facts')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'facts' },
+      supabase.channel('posts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
           payload => renderReel(payload.new))
         .subscribe();
     })();
