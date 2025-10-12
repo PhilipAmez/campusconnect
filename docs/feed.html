@@ -709,10 +709,11 @@
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('Facts')
             .upload(fileName, file, { upsert: true });
-          if (uploadError) {
-            alert('Upload failed: ' + uploadError.message);
-            return;
-          }
+            if (uploadError) {
+              console.error('Upload error full:', uploadError);
+              alert('Upload failed: ' + (uploadError.message || JSON.stringify(uploadError)));
+              return;
+            }
           const { data: publicUrlData } = supabase.storage.from('Facts').getPublicUrl(fileName);
           const videoUrl = publicUrlData.publicUrl;
 
@@ -727,7 +728,9 @@
             // Reload to show new reel
             loadReels();
           } else {
-            alert('Post failed: ' + error.message);
+            console.error('Insert error full:', error);
+            // RLS error often has message like: "new row violates row-level security policy"
+            alert('Post failed: ' + (error.message || JSON.stringify(error)));
           }
         }
       }
@@ -883,6 +886,17 @@
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
           payload => renderReel(payload.new))
         .subscribe();
+      // Diagnostic checks: print auth state and test listing the storage bucket (helps verify permissions)
+      try {
+        const authState = await supabase.auth.getSession();
+        console.log('Current session for diagnostics:', authState);
+        // Try listing root of bucket (will fail if permissions/policies prevent it)
+        const { data: listData, error: listError } = await supabase.storage.from('Facts').list();
+        if (listError) console.warn('Bucket list error (diagnostic):', listError);
+        else console.log('Bucket list (diagnostic):', listData);
+      } catch (diagErr) {
+        console.error('Diagnostics failed:', diagErr);
+      }
     })();
   </script>
 </body>
