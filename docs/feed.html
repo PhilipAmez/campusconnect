@@ -669,7 +669,7 @@
         progressText.textContent = '0%';
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('facts')
+          .from('Facts')
           .upload(fileName, file, {
             upsert: true,
             onUploadProgress: (progress) => {
@@ -687,7 +687,7 @@
         }
         progressContainer.style.display = 'none';
 
-        const { data: publicUrlData } = supabase.storage.from('facts').getPublicUrl(fileName);
+  const { data: publicUrlData } = supabase.storage.from('Facts').getPublicUrl(fileName);
         const videoUrl = publicUrlData.publicUrl;
         console.log('Uploaded video URL:', videoUrl);
 
@@ -796,7 +796,7 @@
               const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('facts').remove([videoPath]);
+                await supabase.storage.from('Facts').remove([videoPath]);
               }
               await supabase.from('facts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
@@ -828,7 +828,7 @@
               const { data: postData } = await supabase.from('facts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('facts').remove([videoPath]);
+                await supabase.storage.from('Facts').remove([videoPath]);
               }
               await supabase.from('facts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
