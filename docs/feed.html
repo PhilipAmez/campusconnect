@@ -702,56 +702,19 @@
 
       // Handle video upload/post
       async function handleVideoUpload(file) {
-        if (!file) {
-          alert('No file selected');
-          return;
-        }
-        if (!session.data.session) {
-          alert('Please log in to upload');
-          location = 'login.html';
-          return;
-        }
-        const maxSize = 50 * 1024 * 1024; // 50MB
-        if (file.size > maxSize) {
-          alert('File too large. Max 50MB.');
-          return;
-        }
-        const validTypes = ['video/mp4', 'video/webm'];
-        if (!validTypes.includes(file.type)) {
-          alert('Please upload an MP4 or WebM video');
-          return;
-        }
-        const fileExt = file.type.split('/')[1] || 'webm';
-        const fileName = `${Date.now()}.${fileExt}`;
-        console.log('Uploading:', fileName, 'Size:', file.size, 'Type:', file.type);
-
-        // Show progress bar
-        progressContainer.style.display = 'flex';
-        progressFill.style.width = '0%';
-        progressText.textContent = '0%';
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('Facts')
-          .upload(fileName, file, {
-            upsert: true,
-            onUploadProgress: (progress) => {
-              const percent = Math.round((progress.loaded / progress.total) * 100);
-              progressFill.style.width = `${percent}%`;
-              progressText.textContent = `${percent}%`;
-            }
-          });
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          alert('Upload failed: ' + uploadError.message);
-          progressContainer.style.display = 'none';
-          return;
-        }
-        progressContainer.style.display = 'none';
-
-  const { data: publicUrlData } = supabase.storage.from('Facts').getPublicUrl(fileName);
-        const videoUrl = publicUrlData.publicUrl;
-        console.log('Uploaded video URL:', videoUrl);
+        if (!file) return;
+        if (session.data.session) {
+          const fileExt = file.type.split('/')[1] || 'webm';
+          const fileName = `${Date.now()}.${fileExt}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('reels')
+            .upload(fileName, file, { upsert: true });
+          if (uploadError) {
+            alert('Upload failed: ' + uploadError.message);
+            return;
+          }
+          const { data: publicUrlData } = supabase.storage.from('reels').getPublicUrl(fileName);
+          const videoUrl = publicUrlData.publicUrl;
 
           const { error } = await supabase.from('posts').insert({
             author_id: user.id,
@@ -862,7 +825,7 @@
               const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('Facts').remove([videoPath]);
+                await supabase.storage.from('reels').remove([videoPath]);
               }
               await supabase.from('posts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
@@ -895,7 +858,7 @@
               const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
               if (postData?.video_url) {
                 const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('Facts').remove([videoPath]);
+                await supabase.storage.from('reels').remove([videoPath]);
               }
               await supabase.from('posts').delete().eq('id', p.id);
               reelsContainer.removeChild(div);
