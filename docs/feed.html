@@ -155,12 +155,12 @@
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
     will-change: transform;
     touch-action: pan-y;
-    loading: lazy;
   }
   html.light .post{ box-shadow:0 8px 28px rgba(2,6,23,0.06) }
 
   .post-inner{ width:100%; height:100%; border-radius:18px; overflow:hidden; position:relative; background:var(--card); }
-  .post video{ width:100%; height:100%; object-fit:cover; display:block; loading: lazy; }
+  /* removed invalid CSS `loading` property */
+  .post video{ width:100%; height:100%; object-fit:cover; display:block; }
 
   .play-overlay {
     position: absolute;
@@ -621,6 +621,21 @@ function attachLongPress(el, ms, cb){
       pointerId = e.pointerId;
       el.setPointerCapture?.(pointerId);
     }
+    /* small video load indicator (top-right) */
+    .video-indicator {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
+      transition: transform 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
+      opacity: 0.9;
+    }
+    .video-indicator.loading { background: #ffd54d; box-shadow: 0 0 8px 2px #ffd54d66; }
+    .video-indicator.loaded { background: #4ade80; box-shadow: 0 0 10px 3px #4ade8066; }
   };
   const cancel = (e) => {
     if(timer){ clearTimeout(timer); timer = null; }
@@ -661,7 +676,8 @@ function renderFeed(){
             <div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div>
           </div>
         ` : ''}
-        <video muted playsinline preload="metadata" loop src="${post.src}" ${post.paused ? 'paused' : ''}></video>
+  <video muted playsinline preload="none" loop data-src="${post.src}" ${post.paused ? 'paused' : ''}></video>
+    <div class="video-indicator" aria-hidden="true"></div>
         <div class="play-overlay">
           <div class="play-icon">▶</div>
         </div>
@@ -1157,6 +1173,46 @@ document.addEventListener('keydown', (e) => {
 });
 
 renderFeed();
+
+// Video lazy-loader: set video.src from data-src when the element becomes visible
+function initVideoLazyLoader() {
+  const videos = document.querySelectorAll('video[data-src]');
+  if (!videos.length) return;
+  if (!('IntersectionObserver' in window)) {
+    videos.forEach(v => { if (v.dataset.src) { v.src = v.dataset.src; v.load(); } });
+    return;
+  }
+  const io = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const v = entry.target;
+      if (v.dataset.src && !v.dataset.loaded) {
+        // show loading state
+        const indicator = v.closest('.post')?.querySelector('.video-indicator');
+        if (indicator) indicator.classList.add('loading');
+        v.src = v.dataset.src;
+        v.load();
+        v.dataset.loaded = '1';
+        // when video has enough data, mark as loaded
+        v.addEventListener('loadeddata', () => {
+          if (indicator) {
+            indicator.classList.remove('loading');
+            indicator.classList.add('loaded');
+          }
+        }, { once: true });
+      }
+      obs.unobserve(v);
+    });
+  }, { rootMargin: '200px 0px' });
+  videos.forEach(v => io.observe(v));
+}
+
+// Re-init after rendering feed content
+const origRenderFeed = renderFeed;
+renderFeed = function() { origRenderFeed(); initVideoLazyLoader(); };
+
+// Initial call
+initVideoLazyLoader();
 </script>
 </body>
 </html>
