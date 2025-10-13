@@ -25,16 +25,19 @@
       --ai-bg-dark: rgba(0, 102, 255, 0.15);
       --circle-bg-dark: rgba(255, 255, 255, 0.2);
       --placeholder-fade: rgba(0, 0, 0, 0.3);
+      --gloss-red: rgba(255,71,87,0.14);
+      --gloss-red-strong: rgba(255,71,87,0.28);
     }
     [data-theme="dark"] {
-      --glass-bg: rgba(20, 22, 28, 0.98);         /* Almost black, high opacity */
-      --text: #f1f1f1;                            /* Very light text */
-      --msg-bg: rgba(40, 42, 54, 0.98);           /* Dark message background */
-      --msg-hover: rgba(60, 62, 74, 1);           /* Slightly lighter for hover */
-      --ai-bg: rgba(0, 102, 255, 0.18);           /* Keep AI bg with more contrast */
-      --circle-bg: rgba(30, 32, 38, 0.98);        /* For buttons, etc. */
+      --glass-bg: rgba(20, 22, 28, 0.98);
+      --text: #f1f1f1;
+      --msg-bg: rgba(40, 42, 54, 0.98);
+      --msg-hover: rgba(60, 62, 74, 1);
+      --ai-bg: rgba(0, 102, 255, 0.18);
+      --circle-bg: rgba(30, 32, 38, 0.98);
       --placeholder-fade: rgba(200, 200, 200, 0.3);
-      
+      --gloss-red: rgba(255,71,87,0.12);
+      --gloss-red-strong: rgba(255,71,87,0.22);
     }
     [data-theme="light"] {
       --glass-bg: var(--glass-bg-light);
@@ -44,11 +47,7 @@
       --ai-bg: var(--ai-bg-light);
       --circle-bg: var(--glass-bg-light);
     }
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: var(--glass-bg);
       font-family: 'Arial', sans-serif;
@@ -68,7 +67,7 @@
       display: flex;
       flex-direction: column;
       gap: 1.4rem;
-      
+      position: relative;
     }
     .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list {
       background: var(--glass-bg);
@@ -80,16 +79,18 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
+      z-index: 4; /* ensure drawer slides underneath caption */
+      overflow: visible;
     }
     .chat-header h1 {
       font-size: 1.8rem;
       font-style: italic;
       cursor: pointer;
+      user-select: none;
+      display: inline-block;
     }
-    .header-actions {
-      display: flex;
-      gap: 0.8rem;
-    }
+    .header-actions { display: flex; gap: 0.8rem; }
     .chat-messages {
       flex: 1;
       padding: 2rem;
@@ -98,341 +99,164 @@
       flex-direction: column;
       gap: 1.5rem;
     }
-    .msg {
-      max-width: 70%;
-      padding: 1rem 1.5rem;
-      border-radius: 20px;
-      background: var(--msg-bg);
-      color: var(--text);
-      position: relative;
-      transition: background 0.3s ease;
-    }
-    .msg.sent {
-      align-self: flex-end;
-      background: linear-gradient(90deg, var(--accent), #50e3c2);
-      color: var(--text-light);
-    }
-    .msg.recv {
-      align-self: flex-start;
-      background: var(--msg-bg);
-    }
-    .msg.ai {
-      align-self: flex-start;
-      background: var(--ai-bg);
-      font-style: italic;
-    }
-    .msg:hover {
-      background: var(--msg-hover);
-    }
-    .sender-name {
-      font-size: 0.9rem;
-      font-style: italic;
-      opacity: 0.8;
-      margin-bottom: 0.3rem;
-      align-self: flex-start;
-    }
-    .timestamp {
-      font-size: 0.8rem;
-      opacity: 0.6;
-      margin-top: 0.4rem;
-      text-align: right;
-    }
-    .reply-banner {
-      font-size: 0.9rem;
-      margin-bottom: 0.5rem;
-      padding-left: 0.7rem;
-      border-left: 2px solid var(--accent);
-      opacity: 0.7;
-    }
-    .chat-input-area {
-      padding: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-      position: relative;
-    }
-    .message-bar {
-      flex: 1;
-      height: 45px;
-      border-radius: 20px;
-      background: var(--msg-bg);
-      color: var(--text);
-      font-size: 1rem;
-      cursor: text;
-      padding:  0 5.0rem 0 0.5rem;
-      padding-top: 7px;
-      outline: none;
-      resize: none;
-    }
-    .message-bar:empty:before {
-      content: attr(data-placeholder);
-      color: var(--placeholder-fade);
-      pointer-events: none;
-    }
-    .send-arrow {
-      position: absolute;
-      right: 3.5rem; /* Increased spacing */
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--circle-bg);
-      border: none;
-      border-radius: 50%;
-      width: 35px;
-      height: 35px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .send-arrow:hover {
-      transform: scale(1.1) translateY(-50%);
-    }
-    .audio-record {
-      position: absolute;
-      right: 0.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--circle-bg);
-      border: none;
-      border-radius: 50%;
-      margin-right: 10px;
-      width: 35px;
-      height: 35px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.3rem;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .audio-record:hover {
-      transform: scale(1.1) translateY(-50%);
-    }
-    .audio-record.active {
-      background: var(--accent);
-      color: var(--text-light);
-    }
-    .icon-btn {
-      background: var(--glass-bg);
-      border: none;
-      border-radius: 50%;
-      width: 35px;
-      height: 35px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.3rem;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .icon-btn:hover {
-      transform: scale(1.1);
-    }
-    .emoji-picker, .mention-list {
-      position: absolute;
-      bottom: calc(100% + 10px);
-      left: 0.5rem;
-      padding: 0.6rem;
-      border-radius: 12px;
+    .msg { max-width: 70%; padding: 1rem 1.5rem; border-radius: 20px; background: var(--msg-bg); color: var(--text); position: relative; transition: background 0.3s ease; }
+    .msg.sent { align-self: flex-end; background: linear-gradient(90deg, var(--accent), #50e3c2); color: var(--text-light); }
+    .msg.recv { align-self: flex-start; background: var(--msg-bg); }
+    .msg.ai { align-self: flex-start; background: var(--ai-bg); font-style: italic; }
+    .msg:hover { background: var(--msg-hover); }
+    .sender-name { font-size: 0.9rem; font-style: italic; opacity: 0.8; margin-bottom: 0.3rem; align-self: flex-start; }
+    .timestamp { font-size: 0.8rem; opacity: 0.6; margin-top: 0.4rem; text-align: right; }
+    .reply-banner { font-size: 0.9rem; margin-bottom: 0.5rem; padding-left: 0.7rem; border-left: 2px solid var(--accent); opacity: 0.7; }
+    .chat-input-area { padding: 0.5rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); position: relative; }
+    .message-bar { flex: 1; height: 45px; border-radius: 20px; background: var(--msg-bg); color: var(--text); font-size: 1rem; cursor: text; padding:  0 5.0rem 0 0.5rem; padding-top: 7px; outline: none; resize: none; }
+    .message-bar:empty:before { content: attr(data-placeholder); color: var(--placeholder-fade); pointer-events: none; }
+    .send-arrow { position: absolute; right: 3.5rem; top: 50%; transform: translateY(-50%); background: var(--circle-bg); border: none; border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s ease; }
+    .send-arrow:hover { transform: scale(1.1) translateY(-50%); }
+    .audio-record { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: var(--circle-bg); border: none; border-radius: 50%; margin-right: 10px; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; cursor: pointer; transition: transform 0.2s ease; }
+    .audio-record:hover { transform: scale(1.1) translateY(-50%); }
+    .audio-record.active { background: var(--accent); color: var(--text-light); }
+    .icon-btn { background: var(--glass-bg); border: none; border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; cursor: pointer; transition: transform 0.2s ease; }
+    .icon-btn:hover { transform: scale(1.1); }
+    .emoji-picker, .mention-list { position: absolute; bottom: calc(100% + 10px); left: 0.5rem; padding: 0.6rem; border-radius: 12px; display: none; flex-wrap: wrap; max-width: 280px; z-index: 10; background: var(--glass-bg); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+    .emoji-picker span, .mention-list div { margin: 0.3rem; padding: 0.4rem 0.6rem; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
+    .emoji-picker span:hover, .mention-list div:hover { background: var(--msg-hover); }
+
+    /* -------- NEW: Top sliding drawer (red gloss) -------- */
+    /* Backdrop that catches outside clicks and fades in/out */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: transparent;
+      z-index: 900;
       display: none;
-      flex-wrap: wrap;
-      max-width: 280px;
-      z-index: 10;
-      background: var(--glass-bg);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      pointer-events: none;
+      transition: background 0.25s ease;
     }
-    .emoji-picker span, .mention-list div {
-      margin: 0.3rem;
-      padding: 0.4rem 0.6rem;
-      font-size: 1.2rem;
-      border-radius: 6px;
-      cursor: pointer;
+    .drawer-backdrop.visible {
+      display: block;
+      pointer-events: auto;
+      background: rgba(0,0,0,0.22); /* subtle dim behind drawer */
+      animation: backdropFade 240ms ease forwards;
     }
-    .emoji-picker span:hover, .mention-list div:hover {
-      background: var(--msg-hover);
+    @keyframes backdropFade {
+      from { background: rgba(0,0,0,0); }
+      to   { background: rgba(0,0,0,0.22); }
     }
+
     .group-drawer {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 35%;
-      height: 100vh;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      transition: left 0.3s ease;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 0; /* will slide down from beneath header */
+      width: 90%;
+      max-width: 1200px;
+      height: 0;
+      overflow: hidden;
+      border-radius: 14px;
       z-index: 1000;
-      padding: 1rem;
-      overflow-y: auto;
-      color: var(--text);
-      visibility: visible;
-    }
-    .group-drawer.closed {
-      left: -35%;
-    }
-    .members-list {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
+      align-items: center;
+      justify-content: center;
+      transition: height 420ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease, transform 420ms cubic-bezier(.2,.9,.2,1);
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      /* glossy red background (subtle) */
+      background: linear-gradient(180deg, rgba(255,71,87,0.14) 0%, rgba(255,71,87,0.06) 60%), rgba(255,255,255,0.02);
+      backdrop-filter: blur(14px) saturate(1.05);
+      -webkit-backdrop-filter: blur(14px) saturate(1.05);
+      padding: 18px;
+      gap: 12px;
     }
-    .member-item {
-      padding: 0.5rem;
-      background: var(--msg-bg);
-      border-radius: 8px;
+    /* Open state: slide down to occupy roughly half the chat area (adjustable) */
+    .group-drawer.open {
+      height: 50vh; /* slides down to halfway */
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(8px);
+    }
+
+    /* member grid centered and spacious, NO divider lines */
+    .members-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 14px;
+      width: 100%;
+      align-items: center;
+      justify-items: center;
+      padding: 8px 6px;
+    }
+    .member-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 220px;
+      background: rgba(255,255,255,0.03);
+      cursor: default;
+    }
+    .member-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      border: 2px solid rgba(255,255,255,0.06);
+    }
+    .member-name {
+      font-size: 0.95rem;
+      text-align: center;
+      line-height: 1.1;
+      color: var(--text);
+      word-break: break-word;
+      padding: 0 6px;
+    }
+    .member-role {
+      font-size: 0.78rem;
+      opacity: 0.75;
     }
     .leave-btn {
-      width: 100%;
+      width: 220px;
       padding: 0.8rem;
-      background: rgba(255, 71, 87, 0.15);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 71, 87, 0.3);
-      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,71,87,0.28), rgba(255,71,87,0.16));
+      border: none;
+      border-radius: 12px;
       color: white;
-      font-weight: bold;
+      font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
-      position: relative;
-      overflow: hidden;
+      margin-top: 6px;
+      box-shadow: 0 6px 18px rgba(255,71,87,0.12);
     }
-    .leave-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      transition: left 0.5s;
-    }
-    .leave-btn:hover::before {
-      left: 100%;
-    }
-    .ripple {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      transform: scale(0);
-      animation: ripple-animation 0.6s linear;
-      pointer-events: none;
-    }
-    @keyframes ripple-animation {
-      to {
-        transform: scale(4);
-        opacity: 0;
-      }
-    }
-    body[data-theme="dark"] ::-webkit-scrollbar {
-  background: #181920;
-}
-body[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #23242b;
-}
-[data-theme="dark"] .chat-header,
-[data-theme="dark"] .chat-messages,
-[data-theme="dark"] .chat-input-area,
-[data-theme="dark"] .emoji-picker,
-[data-theme="dark"] .mention-list {
-  border: 1px solid #23242b;
-}
+    .leave-btn:active { transform: translateY(1px); }
+    /* Remove any divider look */
+    .group-drawer, .members-grid, .member-card { border: none; }
+
+    /* small screens: full width, slightly taller */
     @media (max-width: 768px) {
-      .chat-arena {
-        width: 95%;
-        height: 92vh;
-        padding: 0 5px;
-      }
-      .chat-header {
-        font-size: 1.5rem;
-        padding: 1rem;
-      }
-      .chat-messages {
-        padding: 1rem;
-        gap: 1rem;
-      }
-      .msg {
-        max-width: 80%;
-        padding: 0.8rem 1rem;
-      }
-      .chat-input-area {
-        padding: 0.5rem;
-        gap: 0.5rem;
-      }
-      .message-bar {
-        height: 40px;
-      }
-      .send-arrow {
-        right: 3.5rem; /* Increased spacing */
-        width: 35px;
-        height: 35px;
-        font-size: 1.2rem;
-      }
-      .audio-record {
-        right: 0.5rem;
-        width: 35px;
-        height: 35px;
-        font-size: 1.3rem;
-      }
-      .icon-btn {
-        width: 35px;
-        height: 35px;
-        font-size: 1.3rem;
-      }
-      .header-actions {
-        margin-left: auto;
-      }
-      .chat-header {
-        flex-wrap: wrap;
-      }
-      .chat-header h1 {
-        flex: 1;
-      }
-      .group-drawer {
-        width: 50%;
-      }
-      .group-drawer.closed {
-        left: -50%;
-      }
+      .group-drawer { width: 96%; max-width: 760px; }
+      .group-drawer.open { height: 58vh; }
+      .members-grid { gap: 10px; }
+      .member-card { max-width: 180px; }
+      .leave-btn { width: 80%; max-width: 320px; }
     }
-    @media (max-width: 320px) {
-      .chat-arena {
-        width: 100%;
-        padding: 0 2px;
-      }
-      .chat-header {
-        padding: 0.5rem;
-        font-size: 1.2rem;
-      }
-      .header-actions {
-        gap: 0.5rem;
-      }
-      .chat-input-area {
-        padding: 0.3rem;
-        gap: 0.3rem;
-      }
-      .message-bar {
-        height: 36px;
-        padding: 0 0.3rem;
-      }
-      .send-arrow {
-        right: 2.5rem; /* Adjusted spacing for smaller screens */
-        width: 30px;
-        height: 30px;
-        font-size: 1.1rem;
-      }
-      .audio-record {
-        right: 0.3rem;
-        width: 30px;
-        height: 30px;
-        font-size: 1.2rem;
-      }
-      .icon-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 1.2rem;
-      }
+    @media (max-width: 420px) {
+      .group-drawer.open { height: 62vh; }
+      .member-avatar { width: 56px; height: 56px; }
     }
+
+    /* ripple (reused) */
+    .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3); transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
+    @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
+
+    /* scrollbars */
+    body[data-theme="dark"] ::-webkit-scrollbar { background: #181920; }
+    body[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #23242b; }
+    [data-theme="dark"] .chat-header, [data-theme="dark"] .chat-messages, [data-theme="dark"] .chat-input-area, [data-theme="dark"] .emoji-picker, [data-theme="dark"] .mention-list { border: 1px solid #23242b; }
+
   </style>
 </head>
 <body>
@@ -445,7 +269,9 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
         <button class="icon-btn" id="themeToggleButton">🌙</button>
       </div>
     </div>
+
     <div class="chat-messages" id="messagePanel"></div>
+
     <div class="chat-input-area">
       <button class="icon-btn" id="emojiButton">😄</button>
       <button class="icon-btn" id="fileShareButton"><i class="fas fa-paperclip"></i></button>
@@ -457,8 +283,13 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       <div class="reply-context" id="replyContextBox"></div>
     </div>
   </div>
-  <div class="group-drawer" id="groupDrawer">
-    <div class="members-list" id="membersList"></div>
+
+  <!-- Backdrop (catches outside taps) -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <!-- Top sliding drawer (reworked) -->
+  <div class="group-drawer" id="groupDrawer" aria-hidden="true" role="dialog" aria-label="Group members">
+    <div class="members-grid" id="membersList"></div>
     <button class="leave-btn" id="leaveGroupBtn">Leave Group</button>
   </div>
 
@@ -489,6 +320,7 @@ const body = document.body;
 const groupDrawer = document.getElementById('groupDrawer');
 const membersList = document.getElementById('membersList');
 const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
 let memberDetails = [];
 let isMember = false;
 
@@ -511,6 +343,7 @@ const { data: memberData } = await supabase
   .select(`
     user_id,
     users (
+      id,
       user_metadata
     )
   `)
@@ -518,29 +351,81 @@ const { data: memberData } = await supabase
 memberDetails = memberData || [];
 isMember = memberDetails.some(m => m.user_id === user.id);
 
-// Group title click
-groupTitle.onclick = () => {
-  renderMembers();
-  groupDrawer.classList.toggle('closed');
-};
+// ---------- Drawer behaviour ----------
 
-// Render members
+// render members into the drawer; avatars & names centered, no divider lines
 function renderMembers() {
   membersList.innerHTML = '';
+  if (!memberDetails || memberDetails.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'member-card';
+    empty.innerHTML = `<div class="member-name">No members yet</div>`;
+    membersList.appendChild(empty);
+    return;
+  }
+
   memberDetails.forEach(member => {
-    const item = document.createElement('div');
-    item.className = 'member-item';
-    item.textContent = member.users.user_metadata.full_name || 'Unknown';
-    membersList.append(item);
+    const meta = (member.users && member.users.user_metadata) || {};
+    const name = meta.full_name || meta.firstName || `User ${member.user_id.substring(0,6)}`;
+    const avatarUrl = meta.avatar_url || meta.picture || meta.avatar || '/default-avatar.png';
+
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    const img = document.createElement('img');
+    img.className = 'member-avatar';
+    img.src = avatarUrl;
+    img.alt = name;
+    img.onerror = () => { img.src = '/default-avatar.png'; };
+    const nm = document.createElement('div');
+    nm.className = 'member-name';
+    nm.textContent = name;
+    card.appendChild(img);
+    card.appendChild(nm);
+    membersList.appendChild(card);
   });
 }
 
-// Leave group with ripple
+// Toggle drawer open/close with smooth fade + slide
+function openDrawer() {
+  renderMembers();
+  groupDrawer.classList.add('open');
+  groupDrawer.setAttribute('aria-hidden', 'false');
+  drawerBackdrop.classList.add('visible');
+}
+function closeDrawer() {
+  groupDrawer.classList.remove('open');
+  groupDrawer.setAttribute('aria-hidden', 'true');
+  drawerBackdrop.classList.remove('visible');
+}
+
+// Toggle on group title click — re-tap closes
+groupTitle.addEventListener('click', (e) => {
+  e.stopPropagation(); // prevent immediate outside-close
+  if (groupDrawer.classList.contains('open')) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
+});
+
+// Backdrop click closes drawer
+drawerBackdrop.addEventListener('click', () => closeDrawer());
+
+// Also close when pressing ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && groupDrawer.classList.contains('open')) closeDrawer();
+});
+
+// When resizing, keep drawer width/placement fine (no extra actions needed)
+
+// ---------- Leave group with ripple ----------
+
 leaveGroupBtn.onclick = async (e) => {
   createRipple(e);
+  // confirmation
   if (confirm('Leave group?')) {
     await supabase.from('group_members').delete().eq('group_id', gid).eq('user_id', user.id);
-    groupDrawer.classList.add('closed');
+    closeDrawer();
     location.reload();
   }
 };
@@ -552,8 +437,8 @@ function createRipple(event) {
   const radius = diameter / 2;
 
   circle.style.width = circle.style.height = `${diameter}px`;
-  circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
-  circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
+  circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+  circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
   circle.classList.add('ripple');
 
   const ripple = button.getElementsByClassName('ripple')[0];
@@ -562,17 +447,18 @@ function createRipple(event) {
   button.appendChild(circle);
 }
 
-// Close drawer on outside click
+// ---------- Clicks outside drawer: keep normal handlers intact ----------
 document.addEventListener('click', (e) => {
-  if (groupDrawer.classList.contains('open') && !groupTitle.contains(e.target) && !groupDrawer.contains(e.target)) {
-    groupDrawer.classList.add('closed');
+  // if drawer open and click not on groupDrawer or groupTitle, close it
+  if (groupDrawer.classList.contains('open') && !groupDrawer.contains(e.target) && !groupTitle.contains(e.target)) {
+    closeDrawer();
   }
 });
 
-// Render messages
+// ---------- Messages rendering & history (unchanged but adapted) ----------
 function render(m) {
   const mine = m.sender_id === user.id;
-  const senderName = mine ? user.user_metadata.firstName : m.sender_name || 'Unknown';
+  const senderName = mine ? (user.user_metadata.firstName || user.user_metadata.full_name || 'You') : m.sender_name || 'Unknown';
   const div = document.createElement('div');
   div.className = `msg ${mine ? 'sent' : m.role === 'ai' ? 'ai' : 'recv'}`;
   div.dataset.id = m.id;
@@ -618,7 +504,8 @@ supabase.channel(`grp_${gid}`)
   .subscribe();
 
 // Emoji and mention handling
-emojiButton.onclick = () => {
+emojiButton.onclick = (e) => {
+  e.stopPropagation();
   emojiPickerBox.style.display = emojiPickerBox.style.display === 'flex' ? 'none' : 'flex';
   mentionListBox.style.display = 'none';
 };
@@ -634,10 +521,10 @@ emojiPickerBox.onclick = (e) => {
     sendMessageButton.focus();
   }
 };
-messageBar.oninput = () => {
+messageBar.addEventListener('input', () => {
   const i = messageBar.value.lastIndexOf('@');
   mentionListBox.style.display = i >= 0 ? 'flex' : 'none';
-};
+});
 mentionListBox.onclick = (e) => {
   if (e.target.matches('div')) {
     const i = messageBar.value.lastIndexOf('@');
@@ -742,6 +629,6 @@ function startReply(msg) {
   replyContextBox.style.display = 'block';
 }
 replyContextBox.onclick = () => { replyingMsg = null; replyContextBox.style.display = 'none'; };
-</script>
+  </script>
 </body>
 </html>
