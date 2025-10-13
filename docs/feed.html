@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Skrolz </title>
+<title>Skrolz — Single File Build</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -15,6 +15,7 @@
     --accent:#6a40ff;
     --glass: rgba(255,255,255,0.05);
     --transition: 320ms cubic-bezier(.2,.9,.3,1);
+    --blue-aqua: #7bdff6;
   }
   html.light{
     --bg:#f6f7fa;
@@ -24,6 +25,12 @@
   }
 
   *{box-sizing:border-box}
+  html, body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; } /* Chrome, Safari, Opera */
+
   body{
     margin:0;
     font-family:'Poppins',sans-serif;
@@ -32,7 +39,8 @@
     -webkit-font-smoothing:antialiased;
     transition: background var(--transition), color var(--transition);
     min-height:100vh;
-    overflow:auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   /* HEADER */
@@ -44,16 +52,100 @@
     border-bottom:1px solid rgba(255,255,255,0.03);
     transition: background var(--transition), color var(--transition), transform 220ms ease;
     user-select:none;
-    touch-action: none; /* we'll handle pointer gestures */
+    touch-action: none;
   }
   html.light header{ background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.85)); border-bottom:1px solid rgba(0,0,0,0.06); color:#111; }
-  .header-inner{ text-align:center; pointer-events:none }
+  .header-inner{ text-align:center; pointer-events:none; width: 100%; max-width: 360px; }
   .header-title{ font-weight:700; font-size:18px; letter-spacing:0.3px }
   .header-hint{ position:absolute; right:14px; font-size:13px; opacity:0.75; pointer-events:none }
+
+  /* SEARCH BAR */
+  #searchBar {
+    position: absolute;
+    left: 14px;
+    width: 200px;
+    max-width: calc(100% - 60px);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: none;
+    background: var(--glass);
+    color: inherit;
+    font-size: 14px;
+    backdrop-filter: blur(8px);
+    transition: width 0.3s ease, opacity 0.3s ease;
+  }
+  html.light #searchBar { background: rgba(0,0,0,0.04); }
+  #searchBar:focus { outline: none; width: 240px; }
+  #searchBar::placeholder { color: var(--muted); }
 
   /* FEED */
   main#feed{
     padding:20px; display:flex; flex-direction:column; align-items:center; gap:28px; padding-bottom:120px;
+    position: relative;
+    overflow-y: auto;
+    height: calc(100vh - 64px);
+  }
+  #feedContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    width: 100%;
+    transition: transform var(--transition);
+    will-change: transform;
+  }
+
+  #pullIndicator {
+    position: fixed;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    width: 360px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass);
+    border-radius: 18px 18px 0 0;
+    transition: opacity 0.2s, transform 0.3s;
+    opacity: 0;
+    z-index: 50;
+    pointer-events: none;
+  }
+  html.light #pullIndicator {
+    background: rgba(0,0,0,0.03);
+  }
+  #pullIndicator > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #pullText {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  #pullIcon.refreshing {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width:420px){
+    #pullIndicator { width: 92vw; }
+    #searchBar { left: 6px; width: calc(100% - 40px); }
+    #searchBar:focus { width: calc(100% - 40px); }
+  }
+
+  /* LOADING */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    font-size: 14px;
+    color: var(--muted);
   }
 
   /* CARD / POST */
@@ -61,11 +153,61 @@
     width:360px; height:640px; border-radius:18px; overflow:visible; position:relative;
     background:var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.55);
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+    will-change: transform;
+    touch-action: pan-y;
+    loading: lazy;
   }
   html.light .post{ box-shadow:0 8px 28px rgba(2,6,23,0.06) }
 
   .post-inner{ width:100%; height:100%; border-radius:18px; overflow:hidden; position:relative; background:var(--card); }
-  .post video{ width:100%; height:100%; object-fit:cover; display:block; }
+  .post video{ width:100%; height:100%; object-fit:cover; display:block; loading: lazy; }
+
+  .play-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .post.paused .play-overlay { opacity: 1; pointer-events: auto; }
+  .play-icon { 
+    width: 80px; 
+    height: 80px; 
+    border-radius: 50%; 
+    background: var(--blue-aqua); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 32px; 
+    color: white; 
+    opacity: 0.9;
+    box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4);
+  }
+
+  /* Progress bar for uploading */
+  .upload-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: rgba(0,0,0,0.3);
+    overflow: hidden;
+    z-index: 15;
+  }
+  .upload-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2));
+    width: 0%;
+    transition: width 100ms linear;
+  }
 
   /* overlay + caption */
   .overlay{
@@ -83,13 +225,32 @@
   }
   .btn{
     width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
-    background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); color:#fff; font-size:18px; transition: transform 160ms ease, background 160ms;
+    background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); color:#fff; font-size:18px; transition: transform 160ms ease, background 160ms, color 160ms;
   }
   .btn:active{ transform:scale(.96) }
   html.light .btn{ color:#111; background: rgba(0,0,0,0.04) }
 
+  /* Blue aqua like button when liked */
+  .like-btn.liked {
+    background: linear-gradient(135deg, var(--blue-aqua), #2fb3ff);
+    color: white;
+    box-shadow: 0 0 12px rgba(123, 223, 246, 0.4);
+  }
+  .like-btn.liked::before {
+    content: '♥';
+    position: absolute;
+    font-size: 18px;
+    color: white;
+  }
+
   .like-wrap{ display:flex; flex-direction:column; align-items:center; gap:6px }
   .like-count{ font-size:12px; color:var(--muted); user-select:none }
+
+  /* Delete button for owner */
+  .delete-btn {
+    background: rgba(255, 50, 50, 0.2);
+    color: #ff6b6b;
+  }
 
   /* comment drawer (per-post, anchored inside post) */
   .drawer {
@@ -105,7 +266,6 @@
   .drawer.open{ height:42%; pointer-events:auto; }
 
   .drawer-inner{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; padding:12px 12px 8px 12px; gap:10px; box-sizing:border-box; overflow:auto; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; }
-  /* hide scrollbar */
   .drawer-inner::-webkit-scrollbar{ display:none }
   .drawer-inner{ -ms-overflow-style:none; scrollbar-width:none }
 
@@ -126,7 +286,7 @@
   html.light .comment-input input{ background: rgba(0,0,0,0.04); color:#111 }
   .send-small{ padding:8px 12px; border-radius:10px; border:none; background:var(--accent); color:#fff; font-weight:600; cursor:pointer }
 
-  /* centered heart animation (liquid fill) */
+  /* Per-post heart animation */
   .heart-hit{ position:absolute; pointer-events:none; width:120px; height:120px; left:50%; top:50%; transform:translate(-50%,-50%); z-index:30; opacity:0; transition: opacity 120ms linear; }
   .heart-hit.show{ opacity:1; animation: heart-pop 420ms cubic-bezier(.2,.85,.25,1); }
 
@@ -142,6 +302,73 @@
     background: linear-gradient(135deg,var(--accent), #b473ff); color:#fff; box-shadow:0 14px 40px rgba(100,40,255,0.12); transition: transform 180ms ease; }
   .fab:active{ transform:scale(.98) }
 
+  /* RECORD MODAL */
+  #recordModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 70;
+  }
+  #recordModal.show { display: flex; }
+  .record-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  #videoPreview {
+    width: 100%;
+    height: calc(100% - 100px);
+    object-fit: cover;
+    background: black;
+  }
+  .record-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .record-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--blue-aqua);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4);
+    transition: transform 0.2s;
+  }
+  .record-btn.recording {
+    background: #ff4757;
+    transform: scale(1.1);
+  }
+  .record-btn:active { transform: scale(0.95); }
+  .close-record {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  /* Smooth swipe transitions */
+  .post.swiping { transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important; }
+
   /* responsive */
   @media (max-width:420px){
     .post{ width:92vw; height:82vh; border-radius:12px }
@@ -149,7 +376,6 @@
     .drawer.open{ height:46% }
   }
 
-  /* small utility */
   .muted{ color:var(--muted); font-size:13px }
   .center { display:flex; align-items:center; justify-content:center }
 </style>
@@ -157,6 +383,7 @@
 <body>
   <header id="header" aria-hidden="false">
     <div class="header-inner">
+      <input type="text" id="searchBar" placeholder="Search posts..." />
       <div class="header-title">Skrolz</div>
       <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
@@ -166,273 +393,225 @@
 
   <button class="fab" id="fab">＋</button>
 
-  <!-- heart animation element (reused) -->
-  <div id="heartHit" class="heart-hit" aria-hidden="true">
-    <svg viewBox="0 0 100 100" width="120" height="120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <clipPath id="heartClip2">
-          <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"/>
-        </clipPath>
-        <linearGradient id="blueGrad" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stop-color="#7bdff6"/>
-          <stop offset="100%" stop-color="#2fb3ff"/>
-        </linearGradient>
-      </defs>
-
-      <!-- outline -->
-      <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"
-            fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-
-      <g clip-path="url(#heartClip2)">
-        <rect id="waterRect2" x="0" y="100" width="100" height="100" fill="url(#blueGrad)"></rect>
-      </g>
-
-      <g clip-path="url(#heartClip2)">
-        <path id="wave2" d="M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z" fill="#ffffff30"></path>
-      </g>
-    </svg>
+  <!-- Record Modal -->
+  <div id="recordModal">
+    <div class="record-container">
+      <button class="close-record" id="closeRecord">×</button>
+      <video id="videoPreview" autoplay playsinline muted></video>
+      <div class="record-controls">
+        <button class="record-btn" id="recordBtnModal">⏺</button>
+      </div>
+    </div>
   </div>
 
 <script>
-/* ---------------- SAMPLE POSTS (replace with real data or Supabase later) ---------------- */
-let posts = [
-  { id:'p1', user:'@charles_fx', caption:'Trust the process 💯🔥', src:'short1.mp4', likes:124, comments:['@user01: This is fire 🔥'] },
-  { id:'p2', user:'@peerloom', caption:'Campus vibes 👏📚', src:'short2.mp4', likes:67, comments:['@student23: PeerLoom looks mad clean 😍'] },
-  { id:'p3', user:'@ryke', caption:'Level up every week ⏫', src:'short3.mp4', likes:21, comments:[] }
+/* SAMPLE POSTS - More for infinite scroll demo */
+let allPosts = [
+  { id:'p1', user:'@charles_fx', caption:'Trust the process 💯🔥', src:'short1.mp4', likes:124, comments:['@user01: This is fire 🔥'], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p2', user:'@peerloom', caption:'Campus vibes 👏📚', src:'short2.mp4', likes:67, comments:['@student23: PeerLoom looks mad clean 😍'], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p3', user:'@ryke', caption:'Level up every week ⏫', src:'short3.mp4', likes:21, comments:[], liked: false, uploading: false, owner: true, paused: false },
+  { id:'p4', user:'@vibesonly', caption:'Sunset magic ✨', src:'short1.mp4', likes:89, comments:[], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p5', user:'@dancequeen', caption:'Groove time! 💃', src:'short2.mp4', likes:156, comments:['@fan1: Slay!'], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p6', user:'@foodie', caption:'Tasty bites 🍕', src:'short3.mp4', likes:45, comments:[], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p7', user:'@adventure', caption:'Mountain views 🏔️', src:'short1.mp4', likes:203, comments:[], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p8', user:'@musiclover', caption:'Beat drop 🎶', src:'short2.mp4', likes:78, comments:[], liked: false, uploading: false, owner: false, paused: false },
+  { id:'p9', user:'@you', caption:'My first post! 😊', src:'short3.mp4', likes:0, comments:[], liked: false, uploading: false, owner: true, paused: false }
 ];
+let posts = [...allPosts];
+let currentIndex = 9;
+let loadingMore = false;
+let searchQuery = '';
 
 const feed = document.getElementById('feed');
-const heartHit = document.getElementById('heartHit');
+let feedContent;
+let pulling = false;
+let startY = 0;
+let translateY = 0;
+const refreshThreshold = 100;
 
-/* RENDER POSTS */
-function renderFeed(){
-  feed.innerHTML = '';
-  posts.forEach(post => {
-    const postEl = document.createElement('article');
-    postEl.className = 'post';
-    postEl.dataset.id = post.id;
-    postEl.innerHTML = `
-      <div class="post-inner">
-        <video muted playsinline preload="metadata" loop src="${post.src}"></video>
+/* SEARCH */
+const searchBar = document.getElementById('searchBar');
+searchBar.addEventListener('input', debounce((e) => {
+  searchQuery = e.target.value.toLowerCase();
+  filterPosts();
+  renderFeed();
+}, 300));
 
-        <div class="overlay">
-          <h3>${post.user}</h3>
-          <p>${post.caption}</p>
-        </div>
-
-        <div class="icons">
-          <div class="like-wrap">
-            <button class="btn like-btn" title="Like">♡</button>
-            <div class="like-count">${post.likes}</div>
-          </div>
-          <button class="btn comment-open" title="Comments">💬</button>
-          <button class="btn share-btn" title="Share">↗️</button>
-        </div>
-
-        <!-- drawer scoped to post -->
-        <div class="drawer" aria-hidden="true">
-          <div class="drawer-inner">
-            <div class="drawer-handle"></div>
-            <div class="muted small center" style="margin-top:4px;">Comments</div>
-            <div class="comments-list" aria-live="polite"></div>
-            <div class="drawer-footer">
-              <div class="comment-input">
-                <input placeholder="Write your comment..." />
-              </div>
-              <button class="send-small">Send</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    `;
-    feed.appendChild(postEl);
-
-    // attach behavior
-    attachPostBehavior(postEl, post);
-  });
-
-  // observe videos for autoplay
-  observeVideos();
+function filterPosts() {
+  if (!searchQuery) {
+    posts = [...allPosts];
+  } else {
+    posts = allPosts.filter(post => 
+      post.user.toLowerCase().includes(searchQuery) || 
+      post.caption.toLowerCase().includes(searchQuery)
+    );
+  }
 }
 
-/* AUTOPLAY OBSERVER */
-let io;
-function observeVideos(){
-  if(io) io.disconnect();
-  io = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      const vid = entry.target;
-      if(entry.isIntersecting && entry.intersectionRatio >= 0.7){
-        vid.play().catch(()=>{});
-      } else {
-        vid.pause();
-      }
-    });
-  }, { threshold: [0.7] });
-
-  document.querySelectorAll('.post video').forEach(v => io.observe(v));
+/* DEBOUNCE */
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
-/* POST BEHAVIOR: comments, likes, double-tap, drawer anchor inside post */
-function attachPostBehavior(postEl, postData){
-  const video = postEl.querySelector('video');
-  const likeBtn = postEl.querySelector('.like-btn');
-  const likeCountEl = postEl.querySelector('.like-count');
-  const commentOpen = postEl.querySelector('.comment-open');
-  const drawer = postEl.querySelector('.drawer');
-  const drawerInner = postEl.querySelector('.drawer-inner');
-  const commentsList = postEl.querySelector('.comments-list');
-  const drawerHandle = postEl.querySelector('.drawer-handle');
-  const commentsHeader = postEl.querySelector('.muted.small.center');
-  const commentInputWrap = postEl.querySelector('.comment-input');
-  const commentInput = commentInputWrap.querySelector('input');
-  const sendBtn = postEl.querySelector('.send-small');
+/* INFINITE SCROLL */
+function handleScroll() {
+  if (loadingMore || searchQuery) return;
+  const { scrollTop, scrollHeight, clientHeight } = feed;
+  if (scrollTop + clientHeight >= scrollHeight - 200) {
+    loadMorePosts();
+  }
+}
 
-  // populate comments list
-  function refreshComments(){
-    commentsList.innerHTML = '';
-    (postData.comments || []).forEach((c, idx) => {
-      const d = document.createElement('div');
-      d.className = 'comment';
-      d.textContent = c;
-      d.dataset.index = idx;
-      commentsList.appendChild(d);
+feed.addEventListener('scroll', debounce(handleScroll, 100));
 
-      // long-press to reply
-      attachLongPress(d, 2000, () => {
-        // show input prefilled with reply tag
-        commentInputWrap.classList.add('active');
-        commentInput.value = `@reply_to: `; // dev can adapt
-        commentInput.focus();
-        // set reply target
-        commentInput.dataset.replyTo = c.split(':')[0] || '';
-      });
+async function loadMorePosts() {
+  if (loadingMore) return;
+  loadingMore = true;
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  const newPosts = [];
+  for (let i = 0; i < 3; i++) {
+    currentIndex++;
+    newPosts.push({
+      id: `p${currentIndex}`,
+      user: `@user${currentIndex}`,
+      caption: `Awesome content #${currentIndex} 🚀`,
+      src: `short${currentIndex % 3 + 1}.mp4`,
+      likes: Math.floor(Math.random() * 100),
+      comments: [],
+      liked: false,
+      uploading: false,
+      owner: false,
+      paused: false
     });
   }
-  refreshComments();
-
-  // open drawer anchored in post
-  commentOpen.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    openDrawer();
-  });
-
-  function openDrawer(){
-    // close other drawers
-    document.querySelectorAll('.drawer.open').forEach(d => { if(d !== drawer) d.classList.remove('open'); d.parentElement.parentElement.setAttribute('aria-hidden','true'); });
-    drawer.classList.add('open');
-    drawer.setAttribute('aria-hidden','false');
-    // hide default input until long press
-    commentInputWrap.classList.remove('active');
-    commentInput.value = '';
-    // scroll comments list to middle (centered-ish)
-    setTimeout(()=> drawerInner.scrollTop = 9999, 80);
-  }
-
-  function closeDrawer(){
-    drawer.classList.remove('open');
-    drawer.setAttribute('aria-hidden','true');
-    commentInputWrap.classList.remove('active');
-    commentInput.value = '';
-  }
-
-  // long-press on drawer header (the "Comments" text) to show comment input
-  attachLongPress(commentsHeader, 2000, () => {
-    commentInputWrap.classList.add('active');
-    commentInput.value = '';
-    commentInput.focus();
-  });
-
-  // long-press on handle to toggle (also allow drag)
-  attachLongPress(drawerHandle, 2000, ()=> {
-    if(drawer.classList.contains('open')) closeDrawer();
-    else openDrawer();
-  });
-
-  // clicking outside drawer inside post will close drawer
-  postEl.addEventListener('click', (e)=>{
-    // if click is not within drawer and drawer is open, close
-    if(drawer.classList.contains('open') && !e.target.closest('.drawer')) closeDrawer();
-  });
-
-  // send comment (only allowed if input active)
-  sendBtn.addEventListener('click', ()=>{
-    if(!commentInputWrap.classList.contains('active')) return;
-    const val = commentInput.value.trim();
-    if(!val) return;
-    const newC = `@you: ${val}`;
-    postData.comments = postData.comments || [];
-    postData.comments.push(newC);
-    refreshComments();
-    commentInput.value = '';
-    // optionally close after send:
-    // closeDrawer();
-  });
-
-  // like logic: like button increments; double-tap on video increments + show heart
-  likeBtn.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    postData.likes = (postData.likes || 0) + 1;
-    likeCountEl.textContent = postData.likes;
-    showHeartForPost(postEl);
-  });
-
-  // double-tap detection (pointer)
-  let lastTap = 0;
-  postEl.addEventListener('pointerup', (ev) => {
-    const now = Date.now();
-    if(now - lastTap < 300){
-      // double-tap
-      postData.likes = (postData.likes || 0) + 1;
-      likeCountEl.textContent = postData.likes;
-      showHeartForPost(postEl);
-    }
-    lastTap = now;
-  });
-
-  // ensure drawer touch scroll is smooth (no scrollbar shown)
-  // (CSS handles hiding scrollbar; -webkit-overflow-scrolling: touch helps)
+  
+  allPosts.push(...newPosts);
+  posts.push(...newPosts);
+  renderFeed();
+  loadingMore = false;
 }
 
-/* show heart animation centered on post element */
-function showHeartForPost(postEl){
-  const rect = postEl.getBoundingClientRect();
-  const pageX = rect.left + rect.width / 2;
-  const pageY = rect.top + rect.height / 2;
-  heartHit.style.left = pageX + 'px';
-  heartHit.style.top = pageY + 'px';
+/* PULL-TO-REFRESH */
+function updateRefreshIndicator(dist) {
+  const indicator = document.getElementById('pullIndicator');
+  const icon = document.getElementById('pullIcon');
+  const text = document.getElementById('pullText');
 
-  // reset water pos
-  const water = document.getElementById('waterRect2');
-  const wave = document.getElementById('wave2');
-  water.setAttribute('y', 100);
-  wave.setAttribute('d', 'M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z');
-
-  heartHit.classList.remove('show');
-  // force reflow
-  void heartHit.offsetWidth;
-  heartHit.classList.add('show');
-
-  // animate water upward
-  let start = null; const duration = 700;
-  function step(ts){
-    if(!start) start = ts;
-    const t = Math.min(1, (ts - start)/duration);
-    const y = 100 - 110 * t;
-    water.setAttribute('y', y);
-    const waveY = 80 - 30 * t;
-    wave.setAttribute('d', `M0 ${waveY} Q20 ${waveY-10} 40 ${waveY} T80 ${waveY} T120 ${waveY} V120 H0 Z`);
-    if(t < 1) requestAnimationFrame(step);
+  if (dist < 10) {
+    indicator.style.opacity = '0';
+    indicator.style.transform = 'translateX(-50%) translateY(-100%)';
+    return;
   }
-  requestAnimationFrame(step);
 
-  setTimeout(()=> heartHit.classList.remove('show'), 1100);
+  indicator.style.opacity = '1';
+  indicator.style.transform = 'translateX(-50%) translateY(0px)';
+
+  if (dist > refreshThreshold) {
+    icon.textContent = '○';
+    text.textContent = 'Release to refresh';
+  } else {
+    icon.textContent = '⬇';
+    text.textContent = 'Pull to refresh';
+  }
 }
 
-/* LONG PRESS HELPER
-   element, ms, callback
-*/
+function resetPull() {
+  feedContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+  feedContent.style.transform = 'translateY(0px)';
+  updateRefreshIndicator(0);
+  feedContent.style.willChange = 'auto';
+}
+
+function refreshContent() {
+  const indicator = document.getElementById('pullIndicator');
+  const icon = document.getElementById('pullIcon');
+  const text = document.getElementById('pullText');
+
+  icon.textContent = '🔄';
+  icon.classList.add('refreshing');
+  text.textContent = 'Refreshing...';
+
+  setTimeout(() => {
+    // Reset and add new post at top
+    currentIndex++;
+    const newPost = {
+      id: `p${currentIndex}`,
+      user: '@fresh',
+      caption: 'New content just dropped! 🌟',
+      src: 'short1.mp4',
+      likes: Math.floor(Math.random() * 50),
+      comments: [],
+      liked: false,
+      uploading: false,
+      owner: false,
+      paused: false
+    };
+    allPosts.unshift(newPost);
+    filterPosts();
+    renderFeed();
+
+    icon.classList.remove('refreshing');
+    icon.textContent = '✅';
+    text.textContent = 'Updated!';
+
+    setTimeout(() => {
+      indicator.style.opacity = '0';
+      indicator.style.transform = 'translateX(-50%) translateY(-100%)';
+      resetPull();
+    }, 500);
+  }, 1000);
+}
+
+// Event listeners for pull-to-refresh
+feed.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch' || window.scrollY !== 0 || feed.scrollTop !== 0) return;
+  startY = e.clientY;
+  pulling = true;
+  translateY = 0;
+  feedContent.style.transition = 'none';
+  feedContent.style.willChange = 'transform';
+}, { passive: false });
+
+feed.addEventListener('pointermove', (e) => {
+  if (!pulling) return;
+  const deltaY = e.clientY - startY;
+  if (deltaY <= 0) return;
+  e.preventDefault();
+  translateY = deltaY * 0.5;
+  translateY = Math.min(translateY, 200);
+  feedContent.style.transform = `translateY(${translateY}px)`;
+  updateRefreshIndicator(translateY);
+}, { passive: false });
+
+feed.addEventListener('pointerup', (e) => {
+  if (!pulling) return;
+  pulling = false;
+  if (translateY >= refreshThreshold) {
+    refreshContent();
+  } else {
+    resetPull();
+  }
+}, { passive: false });
+
+feed.addEventListener('pointercancel', (e) => {
+  if (pulling) {
+    pulling = false;
+    resetPull();
+  }
+}, { passive: false });
+
+/* LONG PRESS HELPER */
 function attachLongPress(el, ms, cb){
   let timer = null, pointerId = null;
   const start = (e) => {
@@ -454,7 +633,488 @@ function attachLongPress(el, ms, cb){
   el.addEventListener('pointerleave', cancel);
 }
 
-/* HEADER SWIPE THEME TOGGLE (left/right) */
+/* RENDER POSTS */
+function renderFeed(){
+  feed.innerHTML = `
+    <div id="pullIndicator">
+      <div>
+        <span id="pullIcon">⬇</span>
+        <span id="pullText" class="muted">Pull to refresh</span>
+      </div>
+    </div>
+    <div id="feedContent"></div>
+    ${loadingMore ? '<div class="loading">Loading more...</div>' : ''}
+  `;
+  feedContent = document.getElementById('feedContent');
+  posts.forEach(post => {
+    const postEl = document.createElement('article');
+    postEl.className = `post ${post.paused ? 'paused' : ''} ${post.uploading ? 'uploading' : ''}`;
+    postEl.dataset.id = post.id;
+    postEl.innerHTML = `
+      <div class="post-inner">
+        ${post.uploading ? `
+          <div class="upload-progress">
+            <div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div>
+          </div>
+        ` : ''}
+        <video muted playsinline preload="metadata" loop src="${post.src}" ${post.paused ? 'paused' : ''}></video>
+        <div class="play-overlay">
+          <div class="play-icon">▶</div>
+        </div>
+
+        <div class="overlay">
+          <h3>${post.user}</h3>
+          <p>${post.caption}</p>
+        </div>
+
+        <div class="icons">
+          <div class="like-wrap">
+            <button class="btn like-btn ${post.liked ? 'liked' : ''}" title="Like">♡</button>
+            <div class="like-count">${post.likes}</div>
+          </div>
+          ${post.owner ? '<button class="btn delete-btn" title="Delete Post">🗑️</button>' : `
+          <button class="btn comment-open" title="Comments">💬</button>
+          <button class="btn share-btn" title="Share">↗️</button>
+          `}
+        </div>
+
+        <!-- per-post heart animation -->
+        <div class="heart-hit" aria-hidden="true">
+          <svg viewBox="0 0 100 100" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="heartClip_${post.id}">
+                <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"/>
+              </clipPath>
+              <linearGradient id="blueGrad_${post.id}" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#7bdff6"/>
+                <stop offset="100%" stop-color="#2fb3ff"/>
+              </linearGradient>
+            </defs>
+            <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"
+                  fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+            <g clip-path="url(#heartClip_${post.id})">
+              <rect id="waterRect_${post.id}" x="0" y="100" width="100" height="100" fill="url(#blueGrad_${post.id})"></rect>
+            </g>
+            <g clip-path="url(#heartClip_${post.id})">
+              <path id="wave_${post.id}" d="M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z" fill="#ffffff30"></path>
+            </g>
+          </svg>
+        </div>
+
+        <!-- drawer scoped to post -->
+        <div class="drawer" aria-hidden="true">
+          <div class="drawer-inner">
+            <div class="drawer-handle"></div>
+            <div class="muted small center" style="margin-top:4px;">Comments</div>
+            <div class="comments-list" aria-live="polite"></div>
+            <div class="drawer-footer">
+              <div class="comment-input">
+                <input placeholder="Write your comment..." />
+              </div>
+              <button class="send-small">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    feedContent.appendChild(postEl);
+    attachPostBehavior(postEl, post);
+  });
+  observeVideos();
+}
+
+/* SINGLE TAP PAUSE/PLAY WITH DOUBLE-TAP PRIORITY */
+function attachVideoInteractions(postEl, video, postData, likeBtn, likeCountEl) {
+  let lastTap = 0;
+  let tapTimeout;
+
+  postEl.querySelector('.post-inner').addEventListener('pointerup', (e) => {
+    if (e.target.closest('.icons') || e.target.closest('.overlay') || e.target.closest('.drawer')) return;
+    
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTap;
+    
+    clearTimeout(tapTimeout);
+    
+    if (timeSinceLastTap < 300) {
+      // Double-tap: Like
+      if (!postData.liked) {
+        postData.liked = true;
+        postData.likes++;
+        showHeartForPost(postEl, postData.id);
+        likeBtn.classList.add('liked');
+        likeCountEl.textContent = postData.likes;
+        renderFeed();
+      }
+    } else {
+      // Single-tap: Pause/Play after short delay
+      tapTimeout = setTimeout(() => {
+        postData.paused = !postData.paused;
+        postEl.className = `post ${postData.paused ? 'paused' : ''} ${postData.uploading ? 'uploading' : ''}`;
+        if (postData.paused) {
+          video.pause();
+        } else {
+          video.play().catch(() => {});
+        }
+        renderFeed();
+      }, 250);
+    }
+    
+    lastTap = now;
+  }, { passive: true });
+}
+
+/* PER-POST LIKE ANIMATION */
+function showHeartForPost(postEl, postId) {
+  const heartHit = postEl.querySelector('.heart-hit');
+  const waterRect = document.getElementById(`waterRect_${postId}`);
+  const wave = document.getElementById(`wave_${postId}`);
+  
+  if (!waterRect || !wave) return;
+  
+  heartHit.style.left = '50%';
+  heartHit.style.top = '50%';
+  waterRect.setAttribute('y', 100);
+  wave.setAttribute('d', 'M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z');
+  
+  heartHit.classList.remove('show');
+  void heartHit.offsetWidth;
+  heartHit.classList.add('show');
+  
+  let start = null;
+  const duration = 700;
+  function step(ts) {
+    if (!start) start = ts;
+    const t = Math.min(1, (ts - start) / duration);
+    const y = 100 - 110 * t;
+    waterRect.setAttribute('y', y);
+    const waveY = 80 - 30 * t;
+    wave.setAttribute('d', `M0 ${waveY} Q20 ${waveY-10} 40 ${waveY} T80 ${waveY} T120 ${waveY} V120 H0 Z`);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+  
+  setTimeout(() => heartHit.classList.remove('show'), 1100);
+}
+
+/* POST BEHAVIOR */
+function attachPostBehavior(postEl, postData) {
+  const video = postEl.querySelector('video');
+  const likeBtn = postEl.querySelector('.like-btn');
+  const likeCountEl = postEl.querySelector('.like-count');
+  const deleteBtn = postEl.querySelector('.delete-btn');
+  const commentOpen = postEl.querySelector('.comment-open');
+  const drawer = postEl.querySelector('.drawer');
+  const drawerInner = postEl.querySelector('.drawer-inner');
+  const commentsList = postEl.querySelector('.comments-list');
+  const drawerHandle = postEl.querySelector('.drawer-handle');
+  const commentsHeader = postEl.querySelector('.muted.small.center');
+  const commentInputWrap = postEl.querySelector('.comment-input');
+  const commentInput = commentInputWrap.querySelector('input');
+  const sendBtn = postEl.querySelector('.send-small');
+
+  // Video interactions: double-tap like, single-tap pause/play
+  attachVideoInteractions(postEl, video, postData, likeBtn, likeCountEl);
+
+  // Like button - toggle with blue aqua styling
+  likeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    postData.liked = !postData.liked;
+    if (postData.liked) {
+      postData.likes++;
+      showHeartForPost(postEl, postData.id);
+    } else {
+      postData.likes = Math.max(0, postData.likes - 1);
+    }
+    likeCountEl.textContent = postData.likes;
+    likeBtn.classList.toggle('liked', postData.liked);
+    // Update in allPosts too
+    const originalPost = allPosts.find(p => p.id === postData.id);
+    if (originalPost) {
+      originalPost.liked = postData.liked;
+      originalPost.likes = postData.likes;
+    }
+    renderFeed();
+  });
+  
+  // Delete button for owner
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Delete this post for everyone?')) {
+        posts = posts.filter(p => p.id !== postData.id);
+        allPosts = allPosts.filter(p => p.id !== postData.id);
+        renderFeed();
+      }
+    });
+  }
+  
+  // Comment drawer logic
+  if (commentOpen) {
+    // populate comments list
+    function refreshComments(){
+      commentsList.innerHTML = '';
+      (postData.comments || []).forEach((c, idx) => {
+        const d = document.createElement('div');
+        d.className = 'comment';
+        d.textContent = c;
+        d.dataset.index = idx;
+        commentsList.appendChild(d);
+
+        // long-press to reply (1 second)
+        attachLongPress(d, 1000, () => {
+          commentInputWrap.classList.add('active');
+          commentInput.value = `@reply_to: `;
+          commentInput.focus();
+          commentInput.dataset.replyTo = c.split(':')[0] || '';
+        });
+      });
+    }
+    refreshComments();
+
+    // open drawer
+    commentOpen.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openDrawer();
+    });
+
+    function openDrawer(){
+      // close other drawers
+      document.querySelectorAll('.drawer.open').forEach(d => { if(d !== drawer) d.classList.remove('open'); });
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden','false');
+      // hide default input until long press
+      commentInputWrap.classList.remove('active');
+      commentInput.value = '';
+      // scroll comments list to middle (centered-ish)
+      setTimeout(()=> drawerInner.scrollTop = 9999, 80);
+    }
+
+    function closeDrawer(){
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden','true');
+      commentInputWrap.classList.remove('active');
+      commentInput.value = '';
+    }
+
+    // long-press on drawer header (the "Comments" text) to show comment input (1 second)
+    attachLongPress(commentsHeader, 1000, () => {
+      openDrawer();
+      commentInputWrap.classList.add('active');
+      commentInput.value = '';
+      commentInput.focus();
+    });
+
+    // long-press on handle to toggle (1 second)
+    attachLongPress(drawerHandle, 1000, ()=> {
+      if(drawer.classList.contains('open')) closeDrawer();
+      else openDrawer();
+    });
+
+    // clicking outside drawer inside post will close drawer
+    postEl.addEventListener('click', (e)=>{
+      // if click is not within drawer and drawer is open, close
+      if(drawer.classList.contains('open') && !e.target.closest('.drawer')) closeDrawer();
+    });
+
+    // send comment (only allowed if input active)
+    sendBtn.addEventListener('click', ()=>{
+      if(!commentInputWrap.classList.contains('active')) return;
+      const val = commentInput.value.trim();
+      if(!val) return;
+      const newC = `@you: ${val}`;
+      postData.comments = postData.comments || [];
+      postData.comments.push(newC);
+      // Update in allPosts
+      const originalPost = allPosts.find(p => p.id === postData.id);
+      if (originalPost) {
+        originalPost.comments = postData.comments;
+      }
+      refreshComments();
+      commentInput.value = '';
+    });
+  }
+}
+
+/* SMOOTH VIDEO AUTOPLAY - Optimized with lazy loading */
+let io;
+function observeVideos() {
+  if (io) io.disconnect();
+  io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const vid = entry.target;
+      const postEl = vid.closest('.post');
+      const postData = posts.find(p => p.id === postEl.dataset.id);
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.7 && !postData.paused) {
+        vid.play().catch(() => {});
+      } else if (!postData.paused) {
+        vid.pause();
+      }
+    });
+  }, { threshold: [0.7], rootMargin: '50px' });
+  document.querySelectorAll('.post video').forEach(v => io.observe(v));
+}
+
+/* UPLOAD WITH PROGRESS BAR */
+const fab = document.getElementById('fab');
+fab.addEventListener('click', () => openUploadPrompt());
+
+function openUploadPrompt() {
+  if (document.getElementById('uploadModal')) return;
+  const backdrop = document.createElement('div');
+  backdrop.id = 'uploadModal';
+  Object.assign(backdrop.style, {
+    position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.45)', backdropFilter: 'blur(6px) saturate(130%)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60
+  });
+  
+  const modal = document.createElement('div');
+  Object.assign(modal.style, {
+    width: 'min(720px,92vw)', padding: '20px', borderRadius: '14px', 
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
+    boxShadow: '0 18px 60px rgba(0,0,0,0.6)', color: 'inherit'
+  });
+  
+  modal.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div><strong style="font-size:18px">Create a Post</strong><div class="muted small" style="margin-top:6px">Videos must be 60s or less. (Demo saves locally)</div></div>
+      <button id="closeUpload" style="background:none;border:none;color:inherit;font-size:22px;cursor:pointer">×</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button id="recordBtn" style="padding:12px 14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),#b473ff);color:#fff;cursor:pointer;flex:1">🎥 Record</button>
+      <label style="padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:inline-flex;align-items:center;cursor:pointer;flex:1">
+        📁 Upload <input id="filePicker" type="file" accept="video/*" style="display:none" />
+      </label>
+    </div>
+  `;
+  
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  
+  document.getElementById('closeUpload').addEventListener('click', () => backdrop.remove());
+  
+  // Record button - Open camera
+  document.getElementById('recordBtn').addEventListener('click', async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+      const videoPreview = document.getElementById('videoPreview');
+      videoPreview.srcObject = stream;
+      
+      const recordModal = document.getElementById('recordModal');
+      recordModal.classList.add('show');
+      
+      let mediaRecorder;
+      let recordedChunks = [];
+      const recordBtnModal = document.getElementById('recordBtnModal');
+      
+      recordBtnModal.addEventListener('click', () => {
+        if (!mediaRecorder) {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+          };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            // Add to posts
+            const id = 'p' + Math.random().toString(36).slice(2,9);
+            const newPost = { id, user:'@you', caption:'Just recorded this!', src: url, likes:0, comments:[], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
+            allPosts.unshift(newPost);
+            filterPosts();
+            renderFeed();
+            
+            // Simulate upload
+            let progress = 0;
+            const interval = setInterval(() => {
+              progress += Math.random() * 15;
+              if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                newPost.uploading = false;
+                newPost.uploadProgress = 100;
+                renderFeed();
+              } else {
+                newPost.uploadProgress = Math.min(100, progress);
+                renderFeed();
+              }
+            }, 200);
+            
+            // Cleanup
+            stream.getTracks().forEach(track => track.stop());
+            recordedChunks = [];
+            recordModal.classList.remove('show');
+            backdrop.remove();
+          };
+          mediaRecorder.start();
+          recordBtnModal.textContent = '⏹';
+          recordBtnModal.classList.add('recording');
+        } else {
+          mediaRecorder.stop();
+          recordBtnModal.textContent = '⏺';
+          recordBtnModal.classList.remove('recording');
+        }
+      });
+      
+      document.getElementById('closeRecord').addEventListener('click', () => {
+        stream.getTracks().forEach(track => track.stop());
+        recordModal.classList.remove('show');
+      });
+    } catch (err) {
+      alert('Camera access denied or not available.');
+    }
+  });
+  
+  // Upload file
+  document.getElementById('filePicker').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const tmp = document.createElement('video');
+    tmp.preload = 'metadata';
+    const url = URL.createObjectURL(file);
+    tmp.src = url;
+    
+    tmp.onloadedmetadata = () => {
+      if (tmp.duration > 60) {
+        alert('Video must be 60s or less');
+        URL.revokeObjectURL(url);
+        return;
+      }
+      
+      // Simulate upload with progress
+      const id = 'p' + Math.random().toString(36).slice(2, 9);
+      const newPost = {
+        id, user: '@you', caption: 'New post', src: url, 
+        likes: 0, comments: [], liked: false, uploading: true, 
+        owner: true, uploadProgress: 0, paused: false
+      };
+      
+      allPosts.unshift(newPost);
+      filterPosts();
+      renderFeed();
+      
+      // Simulate upload progress
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          newPost.uploading = false;
+          newPost.uploadProgress = 100;
+          renderFeed();
+        } else {
+          newPost.uploadProgress = Math.min(100, progress);
+          renderFeed();
+        }
+      }, 200);
+      
+      backdrop.remove();
+    };
+  });
+}
+
+/* THEME TOGGLE */
 const header = document.getElementById('header');
 let pDown = false, pStartX = 0;
 header.addEventListener('pointerdown', (e) => {
@@ -465,94 +1125,30 @@ header.addEventListener('pointerdown', (e) => {
 header.addEventListener('pointermove', (e) => {
   if(!pDown) return;
   const dx = e.clientX - pStartX;
-  // small visual feedback
   header.style.transform = `translateX(${dx * 0.08}px)`;
 });
 header.addEventListener('pointerup', (e) => {
   header.style.transform = '';
   if(!pDown) return; pDown = false;
   const dx = e.clientX - pStartX;
-  const threshold = 80; // px
+  const threshold = 80;
   if(dx <= -threshold || dx >= threshold){
-    toggleTheme();
+    document.documentElement.classList.toggle('light');
   }
 });
 header.addEventListener('pointercancel', ()=> { pDown = false; header.style.transform = ''; });
 
-function toggleTheme(){
-  document.documentElement.classList.toggle('light');
-  // small pop animation for header
-  header.animate([{ transform:'translateY(-4px)' }, { transform:'translateY(0)' }], { duration:260 });
-}
-
-/* FAB modal (simple centered box) - kept minimal (you said Supabase later) */
-const fab = document.getElementById('fab');
-fab.addEventListener('click', ()=> openUploadPrompt());
-
-// create a simple modal overlay using DOM (non-overlapping)
-function openUploadPrompt(){
-  // create backdrop
-  if(document.getElementById('uploadModal')) return;
-  const backdrop = document.createElement('div');
-  backdrop.id = 'uploadModal';
-  Object.assign(backdrop.style, {
-    position:'fixed', inset:0, background:'rgba(2,6,23,0.45)', backdropFilter:'blur(6px) saturate(130%)',
-    display:'flex', alignItems:'center', justifyContent:'center', zIndex:60
-  });
-  const modal = document.createElement('div');
-  Object.assign(modal.style, {
-    width:'min(720px,92vw)', padding:'20px', borderRadius:'14px', background:'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
-    boxShadow:'0 18px 60px rgba(0,0,0,0.6)', color:'inherit'
-  });
-  modal.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div><strong style="font-size:18px">Create a Post</strong><div class="muted small" style="margin-top:6px">Videos must be 60s or less. (Demo saves locally)</div></div>
-      <button id="closeUpload" style="background:none;border:none;color:inherit;font-size:22px;cursor:pointer">×</button>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button id="recordBtn" style="padding:12px 14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),#b473ff);color:#fff;cursor:pointer">🎥 Record (demo)</button>
-      <label style="padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:inline-flex;align-items:center;cursor:pointer">
-        📁 Upload <input id="filePicker" type="file" accept="video/*" style="display:none" />
-      </label>
-    </div>
-  `;
-  backdrop.appendChild(modal);
-  document.body.appendChild(backdrop);
-
-  document.getElementById('closeUpload').addEventListener('click', ()=> {
-    backdrop.remove();
-  });
-  document.getElementById('filePicker').addEventListener('change', (e)=>{
-    const f = e.target.files[0];
-    if(!f) return;
-    const tmp = document.createElement('video'); tmp.preload='metadata';
-    const url = URL.createObjectURL(f);
-    tmp.src = url;
-    tmp.onloadedmetadata = ()=> {
-      if(tmp.duration > 60){ alert('Video must be 60s or less'); URL.revokeObjectURL(url); return; }
-      // add to posts locally (demo)
-      const id = 'p' + Math.random().toString(36).slice(2,9);
-      posts.unshift({ id, user:'@you', caption:'New post', src:url, likes:0, comments:[] });
-      renderFeed();
-      backdrop.remove();
-    };
-  });
-  // recordBtn demo: behave like upload with mock
-  document.getElementById('recordBtn').addEventListener('click', ()=>{
-    alert('Recording demo: use device camera integration for real app.');
-  });
-}
-
-/* init */
-renderFeed();
-
-/* accessibility: ESC to close any open drawers or modals */
 document.addEventListener('keydown', (e) => {
-  if(e.key === 'Escape'){
+  if (e.key === 'Escape') {
     document.querySelectorAll('.drawer.open').forEach(d => d.classList.remove('open'));
-    const modal = document.getElementById('uploadModal'); if(modal) modal.remove();
+    const modal = document.getElementById('uploadModal');
+    if (modal) modal.remove();
+    const recordModal = document.getElementById('recordModal');
+    if (recordModal.classList.contains('show')) recordModal.classList.remove('show');
   }
 });
+
+renderFeed();
 </script>
 </body>
 </html>
