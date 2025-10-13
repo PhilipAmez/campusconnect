@@ -257,9 +257,9 @@
     .group-drawer {
       position: fixed;
       top: 0;
-      left: -35%;
+      left: 0;
       width: 35%;
-      height: 35vh;
+      height: 100vh;
       background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(10px);
       transition: left 0.3s ease;
@@ -267,9 +267,10 @@
       padding: 1rem;
       overflow-y: auto;
       color: var(--text);
+      visibility: visible;
     }
-    .group-drawer.open {
-      left: 0;
+    .group-drawer.closed {
+      left: -35%;
     }
     .members-list {
       display: flex;
@@ -308,6 +309,20 @@
     }
     .leave-btn:hover::before {
       left: 100%;
+    }
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(0);
+      animation: ripple-animation 0.6s linear;
+      pointer-events: none;
+    }
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
     }
     body[data-theme="dark"] ::-webkit-scrollbar {
   background: #181920;
@@ -375,6 +390,8 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       }
       .group-drawer {
         width: 50%;
+      }
+      .group-drawer.closed {
         left: -50%;
       }
     }
@@ -503,10 +520,8 @@ isMember = memberDetails.some(m => m.user_id === user.id);
 
 // Group title click
 groupTitle.onclick = () => {
-  if (isMember) {
-    renderMembers();
-    groupDrawer.classList.toggle('open');
-  }
+  renderMembers();
+  groupDrawer.classList.toggle('closed');
 };
 
 // Render members
@@ -520,19 +535,37 @@ function renderMembers() {
   });
 }
 
-// Leave group
-leaveGroupBtn.onclick = async () => {
+// Leave group with ripple
+leaveGroupBtn.onclick = async (e) => {
+  createRipple(e);
   if (confirm('Leave group?')) {
     await supabase.from('group_members').delete().eq('group_id', gid).eq('user_id', user.id);
-    groupDrawer.classList.remove('open');
+    groupDrawer.classList.add('closed');
     location.reload();
   }
 };
 
+function createRipple(event) {
+  const button = event.currentTarget;
+  const circle = document.createElement('span');
+  const diameter = Math.max(button.clientWidth, button.clientHeight);
+  const radius = diameter / 2;
+
+  circle.style.width = circle.style.height = `${diameter}px`;
+  circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
+  circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
+  circle.classList.add('ripple');
+
+  const ripple = button.getElementsByClassName('ripple')[0];
+  if (ripple) ripple.remove();
+
+  button.appendChild(circle);
+}
+
 // Close drawer on outside click
 document.addEventListener('click', (e) => {
   if (groupDrawer.classList.contains('open') && !groupTitle.contains(e.target) && !groupDrawer.contains(e.target)) {
-    groupDrawer.classList.remove('open');
+    groupDrawer.classList.add('closed');
   }
 });
 
