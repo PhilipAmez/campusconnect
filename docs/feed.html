@@ -1038,32 +1038,77 @@ function openUploadPrompt() {
           mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) recordedChunks.push(e.data);
           };
-          mediaRecorder.onstop = () => {
+          mediaRecorder.onstop = async () => {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
-            // Add to posts
+            // Add temporary post
             const id = 'p' + Math.random().toString(36).slice(2,9);
             const newPost = { id, user:'@you', caption:'Just recorded this!', src: url, likes:0, comments:[], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
             allPosts.unshift(newPost);
             filterPosts();
             renderFeed();
-            
-            // Simulate upload
-            let progress = 0;
-            const interval = setInterval(() => {
-              progress += Math.random() * 15;
-              if (progress >= 100) {
-                progress = 100;
-                clearInterval(interval);
-                newPost.uploading = false;
-                newPost.uploadProgress = 100;
-                renderFeed();
-              } else {
-                newPost.uploadProgress = Math.min(100, progress);
-                renderFeed();
+
+            try {
+              // ensure user session
+              const sess = await supabase.auth.getSession();
+              const session = sess?.data?.session;
+              if (!session) {
+                alert('You must be signed in to upload.');
+                newPost.uploading = false; renderFeed();
+                stream.getTracks().forEach(track => track.stop());
+                recordedChunks = [];
+                recordModal.classList.remove('show');
+                backdrop.remove();
+                return;
               }
-            }, 200);
-            
+              const userId = session.user.id;
+
+              // prepare filename & path
+              const filename = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.webm`;
+              const path = `posts/${userId}/${filename}`;
+
+              // upload blob
+              const { data: uploadData, error: uploadError } = await supabase.storage.from('Facts').upload(path, blob, { cacheControl: '3600', upsert: false });
+              if (uploadError) {
+                console.error('Recording upload error', uploadError);
+                alert('Upload failed: ' + uploadError.message);
+                newPost.uploading = false; renderFeed();
+                stream.getTracks().forEach(track => track.stop());
+                recordedChunks = [];
+                recordModal.classList.remove('show');
+                backdrop.remove();
+                return;
+              }
+              const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
+              const publicUrl = urlData?.publicUrl || '';
+
+              // insert into posts
+              const insertPayload = { author_id: userId, caption: 'Uploaded from web', video_url: publicUrl };
+              const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+              if (insertError) {
+                console.error('Insert error', insertError);
+                alert('Insert failed: ' + insertError.message);
+                newPost.uploading = false; renderFeed();
+                stream.getTracks().forEach(track => track.stop());
+                recordedChunks = [];
+                recordModal.classList.remove('show');
+                backdrop.remove();
+                return;
+              }
+
+              // success
+              newPost.src = publicUrl;
+              newPost.uploading = false;
+              newPost.uploadProgress = 100;
+              newPost.owner = true;
+              filterPosts(); renderFeed();
+
+            } catch (err) {
+              console.error('Unexpected upload error', err);
+              alert('Upload failed: ' + (err?.message || err));
+              newPost.uploading = false; renderFeed();
+            }
+
             // Cleanup
             stream.getTracks().forEach(track => track.stop());
             recordedChunks = [];
