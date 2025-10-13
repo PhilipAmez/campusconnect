@@ -1,899 +1,558 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Peerloom - Facts</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    :root {
-      --bg-gradient-light: linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%);
-      --bg-gradient-dark: linear-gradient(180deg, #0d1b2a 0%, #1a202c 100%);
-      --text-light: #1a202c;
-      --text-dark: #e5e7eb;
-      --accent: #7c3aed;
-      --glass-bg: rgba(255, 255, 255, 0.2);
-      --glass-purple: rgba(124, 58, 237, 0.1);
-      --glass-border: rgba(255, 255, 255, 0.4);
-      --hover-glow: rgba(124, 58, 237, 0.3);
-    }
-    [data-theme="dark"] {
-      --bg-gradient: var(--bg-gradient-dark);
-      --text: var(--text-dark);
-    }
-    [data-theme="light"] {
-      --bg-gradient: var(--bg-gradient-light);
-      --text: var(--text-light);
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Arial', sans-serif;
-      background: var(--bg-gradient);
-      color: var(--text);
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      padding: 0;
-      transition: background 0.3s ease, color 0.3s ease;
-      position: relative;
-    }
-    .header {
-      padding: 1rem 1.5rem;
-      border-radius: 0 0 1.5rem 1.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      position: relative;
-      overflow: hidden;
-      background: var(--glass-purple);
-      backdrop-filter: blur(15px);
-      border-bottom: 1px solid var(--glass-border);
-      touch-action: pan-x;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .header h1 {
-      font-weight: 400;
-      font-size: 1.8rem;
-      margin: 0;
-      text-align: center;
-      padding: 0.5rem 1rem;
-      border-radius: 0.8rem;
-      color: var(--text);
-      transition: transform 0.3s ease;
-    }
-    .theme-toggle {
-      position: absolute;
-      right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      color: var(--text);
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      cursor: pointer;
-    }
-    .header.active .theme-toggle {
-      opacity: 1;
-    }
-    .reels-container {
-      flex: 1;
-      overflow-y: auto;
-      scroll-snap-type: y mandatory;
-      -webkit-overflow-scrolling: touch;
-      display: flex;
-      flex-direction: column;
-    }
-    .reel {
-      height: 100vh;
-      scroll-snap-align: start;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-      overflow: hidden;
-    }
-    .reel video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .reel-overlay {
-      position: absolute;
-      bottom: 2rem;
-      left: 2rem;
-      right: 2rem;
-      color: white;
-      z-index: 2;
-    }
-    .reel-author {
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-      font-size: 1.2rem;
-    }
-    .reel-time {
-      font-size: 0.9rem;
-      opacity: 0.7;
-      margin-bottom: 1rem;
-    }
-    .reel-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-    .reel-like-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .reel-action-btn {
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-      font-size: 2rem;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.3rem;
-      padding: 0.5rem;
-      border-radius: 50%;
-      transition: transform 0.3s ease, color 0.3s ease;
-    }
-    .reel-action-btn:hover {
-      color: var(--accent);
-      transform: scale(1.1);
-    }
-    .like-btn .like-fill {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 0;
-      height: 100%;
-      background: var(--accent);
-      border-radius: 50%;
-      animation: water-fill 0.5s forwards;
-      opacity: 0;
-    }
-    .like-btn.liked .like-fill {
-      opacity: 1;
-    }
-    @keyframes water-fill {
-      0% { width: 0; }
-      100% { width: 100%; }
-    }
-    .delete-zone {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 70px;
-      background: #dc2626;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 0 1.5rem 1.5rem 0;
-      transform: translateX(100%);
-      transition: transform 0.2s ease;
-      font-weight: 600;
-      font-size: 0.9rem;
-      z-index: 3;
-    }
-    .reel.deleting .delete-zone {
-      transform: translateX(0);
-    }
-    .reel:hover {
-      transform: scale(1.005);
-    }
-    .plus-button {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--accent);
-      border: none;
-      color: white;
-      font-size: 2rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
-      transition: transform 0.3s ease;
-      z-index: 10;
-    }
-    .plus-button:hover {
-      transform: scale(1.1);
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 20;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
-    }
-    .modal-content {
-      background: linear-gradient(135deg, var(--glass-bg), var(--glass-purple));
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      margin: 15% auto;
-      padding: 2rem;
-      border-radius: 1.5rem;
-      width: 80%;
-      max-width: 400px;
-      text-align: center;
-      color: var(--text);
-    }
-    .modal h2 {
-      margin-bottom: 1.5rem;
-      color: var(--accent);
-    }
-    .modal-option {
-      display: block;
-      width: 100%;
-      padding: 1rem;
-      margin: 0.5rem 0;
-      border-radius: 1rem;
-      border: 1px solid var(--glass-border);
-      background: var(--glass-bg);
-      color: var(--text);
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    .modal-option:hover {
-      background: var(--glass-purple);
-    }
-    .close {
-      color: var(--text);
-      float: right;
-      font-size: 2rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .close:hover {
-      color: var(--accent);
-    }
-    .recording-container {
-      display: none;
-      position: fixed;
-      z-index: 20;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
-    }
-    .recording-content {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
-    #videoPreview {
-      width: 80%;
-      max-width: 400px;
-      height: 60vh;
-      background: #000;
-      border-radius: 1rem;
-      margin-bottom: 1rem;
-    }
-    .record-controls {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-    .record-btn {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      font-size: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.3s ease;
-    }
-    .record-btn.recording {
-      background: #dc2626;
-      color: white;
-      transform: scale(1.1);
-    }
-    .record-btn:not(.recording) {
-      background: var(--accent);
-      color: white;
-    }
-    .upload-btn {
-      padding: 0.5rem 1rem;
-      border-radius: 1rem;
-      border: none;
-      background: var(--accent);
-      color: white;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
-    @media (max-width: 768px) {
-      .header {
-        padding: 0.8rem 1rem;
-      }
-      .header h1 {
-        font-size: 1.4rem;
-      }
-      .plus-button {
-        bottom: 1rem;
-        right: 1rem;
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-      }
-      .modal-content {
-        margin: 20% auto;
-        width: 90%;
-        padding: 1.5rem;
-      }
-      #videoPreview {
-        width: 90%;
-        height: 50vh;
-      }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Skrolz — Single File Build</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f0f10;
+    --card:#141416;
+    --muted:#bfc3cc;
+    --accent-1:#7bdff6;
+    --accent-2:#2fb3ff;
+    --accent:#6a40ff;
+    --glass: rgba(255,255,255,0.05);
+    --transition: 320ms cubic-bezier(.2,.9,.3,1);
+  }
+  html.light{
+    --bg:#f6f7fa;
+    --card:#fff;
+    --muted:#374151;
+    --glass: rgba(0,0,0,0.03);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:var(--bg);
+    color: #fff;
+    -webkit-font-smoothing:antialiased;
+    transition: background var(--transition), color var(--transition);
+    min-height:100vh;
+    overflow:auto;
+  }
+
+  /* HEADER */
+  header{
+    position:sticky; top:0; z-index:40;
+    height:64px; display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.05));
+    backdrop-filter: blur(8px) saturate(140%);
+    border-bottom:1px solid rgba(255,255,255,0.03);
+    transition: background var(--transition), color var(--transition), transform 220ms ease;
+    user-select:none;
+    touch-action: none; /* we'll handle pointer gestures */
+  }
+  html.light header{ background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.85)); border-bottom:1px solid rgba(0,0,0,0.06); color:#111; }
+  .header-inner{ text-align:center; pointer-events:none }
+  .header-title{ font-weight:700; font-size:18px; letter-spacing:0.3px }
+  .header-hint{ position:absolute; right:14px; font-size:13px; opacity:0.75; pointer-events:none }
+
+  /* FEED */
+  main#feed{
+    padding:20px; display:flex; flex-direction:column; align-items:center; gap:28px; padding-bottom:120px;
+  }
+
+  /* CARD / POST */
+  .post{
+    width:360px; height:640px; border-radius:18px; overflow:visible; position:relative;
+    background:var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.55);
+    transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  }
+  html.light .post{ box-shadow:0 8px 28px rgba(2,6,23,0.06) }
+
+  .post-inner{ width:100%; height:100%; border-radius:18px; overflow:hidden; position:relative; background:var(--card); }
+  .post video{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  /* overlay + caption */
+  .overlay{
+    position:absolute; left:0; right:0; bottom:0; padding:14px; background: linear-gradient(0deg, rgba(0,0,0,0.6), transparent 40%); color:#fff;
+    transition: background var(--transition), color var(--transition);
+  }
+  html.light .overlay{ background: linear-gradient(0deg, rgba(255,255,255,0.86), transparent 40%); color:#111; }
+
+  .overlay h3{ margin:0 0 6px 0; font-size:14px; font-weight:600 }
+  .overlay p{ margin:0; font-size:13px; color:var(--muted) }
+
+  /* right-side icons */
+  .icons{
+    position:absolute; right:10px; bottom:84px; display:flex; flex-direction:column; gap:12px; align-items:center; z-index:22;
+  }
+  .btn{
+    width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
+    background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); color:#fff; font-size:18px; transition: transform 160ms ease, background 160ms;
+  }
+  .btn:active{ transform:scale(.96) }
+  html.light .btn{ color:#111; background: rgba(0,0,0,0.04) }
+
+  .like-wrap{ display:flex; flex-direction:column; align-items:center; gap:6px }
+  .like-count{ font-size:12px; color:var(--muted); user-select:none }
+
+  /* comment drawer (per-post, anchored inside post) */
+  .drawer {
+    position:absolute; left:8px; right:8px; bottom:8px; height:0; max-height:58%;
+    border-radius:14px; overflow:hidden; display:flex; flex-direction:column; align-items:center;
+    backdrop-filter: blur(14px) saturate(140%); background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    transition: height 360ms cubic-bezier(.2,.9,.3,1), transform 320ms ease;
+    z-index:26;
+    pointer-events:none;
+  }
+  html.light .drawer{ background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01)); color:#111 }
+
+  .drawer.open{ height:42%; pointer-events:auto; }
+
+  .drawer-inner{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; padding:12px 12px 8px 12px; gap:10px; box-sizing:border-box; overflow:auto; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; }
+  /* hide scrollbar */
+  .drawer-inner::-webkit-scrollbar{ display:none }
+  .drawer-inner{ -ms-overflow-style:none; scrollbar-width:none }
+
+  .drawer-handle{ width:54px; height:6px; border-radius:6px; background: rgba(255,255,255,0.12); margin-top:6px; }
+  html.light .drawer-handle{ background: rgba(0,0,0,0.08) }
+
+  .comments-list{ display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; padding-top:6px; box-sizing:border-box; }
+  .comment{
+    width:88%; text-align:center; padding:10px 12px; border-radius:10px; background: rgba(255,255,255,0.03); color:inherit;
+    user-select:none; font-size:14px;
+  }
+  html.light .comment{ background: rgba(0,0,0,0.03) }
+
+  .drawer-footer{ width:100%; display:flex; justify-content:center; gap:8px; padding:8px 0 4px; align-items:center; }
+  .comment-input { display:none; width:84%; }
+  .comment-input.active { display:block; }
+  .comment-input input{ width:100%; padding:10px 12px; border-radius:999px; border:none; outline:none; background: rgba(255,255,255,0.06); color:#fff; }
+  html.light .comment-input input{ background: rgba(0,0,0,0.04); color:#111 }
+  .send-small{ padding:8px 12px; border-radius:10px; border:none; background:var(--accent); color:#fff; font-weight:600; cursor:pointer }
+
+  /* centered heart animation (liquid fill) */
+  .heart-hit{ position:absolute; pointer-events:none; width:120px; height:120px; left:50%; top:50%; transform:translate(-50%,-50%); z-index:30; opacity:0; transition: opacity 120ms linear; }
+  .heart-hit.show{ opacity:1; animation: heart-pop 420ms cubic-bezier(.2,.85,.25,1); }
+
+  @keyframes heart-pop {
+    0%{ transform:translate(-50%,-50%) scale(.84); opacity:0; filter:blur(6px) }
+    10%{ transform:translate(-50%,-50%) scale(1.04); opacity:1; filter:blur(0) }
+    80%{ transform:translate(-50%,-50%) scale(1); opacity:1 }
+    100%{ transform:translate(-50%,-50%) scale(1); opacity:0 }
+  }
+
+  /* FAB */
+  .fab{ position:fixed; right:22px; bottom:22px; z-index:40; width:64px;height:64px;border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:28px;
+    background: linear-gradient(135deg,var(--accent), #b473ff); color:#fff; box-shadow:0 14px 40px rgba(100,40,255,0.12); transition: transform 180ms ease; }
+  .fab:active{ transform:scale(.98) }
+
+  /* responsive */
+  @media (max-width:420px){
+    .post{ width:92vw; height:82vh; border-radius:12px }
+    .icons{ right:6px; bottom:68px }
+    .drawer.open{ height:46% }
+  }
+
+  /* small utility */
+  .muted{ color:var(--muted); font-size:13px }
+  .center { display:flex; align-items:center; justify-content:center }
+</style>
 </head>
 <body>
-  <div class="header">
-    <h1>Skrolz</h1>
-    <button class="theme-toggle" id="themeToggle">🌙</button>
-  </div>
-
-  <div class="shorts-wrapper">
-    <div class="short-frame">
-      <video class="short-video" src="https://www.w3schools.com/html/mov_bbb.mp4" autoplay muted loop></video>
-
-      <div class="short-info">
-        <div class="username">@StudentAI</div>
-        <div class="caption">Learning made fun 🎓🔥</div>
-      </div>
-
-      <div class="short-actions">
-        <div class="action-btn like-btn">❤️<span class="like-count">12000</span></div>
-        <div class="action-btn">💬</div>
-        <div class="action-btn">↗️</div>
-      </div>
+  <header id="header" aria-hidden="false">
+    <div class="header-inner">
+      <div class="header-title">Skrolz</div>
+      <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
+  </header>
+
+  <main id="feed" aria-live="polite"></main>
+
+  <button class="fab" id="fab">＋</button>
+
+  <!-- heart animation element (reused) -->
+  <div id="heartHit" class="heart-hit" aria-hidden="true">
+    <svg viewBox="0 0 100 100" width="120" height="120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <clipPath id="heartClip2">
+          <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"/>
+        </clipPath>
+        <linearGradient id="blueGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#7bdff6"/>
+          <stop offset="100%" stop-color="#2fb3ff"/>
+        </linearGradient>
+      </defs>
+
+      <!-- outline -->
+      <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"
+            fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+      <g clip-path="url(#heartClip2)">
+        <rect id="waterRect2" x="0" y="100" width="100" height="100" fill="url(#blueGrad)"></rect>
+      </g>
+
+      <g clip-path="url(#heartClip2)">
+        <path id="wave2" d="M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z" fill="#ffffff30"></path>
+      </g>
+    </svg>
   </div>
 
-  <!-- Your existing buttons and modals -->
-  <button class="plus-button" id="plusButton">+</button>
+<script>
+/* ---------------- SAMPLE POSTS (replace with real data or Supabase later) ---------------- */
+let posts = [
+  { id:'p1', user:'@charles_fx', caption:'Trust the process 💯🔥', src:'short1.mp4', likes:124, comments:['@user01: This is fire 🔥'] },
+  { id:'p2', user:'@peerloom', caption:'Campus vibes 👏📚', src:'short2.mp4', likes:67, comments:['@student23: PeerLoom looks mad clean 😍'] },
+  { id:'p3', user:'@ryke', caption:'Level up every week ⏫', src:'short3.mp4', likes:21, comments:[] }
+];
 
-  <div id="makePostModal" class="modal">
-    <div class="modal-content">
-      <span class="close" id="closeModal">&times;</span>
-      <h2>Make a Post</h2>
-      <button class="modal-option" id="uploadOption">📁 Upload from Gallery</button>
-      <button class="modal-option" id="recordOption">📹 Record with Camera</button>
-    </div>
-  </div>
+const feed = document.getElementById('feed');
+const heartHit = document.getElementById('heartHit');
 
-  <div id="recordingContainer" class="recording-container">
-    <div class="recording-content">
-      <video id="videoPreview" autoplay playsinline muted></video>
-      <div class="record-controls">
-        <button class="record-btn" id="recordBtn">●</button>
-        <button class="upload-btn" id="stopAndUpload" style="display: none;">Post</button>
-      </div>
-      <button class="close" id="closeRecording" style="position: absolute; top: 1rem; right: 1rem; color: white; font-size: 2rem;">&times;</button>
-    </div>
-  </div>
+/* RENDER POSTS */
+function renderFeed(){
+  feed.innerHTML = '';
+  posts.forEach(post => {
+    const postEl = document.createElement('article');
+    postEl.className = 'post';
+    postEl.dataset.id = post.id;
+    postEl.innerHTML = `
+      <div class="post-inner">
+        <video muted playsinline preload="metadata" loop src="${post.src}"></video>
 
-  <div id="progressContainer" class="progress-container">
-    <div class="progress-content">
-      <h2>Uploading...</h2>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <div class="progress-text" id="progressText">0%</div>
-    </div>
-  </div>
+        <div class="overlay">
+          <h3>${post.user}</h3>
+          <p>${post.caption}</p>
+        </div>
 
-  <style>
-    .shorts-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow-y: scroll;
-      scroll-snap-type: y mandatory;
-      background: #000;
-    }
+        <div class="icons">
+          <div class="like-wrap">
+            <button class="btn like-btn" title="Like">♡</button>
+            <div class="like-count">${post.likes}</div>
+          </div>
+          <button class="btn comment-open" title="Comments">💬</button>
+          <button class="btn share-btn" title="Share">↗️</button>
+        </div>
 
-    .short-frame {
-      position: relative;
-      width: 360px;
-      height: 640px;
-      border-radius: 20px;
-      overflow: hidden;
-      scroll-snap-align: start;
-      margin: 20px 0;
-      box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
-    }
-
-    .short-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .short-info {
-      position: absolute;
-      bottom: 30px;
-      left: 15px;
-      color: #fff;
-      font-family: Poppins, sans-serif;
-    }
-
-    .short-info .username {
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .short-actions {
-      position: absolute;
-      right: 15px;
-      bottom: 100px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 25px;
-    }
-
-    .action-btn {
-      font-size: 1.7rem;
-      color: #fff;
-      cursor: pointer;
-      position: relative;
-      transition: transform 0.2s ease;
-    }
-
-    .action-btn:hover {
-      transform: scale(1.2);
-    }
-
-    .like-btn.liked {
-      animation: bounceLike 0.4s ease;
-      color: #A5F1F6;
-      backdrop-filter: blur(8px);
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 50%;
-      padding: 8px;
-    }
-
-    @keyframes bounceLike {
-      0% { transform: scale(1); }
-      30% { transform: scale(1.4); }
-      60% { transform: scale(0.9); }
-      100% { transform: scale(1); }
-    }
-
-    .like-count {
-      font-size: 0.8rem;
-      margin-left: 4px;
-    }
-
-    .shorts-wrapper::-webkit-scrollbar {
-      display: none;
-    }
-  </style>
-
-  <script type="module">
-    import { supabase } from './js/supabaseClient.js';
-
-    (async () => {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) location = 'login.html';
-      const user = session.data.session.user;
-      const reelsContainer = document.getElementById('reelsContainer');
-      const plusButton = document.getElementById('plusButton');
-      const makePostModal = document.getElementById('makePostModal');
-      const closeModal = document.getElementById('closeModal');
-      const uploadOption = document.getElementById('uploadOption');
-      const recordOption = document.getElementById('recordOption');
-      const recordingContainer = document.getElementById('recordingContainer');
-      const closeRecording = document.getElementById('closeRecording');
-      const videoPreview = document.getElementById('videoPreview');
-      const recordBtn = document.getElementById('recordBtn');
-      const stopAndUpload = document.getElementById('stopAndUpload');
-      const themeToggle = document.getElementById('themeToggle');
-      const header = document.querySelector('.header');
-      const body = document.body;
-
-      let mediaRecorder;
-      let recordedChunks = [];
-      let stream;
-
-      // Theme toggle with swipe
-      let startX;
-      header.addEventListener('mousedown', (e) => {
-        startX = e.clientX;
-        header.style.transition = 'none';
-      });
-      header.addEventListener('mousemove', (e) => {
-        if (e.buttons === 1) {
-          const dx = e.clientX - startX;
-          if (dx < -50) header.classList.add('active');
-          else if (dx > -50) header.classList.remove('active');
-        }
-      });
-      header.addEventListener('mouseup', () => {
-        header.style.transition = 'transform 0.3s ease';
-        if (header.classList.contains('active')) {
-          applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
-        }
-        header.classList.remove('active');
-      });
-      header.addEventListener('mouseleave', () => {
-        header.style.transition = 'transform 0.3s ease';
-        header.classList.remove('active');
-      });
-
-      // Touch events for mobile
-      header.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        header.style.transition = 'none';
-      });
-      header.addEventListener('touchmove', (e) => {
-        const dx = e.touches[0].clientX - startX;
-        if (dx < -50) header.classList.add('active');
-        else if (dx > -50) header.classList.remove('active');
-      });
-      header.addEventListener('touchend', () => {
-        header.style.transition = 'transform 0.3s ease';
-        if (header.classList.contains('active')) {
-          applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
-        }
-        header.classList.remove('active');
-      });
-
-      const applyTheme = (theme) => {
-        body.dataset.theme = theme;
-        localStorage.setItem('vibe-theme', theme);
-      };
-      applyTheme(localStorage.getItem('vibe-theme') || 'dark');
-
-      // Video play/pause management with lazy loading
-      const observerOptions = {
-        root: null,
-        threshold: 0.5,
-        rootMargin: '0px'
-      };
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          const video = entry.target.querySelector('video');
-          if (entry.isIntersecting) {
-            // Lazy load src if not set
-            if (!video.src && video.dataset.src) {
-              video.src = video.dataset.src;
-              video.load();
-            }
-            video.play().catch(e => console.log('Play failed:', e));
-            entry.target.classList.add('active');
-          } else {
-            video.pause();
-            entry.target.classList.remove('active');
-          }
-        });
-      }, observerOptions);
-
-      // Plus button click
-      plusButton.addEventListener('click', () => {
-        makePostModal.style.display = 'block';
-      });
-
-      // Close modal
-      closeModal.addEventListener('click', () => {
-        makePostModal.style.display = 'none';
-      });
-      window.addEventListener('click', (e) => {
-        if (e.target === makePostModal) {
-          makePostModal.style.display = 'none';
-        }
-      });
-
-      // Upload option
-      uploadOption.addEventListener('click', () => {
-        makePostModal.style.display = 'none';
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'video/*';
-        input.onchange = (e) => handleVideoUpload(e.target.files[0]);
-        input.click();
-      });
-
-      // Record option
-      recordOption.addEventListener('click', async () => {
-        makePostModal.style.display = 'none';
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-          videoPreview.srcObject = stream;
-          recordingContainer.style.display = 'block';
-          recordBtn.textContent = '●';
-        } catch (err) {
-          alert('Camera access denied or not supported.');
-        }
-      });
-
-      // Close recording
-      closeRecording.addEventListener('click', () => {
-        stopRecording();
-        recordingContainer.style.display = 'none';
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-        }
-      });
-
-      // Record button
-      recordBtn.addEventListener('click', () => {
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-          };
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            videoPreview.srcObject = null;
-            videoPreview.src = url;
-            stopAndUpload.style.display = 'inline-block';
-            recordBtn.textContent = '✓';
-          };
-          mediaRecorder.start();
-          recordBtn.classList.add('recording');
-          recordBtn.textContent = '⏹';
-        } else if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-          recordBtn.classList.remove('recording');
-          recordedChunks = [];
-        }
-      });
-
-      // Stop and upload
-      stopAndUpload.addEventListener('click', async () => {
-        const videoSrc = videoPreview.src;
-        if (videoSrc.startsWith('blob:')) {
-          const blob = new Blob(recordedChunks, { type: 'video/webm' });
-          await handleVideoUpload(blob);
-        }
-        stopRecording();
-        recordingContainer.style.display = 'none';
-      });
-
-      function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-        }
-      }
-
-      // Handle video upload/post
-      async function handleVideoUpload(file) {
-        if (!file) return;
-        if (session.data.session) {
-          const fileExt = file.type.split('/')[1] || 'webm';
-          const fileName = `${Date.now()}.${fileExt}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('Facts')
-            .upload(fileName, file, { upsert: true });
-            if (uploadError) {
-              console.error('Upload error full:', uploadError);
-              alert('Upload failed: ' + (uploadError.message || JSON.stringify(uploadError)));
-              return;
-            }
-          const { data: publicUrlData } = supabase.storage.from('Facts').getPublicUrl(fileName);
-          const videoUrl = publicUrlData.publicUrl;
-
-          const { error } = await supabase.from('posts').insert({
-            author_id: user.id,
-            author_name: user.user_metadata?.full_name || user.email.split('@')[0],
-            video_url: videoUrl,
-            created_at: new Date().toISOString(),
-            likes: 0
-          });
-          if (!error) {
-            // Reload to show new reel
-            loadReels();
-          } else {
-            console.error('Insert error full:', error);
-            // RLS error often has message like: "new row violates row-level security policy"
-            alert('Post failed: ' + (error.message || JSON.stringify(error)));
-          }
-        }
-      }
-
-      // Render reel (unchanged)
-      async function renderReel(p) {
-        let authorName = p.author_name || (p.author_id === 'peerloom-ai' ? 'Peerloom AI' : null);
-        if (!authorName && p.author_id) {
-          try {
-            const { data: authUser, error } = await supabase.auth.admin.getUserById(p.author_id);
-            if (error) throw error;
-            authorName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
-            if (authorName.includes(' ')) {
-              authorName = authorName;
-            } else if (authUser.user.email) {
-              authorName = authUser.user.email.split('@')[0].replace('.', ' ').split(' ')[0] + ' ' +
-                          (authUser.user.email.split('@')[0].split('.').length > 1 ? authUser.user.email.split('@')[0].split('.')[1] : 'User');
-            }
-          } catch (error) {
-            console.error(`Failed to fetch name for author_id ${p.author_id}:`, error.message);
-            authorName = 'Unknown';
-          }
-        }
-
-        const div = document.createElement('div');
-        div.className = 'reel';
-        div.dataset.id = p.id;
-        div.innerHTML = `
-          <video data-src="${p.video_url}" muted loop playsinline preload="none"></video>
-          <div class="reel-overlay">
-            <div class="reel-author">${authorName}</div>
-            <div class="reel-time">${new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-            <div class="reel-actions">
-              <div class="reel-like-section">
-                <button class="reel-action-btn like-btn" data-id="${p.id}"><i class="fas fa-thumbs-up"></i> <span class="like-count">${p.likes || 0}</span>
-                  <div class="like-fill"></div>
-                </button>
+        <!-- drawer scoped to post -->
+        <div class="drawer" aria-hidden="true">
+          <div class="drawer-inner">
+            <div class="drawer-handle"></div>
+            <div class="muted small center" style="margin-top:4px;">Comments</div>
+            <div class="comments-list" aria-live="polite"></div>
+            <div class="drawer-footer">
+              <div class="comment-input">
+                <input placeholder="Write your comment..." />
               </div>
-              <div class="reel-like-section">
-                <button class="reel-action-btn share-btn" data-id="${p.id}"><i class="fas fa-share"></i></button>
-              </div>
+              <button class="send-small">Send</button>
             </div>
           </div>
-          <div class="delete-zone">Delete</div>
-        `;
-        reelsContainer.appendChild(div);
-        observer.observe(div);
+        </div>
 
-        // Like with water-fill animation
-        const likeBtn = div.querySelector('.like-btn');
-        const likeFill = likeBtn.querySelector('.like-fill');
-        if (p.author_id !== user.id) {
-          likeBtn.addEventListener('click', async () => {
-            likeBtn.classList.add('liked');
-            setTimeout(() => likeBtn.classList.remove('liked'), 500); // Reset animation
-            const { data, error } = await supabase.rpc('increment_likes', { post_id: p.id });
-            if (!error) {
-              likeBtn.querySelector('.like-count').textContent = data[0].likes;
-            }
-          });
-        } else {
-          likeBtn.style.display = 'none';
-        }
+      </div>
+    `;
+    feed.appendChild(postEl);
 
-        // Share
-        const shareBtn = div.querySelector('.share-btn');
-        if (p.author_id !== user.id) {
-          shareBtn.addEventListener('click', () => {
-            const shareUrl = `${window.location.origin}/reels.html?reel=${p.id}`;
-            navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard! Share anywhere!'));
-          });
-        } else {
-          shareBtn.style.display = 'none';
-        }
+    // attach behavior
+    attachPostBehavior(postEl, post);
+  });
 
-        // Delete (only for author)
-        if (p.author_id === user.id) {
-          let startX;
-          div.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            div.style.transition = 'none';
-          });
-          div.addEventListener('mousemove', (e) => {
-            if (e.buttons === 1) {
-              const dx = e.clientX - startX;
-              if (dx < -50) div.classList.add('deleting');
-              else if (dx > -50) div.classList.remove('deleting');
-              div.style.transform = `translateX(${dx}px)`;
-            }
-          });
-          div.addEventListener('mouseup', async () => {
-            div.style.transition = 'transform 0.2s ease';
-            if (div.classList.contains('deleting')) {
-              // Also delete from storage
-              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
-              if (postData?.video_url) {
-                const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('Facts').remove([videoPath]);
-              }
-              await supabase.from('posts').delete().eq('id', p.id);
-              reelsContainer.removeChild(div);
-            } else {
-              div.style.transform = 'translateX(0)';
-              div.classList.remove('deleting');
-            }
-          });
-          div.addEventListener('mouseleave', () => {
-            div.style.transition = 'transform 0.2s ease';
-            div.style.transform = 'translateX(0)';
-            div.classList.remove('deleting');
-          });
+  // observe videos for autoplay
+  observeVideos();
+}
 
-          // Touch events for mobile
-          div.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            div.style.transition = 'none';
-          });
-          div.addEventListener('touchmove', (e) => {
-            const dx = e.touches[0].clientX - startX;
-            if (dx < -50) div.classList.add('deleting');
-            else if (dx > -50) div.classList.remove('deleting');
-            div.style.transform = `translateX(${dx}px)`;
-          });
-          div.addEventListener('touchend', async () => {
-            div.style.transition = 'transform 0.2s ease';
-            if (div.classList.contains('deleting')) {
-              // Also delete from storage
-              const { data: postData } = await supabase.from('posts').select('video_url').eq('id', p.id).single();
-              if (postData?.video_url) {
-                const videoPath = postData.video_url.split('/').slice(-2).join('/');
-                await supabase.storage.from('Facts').remove([videoPath]);
-              }
-              await supabase.from('posts').delete().eq('id', p.id);
-              reelsContainer.removeChild(div);
-            } else {
-              div.style.transform = 'translateX(0)';
-              div.classList.remove('deleting');
-            }
-          });
-        }
+/* AUTOPLAY OBSERVER */
+let io;
+function observeVideos(){
+  if(io) io.disconnect();
+  io = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      const vid = entry.target;
+      if(entry.isIntersecting && entry.intersectionRatio >= 0.7){
+        vid.play().catch(()=>{});
+      } else {
+        vid.pause();
       }
+    });
+  }, { threshold: [0.7] });
 
-      // Load and subscribe to reels
-      async function loadReels() {
-        const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false }).limit(20);
-        reelsContainer.innerHTML = '';
-        for (const reel of data) {
-          await renderReel(reel);
-        }
-      }
-      await loadReels();
-      supabase.channel('posts')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
-          payload => renderReel(payload.new))
-        .subscribe();
-      // Diagnostic checks: print auth state and test listing the storage bucket (helps verify permissions)
-      try {
-        const authState = await supabase.auth.getSession();
-        console.log('Current session for diagnostics:', authState);
-        // Try listing root of bucket (will fail if permissions/policies prevent it)
-        const { data: listData, error: listError } = await supabase.storage.from('Facts').list();
-        if (listError) console.warn('Bucket list error (diagnostic):', listError);
-        else console.log('Bucket list (diagnostic):', listData);
-      } catch (diagErr) {
-        console.error('Diagnostics failed:', diagErr);
-      }
-    })();
-  </script>
+  document.querySelectorAll('.post video').forEach(v => io.observe(v));
+}
+
+/* POST BEHAVIOR: comments, likes, double-tap, drawer anchor inside post */
+function attachPostBehavior(postEl, postData){
+  const video = postEl.querySelector('video');
+  const likeBtn = postEl.querySelector('.like-btn');
+  const likeCountEl = postEl.querySelector('.like-count');
+  const commentOpen = postEl.querySelector('.comment-open');
+  const drawer = postEl.querySelector('.drawer');
+  const drawerInner = postEl.querySelector('.drawer-inner');
+  const commentsList = postEl.querySelector('.comments-list');
+  const drawerHandle = postEl.querySelector('.drawer-handle');
+  const commentsHeader = postEl.querySelector('.muted.small.center');
+  const commentInputWrap = postEl.querySelector('.comment-input');
+  const commentInput = commentInputWrap.querySelector('input');
+  const sendBtn = postEl.querySelector('.send-small');
+
+  // populate comments list
+  function refreshComments(){
+    commentsList.innerHTML = '';
+    (postData.comments || []).forEach((c, idx) => {
+      const d = document.createElement('div');
+      d.className = 'comment';
+      d.textContent = c;
+      d.dataset.index = idx;
+      commentsList.appendChild(d);
+
+      // long-press to reply
+      attachLongPress(d, 2000, () => {
+        // show input prefilled with reply tag
+        commentInputWrap.classList.add('active');
+        commentInput.value = `@reply_to: `; // dev can adapt
+        commentInput.focus();
+        // set reply target
+        commentInput.dataset.replyTo = c.split(':')[0] || '';
+      });
+    });
+  }
+  refreshComments();
+
+  // open drawer anchored in post
+  commentOpen.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    openDrawer();
+  });
+
+  function openDrawer(){
+    // close other drawers
+    document.querySelectorAll('.drawer.open').forEach(d => { if(d !== drawer) d.classList.remove('open'); d.parentElement.parentElement.setAttribute('aria-hidden','true'); });
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden','false');
+    // hide default input until long press
+    commentInputWrap.classList.remove('active');
+    commentInput.value = '';
+    // scroll comments list to middle (centered-ish)
+    setTimeout(()=> drawerInner.scrollTop = 9999, 80);
+  }
+
+  function closeDrawer(){
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden','true');
+    commentInputWrap.classList.remove('active');
+    commentInput.value = '';
+  }
+
+  // long-press on drawer header (the "Comments" text) to show comment input
+  attachLongPress(commentsHeader, 2000, () => {
+    commentInputWrap.classList.add('active');
+    commentInput.value = '';
+    commentInput.focus();
+  });
+
+  // long-press on handle to toggle (also allow drag)
+  attachLongPress(drawerHandle, 2000, ()=> {
+    if(drawer.classList.contains('open')) closeDrawer();
+    else openDrawer();
+  });
+
+  // clicking outside drawer inside post will close drawer
+  postEl.addEventListener('click', (e)=>{
+    // if click is not within drawer and drawer is open, close
+    if(drawer.classList.contains('open') && !e.target.closest('.drawer')) closeDrawer();
+  });
+
+  // send comment (only allowed if input active)
+  sendBtn.addEventListener('click', ()=>{
+    if(!commentInputWrap.classList.contains('active')) return;
+    const val = commentInput.value.trim();
+    if(!val) return;
+    const newC = `@you: ${val}`;
+    postData.comments = postData.comments || [];
+    postData.comments.push(newC);
+    refreshComments();
+    commentInput.value = '';
+    // optionally close after send:
+    // closeDrawer();
+  });
+
+  // like logic: like button increments; double-tap on video increments + show heart
+  likeBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    postData.likes = (postData.likes || 0) + 1;
+    likeCountEl.textContent = postData.likes;
+    showHeartForPost(postEl);
+  });
+
+  // double-tap detection (pointer)
+  let lastTap = 0;
+  postEl.addEventListener('pointerup', (ev) => {
+    const now = Date.now();
+    if(now - lastTap < 300){
+      // double-tap
+      postData.likes = (postData.likes || 0) + 1;
+      likeCountEl.textContent = postData.likes;
+      showHeartForPost(postEl);
+    }
+    lastTap = now;
+  });
+
+  // ensure drawer touch scroll is smooth (no scrollbar shown)
+  // (CSS handles hiding scrollbar; -webkit-overflow-scrolling: touch helps)
+}
+
+/* show heart animation centered on post element */
+function showHeartForPost(postEl){
+  const rect = postEl.getBoundingClientRect();
+  const pageX = rect.left + rect.width / 2;
+  const pageY = rect.top + rect.height / 2;
+  heartHit.style.left = pageX + 'px';
+  heartHit.style.top = pageY + 'px';
+
+  // reset water pos
+  const water = document.getElementById('waterRect2');
+  const wave = document.getElementById('wave2');
+  water.setAttribute('y', 100);
+  wave.setAttribute('d', 'M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z');
+
+  heartHit.classList.remove('show');
+  // force reflow
+  void heartHit.offsetWidth;
+  heartHit.classList.add('show');
+
+  // animate water upward
+  let start = null; const duration = 700;
+  function step(ts){
+    if(!start) start = ts;
+    const t = Math.min(1, (ts - start)/duration);
+    const y = 100 - 110 * t;
+    water.setAttribute('y', y);
+    const waveY = 80 - 30 * t;
+    wave.setAttribute('d', `M0 ${waveY} Q20 ${waveY-10} 40 ${waveY} T80 ${waveY} T120 ${waveY} V120 H0 Z`);
+    if(t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+
+  setTimeout(()=> heartHit.classList.remove('show'), 1100);
+}
+
+/* LONG PRESS HELPER
+   element, ms, callback
+*/
+function attachLongPress(el, ms, cb){
+  let timer = null, pointerId = null;
+  const start = (e) => {
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(()=> { cb(e); timer = null; }, ms);
+    if(e.pointerId != null) {
+      pointerId = e.pointerId;
+      el.setPointerCapture?.(pointerId);
+    }
+  };
+  const cancel = (e) => {
+    if(timer){ clearTimeout(timer); timer = null; }
+    try{ if(pointerId != null) el.releasePointerCapture?.(pointerId); }catch(e){}
+    pointerId = null;
+  };
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('pointerleave', cancel);
+}
+
+/* HEADER SWIPE THEME TOGGLE (left/right) */
+const header = document.getElementById('header');
+let pDown = false, pStartX = 0;
+header.addEventListener('pointerdown', (e) => {
+  pDown = true;
+  pStartX = e.clientX;
+  header.setPointerCapture?.(e.pointerId);
+});
+header.addEventListener('pointermove', (e) => {
+  if(!pDown) return;
+  const dx = e.clientX - pStartX;
+  // small visual feedback
+  header.style.transform = `translateX(${dx * 0.08}px)`;
+});
+header.addEventListener('pointerup', (e) => {
+  header.style.transform = '';
+  if(!pDown) return; pDown = false;
+  const dx = e.clientX - pStartX;
+  const threshold = 80; // px
+  if(dx <= -threshold || dx >= threshold){
+    toggleTheme();
+  }
+});
+header.addEventListener('pointercancel', ()=> { pDown = false; header.style.transform = ''; });
+
+function toggleTheme(){
+  document.documentElement.classList.toggle('light');
+  // small pop animation for header
+  header.animate([{ transform:'translateY(-4px)' }, { transform:'translateY(0)' }], { duration:260 });
+}
+
+/* FAB modal (simple centered box) - kept minimal (you said Supabase later) */
+const fab = document.getElementById('fab');
+fab.addEventListener('click', ()=> openUploadPrompt());
+
+// create a simple modal overlay using DOM (non-overlapping)
+function openUploadPrompt(){
+  // create backdrop
+  if(document.getElementById('uploadModal')) return;
+  const backdrop = document.createElement('div');
+  backdrop.id = 'uploadModal';
+  Object.assign(backdrop.style, {
+    position:'fixed', inset:0, background:'rgba(2,6,23,0.45)', backdropFilter:'blur(6px) saturate(130%)',
+    display:'flex', alignItems:'center', justifyContent:'center', zIndex:60
+  });
+  const modal = document.createElement('div');
+  Object.assign(modal.style, {
+    width:'min(720px,92vw)', padding:'20px', borderRadius:'14px', background:'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
+    boxShadow:'0 18px 60px rgba(0,0,0,0.6)', color:'inherit'
+  });
+  modal.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div><strong style="font-size:18px">Create a Post</strong><div class="muted small" style="margin-top:6px">Videos must be 60s or less. (Demo saves locally)</div></div>
+      <button id="closeUpload" style="background:none;border:none;color:inherit;font-size:22px;cursor:pointer">×</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button id="recordBtn" style="padding:12px 14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),#b473ff);color:#fff;cursor:pointer">🎥 Record (demo)</button>
+      <label style="padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:inline-flex;align-items:center;cursor:pointer">
+        📁 Upload <input id="filePicker" type="file" accept="video/*" style="display:none" />
+      </label>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  document.getElementById('closeUpload').addEventListener('click', ()=> {
+    backdrop.remove();
+  });
+  document.getElementById('filePicker').addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const tmp = document.createElement('video'); tmp.preload='metadata';
+    const url = URL.createObjectURL(f);
+    tmp.src = url;
+    tmp.onloadedmetadata = ()=> {
+      if(tmp.duration > 60){ alert('Video must be 60s or less'); URL.revokeObjectURL(url); return; }
+      // add to posts locally (demo)
+      const id = 'p' + Math.random().toString(36).slice(2,9);
+      posts.unshift({ id, user:'@you', caption:'New post', src:url, likes:0, comments:[] });
+      renderFeed();
+      backdrop.remove();
+    };
+  });
+  // recordBtn demo: behave like upload with mock
+  document.getElementById('recordBtn').addEventListener('click', ()=>{
+    alert('Recording demo: use device camera integration for real app.');
+  });
+}
+
+/* init */
+renderFeed();
+
+/* accessibility: ESC to close any open drawers or modals */
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.drawer.open').forEach(d => d.classList.remove('open'));
+    const modal = document.getElementById('uploadModal'); if(modal) modal.remove();
+  }
+});
+</script>
 </body>
 </html>
