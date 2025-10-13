@@ -80,6 +80,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
     }
     .chat-header h1 {
       font-size: 1.8rem;
@@ -255,22 +256,24 @@
       background: var(--msg-hover);
     }
     .group-drawer {
-      position: fixed;
-      top: 0;
+      position: absolute;
+      top: 100%;
       left: 0;
       width: 35%;
-      height: 100vh;
+      height: 35vh;
       background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(10px);
-      transition: left 0.3s ease;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
       z-index: 1000;
       padding: 1rem;
       overflow-y: auto;
       color: var(--text);
-      visibility: visible;
+      border-radius: 0 0 15px 15px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
-    .group-drawer.closed {
-      left: -35%;
+    .group-drawer.open {
+      transform: translateY(0);
     }
     .members-list {
       display: flex;
@@ -390,9 +393,6 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       }
       .group-drawer {
         width: 50%;
-      }
-      .group-drawer.closed {
-        left: -50%;
       }
     }
     @media (max-width: 320px) {
@@ -520,8 +520,10 @@ isMember = memberDetails.some(m => m.user_id === user.id);
 
 // Group title click
 groupTitle.onclick = () => {
-  renderMembers();
-  groupDrawer.classList.toggle('closed');
+  if (isMember) {
+    renderMembers();
+    groupDrawer.classList.toggle('open');
+  }
 };
 
 // Render members
@@ -540,7 +542,7 @@ leaveGroupBtn.onclick = async (e) => {
   createRipple(e);
   if (confirm('Leave group?')) {
     await supabase.from('group_members').delete().eq('group_id', gid).eq('user_id', user.id);
-    groupDrawer.classList.add('closed');
+    groupDrawer.classList.remove('open');
     location.reload();
   }
 };
@@ -565,7 +567,7 @@ function createRipple(event) {
 // Close drawer on outside click
 document.addEventListener('click', (e) => {
   if (groupDrawer.classList.contains('open') && !groupTitle.contains(e.target) && !groupDrawer.contains(e.target)) {
-    groupDrawer.classList.add('closed');
+    groupDrawer.classList.remove('open');
   }
 });
 
