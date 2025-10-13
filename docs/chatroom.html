@@ -84,6 +84,7 @@
     .chat-header h1 {
       font-size: 1.8rem;
       font-style: italic;
+      cursor: pointer;
     }
     .header-actions {
       display: flex;
@@ -253,6 +254,61 @@
     .emoji-picker span:hover, .mention-list div:hover {
       background: var(--msg-hover);
     }
+    .group-drawer {
+      position: fixed;
+      top: 0;
+      left: -35%;
+      width: 35%;
+      height: 35vh;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      transition: left 0.3s ease;
+      z-index: 1000;
+      padding: 1rem;
+      overflow-y: auto;
+      color: var(--text);
+    }
+    .group-drawer.open {
+      left: 0;
+    }
+    .members-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .member-item {
+      padding: 0.5rem;
+      background: var(--msg-bg);
+      border-radius: 8px;
+    }
+    .leave-btn {
+      width: 100%;
+      padding: 0.8rem;
+      background: rgba(255, 71, 87, 0.15);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .leave-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+    .leave-btn:hover::before {
+      left: 100%;
+    }
     body[data-theme="dark"] ::-webkit-scrollbar {
   background: #181920;
 }
@@ -317,6 +373,10 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       .chat-header h1 {
         flex: 1;
       }
+      .group-drawer {
+        width: 50%;
+        left: -50%;
+      }
     }
     @media (max-width: 320px) {
       .chat-arena {
@@ -380,6 +440,10 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       <div class="reply-context" id="replyContextBox"></div>
     </div>
   </div>
+  <div class="group-drawer" id="groupDrawer">
+    <div class="members-list" id="membersList"></div>
+    <button class="leave-btn" id="leaveGroupBtn">Leave Group</button>
+  </div>
 
   <script type="module">
 import { supabase } from './js/supabaseClient.js';
@@ -405,6 +469,11 @@ const groupTitle = document.getElementById('groupTitle');
 const themeToggleButton = document.getElementById('themeToggleButton');
 const replyContextBox = document.getElementById('replyContextBox');
 const body = document.body;
+const groupDrawer = document.getElementById('groupDrawer');
+const membersList = document.getElementById('membersList');
+const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+let memberDetails = [];
+let isMember = false;
 
 // Theme toggle
 const applyTheme = (theme) => {
@@ -418,6 +487,54 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 // Load group info
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
+
+// Load members
+const { data: memberData } = await supabase
+  .from('group_members')
+  .select(`
+    user_id,
+    users (
+      user_metadata
+    )
+  `)
+  .eq('group_id', gid);
+memberDetails = memberData || [];
+isMember = memberDetails.some(m => m.user_id === user.id);
+
+// Group title click
+groupTitle.onclick = () => {
+  if (isMember) {
+    renderMembers();
+    groupDrawer.classList.toggle('open');
+  }
+};
+
+// Render members
+function renderMembers() {
+  membersList.innerHTML = '';
+  memberDetails.forEach(member => {
+    const item = document.createElement('div');
+    item.className = 'member-item';
+    item.textContent = member.users.user_metadata.full_name || 'Unknown';
+    membersList.append(item);
+  });
+}
+
+// Leave group
+leaveGroupBtn.onclick = async () => {
+  if (confirm('Leave group?')) {
+    await supabase.from('group_members').delete().eq('group_id', gid).eq('user_id', user.id);
+    groupDrawer.classList.remove('open');
+    location.reload();
+  }
+};
+
+// Close drawer on outside click
+document.addEventListener('click', (e) => {
+  if (groupDrawer.classList.contains('open') && !groupTitle.contains(e.target) && !groupDrawer.contains(e.target)) {
+    groupDrawer.classList.remove('open');
+  }
+});
 
 // Render messages
 function render(m) {
@@ -531,10 +648,10 @@ messageBar.addEventListener('keydown', (e) => {
 });
 
 // PeerLoom AI
-async function checkPeerpalAI(message) {
-  if (!message.toLowerCase().includes('@peerpal ai')) return;
+async function checkPeerloomAI(message) {
+  if (!message.toLowerCase().includes('@peerloom ai')) return;
   try {
-    const response = await fetch('https://peerloom.online/peerpal-ai', {
+    const response = await fetch('https://peerloom.online/peerloom-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, user: user.user_metadata.full_name })
@@ -543,14 +660,14 @@ async function checkPeerpalAI(message) {
     if (data.reply) {
       await supabase.from('group_messages').insert({
         group_id: gid,
-        sender_id: 'peerpal-ai',
-        sender_name: 'Peerpal AI',
+        sender_id: 'peerloom-ai',
+        sender_name: 'Peerpal Ai',
         content: data.reply,
         role: 'ai'
       });
     }
   } catch (error) {
-    console.error('Peerpal AI Error:', error);
+    console.error('Peerpal Ai Error:', error);
   }
 }
 
@@ -595,4 +712,3 @@ replyContextBox.onclick = () => { replyingMsg = null; replyContextBox.style.disp
 </script>
 </body>
 </html>
-
