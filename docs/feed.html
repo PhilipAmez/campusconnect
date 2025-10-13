@@ -378,6 +378,21 @@
 
   .muted{ color:var(--muted); font-size:13px }
   .center { display:flex; align-items:center; justify-content:center }
+  /* small video load indicator (top-right) */
+  .video-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
+    transition: transform 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
+    opacity: 0.9;
+  }
+  .video-indicator.loading { background: #ffd54d; box-shadow: 0 0 8px 2px #ffd54d66; }
+  .video-indicator.loaded { background: #4ade80; box-shadow: 0 0 10px 3px #4ade8066; }
 </style>
 </head>
 <body>
@@ -621,21 +636,6 @@ function attachLongPress(el, ms, cb){
       pointerId = e.pointerId;
       el.setPointerCapture?.(pointerId);
     }
-    /* small video load indicator (top-right) */
-    .video-indicator {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.6);
-      box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
-      transition: transform 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
-      opacity: 0.9;
-    }
-    .video-indicator.loading { background: #ffd54d; box-shadow: 0 0 8px 2px #ffd54d66; }
-    .video-indicator.loaded { background: #4ade80; box-shadow: 0 0 10px 3px #4ade8066; }
   };
   const cancel = (e) => {
     if(timer){ clearTimeout(timer); timer = null; }
