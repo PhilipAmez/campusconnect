@@ -419,7 +419,8 @@
     </div>
   </div>
 
-<script>
+<script type="module">
+import { supabase } from './js/supabaseClient.js';
 /* SAMPLE POSTS - More for infinite scroll demo */
 let allPosts = [
   { id:'p1', user:'@charles_fx', caption:'Trust the process 💯🔥', src:'short1.mp4', likes:124, comments:['@user01: This is fire 🔥'], liked: false, uploading: false, owner: false, paused: false },
@@ -1088,52 +1089,97 @@ function openUploadPrompt() {
     }
   });
   
-  // Upload file
-  document.getElementById('filePicker').addEventListener('change', (e) => {
+  // Upload file -> store in Supabase storage 'Facts' and insert a row in `posts`
+  document.getElementById('filePicker').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
+    // basic client-side validation
     const tmp = document.createElement('video');
     tmp.preload = 'metadata';
     const url = URL.createObjectURL(file);
     tmp.src = url;
-    
-    tmp.onloadedmetadata = () => {
+
+    tmp.onloadedmetadata = async () => {
       if (tmp.duration > 60) {
         alert('Video must be 60s or less');
         URL.revokeObjectURL(url);
         return;
       }
-      
-      // Simulate upload with progress
+
+      backdrop.remove();
+
+      // show a temporary post while upload runs
       const id = 'p' + Math.random().toString(36).slice(2, 9);
-      const newPost = {
-        id, user: '@you', caption: 'New post', src: url, 
-        likes: 0, comments: [], liked: false, uploading: true, 
-        owner: true, uploadProgress: 0, paused: false
-      };
-      
+      const newPost = { id, user: '@you', caption: 'Uploading...', src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
       allPosts.unshift(newPost);
       filterPosts();
       renderFeed();
-      
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 15;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
+
+      try {
+        // ensure user session is available
+        const sess = await supabase.auth.getSession();
+        const session = sess?.data?.session;
+        if (!session) {
+          alert('You must be signed in to upload.');
+          // mark upload failed
           newPost.uploading = false;
-          newPost.uploadProgress = 100;
           renderFeed();
-        } else {
-          newPost.uploadProgress = Math.min(100, progress);
-          renderFeed();
+          return;
         }
-      }, 200);
-      
-      backdrop.remove();
+        const userId = session.user.id;
+
+        // generate a path: e.g. posts/<userId>/<timestamp>_<random>.mp4
+        const ext = file.name.split('.').pop() || 'mp4';
+        const filename = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+        const path = `posts/${userId}/${filename}`;
+
+        // perform upload
+        const { data: uploadData, error: uploadError } = await supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
+        if (uploadError) {
+          console.error('Upload error', uploadError);
+          alert('Upload failed: ' + uploadError.message);
+          newPost.uploading = false;
+          renderFeed();
+          return;
+        }
+
+        // get public URL (choose public or signed as your policy allows)
+        const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
+        const publicUrl = urlData?.publicUrl || '';
+
+        // insert row into posts table (ensure RLS allows this for authenticated users)
+        const insertPayload = {
+          id: id,
+          author_id: userId,
+          caption: 'Uploaded from web',
+          video_url: publicUrl,
+          created_at: new Date().toISOString()
+        };
+
+        const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+        if (insertError) {
+          console.error('Insert error', insertError);
+          alert('Insert failed: ' + insertError.message);
+          newPost.uploading = false;
+          renderFeed();
+          return;
+        }
+
+        // success: replace temporary src with public url and mark as uploaded
+        newPost.src = publicUrl;
+        newPost.uploading = false;
+        newPost.uploadProgress = 100;
+        newPost.owner = true;
+        filterPosts();
+        renderFeed();
+
+      } catch (err) {
+        console.error('Unexpected upload error', err);
+        alert('Upload failed: ' + (err?.message || err));
+        newPost.uploading = false;
+        renderFeed();
+      }
     };
   });
 }
