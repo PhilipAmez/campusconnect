@@ -1068,7 +1068,9 @@ function openUploadPrompt() {
               const path = `posts/${userId}/${filename}`;
 
               // upload blob
-              const { data: uploadData, error: uploadError } = await supabase.storage.from('Facts').upload(path, blob, { cacheControl: '3600', upsert: false });
+              const uploadPromise = supabase.storage.from('Facts').upload(path, blob, { cacheControl: '3600', upsert: false });
+              startCoarseProgress(newPost, uploadPromise);
+              const { data: uploadData, error: uploadError } = await uploadPromise;
               if (uploadError) {
                 console.error('Recording upload error', uploadError);
                 alert('Upload failed: ' + uploadError.message);
@@ -1180,7 +1182,9 @@ function openUploadPrompt() {
         const path = `posts/${userId}/${filename}`;
 
         // perform upload
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
+        const uploadPromise = supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
+        startCoarseProgress(newPost, uploadPromise);
+        const { data: uploadData, error: uploadError } = await uploadPromise;
         if (uploadError) {
           console.error('Upload error', uploadError);
           alert('Upload failed: ' + uploadError.message);
@@ -1304,6 +1308,26 @@ renderFeed = function() { origRenderFeed(); initVideoLazyLoader(); };
 
 // Initial call
 initVideoLazyLoader();
+
+// Helper: animate coarse upload progress while an upload Promise is pending
+function startCoarseProgress(post, uploadPromise) {
+  if (!post) return;
+  post.uploadProgress = 6;
+  renderFeed();
+  // slowly increase to 80% while pending
+  const iv = setInterval(() => {
+    if (!post.uploading) { clearInterval(iv); return; }
+    post.uploadProgress = Math.min(80, (post.uploadProgress || 0) + Math.floor(Math.random() * 8) + 2);
+    renderFeed();
+  }, 400);
+  // when the promise resolves, push to 100 and clear
+  uploadPromise.finally(() => {
+    clearInterval(iv);
+    post.uploadProgress = 100;
+    post.uploading = false;
+    renderFeed();
+  });
+}
 </script>
 </body>
 </html>
