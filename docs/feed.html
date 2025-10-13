@@ -1062,6 +1062,7 @@ function openUploadPrompt() {
                 return;
               }
               const userId = session.user.id;
+              const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.user_metadata?.firstName || session.user.email || session.user.id;
 
               // prepare filename & path
               const filename = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.webm`;
@@ -1085,7 +1086,7 @@ function openUploadPrompt() {
               const publicUrl = urlData?.publicUrl || '';
 
               // insert into posts (minimal payload)
-              const insertPayload = { author_id: userId, video_url: publicUrl };
+              const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
               const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
               if (insertError) {
                 console.error('Insert error', insertError);
@@ -1175,7 +1176,8 @@ function openUploadPrompt() {
           renderFeed();
           return;
         }
-        const userId = session.user.id;
+  const userId = session.user.id;
+  const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.user_metadata?.firstName || session.user.email || session.user.id;
 
         // generate a path: e.g. posts/<userId>/<timestamp>_<random>.mp4
         const ext = file.name.split('.').pop() || 'mp4';
@@ -1198,8 +1200,8 @@ function openUploadPrompt() {
         const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
         const publicUrl = urlData?.publicUrl || '';
 
-        // insert row into posts table (minimal payload)
-        const insertPayload = { author_id: userId, video_url: publicUrl };
+  // insert row into posts table (minimal payload)
+  const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
         const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
         if (insertError) {
           console.error('Insert error', insertError);
