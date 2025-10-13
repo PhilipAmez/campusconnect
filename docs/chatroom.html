@@ -457,7 +457,7 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb {
       <div class="reply-context" id="replyContextBox"></div>
     </div>
   </div>
-  <div class="group-drawer closed" id="groupDrawer">
+  <div class="group-drawer" id="groupDrawer">
     <div class="members-list" id="membersList"></div>
     <button class="leave-btn" id="leaveGroupBtn">Leave Group</button>
   </div>
@@ -519,12 +519,9 @@ memberDetails = memberData || [];
 isMember = memberDetails.some(m => m.user_id === user.id);
 
 // Group title click
-groupTitle.onclick = (e) => {
-  e.stopPropagation();
-  if (isMember) {
-    renderMembers();
-    groupDrawer.classList.toggle('closed');
-  }
+groupTitle.onclick = () => {
+  renderMembers();
+  groupDrawer.classList.toggle('closed');
 };
 
 // Render members
@@ -565,9 +562,9 @@ function createRipple(event) {
   button.appendChild(circle);
 }
 
-// Close drawer on tap anywhere
+// Close drawer on outside click
 document.addEventListener('click', (e) => {
-  if (!groupTitle.contains(e.target) && !groupDrawer.contains(e.target)) {
+  if (groupDrawer.classList.contains('open') && !groupTitle.contains(e.target) && !groupDrawer.contains(e.target)) {
     groupDrawer.classList.add('closed');
   }
 });
