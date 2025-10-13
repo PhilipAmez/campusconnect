@@ -635,6 +635,10 @@ function attachLongPress(el, ms, cb){
 
 /* RENDER POSTS */
 function renderFeed(){
+  if (!feed) {
+    console.error('renderFeed: #feed element not found in DOM');
+    return;
+  }
   feed.innerHTML = `
     <div id="pullIndicator">
       <div>
@@ -853,6 +857,10 @@ function attachPostBehavior(postEl, postData) {
   if (commentOpen) {
     // populate comments list
     function refreshComments(){
+      if (!commentsList) {
+        console.error('refreshComments: commentsList element missing for post', postData.id);
+        return;
+      }
       commentsList.innerHTML = '';
       (postData.comments || []).forEach((c, idx) => {
         const d = document.createElement('div');
