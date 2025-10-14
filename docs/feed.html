@@ -400,10 +400,21 @@
     <div class="header-inner">
       <input type="text" id="searchBar" placeholder="Search posts..." />
       <div id="sessionInfo" style="position:absolute; left:12px; top:12px; font-size:12px; opacity:0.9; pointer-events:auto"></div>
+      <div id="debugPanelToggle" style="position:absolute; right:90px; top:12px; font-size:12px; opacity:0.9; cursor:pointer">Debug</div>
       <div class="header-title">Skrolz</div>
       <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
   </header>
+  <div id="debugPanel" style="position:fixed; right:12px; bottom:12px; width:360px; max-width:92vw; max-height:46vh; overflow:auto; background:rgba(0,0,0,0.7); border-radius:10px; padding:10px; color:#fff; font-size:12px; display:none; z-index:120">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>Last response</strong>
+      <div>
+        <button id="dbgCopy" style="margin-right:6px">Copy</button>
+        <button id="dbgClear">Clear</button>
+      </div>
+    </div>
+    <pre id="dbgContent" style="white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;margin:0;padding:0;font-size:11px"></pre>
+  </div>
 
   <main id="feed" aria-live="polite"></main>
 
@@ -428,6 +439,26 @@ let posts = [...allPosts];
 let currentIndex = 0;
 let loadingMore = false;
 let searchQuery = '';
+
+// --- debug panel for last response ---
+let lastResponse = null;
+const dbgToggle = document.getElementById('debugPanelToggle');
+const dbgPanel = document.getElementById('debugPanel');
+const dbgContent = document.getElementById('dbgContent');
+const dbgCopy = document.getElementById('dbgCopy');
+const dbgClear = document.getElementById('dbgClear');
+if (dbgToggle) dbgToggle.addEventListener('click', () => { dbgPanel.style.display = dbgPanel.style.display === 'none' ? 'block' : 'none'; });
+if (dbgCopy) dbgCopy.addEventListener('click', () => { navigator.clipboard?.writeText(JSON.stringify(lastResponse, null, 2)).catch(()=>{}); });
+if (dbgClear) dbgClear.addEventListener('click', () => { lastResponse = null; renderDebug(); });
+
+function renderDebug() {
+  dbgContent.textContent = lastResponse ? JSON.stringify(lastResponse, null, 2) : 'No response yet';
+}
+
+function setLastResponse(obj) {
+  lastResponse = obj;
+  renderDebug();
+}
 
 const feed = document.getElementById('feed');
 let feedContent;
@@ -553,34 +584,70 @@ function handleScroll() {
 
 feed.addEventListener('scroll', debounce(handleScroll, 100));
 
-async function loadMorePosts() {
-  if (loadingMore) return;
+// DB-backed pagination state
+let pageSize = 10;
+let currentPage = 0; // zero-based
+let hasMore = true;
+
+async function loadPostsPage(page = 0, size = pageSize) {
+  if (loadingMore || !hasMore) return;
   loadingMore = true;
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  const newPosts = [];
-  for (let i = 0; i < 3; i++) {
-    currentIndex++;
-    newPosts.push({
-      id: `p${currentIndex}`,
-      user: `@user${currentIndex}`,
-      caption: `Awesome content #${currentIndex} 🚀`,
-      src: `short${currentIndex % 3 + 1}.mp4`,
-      likes: Math.floor(Math.random() * 100),
+  try {
+    const from = page * size;
+    const to = from + size - 1;
+    console.log(`Loading posts range ${from}-${to}`);
+    const res = await supabase
+      .from('posts')
+      .select('id, author_id, author_name, video_url, created_at')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    setLastResponse(res);
+    const { data, error } = res;
+    if (error) {
+      console.error('Pagination load error', error);
+      loadingMore = false;
+      return;
+    }
+    const rows = (data || []).map(r => ({
+      id: r.id,
+      user: r.author_name ? `@${r.author_name}` : '@user',
+      caption: '',
+      src: r.video_url,
+      likes: 0,
       comments: [],
       liked: false,
       uploading: false,
       owner: false,
-      paused: false
-    });
+      paused: false,
+    }));
+
+    // append rows
+    if (rows.length > 0) {
+      allPosts.push(...rows);
+      filterPosts();
+      renderFeed();
+      currentPage = page;
+      if (rows.length < size) hasMore = false;
+    } else {
+      hasMore = false;
+    }
+  } catch (err) {
+    console.error('loadPostsPage unexpected', err);
+  } finally {
+    loadingMore = false;
   }
-  
-  allPosts.push(...newPosts);
-  posts.push(...newPosts);
-  renderFeed();
-  loadingMore = false;
+}
+
+// initial pagination load
+loadPostsPage(0);
+
+// replace handleScroll trigger to use DB pagination
+async function handleScroll() {
+  if (loadingMore || searchQuery) return;
+  const { scrollTop, scrollHeight, clientHeight } = feed;
+  if (scrollTop + clientHeight >= scrollHeight - 200) {
+    if (hasMore) await loadPostsPage(currentPage + 1);
+  }
 }
 
 /* PULL-TO-REFRESH */
