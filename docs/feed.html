@@ -862,7 +862,7 @@ function renderFeed(){
             <div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div>
           </div>
         ` : ''}
-  <video muted playsinline preload="none" loop data-src="${post.src}" ${post.paused ? 'paused' : ''}></video>
+  <video muted playsinline controls preload="metadata" loop data-src="${post.src}" ${post.paused ? 'paused' : ''} crossorigin="anonymous"></video>
     <div class="video-indicator" aria-hidden="true"></div>
         <div class="play-overlay">
           <div class="play-icon">▶</div>
@@ -1491,6 +1491,8 @@ function initVideoLazyLoader() {
         // show loading state
         const indicator = v.closest('.post')?.querySelector('.video-indicator');
         if (indicator) indicator.classList.add('loading');
+        // debug: log the src being set so we can inspect in console
+        console.debug('initVideoLazyLoader: setting video src', v.dataset.src, 'for', v.closest('.post')?.dataset.id);
         v.src = v.dataset.src;
         v.load();
         v.dataset.loaded = '1';
@@ -1499,6 +1501,15 @@ function initVideoLazyLoader() {
           if (indicator) {
             indicator.classList.remove('loading');
             indicator.classList.add('loaded');
+          }
+        }, { once: true });
+
+        // listen for errors to show diagnostic info
+        v.addEventListener('error', (ev) => {
+          console.error('Video failed to load', { src: v.dataset.src, postId: v.closest('.post')?.dataset.id, ev });
+          if (indicator) {
+            indicator.classList.remove('loading');
+            indicator.classList.remove('loaded');
           }
         }, { once: true });
       }
