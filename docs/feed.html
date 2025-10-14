@@ -1149,20 +1149,36 @@ function attachPostBehavior(postEl, postData) {
 /* SMOOTH VIDEO AUTOPLAY - Optimized with lazy loading */
 let io;
 function observeVideos() {
-  if (io) io.disconnect();
-  io = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const vid = entry.target;
-      const postEl = vid.closest('.post');
-      const postData = posts.find(p => p.id === postEl.dataset.id);
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.7 && !postData.paused) {
-        vid.play().catch(() => {});
-      } else if (!postData.paused) {
-        vid.pause();
-      }
-    });
-  }, { threshold: [0.7], rootMargin: '50px' });
-  document.querySelectorAll('.post video').forEach(v => io.observe(v));
+  try {
+    if (io) io.disconnect();
+    io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        try {
+          const vid = entry.target;
+          const postEl = vid.closest('.post');
+          if (!postEl) return;
+          // defensive id compare: DB ids may be numbers; compare as strings
+          const postId = postEl.dataset.id;
+          const postData = posts.find(p => String(p.id) === String(postId));
+          if (!postData) {
+            // no matching post in memory yet; don't attempt play/pause
+            return;
+          }
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.7 && !postData.paused) {
+            vid.play().catch(() => {});
+          } else {
+            // only pause if video exists and isn't intentionally paused by user data
+            if (!postData.paused) vid.pause();
+          }
+        } catch (innerErr) {
+          console.error('observeVideos entry handler error', innerErr);
+        }
+      });
+    }, { threshold: [0.7], rootMargin: '50px' });
+    document.querySelectorAll('.post video').forEach(v => io.observe(v));
+  } catch (err) {
+    console.error('observeVideos setup failed', err);
+  }
 }
 
 /* UPLOAD WITH PROGRESS BAR */
