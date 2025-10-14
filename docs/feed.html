@@ -64,7 +64,7 @@
   .header-title { font-weight: 700; font-size: 18px; letter-spacing: 0.3px }
   .header-hint { position: absolute; right: 14px; font-size: 13px; opacity: 0.75; pointer-events: none }
 
-  /* SEARCH BAR - Moved below header */
+  /* SEARCH BAR */
   .search-container {
     position: sticky;
     top: 64px;
@@ -99,39 +99,30 @@
     box-shadow: 0 0 0 3px rgba(106, 64, 255, 0.1);
   }
 
+  /* DEBUG PANEL */
+  #debugPanel {
+    position: fixed; right: 12px; bottom: 12px; width: 360px; max-width: 92vw; max-height: 46vh;
+    overflow: auto; background: rgba(0,0,0,0.7); border-radius: 10px; padding: 10px; color: #fff;
+    font-size: 12px; display: none; z-index: 120;
+  }
+  #debugPanel.show { display: block; }
+  #debugContent { white-space: pre-wrap; word-break: break-word; max-height: 34vh; overflow: auto; margin: 0; padding: 0; font-size: 11px }
+
   /* FEED */
   main#feed {
     padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 28px; padding-bottom: 120px;
-    position: relative;
-    overflow-y: auto;
-    height: calc(100vh - 128px); /* Adjusted for search bar */
+    position: relative; overflow-y: auto; height: calc(100vh - 128px);
   }
   #feedContent {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 28px;
-    width: 100%;
-    transition: transform var(--transition);
-    will-change: transform;
+    display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%;
+    transition: transform var(--transition); will-change: transform;
   }
 
   #pullIndicator {
-    position: fixed;
-    top: 128px; /* Adjusted for search bar */
-    left: 50%;
-    transform: translateX(-50%) translateY(-100%);
-    width: 360px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--glass);
-    border-radius: 18px 18px 0 0;
-    transition: opacity 0.2s, transform 0.3s;
-    opacity: 0;
-    z-index: 50;
-    pointer-events: none;
+    position: fixed; top: 128px; left: 50%; transform: translateX(-50%) translateY(-100%);
+    width: 360px; height: 60px; display: flex; align-items: center; justify-content: center;
+    background: var(--glass); border-radius: 18px 18px 0 0; transition: opacity 0.2s, transform 0.3s;
+    opacity: 0; z-index: 50; pointer-events: none;
   }
   html.light #pullIndicator { background: rgba(0,0,0,0.03); }
   #pullIndicator > div { display: flex; align-items: center; gap: 8px; }
@@ -143,6 +134,9 @@
     #pullIndicator { width: 92vw; }
     .search-wrapper { max-width: 100%; }
     #searchBar { font-size: 16px; }
+    .post { width: 92vw; height: 70vh; border-radius: 12px; }
+    .icons { right: 6px; bottom: 60px; }
+    .drawer.open { height: 40% }
   }
 
   /* LOADING */
@@ -153,14 +147,23 @@
     width: 360px; height: 640px; border-radius: 18px; overflow: visible; position: relative;
     background: var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.55);
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
-    will-change: transform;
-    touch-action: pan-y;
+    will-change: transform; touch-action: pan-y;
   }
   html.light .post { box-shadow: 0 8px 28px rgba(2,6,23,0.06) }
   .post.swiping { transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 
   .post-inner { width: 100%; height: 100%; border-radius: 18px; overflow: hidden; position: relative; background: var(--card); }
-  .post video { width: 100%; height: 100%; object-fit: cover; display: block; } /* Removed muted */
+  .post video { width: 100%; height: calc(100% - 80px); object-fit: cover; display: block; }
+
+  .post-title {
+    padding: 10px 14px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    transition: background var(--transition), color var(--transition);
+  }
+  html.light .post-title { background: rgba(0, 0, 0, 0.1); color: #111; }
 
   .play-overlay {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -174,8 +177,12 @@
     color: white; opacity: 0.9; box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4);
   }
 
-  .upload-progress { position: absolute; top: 0; left: 0; height: 4px; background: rgba(0,0,0,0.3); overflow: hidden; z-index: 15; }
-  .upload-progress-bar { height: 100%; background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2)); width: 0%; transition: width 100ms linear; }
+  .upload-progress {
+    position: absolute; top: 0; left: 0; height: 4px; background: rgba(0,0,0,0.3); overflow: hidden; z-index: 15;
+  }
+  .upload-progress-bar {
+    height: 100%; background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2)); width: 0%; transition: width 100ms linear;
+  }
 
   .overlay {
     position: absolute; left: 0; right: 0; bottom: 0; padding: 14px;
@@ -184,7 +191,7 @@
   }
   html.light .overlay { background: linear-gradient(0deg, rgba(255,255,255,0.86), transparent 40%); color: #111; }
   .overlay h3 { margin: 0 0 6px 0; font-size: 14px; font-weight: 600 }
-  .overlay p { margin: 0; font-size: 13px; color: var(--muted) }
+  .overlay p { margin: 0; font-size: 13px; color: var(--muted); display: block; }
 
   .icons {
     position: absolute; right: 10px; bottom: 84px; display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 22;
@@ -285,23 +292,27 @@
   .record-btn:active { transform: scale(0.95); }
   .close-record { position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 
+  #uploadProgressModal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 80;
+  }
+  #uploadProgressModal.show { display: flex; }
+  .progress-box {
+    background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    text-align: center; width: 300px; max-width: 90vw;
+  }
+  .progress-bar { width: 100%; height: 20px; background: var(--glass); border-radius: 10px; overflow: hidden; margin: 10px 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2)); width: 0%; transition: width 0.3s ease; }
+  .progress-text { font-size: 14px; color: var(--muted); }
+
   @media (max-width: 420px) {
-    .post { width: 92vw; height: 82vh; border-radius: 12px }
-    .icons { right: 6px; bottom: 68px }
-    .drawer.open { height: 46% }
+    .post { width: 92vw; height: 70vh; }
+    .icons { right: 6px; bottom: 60px; }
+    .drawer.open { height: 40% }
+    .progress-box { width: 90vw; }
   }
 
   .muted { color: var(--muted); font-size: 13px }
   .center { display: flex; align-items: center; justify-content: center }
-
-  .video-indicator {
-    position: absolute; top: 12px; right: 12px; width: 12px; height: 12px; border-radius: 50%;
-    background: rgba(255,255,255,0.6); box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
-    transition: transform 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
-    opacity: 0.9;
-  }
-  .video-indicator.loading { background: #ffd54d; box-shadow: 0 0 8px 2px #ffd54d66; }
-  .video-indicator.loaded { background: #4ade80; box-shadow: 0 0 10px 3px #4ade8066; }
 </style>
 </head>
 <body>
@@ -320,16 +331,9 @@
     </div>
   </div>
 
-  <div id="debugPanel" style="position: fixed; right: 12px; bottom: 12px; width: 360px; max-width: 92vw; max-height: 46vh; overflow: auto; background: rgba(0,0,0,0.7); border-radius: 10px; padding: 10px; color: #fff; font-size: 12px; display: none; z-index: 120">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
-      <strong>Last response</strong>
-      <div><button id="dbgCopy" style="margin-right: 6px">Copy</button><button id="dbgClear">Clear</button></div>
-    </div>
-    <pre id="dbgContent" style="white-space: pre-wrap; word-break: break-word; max-height: 34vh; overflow: auto; margin: 0; padding: 0; font-size: 11px"></pre>
+  <div id="debugPanel">
+    <pre id="debugContent"></pre>
   </div>
-
-  <div id="nextLoader" style="position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); padding: 8px 12px; background: rgba(0,0,0,0.6); border-radius: 999px; color: #fff; font-size: 13px; display: none; z-index: 130">Loading next…</div>
-  <div id="prefetchToast" style="position: fixed; left: 50%; top: 12px; transform: translateX(-50%); padding: 8px 12px; background: #ff5252; color: #fff; border-radius: 8px; font-size: 13px; display: none; z-index: 140">Prefetch failed — retrying…</div>
 
   <main id="feed" aria-live="polite"></main>
 
@@ -338,10 +342,17 @@
   <div id="recordModal">
     <div class="record-container">
       <button class="close-record" id="closeRecord">×</button>
-      <video id="videoPreview" autoplay playsinline></video> <!-- Removed muted -->
+      <video id="videoPreview" autoplay playsinline></video>
       <div class="record-controls">
         <button class="record-btn" id="recordBtnModal">⏺</button>
       </div>
+    </div>
+  </div>
+
+  <div id="uploadProgressModal">
+    <div class="progress-box">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Uploading... 0%</div>
     </div>
   </div>
 
@@ -353,33 +364,28 @@ let posts = [...allPosts];
 let currentIndex = 0;
 let loadingMore = false;
 let searchQuery = '';
-let lastResponse = null;
-const dbgToggle = document.getElementById('debugPanelToggle');
-const dbgPanel = document.getElementById('debugPanel');
-const dbgContent = document.getElementById('dbgContent');
-const dbgCopy = document.getElementById('dbgCopy');
-const dbgClear = document.getElementById('dbgClear');
-if (dbgToggle) dbgToggle.addEventListener('click', () => { dbgPanel.style.display = dbgPanel.style.display === 'none' ? 'block' : 'none'; });
-if (dbgCopy) dbgCopy.addEventListener('click', () => { navigator.clipboard?.writeText(JSON.stringify(lastResponse, null, 2)).catch(() => {}); });
-if (dbgClear) dbgClear.addEventListener('click', () => { lastResponse = null; renderDebug(); });
-
-function renderDebug() {
-  dbgContent.textContent = lastResponse ? JSON.stringify(lastResponse, null, 2) : 'No response yet';
-}
-
-function setLastResponse(obj) {
-  lastResponse = obj;
-  renderDebug();
-}
-
 const feed = document.getElementById('feed');
 let feedContent;
 let pulling = false;
 let startY = 0;
 let translateY = 0;
 const refreshThreshold = 100;
+const progressModal = document.getElementById('uploadProgressModal');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const debugPanel = document.getElementById('debugPanel');
+const debugContent = document.getElementById('debugContent');
+const debugToggle = document.getElementById('debugPanelToggle');
 
-// Like Manager
+function logDebug(message) {
+  debugContent.textContent += `${new Date().toLocaleTimeString()} - ${message}\n`;
+  debugContent.scrollTop = debugContent.scrollHeight;
+}
+
+debugToggle.addEventListener('click', () => {
+  debugPanel.classList.toggle('show');
+});
+
 class LikeManager {
   constructor() {
     this.likes = JSON.parse(localStorage.getItem('videoLikes') || '{}');
@@ -424,21 +430,10 @@ class LikeManager {
         post.likes = Math.max(0, post.likes - 1);
         likeCountEl.textContent = post.likes;
       }
-      // Update post in DOM without full re-render
       updatePostElement(postId, post);
     } catch (error) {
       console.error('Like error:', error);
-      if (!isLiked) {
-        this.removeLike(postId);
-        button.classList.remove('liked');
-        post.liked = false;
-      } else {
-        this.addLike(postId);
-        button.classList.add('liked');
-        post.liked = true;
-      }
-      likeCountEl.textContent = post.likes;
-      updatePostElement(postId, post);
+      logDebug(`Like error: ${error.message}`);
       alert('Network error');
     }
   }
@@ -471,7 +466,6 @@ class LikeManager {
 
 const likeManager = new LikeManager();
 
-// Session & Bootstrap
 const sessionInfoEl = document.getElementById('sessionInfo');
 
 async function updateSessionInfo() {
@@ -484,10 +478,12 @@ async function updateSessionInfo() {
     const u = session.user;
     const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email || u.id;
     sessionInfoEl.textContent = `${name} (${u.id.slice(0, 8)})`;
+    logDebug(`Session updated: ${name}`);
     return session;
   } catch (err) {
     console.error('updateSessionInfo error', err);
     sessionInfoEl.textContent = 'Session error';
+    logDebug(`Session error: ${err.message}`);
     return null;
   }
 }
@@ -504,24 +500,27 @@ async function loadInitialPosts(limit = 50) {
     const { data: { session } } = await supabase.auth.getSession();
     const currentUserId = session?.user?.id || null;
 
-    console.log('Bootstrapping posts from DB...');
+    logDebug('Fetching initial posts...');
     const { data, error } = await supabase
       .from('posts')
-      .select('id, author_id, author_name, video_url, created_at')
+      .select('id, author_id, author_name, video_url, created_at, title, caption')
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
+      logDebug(`Error loading posts: ${error.message}`);
       console.error('Error loading initial posts', error);
       return;
     }
 
+    logDebug(`Fetched ${data.length} posts`);
     const rows = (data || []).map(r => ({
       id: r.id,
-      user: r.author_name ? `@${r.author_name}` : '@user',
-      caption: '',
+      user: r.author_name ? `@${r.author_name}` : `@${r.author_id?.slice(0, 8) || 'you'}`,
+      caption: r.caption || '',
+      title: r.title || 'Untitled Post',
       src: r.video_url,
-      likes: 0, // Will be updated by LikeManager
+      likes: 0,
       comments: [],
       liked: likeManager.isLiked(r.id),
       uploading: false,
@@ -532,13 +531,12 @@ async function loadInitialPosts(limit = 50) {
     allPosts = rows.slice();
     filterPosts();
     renderFeed();
-    console.log(`Loaded ${rows.length} posts from DB`);
   } catch (err) {
+    logDebug(`loadInitialPosts error: ${err.message}`);
     console.error('loadInitialPosts unexpected error', err);
   }
 }
 
-/* SEARCH */
 const searchBar = document.getElementById('searchBar');
 searchBar.addEventListener('input', debounce((e) => {
   searchQuery = e.target.value.toLowerCase();
@@ -552,12 +550,12 @@ function filterPosts() {
   } else {
     posts = allPosts.filter(post =>
       post.user.toLowerCase().includes(searchQuery) ||
-      post.caption.toLowerCase().includes(searchQuery)
+      post.caption.toLowerCase().includes(searchQuery) ||
+      post.title.toLowerCase().includes(searchQuery)
     );
   }
 }
 
-/* DEBOUNCE */
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -570,7 +568,6 @@ function debounce(func, wait) {
   };
 }
 
-/* INFINITE SCROLL */
 let pageSize = 1;
 let lastCursor = null;
 let hasMore = true;
@@ -581,7 +578,7 @@ let prefetchRetryDelay = 1200;
 async function fetchNextBatch(afterCursor = null, size = pageSize) {
   let query = supabase
     .from('posts')
-    .select('id, author_id, author_name, video_url, created_at')
+    .select('id, author_id, author_name, video_url, created_at, title, caption')
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(size);
@@ -591,8 +588,10 @@ async function fetchNextBatch(afterCursor = null, size = pageSize) {
   }
 
   const res = await query;
-  setLastResponse(res);
-  if (res.error) throw res.error;
+  if (res.error) {
+    logDebug(`fetchNextBatch error: ${res.error.message}`);
+    return [];
+  }
   let rows = res.data || [];
 
   if (afterCursor && afterCursor.created_at) {
@@ -608,21 +607,20 @@ async function fetchNextBatch(afterCursor = null, size = pageSize) {
 
 async function prefetchNext() {
   if (!hasMore || prefetchBuffer.length >= prefetchLimit || loadingMore) return;
-  const loader = document.getElementById('nextLoader');
   try {
     loadingMore = true;
-    if (loader) loader.style.display = 'block';
     const rows = await fetchNextBatch(lastCursor, pageSize);
     const mapped = (rows || []).map(r => ({
       id: r.id,
-      user: r.author_name ? `@${r.author_name}` : '@user',
-      caption: '',
+      user: r.author_name ? `@${r.author_name}` : `@${r.author_id?.slice(0, 8) || 'you'}`,
+      caption: r.caption || '',
+      title: r.title || 'Untitled Post',
       src: r.video_url,
       likes: 0,
       comments: [],
       liked: likeManager.isLiked(r.id),
       uploading: false,
-      owner: false, // Removed owner check for all posts
+      owner: false,
       paused: false,
     }));
     if (mapped.length > 0) {
@@ -634,17 +632,9 @@ async function prefetchNext() {
       hasMore = false;
     }
   } catch (err) {
-    console.error('prefetchNext error', err);
-    const toast = document.getElementById('prefetchToast');
-    if (toast) {
-      toast.textContent = 'Prefetch failed — retrying…';
-      toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', 2000);
-    }
-    setTimeout(() => prefetchNext().catch(() => {}), prefetchRetryDelay);
+    logDebug(`prefetchNext error: ${err.message}`);
   } finally {
     loadingMore = false;
-    if (loader) loader.style.display = 'none';
   }
 }
 
@@ -671,7 +661,6 @@ feed.addEventListener('scroll', debounce(() => {
 
 prefetchNext().catch(() => {});
 
-/* PULL-TO-REFRESH */
 function updateRefreshIndicator(dist) {
   const indicator = document.getElementById('pullIndicator');
   const icon = document.getElementById('pullIcon');
@@ -765,7 +754,6 @@ feed.addEventListener('pointercancel', (e) => {
   }
 }, { passive: false });
 
-/* LONG PRESS */
 function attachLongPress(el, ms, cb) {
   let timer = null, pointerId = null;
   const start = (e) => {
@@ -787,10 +775,9 @@ function attachLongPress(el, ms, cb) {
   el.addEventListener('pointerleave', cancel);
 }
 
-/* RENDER POSTS */
 function renderFeed() {
   if (!feed) {
-    console.error('renderFeed: #feed element not found in DOM');
+    logDebug('renderFeed: #feed element not found in DOM');
     return;
   }
   feed.innerHTML = `
@@ -801,6 +788,11 @@ function renderFeed() {
     ${loadingMore ? '<div class="loading">Loading more...</div>' : ''}
   `;
   feedContent = document.getElementById('feedContent');
+  if (posts.length === 0) {
+    feedContent.innerHTML = '<div class="loading">No posts found. Try refreshing or uploading.</div>';
+    logDebug('No posts to render');
+    return;
+  }
   posts.forEach(post => {
     const postEl = document.createElement('article');
     postEl.className = `post ${post.paused ? 'paused' : ''} ${post.uploading ? 'uploading' : ''}`;
@@ -808,7 +800,8 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-inner">
         ${post.uploading ? `<div class="upload-progress"><div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div></div>` : ''}
-        <video playsinline controls preload="metadata" loop data-src="${post.src}" ${post.paused ? 'paused' : ''} crossorigin="anonymous"></video>
+        <div class="post-title">${post.title}</div>
+        <video playsinline controls preload="metadata" loop data-src="${post.src}" ${post.paused ? 'paused' : ''} crossorigin="anonymous" oncontextmenu="return false;"></video>
         <div class="video-indicator" aria-hidden="true"></div>
         <div class="play-overlay"><div class="play-icon">▶</div></div>
         <div class="overlay"><h3>${post.user}</h3><p>${post.caption}</p></div>
@@ -846,15 +839,22 @@ function renderFeed() {
   });
   observeVideos();
   initSwipe();
+  logDebug(`Rendered ${posts.length} posts`);
 }
 
 function updatePostElement(postId, postData) {
   const postEl = document.querySelector(`[data-id="${postId}"]`);
-  if (!postEl) return;
+  if (!postEl) {
+    logDebug(`Post element not found for ID: ${postId}`);
+    return;
+  }
   const likeBtn = postEl.querySelector('.like-btn');
   const likeCountEl = postEl.querySelector('.like-count');
+  const titleEl = postEl.querySelector('.post-title');
+  titleEl.textContent = postData.title;
   likeBtn.classList.toggle('liked', postData.liked);
   likeCountEl.textContent = postData.likes;
+  postEl.querySelector('.overlay p').textContent = postData.caption;
   postEl.className = `post ${postData.paused ? 'paused' : ''} ${postData.uploading ? 'uploading' : ''}`;
 }
 
@@ -874,16 +874,17 @@ function attachPostBehavior(postEl, postData) {
   const sendBtn = postEl.querySelector('.send-small');
   const shareBtn = postEl.querySelector('.share-btn');
 
-  // Video interactions
   let lastTap = 0;
+  let tapTimeout = null;
   postEl.querySelector('.post-inner').addEventListener('pointerup', (e) => {
     if (e.target.closest('.icons') || e.target.closest('.overlay') || e.target.closest('.drawer')) return;
     const now = Date.now();
     const timeSinceLastTap = now - lastTap;
     clearTimeout(tapTimeout);
     if (timeSinceLastTap < 300) {
+      e.preventDefault();
       if (!postData.liked) {
-        likeManager.handleLike(likeBtn); // Use LikeManager
+        likeManager.handleLike(likeBtn);
       }
     } else {
       tapTimeout = setTimeout(() => {
@@ -895,12 +896,10 @@ function attachPostBehavior(postEl, postData) {
       }, 250);
     }
     lastTap = now;
-  }, { passive: true });
+  }, { passive: false });
 
-  // Like button (handled by LikeManager)
   likeBtn.addEventListener('click', (e) => e.stopPropagation());
 
-  // Delete button
   if (deleteBtn) {
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -908,30 +907,30 @@ function attachPostBehavior(postEl, postData) {
         posts = posts.filter(p => p.id !== postData.id);
         allPosts = allPosts.filter(p => p.id !== postData.id);
         postEl.remove();
+        logDebug(`Deleted post ID: ${postData.id}`);
       }
     });
   }
 
-  // Comment drawer
-  if (commentOpen) {
-    function refreshComments() {
-      commentsList.innerHTML = '';
-      (postData.comments || []).forEach((c, idx) => {
-        const d = document.createElement('div');
-        d.className = 'comment';
-        d.textContent = c;
-        d.dataset.index = idx;
-        commentsList.appendChild(d);
-        attachLongPress(d, 1000, () => {
-          commentInputWrap.classList.add('active');
-          commentInput.value = `@reply_to: `;
-          commentInput.focus();
-          commentInput.dataset.replyTo = c.split(':')[0] || '';
-        });
+  function refreshComments() {
+    commentsList.innerHTML = '';
+    (postData.comments || []).forEach((c, idx) => {
+      const d = document.createElement('div');
+      d.className = 'comment';
+      d.textContent = c;
+      d.dataset.index = idx;
+      commentsList.appendChild(d);
+      attachLongPress(d, 1000, () => {
+        commentInputWrap.classList.add('active');
+        commentInput.value = `@reply_to: `;
+        commentInput.focus();
+        commentInput.dataset.replyTo = c.split(':')[0] || '';
       });
-    }
-    refreshComments();
+    });
+  }
+  refreshComments();
 
+  if (commentOpen) {
     commentOpen.addEventListener('click', (e) => {
       e.stopPropagation();
       openDrawer();
@@ -972,28 +971,29 @@ function attachPostBehavior(postEl, postData) {
       if (!commentInputWrap.classList.contains('active')) return;
       const val = commentInput.value.trim();
       if (!val) return;
-      const newC = `@you: ${val}`;
+      const newC = `@${sessionInfoEl.textContent.split(' ')[0]}: ${val}`;
       postData.comments = postData.comments || [];
       postData.comments.push(newC);
       const originalPost = allPosts.find(p => p.id === postData.id);
       if (originalPost) originalPost.comments = postData.comments;
       refreshComments();
       commentInput.value = '';
+      logDebug(`Added comment to post ID: ${postData.id}`);
     });
   }
 
-  // Share button
   if (shareBtn) {
     shareBtn.addEventListener('click', () => {
       const postId = postEl.dataset.id;
       const post = allPosts.find(p => p.id === postId);
       if (!post) return;
-      const videoUrl = `${window.location.origin}?video=${postId}`;
+      const shareUrl = `${window.location.origin}/post/${postId}`;
       if (navigator.share) {
-        navigator.share({ title: `Check out this video by ${post.user}!`, url: videoUrl });
+        navigator.share({ title: post.title, text: post.caption, url: shareUrl });
       } else {
-        navigator.clipboard.writeText(videoUrl).then(() => alert('Link copied to clipboard!'));
+        navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied to clipboard!'));
       }
+      logDebug(`Shared post ID: ${postId}`);
     });
   }
 }
@@ -1046,6 +1046,7 @@ function observeVideos() {
     }, { threshold: [0.7], rootMargin: '50px' });
     document.querySelectorAll('.post video').forEach(v => io.observe(v));
   } catch (err) {
+    logDebug(`observeVideos error: ${err.message}`);
     console.error('observeVideos setup failed', err);
   }
 }
@@ -1062,25 +1063,9 @@ function initVideoLazyLoader() {
       if (!entry.isIntersecting) return;
       const v = entry.target;
       if (v.dataset.src && !v.dataset.loaded) {
-        const indicator = v.closest('.post')?.querySelector('.video-indicator');
-        if (indicator) indicator.classList.add('loading');
-        console.debug('initVideoLazyLoader: setting video src', v.dataset.src, 'for', v.closest('.post')?.dataset.id);
         v.src = v.dataset.src;
         v.load();
         v.dataset.loaded = '1';
-        v.addEventListener('loadeddata', () => {
-          if (indicator) {
-            indicator.classList.remove('loading');
-            indicator.classList.add('loaded');
-          }
-        }, { once: true });
-        v.addEventListener('error', (ev) => {
-          console.error('Video failed to load', { src: v.dataset.src, postId: v.closest('.post')?.dataset.id, ev });
-          if (indicator) {
-            indicator.classList.remove('loading');
-            indicator.classList.remove('loaded');
-          }
-        }, { once: true });
       }
       obs.unobserve(v);
     });
@@ -1096,41 +1081,41 @@ renderFeed = function() {
 
 function initSwipe() {
   let touchStartX = 0;
+  let touchStartY = 0;
   let currentTranslate = 0;
-  const posts = document.querySelectorAll('.post');
-  let currentIndex = 0;
+  const header = document.getElementById('header');
 
-  feed.addEventListener('touchstart', (e) => {
+  header.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
-    currentTranslate = 0;
-    posts.forEach(post => post.classList.add('swiping'));
+    touchStartY = e.touches[0].clientY;
+    logDebug(`Touch start: X=${touchStartX}, Y=${touchStartY}`);
   }, { passive: true });
 
-  feed.addEventListener('touchmove', (e) => {
+  header.addEventListener('touchmove', (e) => {
+    if (!touchStartX) return;
     const touchX = e.touches[0].clientX;
     const deltaX = touchX - touchStartX;
-    currentTranslate = deltaX;
-    posts.forEach((post, idx) => {
-      const translate = idx === currentIndex ? currentTranslate : (idx < currentIndex ? -360 - currentTranslate : 360 - currentTranslate);
-      post.style.transform = `translateX(${translate}px)`;
-    });
-  }, { passive: true });
-
-  feed.addEventListener('touchend', () => {
-    const swipeThreshold = 100;
-    if (Math.abs(currentTranslate) > swipeThreshold) {
-      if (currentTranslate < 0 && currentIndex < posts.length - 1) currentIndex++;
-      else if (currentTranslate > 0 && currentIndex > 0) currentIndex--;
+    logDebug(`Touch move: DeltaX=${deltaX}`);
+    if (Math.abs(deltaX) > 10 && Math.abs(e.touches[0].clientY - touchStartY) < 10) {
+      e.preventDefault();
+      header.style.transform = `translateX(${deltaX * 0.08}px)`;
     }
-    posts.forEach((post, idx) => {
-      post.style.transition = 'transform 0.3s ease';
-      post.style.transform = `translateX(${idx === currentIndex ? 0 : (idx < currentIndex ? -360 : 360)}px)`;
-      setTimeout(() => {
-        post.style.transition = '';
-        post.classList.remove('swiping');
-      }, 300);
-    });
-  });
+  }, { passive: false });
+
+  header.addEventListener('touchend', (e) => {
+    if (!touchStartX) return;
+    const touchX = e.changedTouches[0].clientX;
+    const deltaX = touchX - touchStartX;
+    logDebug(`Touch end: DeltaX=${deltaX}`);
+    header.style.transform = '';
+    const threshold = 80;
+    if (Math.abs(deltaX) > threshold) {
+      document.documentElement.classList.toggle('light');
+      logDebug('Theme toggled');
+    }
+    touchStartX = 0;
+    touchStartY = 0;
+  }, { passive: true });
 }
 
 const fab = document.getElementById('fab');
@@ -1146,9 +1131,9 @@ function openUploadPrompt() {
   });
   const modal = document.createElement('div');
   Object.assign(modal.style, {
-    width: 'min(720px,92vw)', padding: '20px', borderRadius: '14px',
+    width: 'min(720px,92vw)', padding: '20px', border-radius: '14px',
     background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
-    boxShadow: '0 18px 60px rgba(0,0,0,0.6)', color: 'inherit'
+    box-shadow: '0 18px 60px rgba(0,0,0,0.6)', color: 'inherit'
   });
   modal.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px">
@@ -1160,6 +1145,10 @@ function openUploadPrompt() {
       <label style="padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); display: inline-flex; align-items: center; cursor: pointer; flex: 1">
         📁 Upload <input id="filePicker" type="file" accept="video/*" style="display: none" />
       </label>
+    </div>
+    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+      <input id="postTitle" placeholder="Enter post title" style="padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: var(--glass); color: inherit; outline: none;" />
+      <textarea id="postCaption" placeholder="Enter caption" style="padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: var(--glass); color: inherit; outline: none; resize: vertical; min-height: 60px;"></textarea>
     </div>
   `;
   backdrop.appendChild(modal);
@@ -1182,79 +1171,19 @@ function openUploadPrompt() {
 
       recordBtnModal.addEventListener('click', () => {
         if (!mediaRecorder) {
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' }); // Ensure audio codec
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
           mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
           mediaRecorder.onstop = async () => {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             const id = 'p' + Math.random().toString(36).slice(2, 9);
-            const newPost = { id, user: '@you', caption: 'Just recorded this!', src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
+            const title = document.getElementById('postTitle').value || 'Untitled Post';
+            const caption = document.getElementById('postCaption').value || '';
+            const newPost = { id, user: `@${sessionInfoEl.textContent.split(' ')[0]}`, caption, title, src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
             allPosts.unshift(newPost);
             filterPosts();
             renderFeed();
-
-            try {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (!session) {
-                alert('You must be signed in to upload.');
-                newPost.uploading = false;
-                renderFeed();
-                stream.getTracks().forEach(track => track.stop());
-                recordedChunks = [];
-                recordModal.classList.remove('show');
-                backdrop.remove();
-                return;
-              }
-              const userId = session.user.id;
-              const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.email || session.user.id;
-              const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webm`;
-              const path = `posts/${userId}/${filename}`;
-
-              const uploadPromise = supabase.storage.from('Facts').upload(path, blob, { cacheControl: '3600', upsert: false });
-              startCoarseProgress(newPost, uploadPromise);
-              const { data: uploadData, error: uploadError } = await uploadPromise;
-              if (uploadError) {
-                console.error('Recording upload error', uploadError);
-                alert('Upload failed: ' + uploadError.message);
-                newPost.uploading = false;
-                renderFeed();
-                stream.getTracks().forEach(track => track.stop());
-                recordedChunks = [];
-                recordModal.classList.remove('show');
-                backdrop.remove();
-                return;
-              }
-              const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
-              const publicUrl = urlData?.publicUrl || '';
-
-              const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
-              const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
-              if (insertError) {
-                console.error('Insert error', insertError);
-                alert('Insert failed: ' + insertError.message);
-                newPost.uploading = false;
-                renderFeed();
-                stream.getTracks().forEach(track => track.stop());
-                recordedChunks = [];
-                recordModal.classList.remove('show');
-                backdrop.remove();
-                return;
-              }
-
-              newPost.src = publicUrl;
-              newPost.uploading = false;
-              newPost.uploadProgress = 100;
-              newPost.owner = true;
-              if (inserted && inserted.id) newPost.id = inserted.id;
-              filterPosts();
-              renderFeed();
-            } catch (err) {
-              console.error('Unexpected upload error', err);
-              alert('Upload failed: ' + (err?.message || err));
-              newPost.uploading = false;
-              renderFeed();
-            }
-
+            uploadVideo(newPost, blob);
             stream.getTracks().forEach(track => track.stop());
             recordedChunks = [];
             recordModal.classList.remove('show');
@@ -1275,6 +1204,7 @@ function openUploadPrompt() {
         recordModal.classList.remove('show');
       });
     } catch (err) {
+      logDebug(`Record error: ${err.message}`);
       alert('Camera access denied or not available.');
     }
   });
@@ -1295,88 +1225,133 @@ function openUploadPrompt() {
       }
       backdrop.remove();
       const id = 'p' + Math.random().toString(36).slice(2, 9);
-      const newPost = { id, user: '@you', caption: 'Uploading...', src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
+      const title = document.getElementById('postTitle').value || 'Untitled Post';
+      const caption = document.getElementById('postCaption').value || '';
+      const newPost = { id, user: `@${sessionInfoEl.textContent.split(' ')[0]}`, caption, title, src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
       allPosts.unshift(newPost);
       filterPosts();
       renderFeed();
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          alert('You must be signed in to upload.');
-          newPost.uploading = false;
-          renderFeed();
-          return;
-        }
-        const userId = session.user.id;
-        const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.email || session.user.id;
-        const ext = file.name.split('.').pop() || 'mp4';
-        const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const path = `posts/${userId}/${filename}`;
-
-        const uploadPromise = supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
-        startCoarseProgress(newPost, uploadPromise);
-        const { data: uploadData, error: uploadError } = await uploadPromise;
-        if (uploadError) {
-          console.error('Upload error', uploadError);
-          alert('Upload failed: ' + uploadError.message);
-          newPost.uploading = false;
-          renderFeed();
-          return;
-        }
-        const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
-        const publicUrl = urlData?.publicUrl || '';
-
-        const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
-        const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
-        if (insertError) {
-          console.error('Insert error', insertError);
-          alert('Insert failed: ' + insertError.message);
-          newPost.uploading = false;
-          renderFeed();
-          return;
-        }
-
-        newPost.src = publicUrl;
-        newPost.uploading = false;
-        newPost.uploadProgress = 100;
-        newPost.owner = true;
-        if (inserted && inserted.id) newPost.id = inserted.id;
-        filterPosts();
-        renderFeed();
-      } catch (err) {
-        console.error('Unexpected upload error', err);
-        alert('Upload failed: ' + (err?.message || err));
-        newPost.uploading = false;
-        renderFeed();
-      }
+      uploadVideo(newPost, file);
     };
   });
 }
 
-/* THEME TOGGLE */
+async function uploadVideo(post, file) {
+  progressModal.classList.add('show');
+  updateProgress(0);
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      logDebug('No session for upload');
+      alert('You must be signed in to upload.');
+      post.uploading = false;
+      updateProgress(100);
+      progressModal.classList.remove('show');
+      return;
+    }
+    const userId = session.user.id;
+    const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.email || session.user.id;
+    const ext = file.name.split('.').pop() || 'mp4';
+    const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = `posts/${userId}/${filename}`;
+
+    const uploadPromise = supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
+    startCoarseProgress(post, uploadPromise);
+    const { data: uploadData, error: uploadError } = await uploadPromise;
+    if (uploadError) {
+      logDebug(`Upload error: ${uploadError.message}`);
+      alert('Upload failed: ' + uploadError.message);
+      post.uploading = false;
+      updateProgress(100);
+      progressModal.classList.remove('show');
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
+    const publicUrl = urlData?.publicUrl || '';
+
+    const insertPayload = { author_id: userId, author_name, video_url: publicUrl, title: post.title, caption: post.caption };
+    const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+    if (insertError) {
+      logDebug(`Insert error: ${insertError.message}`);
+      alert('Insert failed: ' + insertError.message);
+      post.uploading = false;
+      updateProgress(100);
+      progressModal.classList.remove('show');
+      return;
+    }
+
+    post.src = publicUrl;
+    post.uploading = false;
+    post.uploadProgress = 100;
+    post.owner = true;
+    if (inserted && inserted.id) post.id = inserted.id;
+    updatePostElement(post.id, post);
+    logDebug(`Uploaded post ID: ${post.id}`);
+  } catch (err) {
+    logDebug(`Upload error: ${err.message}`);
+    alert('Upload failed: ' + (err?.message || err));
+    post.uploading = false;
+    updateProgress(100);
+    progressModal.classList.remove('show');
+  } finally {
+    updateProgress(100);
+    progressModal.classList.remove('show');
+  }
+}
+
+function updateProgress(percent) {
+  progressFill.style.width = `${percent}%`;
+  progressText.textContent = `Uploading... ${percent}%`;
+}
+
+function startCoarseProgress(post, uploadPromise) {
+  if (!post) return;
+  post.uploadProgress = 6;
+  updatePostElement(post.id, post);
+  updateProgress(6);
+  const iv = setInterval(() => {
+    if (!post.uploading) { clearInterval(iv); return; }
+    post.uploadProgress = Math.min(80, (post.uploadProgress || 0) + Math.floor(Math.random() * 8) + 2);
+    updateProgress(post.uploadProgress);
+    updatePostElement(post.id, post);
+  }, 400);
+  uploadPromise.finally(() => {
+    clearInterval(iv);
+    post.uploadProgress = 100;
+    updateProgress(100);
+    updatePostElement(post.id, post);
+  });
+}
+
 const header = document.getElementById('header');
 let pDown = false, pStartX = 0;
 header.addEventListener('pointerdown', (e) => {
   pDown = true;
   pStartX = e.clientX;
   header.setPointerCapture?.(e.pointerId);
+  logDebug(`Pointer down: X=${pStartX}`);
 });
 header.addEventListener('pointermove', (e) => {
   if (!pDown) return;
   const dx = e.clientX - pStartX;
-  header.style.transform = `translateX(${dx * 0.08}px)`;
+  logDebug(`Pointer move: DeltaX=${dx}`);
+  if (Math.abs(dx) > 10) {
+    e.preventDefault();
+    header.style.transform = `translateX(${dx * 0.08}px)`;
+  }
 });
 header.addEventListener('pointerup', (e) => {
   header.style.transform = '';
   if (!pDown) return; pDown = false;
   const dx = e.clientX - pStartX;
+  logDebug(`Pointer up: DeltaX=${dx}`);
   const threshold = 80;
-  if (dx <= -threshold || dx >= threshold) {
+  if (Math.abs(dx) > threshold) {
     document.documentElement.classList.toggle('light');
+    logDebug('Theme toggled');
   }
 });
-header.addEventListener('pointercancel', () => { pDown = false; header.style.transform = ''; });
+header.addEventListener('pointercancel', () => { pDown = false; header.style.transform = ''; logDebug('Pointer cancelled'); });
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -1391,23 +1366,6 @@ document.addEventListener('keydown', (e) => {
 renderFeed();
 setupAuthListener();
 loadInitialPosts();
-
-function startCoarseProgress(post, uploadPromise) {
-  if (!post) return;
-  post.uploadProgress = 6;
-  updatePostElement(post.id, post);
-  const iv = setInterval(() => {
-    if (!post.uploading) { clearInterval(iv); return; }
-    post.uploadProgress = Math.min(80, (post.uploadProgress || 0) + Math.floor(Math.random() * 8) + 2);
-    updatePostElement(post.id, post);
-  }, 400);
-  uploadPromise.finally(() => {
-    clearInterval(iv);
-    post.uploadProgress = 100;
-    post.uploading = false;
-    updatePostElement(post.id, post);
-  });
-}
 </script>
 </body>
 </html>
