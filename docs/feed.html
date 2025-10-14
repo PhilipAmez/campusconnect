@@ -418,6 +418,8 @@
 
   <!-- small floating loader for next-post fetch -->
   <div id="nextLoader" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);padding:8px 12px;background:rgba(0,0,0,0.6);border-radius:999px;color:#fff;font-size:13px;display:none;z-index:130">Loading next…</div>
+  <!-- tiny top toast for prefetch errors -->
+  <div id="prefetchToast" style="position:fixed;left:50%;top:12px;transform:translateX(-50%);padding:8px 12px;background:#ff5252;color:#fff;border-radius:8px;font-size:13px;display:none;z-index:140">Prefetch failed — retrying…</div>
 
   <main id="feed" aria-live="polite"></main>
 
@@ -582,32 +584,52 @@ function debounce(func, wait) {
 // Load one post per page so scrolling loads the next post on demand
 // Cursor-based pagination state (prefetch 1 next post into a buffer)
 let pageSize = 1;
-let lastCursor = null; // created_at cursor of last loaded post
+// compound cursor: { created_at, id }
+let lastCursor = null;
 let hasMore = true;
-let prefetchBuffer = []; // holds prefetched posts (max 1)
+let prefetchBuffer = []; // holds prefetched posts (up to prefetchLimit)
+const prefetchLimit = 3; // keep 2-3 items ready
+let prefetchRetryDelay = 1200; // ms to wait before retrying on failure
 
 async function fetchNextBatch(afterCursor = null, size = pageSize) {
-  // returns array of rows
-  const query = supabase
+  // returns array of rows using compound cursor (created_at, id)
+  // Supabase supports range/limit and basic filters; to simulate compound cursor
+  // we request rows where created_at < cursor.created_at OR (created_at = cursor.created_at AND id < cursor.id)
+  let query = supabase
     .from('posts')
     .select('id, author_id, author_name, video_url, created_at')
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(size);
 
-  // if we have a cursor, fetch rows after that timestamp by using lt on created_at
-  if (afterCursor) {
-    query.lt('created_at', afterCursor);
+  if (afterCursor && afterCursor.created_at) {
+    // build a filter that matches rows with created_at < cursor OR (created_at = cursor AND id < cursorId)
+    // Supabase query builder doesn't support OR directly; instead we fetch a slightly larger window
+    // and then client-side filter to enforce the compound cursor.
+    query = query.lt('created_at', afterCursor.created_at).limit(size * 2);
   }
 
   const res = await query;
   setLastResponse(res);
   if (res.error) throw res.error;
-  return res.data || [];
+  let rows = res.data || [];
+
+  // if we passed a cursor, perform client-side compound cursor filtering
+  if (afterCursor && afterCursor.created_at) {
+    rows = rows.filter(r => {
+      if (r.created_at < afterCursor.created_at) return true;
+      if (r.created_at === afterCursor.created_at && r.id < afterCursor.id) return true;
+      return false;
+    }).slice(0, size);
+  }
+
+  return rows;
 }
 
 async function prefetchNext() {
-  if (!hasMore || prefetchBuffer.length > 0 || loadingMore) return;
+  if (!hasMore || prefetchBuffer.length >= prefetchLimit || loadingMore) return;
   const loader = document.getElementById('nextLoader');
+  const toast = document.getElementById('prefetchToast');
   try {
     loadingMore = true;
     if (loader) loader.style.display = 'block';
@@ -626,14 +648,24 @@ async function prefetchNext() {
     }));
     if (mapped.length > 0) {
       prefetchBuffer.push(...mapped);
-      // update cursor to the last fetched created_at for next prefetch
-      lastCursor = rows[rows.length - 1].created_at;
+      // update cursor to the last fetched row's compound cursor for next prefetch
+      const lastRow = rows[rows.length - 1];
+      lastCursor = { created_at: lastRow.created_at, id: lastRow.id };
       if (mapped.length < pageSize) hasMore = false;
     } else {
       hasMore = false;
     }
   } catch (err) {
     console.error('prefetchNext error', err);
+    // show a toast and schedule a retry
+    if (toast) {
+      toast.textContent = 'Prefetch failed — retrying…';
+      toast.style.display = 'block';
+    }
+    setTimeout(() => {
+      if (toast) toast.style.display = 'none';
+      prefetchNext().catch(() => {});
+    }, prefetchRetryDelay);
   } finally {
     loadingMore = false;
     if (loader) loader.style.display = 'none';
