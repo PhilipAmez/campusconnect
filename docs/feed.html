@@ -1,19 +1,1413 @@
-<!-- Header without search bar -->
-<header class="app-header">
-    <div class="header-content">
-        <h1>Video Platform</h1>
-        <nav>
-            <a href="#home">Home</a>
-            <a href="#profile">Profile</a>
-        </div>
-    </div>
-</header>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Skrolz</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f10;
+    --card: #141416;
+    --muted: #bfc3cc;
+    --accent-1: #7bdff6;
+    --accent-2: #2fb3ff;
+    --accent: #6a40ff;
+    --glass: rgba(255,255,255,0.05);
+    --transition: 320ms cubic-bezier(.2,.9,.3,1);
+    --blue-aqua: #7bdff6;
+  }
+  html.light {
+    --bg: #f6f7fa;
+    --card: #fff;
+    --muted: #374151;
+    --glass: rgba(0,0,0,0.03);
+  }
 
-<!-- Search bar below header -->
-<div class="search-container">
-    <div class="search-wrapper">
-        <input type="text" id="videoSearch" placeholder="Search videos..." autocomplete="off">
-        <button id="searchBtn">🔍</button>
+  * { box-sizing: border-box }
+  html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg);
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    transition: background var(--transition), color var(--transition);
+    min-height: 100vh;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 40;
+    height: 64px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.05));
+    backdrop-filter: blur(8px) saturate(140%);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: background var(--transition), color var(--transition), transform 220ms ease;
+    user-select: none;
+    touch-action: none;
+  }
+  html.light header {
+    background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.85));
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    color: #111;
+  }
+  .header-inner { text-align: center; pointer-events: none; width: 100%; max-width: 360px; }
+  .header-title { font-weight: 700; font-size: 18px; letter-spacing: 0.3px }
+  .header-hint { position: absolute; right: 14px; font-size: 13px; opacity: 0.75; pointer-events: none }
+
+  /* SEARCH BAR - Moved below header */
+  .search-container {
+    position: sticky;
+    top: 64px;
+    z-index: 39;
+    background: var(--bg);
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .search-wrapper {
+    max-width: 300px;
+    margin: 0 auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #searchBar {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 25px;
+    background: var(--glass);
+    color: inherit;
+    font-size: 14px;
+    backdrop-filter: blur(8px);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  html.light #searchBar { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); }
+  #searchBar::placeholder { color: var(--muted); }
+  #searchBar:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(106, 64, 255, 0.1);
+  }
+
+  /* FEED */
+  main#feed {
+    padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 28px; padding-bottom: 120px;
+    position: relative;
+    overflow-y: auto;
+    height: calc(100vh - 128px); /* Adjusted for search bar */
+  }
+  #feedContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    width: 100%;
+    transition: transform var(--transition);
+    will-change: transform;
+  }
+
+  #pullIndicator {
+    position: fixed;
+    top: 128px; /* Adjusted for search bar */
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    width: 360px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass);
+    border-radius: 18px 18px 0 0;
+    transition: opacity 0.2s, transform 0.3s;
+    opacity: 0;
+    z-index: 50;
+    pointer-events: none;
+  }
+  html.light #pullIndicator { background: rgba(0,0,0,0.03); }
+  #pullIndicator > div { display: flex; align-items: center; gap: 8px; }
+  #pullText { font-size: 13px; color: var(--muted); }
+  #pullIcon.refreshing { animation: spin 0.8s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  @media (max-width: 420px) {
+    #pullIndicator { width: 92vw; }
+    .search-wrapper { max-width: 100%; }
+    #searchBar { font-size: 16px; }
+  }
+
+  /* LOADING */
+  .loading { display: flex; align-items: center; justify-content: center; height: 100px; font-size: 14px; color: var(--muted); }
+
+  /* CARD / POST */
+  .post {
+    width: 360px; height: 640px; border-radius: 18px; overflow: visible; position: relative;
+    background: var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.55);
+    transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+    will-change: transform;
+    touch-action: pan-y;
+  }
+  html.light .post { box-shadow: 0 8px 28px rgba(2,6,23,0.06) }
+  .post.swiping { transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+  .post-inner { width: 100%; height: 100%; border-radius: 18px; overflow: hidden; position: relative; background: var(--card); }
+  .post video { width: 100%; height: 100%; object-fit: cover; display: block; } /* Removed muted */
+
+  .play-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 200ms ease; z-index: 10; pointer-events: none;
+  }
+  .post.paused .play-overlay { opacity: 1; pointer-events: auto; }
+  .play-icon {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--blue-aqua);
+    display: flex; align-items: center; justify-content: center; font-size: 32px;
+    color: white; opacity: 0.9; box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4);
+  }
+
+  .upload-progress { position: absolute; top: 0; left: 0; height: 4px; background: rgba(0,0,0,0.3); overflow: hidden; z-index: 15; }
+  .upload-progress-bar { height: 100%; background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2)); width: 0%; transition: width 100ms linear; }
+
+  .overlay {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 14px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.6), transparent 40%); color: #fff;
+    transition: background var(--transition), color var(--transition);
+  }
+  html.light .overlay { background: linear-gradient(0deg, rgba(255,255,255,0.86), transparent 40%); color: #111; }
+  .overlay h3 { margin: 0 0 6px 0; font-size: 14px; font-weight: 600 }
+  .overlay p { margin: 0; font-size: 13px; color: var(--muted) }
+
+  .icons {
+    position: absolute; right: 10px; bottom: 84px; display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 22;
+  }
+  .btn {
+    width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;
+    background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); color: #fff; font-size: 18px;
+    transition: transform 160ms ease, background 160ms, color 160ms;
+  }
+  .btn:active { transform: scale(.96) }
+  html.light .btn { color: #111; background: rgba(0,0,0,0.04) }
+
+  .like-btn.liked {
+    background: linear-gradient(135deg, var(--blue-aqua), #2fb3ff);
+    color: white;
+    box-shadow: 0 0 12px rgba(123, 223, 246, 0.4);
+  }
+  .like-btn.liked::before {
+    content: '♥';
+    position: absolute;
+    font-size: 18px;
+    color: white;
+  }
+
+  .like-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px }
+  .like-count { font-size: 12px; color: var(--muted); user-select: none }
+
+  .delete-btn { background: rgba(255, 50, 50, 0.2); color: #ff6b6b; }
+
+  .drawer {
+    position: absolute; left: 8px; right: 8px; bottom: 8px; height: 0; max-height: 58%;
+    border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; align-items: center;
+    backdrop-filter: blur(14px) saturate(140%); background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    transition: height 360ms cubic-bezier(.2,.9,.3,1), transform 320ms ease;
+    z-index: 26;
+    pointer-events: none;
+  }
+  html.light .drawer { background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01)); color: #111 }
+
+  .drawer.open { height: 42%; pointer-events: auto; }
+
+  .drawer-inner {
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center;
+    padding: 12px 12px 8px 12px; gap: 10px; box-sizing: border-box; overflow: auto;
+    -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
+  }
+  .drawer-inner::-webkit-scrollbar { display: none }
+  .drawer-inner { -ms-overflow-style: none; scrollbar-width: none }
+
+  .drawer-handle { width: 54px; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.12); margin-top: 6px; }
+  html.light .drawer-handle { background: rgba(0,0,0,0.08) }
+
+  .comments-list { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; padding-top: 6px; box-sizing: border-box; }
+  .comment { width: 88%; text-align: center; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); color: #e0e0e0; user-select: none; font-size: 14px; }
+  html.light .comment { background: rgba(0,0,0,0.03); color: #333; }
+
+  .drawer-footer { width: 100%; display: flex; justify-content: center; gap: 8px; padding: 8px 0 4px; align-items: center; }
+  .comment-input { display: none; width: 84%; }
+  .comment-input.active { display: block; }
+  .comment-input input { width: 100%; padding: 10px 12px; border-radius: 999px; border: none; outline: none; background: rgba(255,255,255,0.06); color: #fff; }
+  html.light .comment-input input { background: rgba(0,0,0,0.04); color: #111 }
+  .send-small { padding: 8px 12px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer }
+
+  .heart-hit { position: absolute; pointer-events: none; width: 120px; height: 120px; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 30; opacity: 0; transition: opacity 120ms linear; }
+  .heart-hit.show { opacity: 1; animation: heart-pop 420ms cubic-bezier(.2,.85,.25,1); }
+  @keyframes heart-pop {
+    0% { transform: translate(-50%,-50%) scale(.84); opacity: 0; filter: blur(6px) }
+    10% { transform: translate(-50%,-50%) scale(1.04); opacity: 1; filter: blur(0) }
+    80% { transform: translate(-50%,-50%) scale(1); opacity: 1 }
+    100% { transform: translate(-50%,-50%) scale(1); opacity: 0 }
+  }
+
+  .fab {
+    position: fixed; right: 22px; bottom: 22px; z-index: 40; width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    background: linear-gradient(135deg, var(--accent), #b473ff); color: #fff;
+    box-shadow: 0 14px 40px rgba(100,40,255,0.12); transition: transform 180ms ease;
+  }
+  .fab:active { transform: scale(.98) }
+
+  #recordModal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 70;
+  }
+  #recordModal.show { display: flex; }
+  .record-container {
+    width: 100%; height: 100%; position: relative; display: flex; flex-direction: column;
+  }
+  #videoPreview { width: 100%; height: calc(100% - 100px); object-fit: cover; background: black; }
+  .record-controls {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; align-items: center;
+  }
+  .record-btn {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--blue-aqua); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 30px; color: white;
+    box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4); transition: transform 0.2s;
+  }
+  .record-btn.recording { background: #ff4757; transform: scale(1.1); }
+  .record-btn:active { transform: scale(0.95); }
+  .close-record { position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+
+  @media (max-width: 420px) {
+    .post { width: 92vw; height: 82vh; border-radius: 12px }
+    .icons { right: 6px; bottom: 68px }
+    .drawer.open { height: 46% }
+  }
+
+  .muted { color: var(--muted); font-size: 13px }
+  .center { display: flex; align-items: center; justify-content: center }
+
+  .video-indicator {
+    position: absolute; top: 12px; right: 12px; width: 12px; height: 12px; border-radius: 50%;
+    background: rgba(255,255,255,0.6); box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
+    transition: transform 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
+    opacity: 0.9;
+  }
+  .video-indicator.loading { background: #ffd54d; box-shadow: 0 0 8px 2px #ffd54d66; }
+  .video-indicator.loaded { background: #4ade80; box-shadow: 0 0 10px 3px #4ade8066; }
+</style>
+</head>
+<body>
+  <header id="header" aria-hidden="false">
+    <div class="header-inner">
+      <div id="sessionInfo" style="position: absolute; left: 12px; top: 12px; font-size: 12px; opacity: 0.9; pointer-events: auto"></div>
+      <div id="debugPanelToggle" style="position: absolute; right: 90px; top: 12px; font-size: 12px; opacity: 0.9; cursor: pointer">Debug</div>
+      <div class="header-title">Skrolz</div>
+      <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
-    <div id="searchResults" class="search-results"></div>
-</div>
+  </header>
+
+  <div class="search-container">
+    <div class="search-wrapper">
+      <input type="text" id="searchBar" placeholder="Search posts..." autocomplete="off">
+    </div>
+  </div>
+
+  <div id="debugPanel" style="position: fixed; right: 12px; bottom: 12px; width: 360px; max-width: 92vw; max-height: 46vh; overflow: auto; background: rgba(0,0,0,0.7); border-radius: 10px; padding: 10px; color: #fff; font-size: 12px; display: none; z-index: 120">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
+      <strong>Last response</strong>
+      <div><button id="dbgCopy" style="margin-right: 6px">Copy</button><button id="dbgClear">Clear</button></div>
+    </div>
+    <pre id="dbgContent" style="white-space: pre-wrap; word-break: break-word; max-height: 34vh; overflow: auto; margin: 0; padding: 0; font-size: 11px"></pre>
+  </div>
+
+  <div id="nextLoader" style="position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); padding: 8px 12px; background: rgba(0,0,0,0.6); border-radius: 999px; color: #fff; font-size: 13px; display: none; z-index: 130">Loading next…</div>
+  <div id="prefetchToast" style="position: fixed; left: 50%; top: 12px; transform: translateX(-50%); padding: 8px 12px; background: #ff5252; color: #fff; border-radius: 8px; font-size: 13px; display: none; z-index: 140">Prefetch failed — retrying…</div>
+
+  <main id="feed" aria-live="polite"></main>
+
+  <button class="fab" id="fab">＋</button>
+
+  <div id="recordModal">
+    <div class="record-container">
+      <button class="close-record" id="closeRecord">×</button>
+      <video id="videoPreview" autoplay playsinline></video> <!-- Removed muted -->
+      <div class="record-controls">
+        <button class="record-btn" id="recordBtnModal">⏺</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import { supabase } from './js/supabaseClient.js';
+
+let allPosts = [];
+let posts = [...allPosts];
+let currentIndex = 0;
+let loadingMore = false;
+let searchQuery = '';
+let lastResponse = null;
+const dbgToggle = document.getElementById('debugPanelToggle');
+const dbgPanel = document.getElementById('debugPanel');
+const dbgContent = document.getElementById('dbgContent');
+const dbgCopy = document.getElementById('dbgCopy');
+const dbgClear = document.getElementById('dbgClear');
+if (dbgToggle) dbgToggle.addEventListener('click', () => { dbgPanel.style.display = dbgPanel.style.display === 'none' ? 'block' : 'none'; });
+if (dbgCopy) dbgCopy.addEventListener('click', () => { navigator.clipboard?.writeText(JSON.stringify(lastResponse, null, 2)).catch(() => {}); });
+if (dbgClear) dbgClear.addEventListener('click', () => { lastResponse = null; renderDebug(); });
+
+function renderDebug() {
+  dbgContent.textContent = lastResponse ? JSON.stringify(lastResponse, null, 2) : 'No response yet';
+}
+
+function setLastResponse(obj) {
+  lastResponse = obj;
+  renderDebug();
+}
+
+const feed = document.getElementById('feed');
+let feedContent;
+let pulling = false;
+let startY = 0;
+let translateY = 0;
+const refreshThreshold = 100;
+
+// Like Manager
+class LikeManager {
+  constructor() {
+    this.likes = JSON.parse(localStorage.getItem('videoLikes') || '{}');
+    this.init();
+  }
+
+  init() {
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('like-btn')) {
+        e.stopPropagation();
+        this.handleLike(e.target);
+      }
+    });
+  }
+
+  async handleLike(button) {
+    const postId = button.closest('.post').dataset.id;
+    const isLiked = this.isLiked(postId);
+    const likeCountEl = button.parentElement.querySelector('.like-count');
+    const post = allPosts.find(p => p.id === postId);
+
+    if (isLiked && button.classList.contains('liked')) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please sign in to like');
+        return;
+      }
+
+      if (!isLiked) {
+        this.addLike(postId);
+        button.classList.add('liked');
+        post.liked = true;
+        post.likes++;
+        likeCountEl.textContent = post.likes;
+        showHeartForPost(button.closest('.post'), postId);
+      } else {
+        this.removeLike(postId);
+        button.classList.remove('liked');
+        post.liked = false;
+        post.likes = Math.max(0, post.likes - 1);
+        likeCountEl.textContent = post.likes;
+      }
+      // Update post in DOM without full re-render
+      updatePostElement(postId, post);
+    } catch (error) {
+      console.error('Like error:', error);
+      if (!isLiked) {
+        this.removeLike(postId);
+        button.classList.remove('liked');
+        post.liked = false;
+      } else {
+        this.addLike(postId);
+        button.classList.add('liked');
+        post.liked = true;
+      }
+      likeCountEl.textContent = post.likes;
+      updatePostElement(postId, post);
+      alert('Network error');
+    }
+  }
+
+  isLiked(videoId) {
+    const userId = this.getCurrentUserId();
+    return this.likes[videoId] === userId;
+  }
+
+  addLike(videoId) {
+    const userId = this.getCurrentUserId();
+    if (userId) this.likes[videoId] = userId;
+    this.saveLikes();
+  }
+
+  removeLike(videoId) {
+    delete this.likes[videoId];
+    this.saveLikes();
+  }
+
+  saveLikes() {
+    localStorage.setItem('videoLikes', JSON.stringify(this.likes));
+  }
+
+  getCurrentUserId() {
+    const { data: { session } } = supabase.auth.getSession();
+    return session?.user?.id || null;
+  }
+}
+
+const likeManager = new LikeManager();
+
+// Session & Bootstrap
+const sessionInfoEl = document.getElementById('sessionInfo');
+
+async function updateSessionInfo() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      sessionInfoEl.textContent = 'Not signed in';
+      return null;
+    }
+    const u = session.user;
+    const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email || u.id;
+    sessionInfoEl.textContent = `${name} (${u.id.slice(0, 8)})`;
+    return session;
+  } catch (err) {
+    console.error('updateSessionInfo error', err);
+    sessionInfoEl.textContent = 'Session error';
+    return null;
+  }
+}
+
+function setupAuthListener() {
+  supabase.auth.onAuthStateChange((event, session) => {
+    updateSessionInfo().catch(() => {});
+  });
+}
+
+async function loadInitialPosts(limit = 50) {
+  try {
+    await updateSessionInfo();
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUserId = session?.user?.id || null;
+
+    console.log('Bootstrapping posts from DB...');
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, author_id, author_name, video_url, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error loading initial posts', error);
+      return;
+    }
+
+    const rows = (data || []).map(r => ({
+      id: r.id,
+      user: r.author_name ? `@${r.author_name}` : '@user',
+      caption: '',
+      src: r.video_url,
+      likes: 0, // Will be updated by LikeManager
+      comments: [],
+      liked: likeManager.isLiked(r.id),
+      uploading: false,
+      owner: currentUserId && r.author_id === currentUserId,
+      paused: false,
+    }));
+
+    allPosts = rows.slice();
+    filterPosts();
+    renderFeed();
+    console.log(`Loaded ${rows.length} posts from DB`);
+  } catch (err) {
+    console.error('loadInitialPosts unexpected error', err);
+  }
+}
+
+/* SEARCH */
+const searchBar = document.getElementById('searchBar');
+searchBar.addEventListener('input', debounce((e) => {
+  searchQuery = e.target.value.toLowerCase();
+  filterPosts();
+  renderFeed();
+}, 300));
+
+function filterPosts() {
+  if (!searchQuery) {
+    posts = [...allPosts];
+  } else {
+    posts = allPosts.filter(post =>
+      post.user.toLowerCase().includes(searchQuery) ||
+      post.caption.toLowerCase().includes(searchQuery)
+    );
+  }
+}
+
+/* DEBOUNCE */
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/* INFINITE SCROLL */
+let pageSize = 1;
+let lastCursor = null;
+let hasMore = true;
+let prefetchBuffer = [];
+const prefetchLimit = 3;
+let prefetchRetryDelay = 1200;
+
+async function fetchNextBatch(afterCursor = null, size = pageSize) {
+  let query = supabase
+    .from('posts')
+    .select('id, author_id, author_name, video_url, created_at')
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(size);
+
+  if (afterCursor && afterCursor.created_at) {
+    query = query.lt('created_at', afterCursor.created_at).limit(size * 2);
+  }
+
+  const res = await query;
+  setLastResponse(res);
+  if (res.error) throw res.error;
+  let rows = res.data || [];
+
+  if (afterCursor && afterCursor.created_at) {
+    rows = rows.filter(r => {
+      if (r.created_at < afterCursor.created_at) return true;
+      if (r.created_at === afterCursor.created_at && r.id < afterCursor.id) return true;
+      return false;
+    }).slice(0, size);
+  }
+
+  return rows;
+}
+
+async function prefetchNext() {
+  if (!hasMore || prefetchBuffer.length >= prefetchLimit || loadingMore) return;
+  const loader = document.getElementById('nextLoader');
+  try {
+    loadingMore = true;
+    if (loader) loader.style.display = 'block';
+    const rows = await fetchNextBatch(lastCursor, pageSize);
+    const mapped = (rows || []).map(r => ({
+      id: r.id,
+      user: r.author_name ? `@${r.author_name}` : '@user',
+      caption: '',
+      src: r.video_url,
+      likes: 0,
+      comments: [],
+      liked: likeManager.isLiked(r.id),
+      uploading: false,
+      owner: false, // Removed owner check for all posts
+      paused: false,
+    }));
+    if (mapped.length > 0) {
+      prefetchBuffer.push(...mapped);
+      const lastRow = rows[rows.length - 1];
+      lastCursor = { created_at: lastRow.created_at, id: lastRow.id };
+      if (mapped.length < pageSize) hasMore = false;
+    } else {
+      hasMore = false;
+    }
+  } catch (err) {
+    console.error('prefetchNext error', err);
+    const toast = document.getElementById('prefetchToast');
+    if (toast) {
+      toast.textContent = 'Prefetch failed — retrying…';
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 2000);
+    }
+    setTimeout(() => prefetchNext().catch(() => {}), prefetchRetryDelay);
+  } finally {
+    loadingMore = false;
+    if (loader) loader.style.display = 'none';
+  }
+}
+
+async function loadOneFromBuffer() {
+  if (prefetchBuffer.length === 0) {
+    await prefetchNext();
+  }
+  if (prefetchBuffer.length > 0) {
+    const next = prefetchBuffer.shift();
+    allPosts.push(next);
+    filterPosts();
+    renderFeed();
+    prefetchNext().catch(() => {});
+  }
+}
+
+feed.addEventListener('scroll', debounce(() => {
+  if (loadingMore || searchQuery) return;
+  const { scrollTop, scrollHeight, clientHeight } = feed;
+  if (scrollTop + clientHeight >= scrollHeight - 200) {
+    loadOneFromBuffer();
+  }
+}, 100));
+
+prefetchNext().catch(() => {});
+
+/* PULL-TO-REFRESH */
+function updateRefreshIndicator(dist) {
+  const indicator = document.getElementById('pullIndicator');
+  const icon = document.getElementById('pullIcon');
+  const text = document.getElementById('pullText');
+
+  if (dist < 10) {
+    indicator.style.opacity = '0';
+    indicator.style.transform = 'translateX(-50%) translateY(-100%)';
+    return;
+  }
+
+  indicator.style.opacity = '1';
+  indicator.style.transform = 'translateX(-50%) translateY(0px)';
+
+  if (dist > refreshThreshold) {
+    icon.textContent = '○';
+    text.textContent = 'Release to refresh';
+  } else {
+    icon.textContent = '⬇';
+    text.textContent = 'Pull to refresh';
+  }
+}
+
+function resetPull() {
+  feedContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+  feedContent.style.transform = 'translateY(0px)';
+  updateRefreshIndicator(0);
+  feedContent.style.willChange = 'auto';
+}
+
+function refreshContent() {
+  const indicator = document.getElementById('pullIndicator');
+  const icon = document.getElementById('pullIcon');
+  const text = document.getElementById('pullText');
+
+  icon.textContent = '🔄';
+  icon.classList.add('refreshing');
+  text.textContent = 'Refreshing...';
+
+  setTimeout(async () => {
+    allPosts = [];
+    prefetchBuffer = [];
+    lastCursor = null;
+    hasMore = true;
+    await loadInitialPosts(20);
+    icon.classList.remove('refreshing');
+    icon.textContent = '✅';
+    text.textContent = 'Updated!';
+    setTimeout(() => {
+      indicator.style.opacity = '0';
+      indicator.style.transform = 'translateX(-50%) translateY(-100%)';
+      resetPull();
+    }, 500);
+  }, 1000);
+}
+
+feed.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch' || window.scrollY !== 0 || feed.scrollTop !== 0) return;
+  startY = e.clientY;
+  pulling = true;
+  translateY = 0;
+  feedContent.style.transition = 'none';
+  feedContent.style.willChange = 'transform';
+}, { passive: false });
+
+feed.addEventListener('pointermove', (e) => {
+  if (!pulling) return;
+  const deltaY = e.clientY - startY;
+  if (deltaY <= 0) return;
+  e.preventDefault();
+  translateY = deltaY * 0.5;
+  translateY = Math.min(translateY, 200);
+  feedContent.style.transform = `translateY(${translateY}px)`;
+  updateRefreshIndicator(translateY);
+}, { passive: false });
+
+feed.addEventListener('pointerup', (e) => {
+  if (!pulling) return;
+  pulling = false;
+  if (translateY >= refreshThreshold) {
+    refreshContent();
+  } else {
+    resetPull();
+  }
+}, { passive: false });
+
+feed.addEventListener('pointercancel', (e) => {
+  if (pulling) {
+    pulling = false;
+    resetPull();
+  }
+}, { passive: false });
+
+/* LONG PRESS */
+function attachLongPress(el, ms, cb) {
+  let timer = null, pointerId = null;
+  const start = (e) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => { cb(e); timer = null; }, ms);
+    if (e.pointerId != null) {
+      pointerId = e.pointerId;
+      el.setPointerCapture?.(pointerId);
+    }
+  };
+  const cancel = (e) => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    try { if (pointerId != null) el.releasePointerCapture?.(pointerId); } catch (e) {}
+    pointerId = null;
+  };
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('pointerleave', cancel);
+}
+
+/* RENDER POSTS */
+function renderFeed() {
+  if (!feed) {
+    console.error('renderFeed: #feed element not found in DOM');
+    return;
+  }
+  feed.innerHTML = `
+    <div id="pullIndicator">
+      <div><span id="pullIcon">⬇</span><span id="pullText" class="muted">Pull to refresh</span></div>
+    </div>
+    <div id="feedContent"></div>
+    ${loadingMore ? '<div class="loading">Loading more...</div>' : ''}
+  `;
+  feedContent = document.getElementById('feedContent');
+  posts.forEach(post => {
+    const postEl = document.createElement('article');
+    postEl.className = `post ${post.paused ? 'paused' : ''} ${post.uploading ? 'uploading' : ''}`;
+    postEl.dataset.id = post.id;
+    postEl.innerHTML = `
+      <div class="post-inner">
+        ${post.uploading ? `<div class="upload-progress"><div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div></div>` : ''}
+        <video playsinline controls preload="metadata" loop data-src="${post.src}" ${post.paused ? 'paused' : ''} crossorigin="anonymous"></video>
+        <div class="video-indicator" aria-hidden="true"></div>
+        <div class="play-overlay"><div class="play-icon">▶</div></div>
+        <div class="overlay"><h3>${post.user}</h3><p>${post.caption}</p></div>
+        <div class="icons">
+          <div class="like-wrap">
+            <button class="btn like-btn ${post.liked ? 'liked' : ''}" title="Like">♡</button>
+            <div class="like-count">${post.likes}</div>
+          </div>
+          ${post.owner ? '<button class="btn delete-btn" title="Delete Post">🗑️</button>' : '<button class="btn comment-open" title="Comments">💬</button><button class="btn share-btn" title="Share">↗️</button>'}
+        </div>
+        <div class="heart-hit" aria-hidden="true">
+          <svg viewBox="0 0 100 100" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+            <defs><clipPath id="heartClip_${post.id}"><path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z"/></clipPath>
+              <linearGradient id="blueGrad_${post.id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#7bdff6"/><stop offset="100%" stop-color="#2fb3ff"/></linearGradient></defs>
+            <path d="M50 86s-28-18-38-30c-8-10-3-26 9-30 9-3 19 1 29 11 10-10 20-14 29-11 12 4 17 20 9 30C78 68 50 86 50 86z" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+            <g clip-path="url(#heartClip_${post.id})"><rect id="waterRect_${post.id}" x="0" y="100" width="100" height="100" fill="url(#blueGrad_${post.id})"></rect></g>
+            <g clip-path="url(#heartClip_${post.id})"><path id="wave_${post.id}" d="M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z" fill="#ffffff30"></path></g>
+          </svg>
+        </div>
+        <div class="drawer" aria-hidden="true">
+          <div class="drawer-inner">
+            <div class="drawer-handle"></div>
+            <div class="muted small center" style="margin-top: 4px;">Comments</div>
+            <div class="comments-list" aria-live="polite"></div>
+            <div class="drawer-footer">
+              <div class="comment-input"><input placeholder="Write your comment..." /></div>
+              <button class="send-small">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    feedContent.appendChild(postEl);
+    attachPostBehavior(postEl, post);
+  });
+  observeVideos();
+  initSwipe();
+}
+
+function updatePostElement(postId, postData) {
+  const postEl = document.querySelector(`[data-id="${postId}"]`);
+  if (!postEl) return;
+  const likeBtn = postEl.querySelector('.like-btn');
+  const likeCountEl = postEl.querySelector('.like-count');
+  likeBtn.classList.toggle('liked', postData.liked);
+  likeCountEl.textContent = postData.likes;
+  postEl.className = `post ${postData.paused ? 'paused' : ''} ${postData.uploading ? 'uploading' : ''}`;
+}
+
+function attachPostBehavior(postEl, postData) {
+  const video = postEl.querySelector('video');
+  const likeBtn = postEl.querySelector('.like-btn');
+  const likeCountEl = postEl.querySelector('.like-count');
+  const deleteBtn = postEl.querySelector('.delete-btn');
+  const commentOpen = postEl.querySelector('.comment-open');
+  const drawer = postEl.querySelector('.drawer');
+  const drawerInner = postEl.querySelector('.drawer-inner');
+  const commentsList = postEl.querySelector('.comments-list');
+  const drawerHandle = postEl.querySelector('.drawer-handle');
+  const commentsHeader = postEl.querySelector('.muted.small.center');
+  const commentInputWrap = postEl.querySelector('.comment-input');
+  const commentInput = commentInputWrap.querySelector('input');
+  const sendBtn = postEl.querySelector('.send-small');
+  const shareBtn = postEl.querySelector('.share-btn');
+
+  // Video interactions
+  let lastTap = 0;
+  postEl.querySelector('.post-inner').addEventListener('pointerup', (e) => {
+    if (e.target.closest('.icons') || e.target.closest('.overlay') || e.target.closest('.drawer')) return;
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTap;
+    clearTimeout(tapTimeout);
+    if (timeSinceLastTap < 300) {
+      if (!postData.liked) {
+        likeManager.handleLike(likeBtn); // Use LikeManager
+      }
+    } else {
+      tapTimeout = setTimeout(() => {
+        postData.paused = !postData.paused;
+        postEl.className = `post ${postData.paused ? 'paused' : ''} ${postData.uploading ? 'uploading' : ''}`;
+        if (postData.paused) video.pause();
+        else video.play().catch(() => alert('Click to unmute if audio is blocked'));
+        updatePostElement(postData.id, postData);
+      }, 250);
+    }
+    lastTap = now;
+  }, { passive: true });
+
+  // Like button (handled by LikeManager)
+  likeBtn.addEventListener('click', (e) => e.stopPropagation());
+
+  // Delete button
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Delete this post for everyone?')) {
+        posts = posts.filter(p => p.id !== postData.id);
+        allPosts = allPosts.filter(p => p.id !== postData.id);
+        postEl.remove();
+      }
+    });
+  }
+
+  // Comment drawer
+  if (commentOpen) {
+    function refreshComments() {
+      commentsList.innerHTML = '';
+      (postData.comments || []).forEach((c, idx) => {
+        const d = document.createElement('div');
+        d.className = 'comment';
+        d.textContent = c;
+        d.dataset.index = idx;
+        commentsList.appendChild(d);
+        attachLongPress(d, 1000, () => {
+          commentInputWrap.classList.add('active');
+          commentInput.value = `@reply_to: `;
+          commentInput.focus();
+          commentInput.dataset.replyTo = c.split(':')[0] || '';
+        });
+      });
+    }
+    refreshComments();
+
+    commentOpen.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDrawer();
+    });
+
+    function openDrawer() {
+      document.querySelectorAll('.drawer.open').forEach(d => { if (d !== drawer) d.classList.remove('open'); });
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+      commentInputWrap.classList.remove('active');
+      commentInput.value = '';
+      setTimeout(() => drawerInner.scrollTop = 9999, 80);
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+      commentInputWrap.classList.remove('active');
+      commentInput.value = '';
+    }
+
+    attachLongPress(commentsHeader, 1000, () => {
+      openDrawer();
+      commentInputWrap.classList.add('active');
+      commentInput.value = '';
+      commentInput.focus();
+    });
+
+    attachLongPress(drawerHandle, 1000, () => {
+      drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+    });
+
+    postEl.addEventListener('click', (e) => {
+      if (drawer.classList.contains('open') && !e.target.closest('.drawer')) closeDrawer();
+    });
+
+    sendBtn.addEventListener('click', () => {
+      if (!commentInputWrap.classList.contains('active')) return;
+      const val = commentInput.value.trim();
+      if (!val) return;
+      const newC = `@you: ${val}`;
+      postData.comments = postData.comments || [];
+      postData.comments.push(newC);
+      const originalPost = allPosts.find(p => p.id === postData.id);
+      if (originalPost) originalPost.comments = postData.comments;
+      refreshComments();
+      commentInput.value = '';
+    });
+  }
+
+  // Share button
+  if (shareBtn) {
+    shareBtn.addEventListener('click', () => {
+      const postId = postEl.dataset.id;
+      const post = allPosts.find(p => p.id === postId);
+      if (!post) return;
+      const videoUrl = `${window.location.origin}?video=${postId}`;
+      if (navigator.share) {
+        navigator.share({ title: `Check out this video by ${post.user}!`, url: videoUrl });
+      } else {
+        navigator.clipboard.writeText(videoUrl).then(() => alert('Link copied to clipboard!'));
+      }
+    });
+  }
+}
+
+function showHeartForPost(postEl, postId) {
+  const heartHit = postEl.querySelector('.heart-hit');
+  const waterRect = document.getElementById(`waterRect_${postId}`);
+  const wave = document.getElementById(`wave_${postId}`);
+  if (!waterRect || !wave) return;
+  heartHit.style.left = '50%';
+  heartHit.style.top = '50%';
+  waterRect.setAttribute('y', 100);
+  wave.setAttribute('d', 'M0 80 Q20 70 40 80 T80 80 T120 80 V120 H0 Z');
+  heartHit.classList.remove('show');
+  void heartHit.offsetWidth;
+  heartHit.classList.add('show');
+  let start = null;
+  const duration = 700;
+  function step(ts) {
+    if (!start) start = ts;
+    const t = Math.min(1, (ts - start) / duration);
+    const y = 100 - 110 * t;
+    waterRect.setAttribute('y', y);
+    const waveY = 80 - 30 * t;
+    wave.setAttribute('d', `M0 ${waveY} Q20 ${waveY-10} 40 ${waveY} T80 ${waveY} T120 ${waveY} V120 H0 Z`);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+  setTimeout(() => heartHit.classList.remove('show'), 1100);
+}
+
+let io;
+function observeVideos() {
+  try {
+    if (io) io.disconnect();
+    io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const vid = entry.target;
+        const postEl = vid.closest('.post');
+        if (!postEl) return;
+        const postId = postEl.dataset.id;
+        const postData = posts.find(p => String(p.id) === String(postId));
+        if (!postData) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.7 && !postData.paused) {
+          vid.play().catch(() => alert('Click to unmute if audio is blocked'));
+        } else if (!postData.paused) {
+          vid.pause();
+        }
+      });
+    }, { threshold: [0.7], rootMargin: '50px' });
+    document.querySelectorAll('.post video').forEach(v => io.observe(v));
+  } catch (err) {
+    console.error('observeVideos setup failed', err);
+  }
+}
+
+function initVideoLazyLoader() {
+  const videos = document.querySelectorAll('video[data-src]');
+  if (!videos.length) return;
+  if (!('IntersectionObserver' in window)) {
+    videos.forEach(v => { if (v.dataset.src) { v.src = v.dataset.src; v.load(); } });
+    return;
+  }
+  const io = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const v = entry.target;
+      if (v.dataset.src && !v.dataset.loaded) {
+        const indicator = v.closest('.post')?.querySelector('.video-indicator');
+        if (indicator) indicator.classList.add('loading');
+        console.debug('initVideoLazyLoader: setting video src', v.dataset.src, 'for', v.closest('.post')?.dataset.id);
+        v.src = v.dataset.src;
+        v.load();
+        v.dataset.loaded = '1';
+        v.addEventListener('loadeddata', () => {
+          if (indicator) {
+            indicator.classList.remove('loading');
+            indicator.classList.add('loaded');
+          }
+        }, { once: true });
+        v.addEventListener('error', (ev) => {
+          console.error('Video failed to load', { src: v.dataset.src, postId: v.closest('.post')?.dataset.id, ev });
+          if (indicator) {
+            indicator.classList.remove('loading');
+            indicator.classList.remove('loaded');
+          }
+        }, { once: true });
+      }
+      obs.unobserve(v);
+    });
+  }, { rootMargin: '200px 0px' });
+  videos.forEach(v => io.observe(v));
+}
+
+const origRenderFeed = renderFeed;
+renderFeed = function() {
+  origRenderFeed();
+  initVideoLazyLoader();
+};
+
+function initSwipe() {
+  let touchStartX = 0;
+  let currentTranslate = 0;
+  const posts = document.querySelectorAll('.post');
+  let currentIndex = 0;
+
+  feed.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    currentTranslate = 0;
+    posts.forEach(post => post.classList.add('swiping'));
+  }, { passive: true });
+
+  feed.addEventListener('touchmove', (e) => {
+    const touchX = e.touches[0].clientX;
+    const deltaX = touchX - touchStartX;
+    currentTranslate = deltaX;
+    posts.forEach((post, idx) => {
+      const translate = idx === currentIndex ? currentTranslate : (idx < currentIndex ? -360 - currentTranslate : 360 - currentTranslate);
+      post.style.transform = `translateX(${translate}px)`;
+    });
+  }, { passive: true });
+
+  feed.addEventListener('touchend', () => {
+    const swipeThreshold = 100;
+    if (Math.abs(currentTranslate) > swipeThreshold) {
+      if (currentTranslate < 0 && currentIndex < posts.length - 1) currentIndex++;
+      else if (currentTranslate > 0 && currentIndex > 0) currentIndex--;
+    }
+    posts.forEach((post, idx) => {
+      post.style.transition = 'transform 0.3s ease';
+      post.style.transform = `translateX(${idx === currentIndex ? 0 : (idx < currentIndex ? -360 : 360)}px)`;
+      setTimeout(() => {
+        post.style.transition = '';
+        post.classList.remove('swiping');
+      }, 300);
+    });
+  });
+}
+
+const fab = document.getElementById('fab');
+fab.addEventListener('click', () => openUploadPrompt());
+
+function openUploadPrompt() {
+  if (document.getElementById('uploadModal')) return;
+  const backdrop = document.createElement('div');
+  backdrop.id = 'uploadModal';
+  Object.assign(backdrop.style, {
+    position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.45)', backdropFilter: 'blur(6px) saturate(130%)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60
+  });
+  const modal = document.createElement('div');
+  Object.assign(modal.style, {
+    width: 'min(720px,92vw)', padding: '20px', borderRadius: '14px',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
+    boxShadow: '0 18px 60px rgba(0,0,0,0.6)', color: 'inherit'
+  });
+  modal.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px">
+      <div><strong style="font-size: 18px">Create a Post</strong><div class="muted small" style="margin-top: 6px">Videos must be 60s or less.</div></div>
+      <button id="closeUpload" style="background: none; border: none; color: inherit; font-size: 22px; cursor: pointer">×</button>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap">
+      <button id="recordBtn" style="padding: 12px 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent), #b473ff); color: #fff; cursor: pointer; flex: 1">🎥 Record</button>
+      <label style="padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); display: inline-flex; align-items: center; cursor: pointer; flex: 1">
+        📁 Upload <input id="filePicker" type="file" accept="video/*" style="display: none" />
+      </label>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  document.getElementById('closeUpload').addEventListener('click', () => backdrop.remove());
+
+  document.getElementById('recordBtn').addEventListener('click', async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+      const videoPreview = document.getElementById('videoPreview');
+      videoPreview.srcObject = stream;
+
+      const recordModal = document.getElementById('recordModal');
+      recordModal.classList.add('show');
+
+      let mediaRecorder;
+      let recordedChunks = [];
+      const recordBtnModal = document.getElementById('recordBtnModal');
+
+      recordBtnModal.addEventListener('click', () => {
+        if (!mediaRecorder) {
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' }); // Ensure audio codec
+          mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+          mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const id = 'p' + Math.random().toString(36).slice(2, 9);
+            const newPost = { id, user: '@you', caption: 'Just recorded this!', src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
+            allPosts.unshift(newPost);
+            filterPosts();
+            renderFeed();
+
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) {
+                alert('You must be signed in to upload.');
+                newPost.uploading = false;
+                renderFeed();
+                stream.getTracks().forEach(track => track.stop());
+                recordedChunks = [];
+                recordModal.classList.remove('show');
+                backdrop.remove();
+                return;
+              }
+              const userId = session.user.id;
+              const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.email || session.user.id;
+              const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webm`;
+              const path = `posts/${userId}/${filename}`;
+
+              const uploadPromise = supabase.storage.from('Facts').upload(path, blob, { cacheControl: '3600', upsert: false });
+              startCoarseProgress(newPost, uploadPromise);
+              const { data: uploadData, error: uploadError } = await uploadPromise;
+              if (uploadError) {
+                console.error('Recording upload error', uploadError);
+                alert('Upload failed: ' + uploadError.message);
+                newPost.uploading = false;
+                renderFeed();
+                stream.getTracks().forEach(track => track.stop());
+                recordedChunks = [];
+                recordModal.classList.remove('show');
+                backdrop.remove();
+                return;
+              }
+              const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
+              const publicUrl = urlData?.publicUrl || '';
+
+              const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
+              const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+              if (insertError) {
+                console.error('Insert error', insertError);
+                alert('Insert failed: ' + insertError.message);
+                newPost.uploading = false;
+                renderFeed();
+                stream.getTracks().forEach(track => track.stop());
+                recordedChunks = [];
+                recordModal.classList.remove('show');
+                backdrop.remove();
+                return;
+              }
+
+              newPost.src = publicUrl;
+              newPost.uploading = false;
+              newPost.uploadProgress = 100;
+              newPost.owner = true;
+              if (inserted && inserted.id) newPost.id = inserted.id;
+              filterPosts();
+              renderFeed();
+            } catch (err) {
+              console.error('Unexpected upload error', err);
+              alert('Upload failed: ' + (err?.message || err));
+              newPost.uploading = false;
+              renderFeed();
+            }
+
+            stream.getTracks().forEach(track => track.stop());
+            recordedChunks = [];
+            recordModal.classList.remove('show');
+            backdrop.remove();
+          };
+          mediaRecorder.start();
+          recordBtnModal.textContent = '⏹';
+          recordBtnModal.classList.add('recording');
+        } else {
+          mediaRecorder.stop();
+          recordBtnModal.textContent = '⏺';
+          recordBtnModal.classList.remove('recording');
+        }
+      });
+
+      document.getElementById('closeRecord').addEventListener('click', () => {
+        stream.getTracks().forEach(track => track.stop());
+        recordModal.classList.remove('show');
+      });
+    } catch (err) {
+      alert('Camera access denied or not available.');
+    }
+  });
+
+  document.getElementById('filePicker').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const tmp = document.createElement('video');
+    tmp.preload = 'metadata';
+    const url = URL.createObjectURL(file);
+    tmp.src = url;
+
+    tmp.onloadedmetadata = async () => {
+      if (tmp.duration > 60) {
+        alert('Video must be 60s or less');
+        URL.revokeObjectURL(url);
+        return;
+      }
+      backdrop.remove();
+      const id = 'p' + Math.random().toString(36).slice(2, 9);
+      const newPost = { id, user: '@you', caption: 'Uploading...', src: url, likes: 0, comments: [], liked: false, uploading: true, owner: true, uploadProgress: 0, paused: false };
+      allPosts.unshift(newPost);
+      filterPosts();
+      renderFeed();
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          alert('You must be signed in to upload.');
+          newPost.uploading = false;
+          renderFeed();
+          return;
+        }
+        const userId = session.user.id;
+        const authorName = session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.email || session.user.id;
+        const ext = file.name.split('.').pop() || 'mp4';
+        const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const path = `posts/${userId}/${filename}`;
+
+        const uploadPromise = supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
+        startCoarseProgress(newPost, uploadPromise);
+        const { data: uploadData, error: uploadError } = await uploadPromise;
+        if (uploadError) {
+          console.error('Upload error', uploadError);
+          alert('Upload failed: ' + uploadError.message);
+          newPost.uploading = false;
+          renderFeed();
+          return;
+        }
+        const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
+        const publicUrl = urlData?.publicUrl || '';
+
+        const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
+        const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+        if (insertError) {
+          console.error('Insert error', insertError);
+          alert('Insert failed: ' + insertError.message);
+          newPost.uploading = false;
+          renderFeed();
+          return;
+        }
+
+        newPost.src = publicUrl;
+        newPost.uploading = false;
+        newPost.uploadProgress = 100;
+        newPost.owner = true;
+        if (inserted && inserted.id) newPost.id = inserted.id;
+        filterPosts();
+        renderFeed();
+      } catch (err) {
+        console.error('Unexpected upload error', err);
+        alert('Upload failed: ' + (err?.message || err));
+        newPost.uploading = false;
+        renderFeed();
+      }
+    };
+  });
+}
+
+/* THEME TOGGLE */
+const header = document.getElementById('header');
+let pDown = false, pStartX = 0;
+header.addEventListener('pointerdown', (e) => {
+  pDown = true;
+  pStartX = e.clientX;
+  header.setPointerCapture?.(e.pointerId);
+});
+header.addEventListener('pointermove', (e) => {
+  if (!pDown) return;
+  const dx = e.clientX - pStartX;
+  header.style.transform = `translateX(${dx * 0.08}px)`;
+});
+header.addEventListener('pointerup', (e) => {
+  header.style.transform = '';
+  if (!pDown) return; pDown = false;
+  const dx = e.clientX - pStartX;
+  const threshold = 80;
+  if (dx <= -threshold || dx >= threshold) {
+    document.documentElement.classList.toggle('light');
+  }
+});
+header.addEventListener('pointercancel', () => { pDown = false; header.style.transform = ''; });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.drawer.open').forEach(d => d.classList.remove('open'));
+    const modal = document.getElementById('uploadModal');
+    if (modal) modal.remove();
+    const recordModal = document.getElementById('recordModal');
+    if (recordModal.classList.contains('show')) recordModal.classList.remove('show');
+  }
+});
+
+renderFeed();
+setupAuthListener();
+loadInitialPosts();
+
+function startCoarseProgress(post, uploadPromise) {
+  if (!post) return;
+  post.uploadProgress = 6;
+  updatePostElement(post.id, post);
+  const iv = setInterval(() => {
+    if (!post.uploading) { clearInterval(iv); return; }
+    post.uploadProgress = Math.min(80, (post.uploadProgress || 0) + Math.floor(Math.random() * 8) + 2);
+    updatePostElement(post.id, post);
+  }, 400);
+  uploadPromise.finally(() => {
+    clearInterval(iv);
+    post.uploadProgress = 100;
+    post.uploading = false;
+    updatePostElement(post.id, post);
+  });
+}
+</script>
+</body>
+</html>
