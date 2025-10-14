@@ -252,6 +252,102 @@
     .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3); transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
     @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
 
+    /* -------- NEW: Enhanced Mention System Styles -------- */
+    .mention-list {
+      display: none;
+      flex-direction: column;
+      width: 240px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      gap: 0.2rem;
+      animation: dropdownAppear 0.2s ease-out;
+    }
+
+    @keyframes dropdownAppear {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .mention-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .mention-item:hover {
+      background: var(--msg-hover);
+      transform: translateX(4px);
+    }
+
+    .mention-item.ai-mention {
+      background: rgba(0, 102, 255, 0.1);
+      border-left: 3px solid #4a90e2;
+    }
+
+    .mention-item.ai-mention:hover {
+      background: rgba(0, 102, 255, 0.2);
+    }
+
+    .mention-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .mention-badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      margin-left: auto;
+    }
+
+    /* Mention highlighting in messages */
+    .mention {
+      color: var(--accent);
+      font-weight: 600;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      background: rgba(74, 144, 226, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .mention.ai-mention {
+      background: rgba(0, 102, 255, 0.15);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .mention.ai-mention:hover {
+      background: rgba(0, 102, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .mention.ai-mention::after {
+      content: "🤖";
+      font-size: 0.7rem;
+      margin-left: 0.2rem;
+      opacity: 0.7;
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+      50% { box-shadow: 0 0 15px rgba(74, 144, 226, 0.6), 0 0 25px rgba(74, 144, 226, 0.4); }
+    }
+
+    .mention.ai-mention.glow {
+      animation: glow 2s ease-in-out infinite;
+    }
+
     /* scrollbars */
     body[data-theme="dark"] ::-webkit-scrollbar { background: #181920; }
     body[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #23242b; }
@@ -350,6 +446,200 @@ const { data: memberData } = await supabase
   .eq('group_id', gid);
 memberDetails = memberData || [];
 isMember = memberDetails.some(m => m.user_id === user.id);
+
+// ---------- Enhanced Mention System ----------
+let mentionUsers = [];
+let currentMentionQuery = '';
+
+// Initialize mention system
+function initMentionSystem() {
+  // Build mention users list with PeerPal AI always first
+  mentionUsers = [
+    {
+      id: 'peerpal-ai',
+      name: 'PeerPal AI',
+      username: '@PeerPal AI',
+      isAI: true,
+      avatar: '/ai-avatar.png'
+    },
+    ...memberDetails.map(member => {
+      const meta = (member.users && member.users.user_metadata) || {};
+      return {
+        id: member.user_id,
+        name: meta.full_name || meta.firstName || `User ${member.user_id.substring(0,6)}`,
+        username: `@${meta.full_name || meta.firstName || `User${member.user_id.substring(0,6)}`}`,
+        isAI: false,
+        avatar: meta.avatar_url || meta.picture || meta.avatar || '/default-avatar.png'
+      };
+    })
+  ];
+
+  // Setup mention input handling
+  messageBar.addEventListener('input', handleMentionInput);
+  messageBar.addEventListener('keydown', handleMentionNavigation);
+  
+  // Hide mention list on blur (with slight delay to allow for clicks)
+  messageBar.addEventListener('blur', () => {
+    setTimeout(() => {
+      mentionListBox.style.display = 'none';
+    }, 150);
+  });
+}
+
+// Handle @ symbol input for mentions
+function handleMentionInput(e) {
+  const text = messageBar.value;
+  const cursorPos = messageBar.selectionStart;
+  
+  // Find the last @ symbol before cursor
+  const textBeforeCursor = text.substring(0, cursorPos);
+  const lastAtPos = textBeforeCursor.lastIndexOf('@');
+  
+  if (lastAtPos !== -1) {
+    // Check if @ is part of a word (not in the middle of another word)
+    const charBeforeAt = textBeforeCursor[lastAtPos - 1];
+    if (lastAtPos === 0 || charBeforeAt === ' ' || charBeforeAt === '\n') {
+      currentMentionQuery = textBeforeCursor.substring(lastAtPos + 1).toLowerCase();
+      showMentionList();
+      return;
+    }
+  }
+  
+  // Hide mention list if no valid @ found
+  mentionListBox.style.display = 'none';
+}
+
+// Show filtered mention list
+function showMentionList() {
+  mentionListBox.innerHTML = '';
+  
+  // Filter users based on current query
+  const filteredUsers = mentionUsers.filter(user => 
+    user.name.toLowerCase().includes(currentMentionQuery) || 
+    user.username.toLowerCase().includes(currentMentionQuery)
+  );
+  
+  if (filteredUsers.length === 0) {
+    mentionListBox.style.display = 'none';
+    return;
+  }
+  
+  // Create mention items
+  filteredUsers.forEach(user => {
+    const item = document.createElement('div');
+    item.className = `mention-item ${user.isAI ? 'ai-mention' : ''}`;
+    item.innerHTML = `
+      <img src="${user.avatar}" class="mention-avatar" onerror="this.src='/default-avatar.png'">
+      <span>${user.name}</span>
+      ${user.isAI ? '<span class="mention-badge">AI</span>' : ''}
+    `;
+    
+    item.addEventListener('click', () => selectMention(user));
+    mentionListBox.appendChild(item);
+  });
+  
+  mentionListBox.style.display = 'flex';
+}
+
+// Handle keyboard navigation in mention list
+function handleMentionNavigation(e) {
+  if (mentionListBox.style.display !== 'flex') return;
+  
+  const items = mentionListBox.querySelectorAll('.mention-item');
+  const activeItem = mentionListBox.querySelector('.mention-item.active');
+  let activeIndex = activeItem ? Array.from(items).indexOf(activeItem) : -1;
+  
+  switch(e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (activeItem) {
+        const user = mentionUsers.find(u => u.name === activeItem.querySelector('span').textContent);
+        if (user) selectMention(user);
+      }
+      return;
+    case 'Escape':
+      mentionListBox.style.display = 'none';
+      return;
+    default:
+      return;
+  }
+  
+  // Update active item
+  items.forEach(item => item.classList.remove('active'));
+  if (items[activeIndex]) {
+    items[activeIndex].classList.add('active');
+  }
+}
+
+// Select a mention from the list
+function selectMention(selectedUser) {
+  const text = messageBar.value;
+  const cursorPos = messageBar.selectionStart;
+  const textBeforeCursor = text.substring(0, cursorPos);
+  const lastAtPos = textBeforeCursor.lastIndexOf('@');
+  
+  if (lastAtPos !== -1) {
+    // Replace the @mention query with the selected username
+    const newText = text.substring(0, lastAtPos) + selectedUser.username + ' ' + text.substring(cursorPos);
+    messageBar.value = newText;
+    
+    // Set cursor position after the inserted mention
+    const newCursorPos = lastAtPos + selectedUser.username.length + 1;
+    messageBar.setSelectionRange(newCursorPos, newCursorPos);
+  }
+  
+  mentionListBox.style.display = 'none';
+  messageBar.focus();
+}
+
+// Process mentions in message content for highlighting
+function processMentions(content) {
+  let processedContent = content;
+  
+  // Find all @mentions in the content
+  const mentionRegex = /(@[^\s]+)/g;
+  const mentions = content.match(mentionRegex);
+  
+  if (mentions) {
+    mentions.forEach(mention => {
+      const username = mention.substring(1); // Remove @
+      const user = mentionUsers.find(u => 
+        u.name.toLowerCase().includes(username.toLowerCase()) || 
+        u.username.toLowerCase() === mention.toLowerCase()
+      );
+      
+      if (user) {
+        const mentionClass = user.isAI ? 'mention ai-mention' : 'mention';
+        const mentionHtml = `<span class="${mentionClass}" data-user-id="${user.id}">${mention}</span>`;
+        processedContent = processedContent.replace(mention, mentionHtml);
+      }
+    });
+  }
+  
+  return processedContent;
+}
+
+// Handle PeerPal AI mention clicks
+function handleAIMentionClick(userId) {
+  if (userId === 'peerpal-ai') {
+    // Summon PeerPal AI with a special mention
+    messageBar.value = messageBar.value.trim() + ' @PeerPal AI ';
+    messageBar.focus();
+    
+    // Trigger AI response
+    setTimeout(() => {
+      checkPeerloomAI('@PeerPal AI');
+    }, 500);
+  }
+}
 
 // ---------- Drawer behaviour ----------
 
@@ -455,7 +745,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ---------- Messages rendering & history (unchanged but adapted) ----------
+// ---------- Messages rendering & history (updated for mentions) ----------
 function render(m) {
   const mine = m.sender_id === user.id;
   const senderName = mine ? (user.user_metadata.firstName || user.user_metadata.full_name || 'You') : m.sender_name || 'Unknown';
@@ -473,8 +763,11 @@ function render(m) {
   const nameTag = document.createElement('div');
   nameTag.className = 'sender-name';
   nameTag.textContent = senderName;
+  
   const ct = document.createElement('div');
-  ct.textContent = m.content;
+  // Process mentions in message content
+  ct.innerHTML = processMentions(m.content);
+  
   const ts = document.createElement('div');
   ts.className = 'timestamp';
   ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -482,6 +775,16 @@ function render(m) {
   div.append(nameTag, ct, ts);
   messagePanel.append(div);
   messagePanel.scrollTop = messagePanel.scrollHeight;
+
+  // Add click handlers for AI mentions
+  const aiMentions = div.querySelectorAll('.mention.ai-mention');
+  aiMentions.forEach(mention => {
+    mention.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const userId = mention.dataset.userId;
+      handleAIMentionClick(userId);
+    });
+  });
 
   attachGestures(div, mine, m);
 }
@@ -521,18 +824,9 @@ emojiPickerBox.onclick = (e) => {
     sendMessageButton.focus();
   }
 };
-messageBar.addEventListener('input', () => {
-  const i = messageBar.value.lastIndexOf('@');
-  mentionListBox.style.display = i >= 0 ? 'flex' : 'none';
-});
-mentionListBox.onclick = (e) => {
-  if (e.target.matches('div')) {
-    const i = messageBar.value.lastIndexOf('@');
-    messageBar.value = messageBar.value.slice(0, i) + e.target.textContent + ' ';
-    mentionListBox.style.display = 'none';
-    sendMessageButton.focus();
-  }
-};
+
+// Initialize mention system after member data is loaded
+initMentionSystem();
 
 // Send message
 async function sendMsg() {
@@ -559,17 +853,22 @@ async function sendMsg() {
   messageBar.value = '';
   replyingMsg = null;
   replyContextBox.style.display = 'none';
+  mentionListBox.style.display = 'none'; // Hide mention list on send
 
   await checkPeerloomAI(txt);
 }
 sendMessageButton.onclick = sendMsg;
 messageBar.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  if (e.key === 'Enter' && !e.shiftKey) { 
+    e.preventDefault(); 
+    sendMsg(); 
+  }
 });
 
 // PeerLoom AI
 async function checkPeerloomAI(message) {
-  if (!message.toLowerCase().includes('@peerloom ai')) return;
+  // Check for @PeerPal AI mention specifically
+  if (!message.toLowerCase().includes('@peerpal ai')) return;
   try {
     const response = await fetch('https://peerloom.online/peerloom-ai', {
       method: 'POST',
@@ -581,13 +880,13 @@ async function checkPeerloomAI(message) {
       await supabase.from('group_messages').insert({
         group_id: gid,
         sender_id: 'peerloom-ai',
-        sender_name: 'Peerpal Ai',
+        sender_name: 'PeerPal AI',
         content: data.reply,
         role: 'ai'
       });
     }
   } catch (error) {
-    console.error('Peerpal Ai Error:', error);
+    console.error('PeerPal AI Error:', error);
   }
 }
 
