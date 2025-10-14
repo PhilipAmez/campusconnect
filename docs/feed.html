@@ -399,6 +399,7 @@
   <header id="header" aria-hidden="false">
     <div class="header-inner">
       <input type="text" id="searchBar" placeholder="Search posts..." />
+      <div id="sessionInfo" style="position:absolute; left:12px; top:12px; font-size:12px; opacity:0.9; pointer-events:auto"></div>
       <div class="header-title">Skrolz</div>
       <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
@@ -434,6 +435,80 @@ let pulling = false;
 let startY = 0;
 let translateY = 0;
 const refreshThreshold = 100;
+
+// --- Session & bootstrap helpers ---
+const sessionInfoEl = document.getElementById('sessionInfo');
+
+async function updateSessionInfo() {
+  try {
+    const sess = await supabase.auth.getSession();
+    const session = sess?.data?.session || null;
+    if (!session) {
+      sessionInfoEl.textContent = 'Not signed in';
+      return null;
+    }
+    const u = session.user;
+    const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email || u.id;
+    sessionInfoEl.textContent = `${name} (${u.id.slice(0,8)})`;
+    return session;
+  } catch (err) {
+    console.error('updateSessionInfo error', err);
+    sessionInfoEl.textContent = 'Session error';
+    return null;
+  }
+}
+
+// listen for auth changes to update the panel
+function setupAuthListener() {
+  if (!supabase.auth.onAuthStateChange) return;
+  supabase.auth.onAuthStateChange((event, session) => {
+    // event examples: SIGNED_IN, SIGNED_OUT
+    updateSessionInfo().catch(() => {});
+  });
+}
+
+// Load recent posts from DB on page load
+async function loadInitialPosts(limit = 50) {
+  try {
+    await updateSessionInfo();
+    const sess = await supabase.auth.getSession();
+    const currentUserId = sess?.data?.session?.user?.id || null;
+
+    console.log('Bootstrapping posts from DB...');
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, author_id, author_name, video_url, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error loading initial posts', error);
+      return;
+    }
+
+    // map rows to client post shape
+    const rows = (data || []).map(r => ({
+      id: r.id,
+      user: r.author_name ? `@${r.author_name}` : '@user',
+      caption: '',
+      src: r.video_url,
+      likes: 0,
+      comments: [],
+      liked: false,
+      uploading: false,
+      owner: currentUserId && r.author_id === currentUserId,
+      paused: false,
+    }));
+
+    // replace posts with DB results and render
+    allPosts = rows.slice();
+    filterPosts();
+    renderFeed();
+    console.log(`Loaded ${rows.length} posts from DB`);
+  } catch (err) {
+    console.error('loadInitialPosts unexpected error', err);
+  }
+}
 
 /* SEARCH */
 const searchBar = document.getElementById('searchBar');
@@ -992,7 +1067,7 @@ function openUploadPrompt() {
   
   modal.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div><strong style="font-size:18px">Create a Post</strong><div class="muted small" style="margin-top:6px">Videos must be 60s or less. (Demo saves locally)</div></div>
+  <div><strong style="font-size:18px">Create a Post</strong><div class="muted small" style="margin-top:6px">Videos must be 60s or less.</div></div>
       <button id="closeUpload" style="background:none;border:none;color:inherit;font-size:22px;cursor:pointer">×</button>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -1062,6 +1137,7 @@ function openUploadPrompt() {
               const uploadPromise = supabase.storage.from('Facts').upload(path, blob, { cacheControl: '3600', upsert: false });
               startCoarseProgress(newPost, uploadPromise);
               const { data: uploadData, error: uploadError } = await uploadPromise;
+              console.log('Recording upload result:', { uploadData, uploadError });
               if (uploadError) {
                 console.error('Recording upload error', uploadError);
                 alert('Upload failed: ' + uploadError.message);
@@ -1074,10 +1150,13 @@ function openUploadPrompt() {
               }
               const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
               const publicUrl = urlData?.publicUrl || '';
+              console.log('Public URL info:', { urlData, publicUrl });
 
               // insert into posts (minimal payload)
               const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
+              console.log('Insert payload (record):', insertPayload);
               const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+              console.log('Insert result (record):', { inserted, insertError });
               if (insertError) {
                 console.error('Insert error', insertError);
                 alert('Insert failed: ' + insertError.message);
@@ -1178,6 +1257,7 @@ function openUploadPrompt() {
         const uploadPromise = supabase.storage.from('Facts').upload(path, file, { cacheControl: '3600', upsert: false });
         startCoarseProgress(newPost, uploadPromise);
         const { data: uploadData, error: uploadError } = await uploadPromise;
+        console.log('File upload result:', { uploadData, uploadError });
         if (uploadError) {
           console.error('Upload error', uploadError);
           alert('Upload failed: ' + uploadError.message);
@@ -1189,10 +1269,13 @@ function openUploadPrompt() {
         // get public URL (choose public or signed as your policy allows)
         const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(uploadData.path || path);
         const publicUrl = urlData?.publicUrl || '';
+        console.log('Public URL info (file):', { urlData, publicUrl });
 
   // insert row into posts table (minimal payload)
   const insertPayload = { author_id: userId, author_name: authorName, video_url: publicUrl };
+        console.log('Insert payload (file):', insertPayload);
         const { data: inserted, error: insertError } = await supabase.from('posts').insert(insertPayload).select().single();
+        console.log('Insert result (file):', { inserted, insertError });
         if (insertError) {
           console.error('Insert error', insertError);
           alert('Insert failed: ' + insertError.message);
