@@ -1379,6 +1379,10 @@ renderFeed = function() { origRenderFeed(); initVideoLazyLoader(); };
 // Initial call
 initVideoLazyLoader();
 
+// Start auth listener and preload posts from DB
+setupAuthListener();
+loadInitialPosts().catch(err => console.error('Initial load failed', err));
+
 // Helper: animate coarse upload progress while an upload Promise is pending
 function startCoarseProgress(post, uploadPromise) {
   if (!post) return;
