@@ -416,6 +416,9 @@
     <pre id="dbgContent" style="white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;margin:0;padding:0;font-size:11px"></pre>
   </div>
 
+  <!-- small floating loader for next-post fetch -->
+  <div id="nextLoader" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);padding:8px 12px;background:rgba(0,0,0,0.6);border-radius:999px;color:#fff;font-size:13px;display:none;z-index:130">Loading next…</div>
+
   <main id="feed" aria-live="polite"></main>
 
   <button class="fab" id="fab">＋</button>
@@ -577,30 +580,39 @@ function debounce(func, wait) {
 
 // DB-backed pagination state
 // Load one post per page so scrolling loads the next post on demand
+// Cursor-based pagination state (prefetch 1 next post into a buffer)
 let pageSize = 1;
-let currentPage = 0; // zero-based
+let lastCursor = null; // created_at cursor of last loaded post
 let hasMore = true;
+let prefetchBuffer = []; // holds prefetched posts (max 1)
 
-async function loadPostsPage(page = 0, size = pageSize) {
-  if (loadingMore || !hasMore) return;
-  loadingMore = true;
+async function fetchNextBatch(afterCursor = null, size = pageSize) {
+  // returns array of rows
+  const query = supabase
+    .from('posts')
+    .select('id, author_id, author_name, video_url, created_at')
+    .order('created_at', { ascending: false })
+    .limit(size);
+
+  // if we have a cursor, fetch rows after that timestamp by using lt on created_at
+  if (afterCursor) {
+    query.lt('created_at', afterCursor);
+  }
+
+  const res = await query;
+  setLastResponse(res);
+  if (res.error) throw res.error;
+  return res.data || [];
+}
+
+async function prefetchNext() {
+  if (!hasMore || prefetchBuffer.length > 0 || loadingMore) return;
+  const loader = document.getElementById('nextLoader');
   try {
-    const from = page * size;
-    const to = from + size - 1;
-    console.log(`Loading posts range ${from}-${to}`);
-    const res = await supabase
-      .from('posts')
-      .select('id, author_id, author_name, video_url, created_at')
-      .order('created_at', { ascending: false })
-      .range(from, to);
-    setLastResponse(res);
-    const { data, error } = res;
-    if (error) {
-      console.error('Pagination load error', error);
-      loadingMore = false;
-      return;
-    }
-    const rows = (data || []).map(r => ({
+    loadingMore = true;
+    if (loader) loader.style.display = 'block';
+    const rows = await fetchNextBatch(lastCursor, pageSize);
+    const mapped = (rows || []).map(r => ({
       id: r.id,
       user: r.author_name ? `@${r.author_name}` : '@user',
       caption: '',
@@ -612,33 +624,47 @@ async function loadPostsPage(page = 0, size = pageSize) {
       owner: false,
       paused: false,
     }));
-
-    // append rows
-    if (rows.length > 0) {
-      allPosts.push(...rows);
-      filterPosts();
-      renderFeed();
-      currentPage = page;
-      if (rows.length < size) hasMore = false;
+    if (mapped.length > 0) {
+      prefetchBuffer.push(...mapped);
+      // update cursor to the last fetched created_at for next prefetch
+      lastCursor = rows[rows.length - 1].created_at;
+      if (mapped.length < pageSize) hasMore = false;
     } else {
       hasMore = false;
     }
   } catch (err) {
-    console.error('loadPostsPage unexpected', err);
+    console.error('prefetchNext error', err);
   } finally {
     loadingMore = false;
+    if (loader) loader.style.display = 'none';
   }
 }
 
-// initial pagination load
-loadPostsPage(0);
+async function loadOneFromBuffer() {
+  // consume one post from buffer and render it
+  if (prefetchBuffer.length === 0) {
+    // if buffer empty, trigger immediate fetch then consume
+    await prefetchNext();
+  }
+  if (prefetchBuffer.length > 0) {
+    const next = prefetchBuffer.shift();
+    allPosts.push(next);
+    filterPosts();
+    renderFeed();
+    // kick off background prefetch for following post
+    prefetchNext().catch(() => {});
+  }
+}
 
-// pagination-aware scroll handler (single definition)
+// initial prefetch and pagination-aware scroll handler consuming buffer
+prefetchNext().catch(() => {});
+
 async function handleScroll() {
   if (loadingMore || searchQuery) return;
   const { scrollTop, scrollHeight, clientHeight } = feed;
   if (scrollTop + clientHeight >= scrollHeight - 200) {
-    if (hasMore) await loadPostsPage(currentPage + 1);
+    // consume one prefetched post and let prefetchNext fill the buffer
+    await loadOneFromBuffer();
   }
 }
 
