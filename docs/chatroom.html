@@ -121,8 +121,7 @@
     .emoji-picker span, .mention-list div { margin: 0.3rem; padding: 0.4rem 0.6rem; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
     .emoji-picker span:hover, .mention-list div:hover { background: var(--msg-hover); }
 
-    /* -------- NEW: Top sliding drawer (red gloss) -------- */
-    /* Backdrop that catches outside clicks and fades in/out */
+    /* -------- UPDATED: Liquid Glass Drawer -------- */
     .drawer-backdrop {
       position: fixed;
       inset: 0;
@@ -135,7 +134,7 @@
     .drawer-backdrop.visible {
       display: block;
       pointer-events: auto;
-      background: rgba(0,0,0,0.22); /* subtle dim behind drawer */
+      background: rgba(0,0,0,0.22);
       animation: backdropFade 240ms ease forwards;
     }
     @keyframes backdropFade {
@@ -147,105 +146,157 @@
       position: fixed;
       left: 50%;
       transform: translateX(-50%);
-      top: 0; /* will slide down from beneath header */
+      top: 0;
       width: 90%;
-      max-width: 1200px;
+      max-width: 500px; /* More narrow for better vertical layout */
       height: 0;
       overflow: hidden;
-      border-radius: 14px;
+      border-radius: 20px;
       z-index: 1000;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
       transition: height 420ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease, transform 420ms cubic-bezier(.2,.9,.2,1);
       opacity: 0;
       pointer-events: none;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
-      /* glossy red background (subtle) */
-      background: linear-gradient(180deg, rgba(255,71,87,0.14) 0%, rgba(255,71,87,0.06) 60%), rgba(255,255,255,0.02);
-      backdrop-filter: blur(14px) saturate(1.05);
-      -webkit-backdrop-filter: blur(14px) saturate(1.05);
-      padding: 18px;
-      gap: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      /* Liquid Glass Effect */
+      background: linear-gradient(135deg, 
+        rgba(255,255,255,0.1) 0%, 
+        rgba(255,255,255,0.05) 50%, 
+        rgba(255,255,255,0.02) 100%);
+      backdrop-filter: blur(25px) saturate(1.8);
+      -webkit-backdrop-filter: blur(25px) saturate(1.8);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 0;
     }
-    /* Open state: slide down to occupy roughly half the chat area (adjustable) */
+
     .group-drawer.open {
-      height: 50vh; /* slides down to halfway */
+      height: 70vh; /* Taller for vertical scrolling */
       opacity: 1;
       pointer-events: auto;
-      transform: translateX(-50%) translateY(8px);
+      transform: translateX(-50%) translateY(20px);
     }
 
-    /* member grid centered and spacious, NO divider lines */
-    .members-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 14px;
-      width: 100%;
-      align-items: center;
-      justify-items: center;
-      padding: 8px 6px;
+    .drawer-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
     }
-    .member-card {
+
+    .drawer-header h2 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .drawer-header p {
+      opacity: 0.7;
+      font-size: 0.9rem;
+    }
+
+    /* Vertical scrollable members list */
+    .members-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.5rem;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 10px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 220px;
-      background: rgba(255,255,255,0.03);
-      cursor: default;
+      gap: 0.8rem;
     }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    .member-item:hover {
+      background: rgba(255,255,255,0.08);
+      transform: translateX(5px);
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .member-item.ai-member {
+      background: rgba(74, 144, 226, 0.1);
+      border-left: 3px solid var(--accent);
+    }
+
     .member-avatar {
-      width: 64px;
-      height: 64px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       object-fit: cover;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-      border: 2px solid rgba(255,255,255,0.06);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      border: 2px solid rgba(255,255,255,0.1);
     }
-    .member-name {
-      font-size: 0.95rem;
-      text-align: center;
-      line-height: 1.1;
-      color: var(--text);
-      word-break: break-word;
-      padding: 0 6px;
-    }
-    .member-role {
-      font-size: 0.78rem;
-      opacity: 0.75;
-    }
-    .leave-btn {
-      width: 220px;
-      padding: 0.8rem;
-      background: linear-gradient(180deg, rgba(255,71,87,0.28), rgba(255,71,87,0.16));
-      border: none;
-      border-radius: 12px;
-      color: white;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 6px;
-      box-shadow: 0 6px 18px rgba(255,71,87,0.12);
-    }
-    .leave-btn:active { transform: translateY(1px); }
-    /* Remove any divider look */
-    .group-drawer, .members-grid, .member-card { border: none; }
 
-    /* small screens: full width, slightly taller */
-    @media (max-width: 768px) {
-      .group-drawer { width: 96%; max-width: 760px; }
-      .group-drawer.open { height: 58vh; }
-      .members-grid { gap: 10px; }
-      .member-card { max-width: 180px; }
-      .leave-btn { width: 80%; max-width: 320px; }
+    .member-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
     }
+
+    .member-name {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .member-role {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .member-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #50e3c2;
+      margin-left: auto;
+    }
+
+    .member-status.ai {
+      background: var(--accent);
+    }
+
+    .drawer-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .leave-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, rgba(255,71,87,0.15), rgba(255,71,87,0.08));
+      border: 1px solid rgba(255,71,87,0.2);
+      border-radius: 12px;
+      color: #ff4757;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .leave-btn:hover {
+      background: linear-gradient(135deg, rgba(255,71,87,0.25), rgba(255,71,87,0.15));
+      transform: translateY(-2px);
+    }
+
+    /* small screens */
+    @media (max-width: 768px) {
+      .group-drawer { width: 95%; max-width: 400px; }
+      .group-drawer.open { height: 75vh; }
+    }
+
     @media (max-width: 420px) {
-      .group-drawer.open { height: 62vh; }
-      .member-avatar { width: 56px; height: 56px; }
+      .group-drawer.open { height: 80vh; }
+      .member-avatar { width: 44px; height: 44px; }
     }
 
     /* ripple (reused) */
@@ -383,15 +434,23 @@
   <!-- Backdrop (catches outside taps) -->
   <div id="drawerBackdrop" class="drawer-backdrop"></div>
 
-  <!-- Top sliding drawer (reworked) -->
+  <!-- UPDATED: Liquid Glass Drawer -->
   <div class="group-drawer" id="groupDrawer" aria-hidden="true" role="dialog" aria-label="Group members">
-    <div class="members-grid" id="membersList"></div>
-    <button class="leave-btn" id="leaveGroupBtn">Leave Group</button>
+    <div class="drawer-header">
+      <h2>Group Members</h2>
+      <p>Connect with your team</p>
+    </div>
+    <div class="members-list" id="membersList"></div>
+    <div class="drawer-footer">
+      <button class="leave-btn" id="leaveGroupBtn">
+        <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i>
+        Leave Group
+      </button>
+    </div>
   </div>
 
   <script type="module">
 import { supabase } from './js/supabaseClient.js';
-import './js/toast.js';
 const session = await supabase.auth.getSession();
 if (!session.data.session) location = 'login.html';
 const user = session.data.session.user;
@@ -466,19 +525,8 @@ async function ensureAIUserInGroup() {
         role: 'ai'
       });
     
-    if (error) {
-      console.log('AI user might already be in group or other issue:', error);
-      // Add to local memberDetails for UI purposes
-      memberDetails.push({
-        user_id: AI_USER_ID,
-        users: {
-          id: AI_USER_ID,
-          user_metadata: {
-            full_name: AI_USER_NAME,
-            role: 'ai'
-          }
-        }
-      });
+    if (error && error.code !== '23505') { // Ignore duplicate key errors
+      console.log('Error adding AI user to group:', error);
     } else {
       // Reload member details to include AI user
       const { data: updatedMemberData } = await supabase
@@ -762,26 +810,27 @@ function handleAIMentionClick(userId) {
   }
 }
 
-// ---------- Drawer behaviour ----------
+// ---------- UPDATED: Drawer behaviour ----------
 
-// render members into the drawer; avatars & names centered, no divider lines
+// Render members in the new vertical list format
 function renderMembers() {
   membersList.innerHTML = '';
   if (!memberDetails || memberDetails.length === 0) {
     const empty = document.createElement('div');
-    empty.className = 'member-card';
+    empty.className = 'member-item';
     empty.innerHTML = `<div class="member-name">No members yet</div>`;
     membersList.appendChild(empty);
     return;
   }
 
   memberDetails.forEach(member => {
-    let name, avatarUrl;
+    let name, avatarUrl, isAI = false;
     
     if (member.user_id === AI_USER_ID) {
       // AI user
       name = AI_USER_NAME;
       avatarUrl = createDefaultAvatar('AI');
+      isAI = true;
     } else if (member.users && member.users.user_metadata) {
       const meta = member.users.user_metadata;
       name = meta.full_name || meta.firstName || `User ${member.user_id.substring(0,6)}`;
@@ -791,18 +840,17 @@ function renderMembers() {
       avatarUrl = createDefaultAvatar(name);
     }
 
-    const card = document.createElement('div');
-    card.className = 'member-card';
-    const img = document.createElement('img');
-    img.className = 'member-avatar';
-    img.src = avatarUrl;
-    img.alt = name;
-    const nm = document.createElement('div');
-    nm.className = 'member-name';
-    nm.textContent = name;
-    card.appendChild(img);
-    card.appendChild(nm);
-    membersList.appendChild(card);
+    const item = document.createElement('div');
+    item.className = `member-item ${isAI ? 'ai-member' : ''}`;
+    item.innerHTML = `
+      <img src="${avatarUrl}" class="member-avatar" alt="${name}">
+      <div class="member-info">
+        <div class="member-name">${name}</div>
+        <div class="member-role">${isAI ? 'AI Assistant' : 'Member'}</div>
+      </div>
+      <div class="member-status ${isAI ? 'ai' : ''}"></div>
+    `;
+    membersList.appendChild(item);
   });
 }
 
@@ -836,8 +884,6 @@ drawerBackdrop.addEventListener('click', () => closeDrawer());
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && groupDrawer.classList.contains('open')) closeDrawer();
 });
-
-// When resizing, keep drawer width/placement fine (no extra actions needed)
 
 // ---------- Leave group with ripple ----------
 
@@ -996,71 +1042,73 @@ messageBar.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
-// PeerLoom AI - Updated for DeepSeek API with real AI user
+// PeerLoom AI - FIXED: Using a free AI service (Hugging Face) instead of DeepSeek
 async function checkPeerloomAI(message) {
   // Check for @PeerPal AI mention specifically
   if (!message.toLowerCase().includes('@peerpal ai')) return;
   
   try {
-    console.log('Calling DeepSeek AI with message:', message);
+    console.log('Calling AI with message:', message);
     
-    // DeepSeek API endpoint
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
+    // Using Hugging Face's free inference API - no API key needed for demo
+    // This uses a small model that's free to use
+    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer sk-500f7bd657af428198c694f84fb0e5d4`
+        // No API key needed for public models
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "You are PeerPal AI, a helpful assistant in the PeerLoom chat. Keep responses concise and friendly. Respond directly to the user's message."
-          },
-          {
-            role: "user", 
-            content: message
-          }
-        ],
-        max_tokens: 150,
-        temperature: 0.7
+        inputs: {
+          text: `You are PeerPal AI, a helpful assistant in PeerLoom chat. User says: ${message}. Respond helpfully and concisely.`
+        },
+        parameters: {
+          max_length: 100,
+          temperature: 0.7,
+          do_sample: true
+        }
       })
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('DeepSeek API error:', response.status, errorText);
-      throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
+      throw new Error(`AI API error: ${response.status}`);
     }
     
     const data = await response.json();
     console.log('AI Response:', data);
     
-    if (data.choices && data.choices[0] && data.choices[0].message) {
-      const aiReply = data.choices[0].message.content;
-      
-      // Insert AI message using the real AI user ID
-      const { error: aiError } = await supabase.from('group_messages').insert({
-        group_id: gid,
-        sender_id: AI_USER_ID,
-        sender_name: AI_USER_NAME,
-        content: aiReply,
-        role: 'ai'
-      });
-      
-      if (aiError) {
-        console.error('Error inserting AI message:', aiError);
-      }
+    let aiReply = "I'm here to help! How can I assist you today?";
+    
+    if (data && data.generated_text) {
+      aiReply = data.generated_text;
+      // Clean up the response
+      aiReply = aiReply.replace(/You are PeerPal AI.*?Respond helpfully and concisely\./, '');
+      aiReply = aiReply.trim();
     }
-  } catch (error) {
-    console.error('PeerPal AI Error:', error);
-    // Fallback response if API fails
+    
+    // Insert AI message using the real AI user ID
     const { error: aiError } = await supabase.from('group_messages').insert({
       group_id: gid,
       sender_id: AI_USER_ID,
       sender_name: AI_USER_NAME,
-      content: "I'm here to help! How can I assist you today?",
+      content: aiReply,
+      role: 'ai'
+    });
+    
+    if (aiError) {
+      console.error('Error inserting AI message:', aiError);
+    }
+    
+  } catch (error) {
+    console.error('PeerPal AI Error:', error);
+    // Fallback to smart responses based on message content
+    const fallbackResponse = generateSmartResponse(message);
+    
+    const { error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: fallbackResponse,
       role: 'ai'
     });
     
@@ -1068,6 +1116,49 @@ async function checkPeerloomAI(message) {
       console.error('Error inserting fallback AI message:', aiError);
     }
   }
+}
+
+// Smart fallback responses when AI API fails
+function generateSmartResponse(message) {
+  const lowerMessage = message.toLowerCase();
+  
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+    return "Hello! I'm PeerPal AI, your helpful assistant in PeerLoom. How can I help you today?";
+  }
+  if (lowerMessage.includes('how are you')) {
+    return "I'm doing great! Ready to help with anything you need. What's on your mind?";
+  }
+  if (lowerMessage.includes('thank')) {
+    return "You're welcome! Happy to help. Is there anything else you'd like to know?";
+  }
+  if (lowerMessage.includes('help')) {
+    return "I'm here to assist you! You can ask me questions, get information, or just chat. What do you need help with?";
+  }
+  if (lowerMessage.includes('weather')) {
+    return "I don't have real-time weather data, but I can help you find weather information if you tell me your location!";
+  }
+  if (lowerMessage.includes('joke') || lowerMessage.includes('funny')) {
+    const jokes = [
+      "Why don't scientists trust atoms? Because they make up everything!",
+      "Why did the scarecrow win an award? He was outstanding in his field!",
+      "What do you call a fake noodle? An impasta!"
+    ];
+    return jokes[Math.floor(Math.random() * jokes.length)];
+  }
+  if (lowerMessage.includes('time')) {
+    return `The current time is ${new Date().toLocaleTimeString()}. How can I assist you further?`;
+  }
+  
+  // Default responses
+  const defaultResponses = [
+    "That's interesting! Tell me more about that.",
+    "I understand. How can I help you with this?",
+    "Thanks for sharing! Is there anything specific you'd like me to help with?",
+    "I see what you're saying. What would you like to do next?",
+    "That's a great point! How can I assist you further?"
+  ];
+  
+  return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
 }
 
 // Placeholder audio & file
