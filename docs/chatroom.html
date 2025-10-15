@@ -121,7 +121,7 @@
     .emoji-picker span, .mention-list div { margin: 0.3rem; padding: 0.4rem 0.6rem; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
     .emoji-picker span:hover, .mention-list div:hover { background: var(--msg-hover); }
 
-    /* -------- TRANSPARENT LIQUID GLASS DRAWER -------- */
+    /* -------- BEAUTIFUL TRANSPARENT GLASS DRAWER -------- */
     .drawer-backdrop {
       position: fixed;
       inset: 0;
@@ -159,14 +159,14 @@
       opacity: 0;
       pointer-events: none;
       box-shadow: 0 25px 80px rgba(0,0,0,0.3);
-      /* TRUE TRANSPARENT LIQUID GLASS */
+      /* BEAUTIFUL TRANSPARENT GLASS */
       background: linear-gradient(135deg, 
-        rgba(255,255,255,0.08) 0%, 
-        rgba(255,255,255,0.04) 50%, 
-        rgba(255,255,255,0.02) 100%);
-      backdrop-filter: blur(40px) saturate(2.5);
-      -webkit-backdrop-filter: blur(40px) saturate(2.5);
-      border: 1px solid rgba(255,255,255,0.15);
+        rgba(255,255,255,0.12) 0%, 
+        rgba(255,255,255,0.06) 50%, 
+        rgba(255,255,255,0.03) 100%);
+      backdrop-filter: blur(30px) saturate(1.8);
+      -webkit-backdrop-filter: blur(30px) saturate(1.8);
+      border: 1px solid rgba(255,255,255,0.18);
       padding: 0;
     }
 
@@ -177,12 +177,29 @@
       transform: translateX(-50%) translateY(20px);
     }
 
+    /* Snowflake pattern overlay */
+    .group-drawer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 0),
+        radial-gradient(circle at 75% 75%, rgba(255,255,255,0.08) 1px, transparent 0);
+      background-size: 30px 30px, 20px 20px;
+      background-position: 0 0, 15px 15px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: -1;
+    }
+
     /* Transparent Glass Content */
     .drawer-header {
       padding: 1.2rem 1.5rem 0.8rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
       text-align: center;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.08);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-radius: 20px 20px 0 0;
@@ -222,21 +239,21 @@
       gap: 0.8rem;
       padding: 0.8rem;
       border-radius: 14px;
-      background: rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.09);
       backdrop-filter: blur(15px);
       -webkit-backdrop-filter: blur(15px);
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
       transition: all 0.3s ease;
     }
 
     .member-item:hover {
-      background: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.14);
       transform: translateX(5px);
-      border-color: rgba(255,255,255,0.2);
+      border-color: rgba(255,255,255,0.25);
     }
 
     .member-item.ai-member {
-      background: rgba(74, 144, 226, 0.15);
+      background: rgba(74, 144, 226, 0.18);
       border-left: 3px solid var(--accent);
     }
 
@@ -246,7 +263,7 @@
       border-radius: 50%;
       object-fit: cover;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      border: 1.5px solid rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(255,255,255,0.25);
     }
 
     .member-info {
@@ -287,8 +304,7 @@
     /* Sleek footer */
     .drawer-footer {
       padding: 0.8rem 1.2rem;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.08);
       backdrop-filter: blur(15px);
       -webkit-backdrop-filter: blur(15px);
       border-radius: 0 0 20px 20px;
@@ -436,6 +452,143 @@
     body[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #23242b; }
     [data-theme="dark"] .chat-header, [data-theme="dark"] .chat-messages, [data-theme="dark"] .chat-input-area, [data-theme="dark"] .emoji-picker, [data-theme="dark"] .mention-list { border: 1px solid #23242b; }
 
+    /* NEW: Fixed Typing animation for AI */
+    .typing-indicator {
+      align-self: flex-start;
+      max-width: 70%;
+      padding: 1rem 1.5rem;
+      border-radius: 20px;
+      background: var(--ai-bg);
+      font-style: italic;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      margin-top: 0.3rem;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text);
+      opacity: 0.6;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* NEW: Traditional Reply Context Box */
+    .reply-context {
+      position: absolute;
+      bottom: calc(100% + 5px);
+      left: 0;
+      right: 0;
+      background: var(--glass-bg);
+      border-radius: 10px;
+      padding: 0.7rem;
+      display: none;
+      align-items: center;
+      gap: 0.8rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      z-index: 5;
+      border-left: 4px solid var(--accent);
+      margin: 0 0.5rem;
+    }
+
+    .reply-context-content {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .reply-context-sender {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 0.2rem;
+    }
+
+    .reply-context-text {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reply-context-close {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      color: var(--text);
+      opacity: 0.7;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .reply-context-close:hover {
+      opacity: 1;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* NEW: Improved swipe-to-reply indicator */
+    .swipe-indicator {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--accent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      font-size: 0.8rem;
+    }
+
+    .swipe-indicator.show {
+      opacity: 1;
+    }
+
+    .swipe-indicator i {
+      font-size: 0.9rem;
+    }
+
+    .swipe-indicator span {
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* NEW: Improved message swipe action */
+    .msg.swiping {
+      transform: translateX(-50px);
+      transition: transform 0.2s ease;
+    }
+
+    /* NEW: Reply highlight in messages */
+    .msg.replying {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -459,14 +612,20 @@
       <button class="audio-record" id="recordAudioButton"><i class="fas fa-microphone"></i></button>
       <div class="emoji-picker" id="emojiPickerBox"></div>
       <div class="mention-list" id="mentionListBox"></div>
-      <div class="reply-context" id="replyContextBox"></div>
+      <div class="reply-context" id="replyContextBox">
+        <div class="reply-context-content">
+          <div class="reply-context-sender" id="replyContextSender"></div>
+          <div class="reply-context-text" id="replyContextText"></div>
+        </div>
+        <button class="reply-context-close" id="replyContextClose">×</button>
+      </div>
     </div>
   </div>
 
   <!-- Backdrop -->
   <div id="drawerBackdrop" class="drawer-backdrop"></div>
 
-  <!-- TRANSPARENT LIQUID GLASS DRAWER -->
+  <!-- BEAUTIFUL TRANSPARENT GLASS DRAWER -->
   <div class="group-drawer" id="groupDrawer" aria-hidden="true" role="dialog" aria-label="Group members">
     <div class="drawer-header">
       <h2>Group Members</h2>
@@ -509,6 +668,9 @@ const recordAudioButton = document.getElementById('recordAudioButton');
 const groupTitle = document.getElementById('groupTitle');
 const themeToggleButton = document.getElementById('themeToggleButton');
 const replyContextBox = document.getElementById('replyContextBox');
+const replyContextSender = document.getElementById('replyContextSender');
+const replyContextText = document.getElementById('replyContextText');
+const replyContextClose = document.getElementById('replyContextClose');
 const body = document.body;
 const groupDrawer = document.getElementById('groupDrawer');
 const membersList = document.getElementById('membersList');
@@ -829,7 +991,7 @@ function handleAIMentionClick(userId) {
   }
 }
 
-// ---------- TRANSPARENT LIQUID GLASS DRAWER BEHAVIOUR ----------
+// ---------- BEAUTIFUL TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 
 // Render members in the transparent glass list
 function renderMembers() {
@@ -991,11 +1153,17 @@ async function loadHistory() {
 }
 await loadHistory();
 
-// Real-time updates
+// Real-time updates - FIXED to show AI responses immediately
 supabase.channel(`grp_${gid}`)
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
     payload => {
-      if (payload.new.sender_id !== user.id) render(payload.new);
+      // Don't render user's own messages (they're already rendered)
+      // But DO render AI messages (even though they're inserted by the same user)
+      if (payload.new.sender_id !== user.id || payload.new.sender_id === AI_USER_ID) {
+        // Remove typing indicator if it exists
+        hideAITypingIndicator();
+        render(payload.new);
+      }
     })
   .subscribe();
 
@@ -1047,7 +1215,13 @@ async function sendMsg() {
   replyContextBox.style.display = 'none';
   mentionListBox.style.display = 'none';
 
-  await checkPeerloomAI(txt);
+  // Check if the message is replying to AI or mentions AI
+  const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
+  const hasAIMention = txt.toLowerCase().includes('@peerpal ai');
+  
+  if (isReplyingToAI || hasAIMention) {
+    await checkPeerloomAI(txt);
+  }
 }
 sendMessageButton.onclick = sendMsg;
 messageBar.addEventListener('keydown', (e) => {
@@ -1056,16 +1230,22 @@ messageBar.addEventListener('keydown', (e) => {
 
 // ---------- FIXED GEMINI AI INTEGRATION ----------
 async function checkPeerloomAI(message) {
-  // Check for @PeerPal AI mention specifically
-  if (!message.toLowerCase().includes('@peerpal ai')) return;
+  // Check for @PeerPal AI mention specifically or if replying to AI
+  const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
+  const hasAIMention = message.toLowerCase().includes('@peerpal ai');
+  
+  if (!hasAIMention && !isReplyingToAI) return;
   
   try {
     console.log('Calling Gemini AI with message:', message);
     
-    // Clean the message by removing the mention
+    // Show typing indicator
+    showAITypingIndicator();
+    
+    // Clean the message by removing the mention if present
     const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
     
-    // Use the correct Gemini API endpoint
+    // Use the correct Gemini API endpoint with better prompt
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 
@@ -1075,13 +1255,24 @@ async function checkPeerloomAI(message) {
         contents: [{
           parts: [{
             text: `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom. 
-            A user has mentioned you with this message: "${cleanMessage}". 
-            Please respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`
+            A user has sent you this message: "${cleanMessage}". 
+            
+            Please provide a helpful, friendly response that is:
+            - Conversational and natural
+            - Helpful and informative
+            - Under 100 words
+            - Appropriate for a chat environment
+            
+            If the message is a greeting, respond warmly.
+            If it's a question, provide a clear answer.
+            If it's a request for help, offer assistance.
+            Keep it casual and friendly like a real person would chat.`
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.8,
           maxOutputTokens: 150,
+          topP: 0.9,
         }
       })
     });
@@ -1095,125 +1286,4 @@ async function checkPeerloomAI(message) {
     const data = await response.json();
     console.log('Gemini AI Response:', data);
     
-    let aiReply = "I'm here to help! How can I assist you today?";
-    
-    if (data && data.candidates && data.candidates[0] && data.candidates[0].content) {
-      aiReply = data.candidates[0].content.parts[0].text;
-    }
-    
-    // Insert AI message using the real AI user ID from profiles table
-    const { error: aiError } = await supabase.from('group_messages').insert({
-      group_id: gid,
-      sender_id: AI_USER_ID,
-      sender_name: AI_USER_NAME,
-      content: aiReply,
-      role: 'ai'
-    });
-    
-    if (aiError) {
-      console.error('Error inserting AI message:', aiError);
-    }
-    
-  } catch (error) {
-    console.error('PeerPal AI Error:', error);
-    // Fallback to smart responses based on message content
-    const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
-    const fallbackResponse = generateSmartResponse(cleanMessage);
-    
-    const { error: aiError } = await supabase.from('group_messages').insert({
-      group_id: gid,
-      sender_id: AI_USER_ID,
-      sender_name: AI_USER_NAME,
-      content: fallbackResponse,
-      role: 'ai'
-    });
-    
-    if (aiError) {
-      console.error('Error inserting fallback AI message:', aiError);
-    }
-  }
-}
-
-// Smart fallback responses when AI API fails
-function generateSmartResponse(message) {
-  const lowerMessage = message.toLowerCase();
-  
-  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-    return "Hello! I'm PeerPal AI, your helpful assistant in PeerLoom. How can I help you today?";
-  }
-  if (lowerMessage.includes('how are you')) {
-    return "I'm doing great! Ready to help with anything you need. What's on your mind?";
-  }
-  if (lowerMessage.includes('thank')) {
-    return "You're welcome! Happy to help. Is there anything else you'd like to know?";
-  }
-  if (lowerMessage.includes('help')) {
-    return "I'm here to assist you! You can ask me questions, get information, or just chat. What do you need help with?";
-  }
-  if (lowerMessage.includes('weather')) {
-    return "I don't have real-time weather data, but I can help you find weather information if you tell me your location!";
-  }
-  if (lowerMessage.includes('joke') || lowerMessage.includes('funny')) {
-    const jokes = [
-      "Why don't scientists trust atoms? Because they make up everything!",
-      "Why did the scarecrow win an award? He was outstanding in his field!",
-      "What do you call a fake noodle? An impasta!"
-    ];
-    return jokes[Math.floor(Math.random() * jokes.length)];
-  }
-  if (lowerMessage.includes('time')) {
-    return `The current time is ${new Date().toLocaleTimeString()}. How can I assist you further?`;
-  }
-  
-  const defaultResponses = [
-    "That's interesting! Tell me more about that.",
-    "I understand. How can I help you with this?",
-    "Thanks for sharing! Is there anything specific you'd like me to help with?",
-    "I see what you're saying. What would you like to do next?",
-    "That's a great point! How can I assist you further?"
-  ];
-  
-  return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
-}
-
-// Placeholder audio & file
-recordAudioButton.onclick = () => {
-  isRecording = !isRecording;
-  recordAudioButton.classList.toggle('active', isRecording);
-  alert(isRecording ? 'Recording started...' : 'Recording stopped...');
-};
-fileShareButton.onclick = () => alert('File upload coming soon!');
-voiceCallButton.onclick = () => alert('Starting voice call...');
-videoCallButton.onclick = () => alert('Starting video call...');
-
-// Gestures & replies
-function attachGestures(el, mine, msg) {
-  let startX, longT;
-  el.addEventListener('mousedown', (e) => {
-    startX = e.clientX;
-    if (mine) longT = setTimeout(() => { if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); }, 800);
-  });
-  el.addEventListener('mousemove', (e) => { if (e.buttons === 1 && e.clientX - startX > 120) startReply(msg); });
-  el.addEventListener('mouseup', () => clearTimeout(longT));
-  el.addEventListener('dblclick', () => {
-    if (mine) {
-      const u = prompt('Edit msg:', msg.content);
-      if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
-    }
-  });
-  el.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-    if (mine) longT = setTimeout(() => { if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); }, 800);
-  });
-  el.addEventListener('touchmove', (e) => { if (e.touches[0].clientX - startX > 120) startReply(msg); });
-  el.addEventListener('touchend', () => clearTimeout(longT));
-}
-function startReply(msg) {
-  replyingMsg = msg;
-  replyContextBox.textContent = `Replying to ${msg.sender_name}: ${msg.content}`;
-  replyContextBox.style.display = 'block';
-}
-replyContextBox.onclick = () => { replyingMsg = null; replyContextBox.style.display = 'none'; };
-  </script>
-</body>
-</html>
+    let aiReply = "I'm here to help! How can I assist you today
