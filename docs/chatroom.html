@@ -121,7 +121,7 @@
     .emoji-picker span, .mention-list div { margin: 0.3rem; padding: 0.4rem 0.6rem; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
     .emoji-picker span:hover, .mention-list div:hover { background: var(--msg-hover); }
 
-    /* -------- UPDATED: Liquid Glass Drawer -------- */
+    /* -------- LIQUID GLASS DRAWER & CONTENT -------- */
     .drawer-backdrop {
       position: fixed;
       inset: 0;
@@ -148,7 +148,7 @@
       transform: translateX(-50%);
       top: 0;
       width: 90%;
-      max-width: 500px; /* More narrow for better vertical layout */
+      max-width: 500px;
       height: 0;
       overflow: hidden;
       border-radius: 20px;
@@ -159,7 +159,7 @@
       opacity: 0;
       pointer-events: none;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      /* Liquid Glass Effect */
+      /* Liquid Glass Effect for entire drawer */
       background: linear-gradient(135deg, 
         rgba(255,255,255,0.1) 0%, 
         rgba(255,255,255,0.05) 50%, 
@@ -171,16 +171,22 @@
     }
 
     .group-drawer.open {
-      height: 70vh; /* Taller for vertical scrolling */
+      height: 70vh;
       opacity: 1;
       pointer-events: auto;
       transform: translateX(-50%) translateY(20px);
     }
 
+    /* LIQUID GLASS CONTENT ELEMENTS */
     .drawer-header {
       padding: 1.5rem 1.5rem 1rem;
       border-bottom: 1px solid rgba(255,255,255,0.1);
       text-align: center;
+      /* Liquid Glass for header */
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 20px 20px 0 0;
     }
 
     .drawer-header h2 {
@@ -194,7 +200,7 @@
       font-size: 0.9rem;
     }
 
-    /* Vertical scrollable members list */
+    /* Members list with liquid glass */
     .members-list {
       flex: 1;
       overflow-y: auto;
@@ -202,28 +208,40 @@
       display: flex;
       flex-direction: column;
       gap: 0.8rem;
+      /* Liquid Glass background for scrollable area */
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      margin: 0;
     }
 
+    /* Individual member items with liquid glass */
     .member-item {
       display: flex;
       align-items: center;
       gap: 1rem;
       padding: 1rem;
       border-radius: 12px;
-      background: rgba(255,255,255,0.03);
+      /* Liquid Glass for each member */
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
       transition: all 0.3s ease;
-      border: 1px solid transparent;
     }
 
     .member-item:hover {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.1);
       transform: translateX(5px);
-      border-color: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
     .member-item.ai-member {
-      background: rgba(74, 144, 226, 0.1);
+      background: rgba(74, 144, 226, 0.15);
       border-left: 3px solid var(--accent);
+      backdrop-filter: blur(12px) saturate(1.2);
+      -webkit-backdrop-filter: blur(12px) saturate(1.2);
     }
 
     .member-avatar {
@@ -232,7 +250,11 @@
       border-radius: 50%;
       object-fit: cover;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      border: 2px solid rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.15);
+      /* Glass effect for avatar container */
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     .member-info {
@@ -260,21 +282,32 @@
       border-radius: 50%;
       background: #50e3c2;
       margin-left: auto;
+      box-shadow: 0 0 10px rgba(80, 227, 194, 0.5);
     }
 
     .member-status.ai {
       background: var(--accent);
+      box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
     }
 
+    /* Footer with liquid glass */
     .drawer-footer {
       padding: 1rem 1.5rem;
       border-top: 1px solid rgba(255,255,255,0.1);
+      /* Liquid Glass for footer */
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 0 0 20px 20px;
     }
 
     .leave-btn {
       width: 100%;
       padding: 1rem;
+      /* Liquid Glass with red tint */
       background: linear-gradient(135deg, rgba(255,71,87,0.15), rgba(255,71,87,0.08));
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(255,71,87,0.2);
       border-radius: 12px;
       color: #ff4757;
@@ -286,9 +319,10 @@
     .leave-btn:hover {
       background: linear-gradient(135deg, rgba(255,71,87,0.25), rgba(255,71,87,0.15));
       transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255,71,87,0.2);
     }
 
-    /* small screens */
+    /* Small screens */
     @media (max-width: 768px) {
       .group-drawer { width: 95%; max-width: 400px; }
       .group-drawer.open { height: 75vh; }
@@ -299,11 +333,11 @@
       .member-avatar { width: 44px; height: 44px; }
     }
 
-    /* ripple (reused) */
+    /* Ripple effect */
     .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3); transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
     @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
 
-    /* -------- Enhanced Mention System Styles -------- */
+    /* Enhanced Mention System Styles */
     .mention-list {
       display: none;
       flex-direction: column;
@@ -399,7 +433,7 @@
       animation: glow 2s ease-in-out infinite;
     }
 
-    /* scrollbars */
+    /* Scrollbars */
     body[data-theme="dark"] ::-webkit-scrollbar { background: #181920; }
     body[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #23242b; }
     [data-theme="dark"] .chat-header, [data-theme="dark"] .chat-messages, [data-theme="dark"] .chat-input-area, [data-theme="dark"] .emoji-picker, [data-theme="dark"] .mention-list { border: 1px solid #23242b; }
@@ -434,7 +468,7 @@
   <!-- Backdrop (catches outside taps) -->
   <div id="drawerBackdrop" class="drawer-backdrop"></div>
 
-  <!-- UPDATED: Liquid Glass Drawer -->
+  <!-- LIQUID GLASS DRAWER -->
   <div class="group-drawer" id="groupDrawer" aria-hidden="true" role="dialog" aria-label="Group members">
     <div class="drawer-header">
       <h2>Group Members</h2>
@@ -810,7 +844,7 @@ function handleAIMentionClick(userId) {
   }
 }
 
-// ---------- UPDATED: Drawer behaviour ----------
+// ---------- LIQUID GLASS DRAWER BEHAVIOUR ----------
 
 // Render members in the new vertical list format
 function renderMembers() {
