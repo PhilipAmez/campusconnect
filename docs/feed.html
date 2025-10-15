@@ -1,1683 +1,1478 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Skrolz</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0f0f10;
-    --card: #141416;
-    --muted: #bfc3cc;
-    --accent-1: #7bdff6;
-    --accent-2: #2fb3ff;
-    --accent: #6a40ff;
-    --glass: rgba(255,255,255,0.05);
-    --transition: 320ms cubic-bezier(.2,.9,.3,1);
-    --blue-aqua: #7bdff6;
-    --like-blue: #2fb3ff;
-  }
-  html.light {
-    --bg: #f6f7fa;
-    --card: #fff;
-    --muted: #374151;
-    --glass: rgba(0,0,0,0.03);
-  }
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Peerloom-Chatroom</title>
+  <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script type="module" src="js/supabaseClient.js"></script>
+  <style>
+    :root {
+      --glass-bg-light: rgba(255, 255, 255, 0.3);
+      --glass-bg-dark: rgba(0, 0, 0, 0.3);
+      --text-light: #333333;
+      --text-dark: #f9fafb;
+      --msg-bg-light: rgba(0, 0, 0, 0.08);
+      --msg-bg-dark: rgba(255, 255, 255, 0.08);
+      --msg-hover-light: rgba(0, 0, 0, 0.15);
+      --msg-hover-dark: rgba(255, 255, 255, 0.15);
+      --accent: #4a90e2;
+      --ai-bg-light: rgba(0, 102, 255, 0.1);
+      --ai-bg-dark: rgba(0, 102, 255, 0.15);
+      --circle-bg-dark: rgba(255, 255, 255, 0.2);
+      --placeholder-fade: rgba(0, 0, 0, 0.3);
+      --gloss-red: rgba(255,71,87,0.14);
+      --gloss-red-strong: rgba(255,71,87,0.28);
+    }
+    [data-theme="dark"] {
+      --glass-bg: rgba(20, 22, 28, 0.98);
+      --text: #f1f1f1;
+      --msg-bg: rgba(40, 42, 54, 0.98);
+      --msg-hover: rgba(60, 62, 74, 1);
+      --ai-bg: rgba(0, 102, 255, 0.18);
+      --circle-bg: rgba(30, 32, 38, 0.98);
+      --placeholder-fade: rgba(200, 200, 200, 0.3);
+      --gloss-red: rgba(255,71,87,0.12);
+      --gloss-red-strong: rgba(255,71,87,0.22);
+    }
+    [data-theme="light"] {
+      --glass-bg: var(--glass-bg-light);
+      --text: var(--text-light);
+      --msg-bg: var(--msg-bg-light);
+      --msg-hover: var(--msg-hover-light);
+      --ai-bg: var(--ai-bg-light);
+      --circle-bg: var(--glass-bg-light);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--glass-bg);
+      font-family: 'Arial', sans-serif;
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 10px;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .chat-arena {
+      width: 90%;
+      max-width: 1200px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+      position: relative;
+    }
+    .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list {
+      background: var(--glass-bg);
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    .chat-header {
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 4;
+      overflow: visible;
+    }
+    .chat-header h1 {
+      font-size: 1.8rem;
+      font-style: italic;
+      cursor: pointer;
+      user-select: none;
+      display: inline-block;
+    }
+    .header-actions { display: flex; gap: 0.8rem; }
+    .chat-messages {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .msg { max-width: 70%; padding: 1rem 1.5rem; border-radius: 20px; background: var(--msg-bg); color: var(--text); position: relative; transition: background 0.3s ease; }
+    .msg.sent { align-self: flex-end; background: linear-gradient(90deg, var(--accent), #50e3c2); color: var(--text-light); }
+    .msg.recv { align-self: flex-start; background: var(--msg-bg); }
+    .msg.ai { align-self: flex-start; background: var(--ai-bg); font-style: italic; }
+    .msg:hover { background: var(--msg-hover); }
+    .sender-name { font-size: 0.9rem; font-style: italic; opacity: 0.8; margin-bottom: 0.3rem; align-self: flex-start; }
+    .timestamp { font-size: 0.8rem; opacity: 0.6; margin-top: 0.4rem; text-align: right; }
+    .reply-banner { font-size: 0.9rem; margin-bottom: 0.5rem; padding-left: 0.7rem; border-left: 2px solid var(--accent); opacity: 0.7; }
+    .chat-input-area { padding: 0.5rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); position: relative; }
+    .message-bar { flex: 1; height: 45px; border-radius: 20px; background: var(--msg-bg); color: var(--text); font-size: 1rem; cursor: text; padding:  0 5.0rem 0 0.5rem; padding-top: 7px; outline: none; resize: none; }
+    .message-bar:empty:before { content: attr(data-placeholder); color: var(--placeholder-fade); pointer-events: none; }
+    .send-arrow { position: absolute; right: 3.5rem; top: 50%; transform: translateY(-50%); background: var(--circle-bg); border: none; border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s ease; }
+    .send-arrow:hover { transform: scale(1.1) translateY(-50%); }
+    .audio-record { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: var(--circle-bg); border: none; border-radius: 50%; margin-right: 10px; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; cursor: pointer; transition: transform 0.2s ease; }
+    .audio-record:hover { transform: scale(1.1) translateY(-50%); }
+    .audio-record.active { background: var(--accent); color: var(--text-light); }
+    .icon-btn { background: var(--glass-bg); border: none; border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; cursor: pointer; transition: transform 0.2s ease; }
+    .icon-btn:hover { transform: scale(1.1); }
+    .emoji-picker, .mention-list { position: absolute; bottom: calc(100% + 10px); left: 0.5rem; padding: 0.6rem; border-radius: 12px; display: none; flex-wrap: wrap; max-width: 280px; z-index: 10; background: var(--glass-bg); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+    .emoji-picker span, .mention-list div { margin: 0.3rem; padding: 0.4rem 0.6rem; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
+    .emoji-picker span:hover, .mention-list div:hover { background: var(--msg-hover); }
 
-  * { box-sizing: border-box }
-  html, body {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+    /* -------- TRANSPARENT LIQUID GLASS DRAWER -------- */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: transparent;
+      z-index: 900;
+      display: none;
+      pointer-events: none;
+      transition: background 0.25s ease;
+    }
+    .drawer-backdrop.visible {
+      display: block;
+      pointer-events: auto;
+      background: rgba(0,0,0,0.5);
+      animation: backdropFade 240ms ease forwards;
+    }
+    @keyframes backdropFade {
+      from { background: rgba(0,0,0,0); }
+      to   { background: rgba(0,0,0,0.5); }
+    }
 
-  body {
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background: var(--bg);
-    color: #fff;
-    -webkit-font-smoothing: antialiased;
-    transition: background var(--transition), color var(--transition);
-    min-height: 100vh;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+    .group-drawer {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 20px;
+      width: 90%;
+      max-width: 500px;
+      height: 0;
+      overflow: hidden;
+      border-radius: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transition: height 420ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease, transform 420ms cubic-bezier(.2,.9,.2,1);
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+      /* TRUE TRANSPARENT LIQUID GLASS */
+      background: linear-gradient(135deg, 
+        rgba(255,255,255,0.08) 0%, 
+        rgba(255,255,255,0.04) 50%, 
+        rgba(255,255,255,0.02) 100%);
+      backdrop-filter: blur(40px) saturate(2.5);
+      -webkit-backdrop-filter: blur(40px) saturate(2.5);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 0;
+    }
 
-  /* HEADER */
-  header {
-    position: sticky; top: 0; z-index: 40;
-    height: 64px; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.05));
-    backdrop-filter: blur(8px) saturate(140%);
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-    transition: background var(--transition), color var(--transition), transform 220ms ease;
-    user-select: none;
-    touch-action: none;
-  }
-  html.light header {
-    background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.85));
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    color: #111;
-  }
-  .header-inner { text-align: center; pointer-events: none; width: 100%; max-width: 360px; }
-  .header-title { font-weight: 700; font-size: 18px; letter-spacing: 0.3px }
-  .header-hint { position: absolute; right: 14px; font-size: 13px; opacity: 0.75; pointer-events: none }
+    .group-drawer.open {
+      height: 70vh;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(20px);
+    }
 
-  /* AVATAR */
-  .avatar {
-    width: 32px; height: 32px; border-radius: 50%; 
-    background: linear-gradient(135deg, var(--accent), #b473ff);
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-weight: 600; font-size: 14px; text-transform: uppercase;
-  }
+    /* Transparent Glass Content */
+    .drawer-header {
+      padding: 1.2rem 1.5rem 0.8rem;
+      text-align: center;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px 20px 0 0;
+    }
 
-  /* SEARCH BAR */
-  .search-container {
-    position: sticky;
-    top: 64px;
-    z-index: 39;
-    background: var(--bg);
-    padding: 8px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-  }
-  .search-wrapper {
-    max-width: 300px;
-    margin: 0 auto;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  #searchBar {
-    flex: 1;
-    padding: 10px 14px;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 25px;
-    background: var(--glass);
-    color: inherit;
-    font-size: 14px;
-    backdrop-filter: blur(8px);
-    outline: none;
-    transition: all 0.2s ease;
-  }
-  html.light #searchBar { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); }
-  #searchBar::placeholder { color: var(--muted); }
-  #searchBar:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(106, 64, 255, 0.1);
-  }
+    .drawer-header h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+      color: var(--text);
+    }
 
-  /* FEED */
-  main#feed {
-    padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 28px; padding-bottom: 120px;
-    position: relative;
-    overflow-y: auto;
-    height: calc(100vh - 128px);
-    scroll-snap-type: y mandatory;
-  }
-  #feedContent {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 28px;
-    width: 100%;
-    transition: transform var(--transition);
-    will-change: transform;
-  }
+    .drawer-header p {
+      opacity: 0.8;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
 
-  #pullIndicator {
-    position: fixed;
-    top: 128px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-100%);
-    width: 360px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--glass);
-    border-radius: 18px 18px 0 0;
-    transition: opacity 0.2s, transform 0.3s;
-    opacity: 0;
-    z-index: 50;
-    pointer-events: none;
-  }
-  html.light #pullIndicator { background: rgba(0,0,0,0.03); }
-  #pullIndicator > div { display: flex; align-items: center; gap: 8px; }
-  #pullText { font-size: 13px; color: var(--muted); }
-  #pullIcon.refreshing { animation: spin 0.8s linear infinite; }
-  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    /* Members list with transparent glass */
+    .members-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.8rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      background: transparent;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      margin: 0;
+    }
 
-  @media (max-width: 420px) {
-    #pullIndicator { width: 92vw; }
-    .search-wrapper { max-width: 100%; }
-    #searchBar { font-size: 16px; }
-    .post { width: 92vw; height: 70vh; border-radius: 12px; }
-    .icons { right: 6px; bottom: 60px; }
-    .drawer.open { height: 60% }
-  }
+    /* Individual member items - ultra transparent */
+    .member-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.8rem;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: all 0.3s ease;
+    }
 
-  /* LOADING */
-  .loading { display: flex; align-items: center; justify-content: center; height: 100px; font-size: 14px; color: var(--muted); }
+    .member-item:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateX(5px);
+      border-color: rgba(255,255,255,0.2);
+    }
 
-  /* CARD / POST */
-  .post {
-    width: 360px; height: 640px; border-radius: 18px; overflow: visible; position: relative;
-    background: var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.55);
-    transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
-    will-change: transform;
-    touch-action: pan-y;
-    scroll-snap-align: start;
-  }
-  html.light .post { box-shadow: 0 8px 28px rgba(2,6,23,0.06) }
-  .post.swiping { transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .member-item.ai-member {
+      background: rgba(74, 144, 226, 0.15);
+      border-left: 3px solid var(--accent);
+    }
 
-  .post-inner { width: 100%; height: 100%; border-radius: 18px; overflow: hidden; position: relative; background: var(--card); }
-  .post video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .member-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      border: 1.5px solid rgba(255,255,255,0.2);
+    }
 
-  .play-overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 200ms ease; z-index: 10; pointer-events: none;
-  }
-  .post.paused .play-overlay { opacity: 1; pointer-events: auto; }
-  .play-icon {
-    width: 80px; height: 80px; border-radius: 50%; background: var(--blue-aqua);
-    display: flex; align-items: center; justify-content: center; font-size: 32px;
-    color: white; opacity: 0.9; box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4);
-  }
+    .member-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
 
-  .upload-progress {
-    position: absolute; top: 0; left: 0; height: 4px; background: rgba(0,0,0,0.3); overflow: hidden; z-index: 15;
-  }
-  .upload-progress-bar {
-    height: 100%; background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2)); width: 0%; transition: width 100ms linear;
-  }
+    .member-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
 
-  .overlay {
-    position: absolute; left: 0; right: 0; bottom: 0; padding: 14px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.6), transparent 40%); color: #fff;
-    transition: background var(--transition), color var(--transition);
-  }
-  html.light .overlay { background: linear-gradient(0deg, rgba(255,255,255,0.86), transparent 40%); color: #111; }
-  .overlay h3 { margin: 0 0 6px 0; font-size: 14px; font-weight: 600 }
-  .overlay p { margin: 0; font-size: 13px; color: var(--muted); }
+    .member-role {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text);
+    }
 
-  .icons {
-    position: absolute; right: 10px; bottom: 84px; display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 22;
-  }
-  .btn {
-    width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;
-    background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); color: #fff; font-size: 18px;
-    transition: transform 160ms ease, background 160ms, color 160ms;
-  }
-  .btn:active { transform: scale(.96) }
-  html.light .btn { color: #111; background: rgba(0,0,0,0.04) }
+    .member-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #50e3c2;
+      margin-left: auto;
+      box-shadow: 0 0 10px rgba(80, 227, 194, 0.5);
+    }
 
-  .like-btn.liked {
-    background: linear-gradient(135deg, var(--like-blue), #2f8fff);
-    color: white;
-    box-shadow: 0 0 12px rgba(47, 179, 255, 0.4);
-  }
+    .member-status.ai {
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+    }
 
-  .like-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px }
-  .like-count { font-size: 12px; color: var(--muted); user-select: none }
+    /* Sleek footer */
+    .drawer-footer {
+      padding: 0.8rem 1.2rem;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-radius: 0 0 20px 20px;
+      display: flex;
+      justify-content: center;
+    }
 
-  .delete-btn { background: rgba(255, 50, 50, 0.2); color: #ff6b6b; }
+    /* SLEEK LEAVE BUTTON */
+    .leave-btn {
+      padding: 0.6rem 1.2rem;
+      background: rgba(255,71,87,0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,71,87,0.3);
+      border-radius: 10px;
+      color: #ff4757;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
 
-  .drawer {
-    position: absolute; left: 8px; right: 8px; bottom: 8px; height: 0; max-height: 70%;
-    border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; align-items: center;
-    backdrop-filter: blur(14px) saturate(140%); background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-    border: 1px solid rgba(255,255,255,0.1);
-    transition: height 360ms cubic-bezier(.2,.9,.3,1), transform 320ms ease;
-    z-index: 26;
-    pointer-events: none;
-  }
-  html.light .drawer { 
-    background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03)); 
-    color: #111;
-    border: 1px solid rgba(0,0,0,0.1);
-  }
+    .leave-btn:hover {
+      background: rgba(255,71,87,0.2);
+      transform: translateY(-1px);
+      border-color: rgba(255,71,87,0.4);
+    }
 
-  .drawer.open { height: 60%; pointer-events: auto; }
+    /* Small screens */
+    @media (max-width: 768px) {
+      .group-drawer { width: 95%; max-width: 400px; }
+      .group-drawer.open { height: 75vh; }
+    }
 
-  .drawer-inner {
-    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center;
-    padding: 12px 12px 8px 12px; gap: 10px; box-sizing: border-box; overflow: auto;
-    -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
-  }
-  .drawer-inner::-webkit-scrollbar { display: none }
-  .drawer-inner { -ms-overflow-style: none; scrollbar-width: none }
+    @media (max-width: 420px) {
+      .group-drawer.open { height: 80vh; }
+      .member-avatar { width: 40px; height: 40px; }
+    }
 
-  .drawer-handle { width: 54px; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.12); margin-top: 6px; }
-  html.light .drawer-handle { background: rgba(0,0,0,0.08) }
+    /* Ripple effect */
+    .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.4); transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
+    @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
 
-  .comments-header {
-    width: 100%;
-    text-align: center;
-    padding: 8px 0;
-    font-size: 14px;
-    color: var(--muted);
-    user-select: none;
-    cursor: pointer;
-  }
+    /* Enhanced Mention System Styles */
+    .mention-list {
+      display: none;
+      flex-direction: column;
+      width: 240px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      gap: 0.2rem;
+      animation: dropdownAppear 0.2s ease-out;
+    }
 
-  .comments-list { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; padding-top: 6px; box-sizing: border-box; }
-  .comment { 
-    width: 88%; text-align: left; padding: 10px 12px; border-radius: 10px; 
-    background: rgba(255,255,255,0.08); color: #ffffff; 
-    user-select: none; font-size: 14px; line-height: 1.4;
-    border: 1px solid rgba(255,255,255,0.1);
-    cursor: pointer;
-  }
-  html.light .comment { 
-    background: rgba(0,0,0,0.06); 
-    color: #333; 
-    border: 1px solid rgba(0,0,0,0.1);
-  }
+    @keyframes dropdownAppear {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-  .drawer-footer { width: 100%; display: flex; justify-content: center; gap: 8px; padding: 8px 0 4px; align-items: center; }
-  .comment-input { display: none; width: 84%; }
-  .comment-input.active { display: block; }
-  .comment-input input { 
-    width: 100%; padding: 10px 12px; border-radius: 999px; border: none; outline: none; 
-    background: rgba(255,255,255,0.1); color: #fff; font-size: 14px;
-    font-family: 'Poppins', sans-serif;
-  }
-  html.light .comment-input input { background: rgba(0,0,0,0.08); color: #111 }
-  .send-small { padding: 8px 12px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; }
+    .mention-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
 
-  .heart-hit { 
-    position: absolute; pointer-events: none; width: 120px; height: 120px; left: 50%; top: 50%; 
-    transform: translate(-50%,-50%); z-index: 30; opacity: 0; transition: opacity 120ms linear; 
-  }
-  .heart-hit.show { opacity: 1; animation: heart-pop 420ms cubic-bezier(.2,.85,.25,1); }
-  @keyframes heart-pop {
-    0% { transform: translate(-50%,-50%) scale(.84); opacity: 0; filter: blur(6px) }
-    10% { transform: translate(-50%,-50%) scale(1.04); opacity: 1; filter: blur(0) }
-    80% { transform: translate(-50%,-50%) scale(1); opacity: 1 }
-    100% { transform: translate(-50%,-50%) scale(1); opacity: 0 }
-  }
+    .mention-item:hover {
+      background: var(--msg-hover);
+      transform: translateX(4px);
+    }
 
-  .fab {
-    position: fixed; right: 22px; bottom: 22px; z-index: 40; width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 28px;
-    background: linear-gradient(135deg, var(--accent), #b473ff); color: #fff;
-    box-shadow: 0 14px 40px rgba(100,40,255,0.12); transition: transform 180ms ease;
-  }
-  .fab:active { transform: scale(.98) }
+    .mention-item.ai-mention {
+      background: rgba(0, 102, 255, 0.1);
+      border-left: 3px solid #4a90e2;
+    }
 
-  #recordModal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 70;
-  }
-  #recordModal.show { display: flex; }
-  .record-container {
-    width: 100%; height: 100%; position: relative; display: flex; flex-direction: column;
-  }
-  #videoPreview { width: 100%; height: calc(100% - 100px); object-fit: cover; background: black; }
-  .record-controls {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; align-items: center;
-  }
-  .record-btn {
-    width: 80px; height: 80px; border-radius: 50%; background: var(--blue-aqua); border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 30px; color: white;
-    box-shadow: 0 4px 20px rgba(123, 223, 246, 0.4); transition: transform 0.2s;
-  }
-  .record-btn.recording { background: #ff4757; transform: scale(1.1); }
-  .record-btn:active { transform: scale(0.95); }
-  .close-record { position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+    .mention-item.ai-mention:hover {
+      background: rgba(0, 102, 255, 0.2);
+    }
 
-  #uploadProgressModal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 80;
-  }
-  #uploadProgressModal.show {
-    display: flex;
-  }
-  .progress-box {
-    background: var(--card);
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    text-align: center;
-    width: 300px;
-    max-width: 90vw;
-  }
-  .progress-bar {
-    width: 100%;
-    height: 20px;
-    background: var(--glass);
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 10px 0;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--blue-aqua), var(--accent-2));
-    width: 0%;
-    transition: width 0.3s ease;
-  }
-  .progress-text { font-size: 14px; color: var(--muted); }
+    .mention-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-  /* UPLOAD MODAL STYLES */
-  .upload-modal {
-    position: fixed; inset: 0; background: rgba(2,6,23,0.45); backdrop-filter: blur(6px) saturate(130%);
-    display: none; align-items: center; justify-content: center; z-index: 60;
-  }
-  .upload-modal.show { display: flex; }
-  .upload-content {
-    width: min(720px,92vw); padding: 20px; border-radius: 14px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    box-shadow: 0 18px 60px rgba(0,0,0,0.6); color: inherit;
-  }
+    .mention-badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      margin-left: auto;
+    }
 
-  @media (max-width: 420px) {
-    .post { width: 92vw; height: 70vh; }
-    .icons { right: 6px; bottom: 60px; }
-    .drawer.open { height: 60% }
-    .progress-box { width: 90vw; }
-  }
+    /* Mention highlighting in messages */
+    .mention {
+      color: var(--accent);
+      font-weight: 600;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      background: rgba(74, 144, 226, 0.1);
+      transition: all 0.3s ease;
+    }
 
-  .muted { color: var(--muted); font-size: 13px }
-  .center { display: flex; align-items: center; justify-content: center }
+    .mention.ai-mention {
+      background: rgba(0, 102, 255, 0.15);
+      cursor: pointer;
+      position: relative;
+    }
 
-  /* BLUE HEART ANIMATION */
-  .blue-heart {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 80px; color: var(--like-blue); opacity: 0; z-index: 25; pointer-events: none;
-    text-shadow: 0 0 20px rgba(47, 179, 255, 0.6);
-  }
-  .blue-heart.animate {
-    animation: blueHeartPop 0.8s ease-out;
-  }
-  @keyframes blueHeartPop {
-    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-  }
-</style>
+    .mention.ai-mention:hover {
+      background: rgba(0, 102, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .mention.ai-mention::after {
+      content: "🤖";
+      font-size: 0.7rem;
+      margin-left: 0.2rem;
+      opacity: 0.7;
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+      50% { box-shadow: 0 0 15px rgba(74, 144, 226, 0.6), 0 0 25px rgba(74, 144, 226, 0.4); }
+    }
+
+    .mention.ai-mention.glow {
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    /* Scrollbars */
+    body[data-theme="dark"] ::-webkit-scrollbar { background: #181920; }
+    body[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #23242b; }
+    [data-theme="dark"] .chat-header, [data-theme="dark"] .chat-messages, [data-theme="dark"] .chat-input-area, [data-theme="dark"] .emoji-picker, [data-theme="dark"] .mention-list { border: 1px solid #23242b; }
+
+    /* NEW: Typing animation for AI */
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-radius: 20px;
+      background: var(--ai-bg);
+      max-width: 70px;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text);
+      opacity: 0.6;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    /* NEW: Improved reply context box */
+    .reply-context {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 0.5rem;
+      right: 0.5rem;
+      background: var(--glass-bg);
+      border-radius: 12px;
+      padding: 0.8rem;
+      display: none;
+      align-items: center;
+      gap: 0.8rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      z-index: 5;
+      border-left: 4px solid var(--accent);
+    }
+
+    .reply-context-content {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .reply-context-sender {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--accent);
+    }
+
+    .reply-context-text {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reply-context-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text);
+      opacity: 0.7;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .reply-context-close:hover {
+      opacity: 1;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* NEW: Improved swipe-to-reply indicator */
+    .swipe-indicator {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--accent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .swipe-indicator.show {
+      opacity: 1;
+    }
+
+    .swipe-indicator i {
+      font-size: 0.9rem;
+    }
+
+    .swipe-indicator span {
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* NEW: Improved message swipe action */
+    .msg.swiping {
+      transform: translateX(-50px);
+      transition: transform 0.2s ease;
+    }
+
+    /* NEW: Reply highlight in messages */
+    .msg.replying {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+    }
+  </style>
 </head>
 <body>
-  <header id="header" aria-hidden="false">
-    <div class="header-inner">
-      <div id="sessionInfo" style="position: absolute; left: 12px; top: 12px; display: flex; align-items: center; gap: 8px; pointer-events: auto">
-        <div class="avatar" id="userAvatar">?</div>
-      </div>
-      <div class="header-title">Skrolz</div>
-      <div class="header-hint">Swipe ← / → to toggle theme</div>
-    </div>
-  </header>
-
-  <div class="search-container">
-    <div class="search-wrapper">
-      <input type="text" id="searchBar" placeholder="Search posts..." autocomplete="off">
-    </div>
-  </div>
-
-  <main id="feed" aria-live="polite"></main>
-
-  <button class="fab" id="fab">＋</button>
-
-  <!-- Record Modal -->
-  <div id="recordModal">
-    <div class="record-container">
-      <button class="close-record" id="closeRecord">×</button>
-      <video id="videoPreview" autoplay playsinline></video>
-      <div class="record-controls">
-        <button class="record-btn" id="recordBtnModal">⏺</button>
+  <div class="chat-arena">
+    <div class="chat-header">
+      <h1 id="groupTitle"></h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="voiceCallButton"><i class="fas fa-phone"></i></button>
+        <button class="icon-btn" id="videoCallButton"><i class="fas fa-video"></i></button>
+        <button class="icon-btn" id="themeToggleButton">🌙</button>
       </div>
     </div>
-  </div>
 
-  <!-- Upload Progress Modal -->
-  <div id="uploadProgressModal">
-    <div class="progress-box">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-text" id="progressText">Uploading... 0%</div>
-    </div>
-  </div>
+    <div class="chat-messages" id="messagePanel"></div>
 
-  <!-- Upload Modal -->
-  <div class="upload-modal" id="uploadModal">
-    <div class="upload-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
-        <div><strong style="font-size: 18px">Create a Post</strong><div class="muted small" style="margin-top: 6px">Videos must be 60s or less.</div></div>
-        <button id="closeUpload" style="background: none; border: none; color: inherit; font-size: 22px; cursor: pointer">×</button>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px">
-        <input id="uploadTitle" placeholder="Enter title (required)" style="padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: var(--glass); color: inherit; outline: none; font-family: 'Poppins', sans-serif;">
-        <textarea id="uploadCaption" placeholder="Enter caption (optional)" style="padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: var(--glass); color: inherit; outline: none; resize: none; height: 80px; font-family: 'Poppins', sans-serif;"></textarea>
-      </div>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap">
-        <button id="recordBtn" style="padding: 12px 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent), #b473ff); color: #fff; cursor: pointer; flex: 1; font-family: 'Poppins', sans-serif;">🎥 Record</button>
-        <label style="padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; cursor: pointer; flex: 1; justify-content: center; background: var(--glass); font-family: 'Poppins', sans-serif;">
-          📁 Upload <input id="filePicker" type="file" accept="video/*" style="display: none" />
-        </label>
+    <div class="chat-input-area">
+      <button class="icon-btn" id="emojiButton">😄</button>
+      <button class="icon-btn" id="fileShareButton"><i class="fas fa-paperclip"></i></button>
+      <textarea id="messageBar" class="message-bar" data-placeholder="Type here" rows="1"></textarea>
+      <button class="send-arrow" id="sendMessageButton">➤</button>
+      <button class="audio-record" id="recordAudioButton"><i class="fas fa-microphone"></i></button>
+      <div class="emoji-picker" id="emojiPickerBox"></div>
+      <div class="mention-list" id="mentionListBox"></div>
+      <div class="reply-context" id="replyContextBox">
+        <div class="reply-context-content">
+          <div class="reply-context-sender" id="replyContextSender"></div>
+          <div class="reply-context-text" id="replyContextText"></div>
+        </div>
+        <button class="reply-context-close" id="replyContextClose">×</button>
       </div>
     </div>
   </div>
 
-<script type="module">
-// Import Supabase client
+  <!-- Backdrop -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <!-- TRANSPARENT LIQUID GLASS DRAWER -->
+  <div class="group-drawer" id="groupDrawer" aria-hidden="true" role="dialog" aria-label="Group members">
+    <div class="drawer-header">
+      <h2>Group Members</h2>
+      <p>Connect with your team</p>
+    </div>
+    <div class="members-list" id="membersList"></div>
+    <div class="drawer-footer">
+      <button class="leave-btn" id="leaveGroupBtn">
+        <i class="fas fa-sign-out-alt"></i>
+        Leave Group
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
 import { supabase } from './js/supabaseClient.js';
+const session = await supabase.auth.getSession();
+if (!session.data.session) location = 'login.html';
+const user = session.data.session.user;
+const gid = new URLSearchParams(location.search).get('groupId');
+let replyingMsg = null;
+let isRecording = false;
 
-// Global state
-let allPosts = [];
-let posts = [];
-let currentVideoIndex = 0;
-let loadingMore = false;
-let searchQuery = '';
+// AI User Configuration
+const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
+const AI_USER_NAME = 'PeerPal AI';
+const GEMINI_API_KEY = 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88';
 
-// DOM elements
-const feed = document.getElementById('feed');
-let feedContent;
-const progressModal = document.getElementById('uploadProgressModal');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const uploadModal = document.getElementById('uploadModal');
+// Elements
+const messagePanel = document.getElementById('messagePanel');
+const emojiButton = document.getElementById('emojiButton');
+const emojiPickerBox = document.getElementById('emojiPickerBox');
+const mentionListBox = document.getElementById('mentionListBox');
+const messageBar = document.getElementById('messageBar');
+const sendMessageButton = document.getElementById('sendMessageButton');
+const fileShareButton = document.getElementById('fileShareButton');
+const voiceCallButton = document.getElementById('voiceCallButton');
+const videoCallButton = document.getElementById('videoCallButton');
+const recordAudioButton = document.getElementById('recordAudioButton');
+const groupTitle = document.getElementById('groupTitle');
+const themeToggleButton = document.getElementById('themeToggleButton');
+const replyContextBox = document.getElementById('replyContextBox');
+const replyContextSender = document.getElementById('replyContextSender');
+const replyContextText = document.getElementById('replyContextText');
+const replyContextClose = document.getElementById('replyContextClose');
+const body = document.body;
+const groupDrawer = document.getElementById('groupDrawer');
+const membersList = document.getElementById('membersList');
+const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+let memberDetails = [];
+let isMember = false;
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM loaded, initializing Skrolz...');
-  initApp();
-});
+// Theme toggle
+const applyTheme = (theme) => {
+  body.dataset.theme = theme;
+  themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('vibe-theme', theme);
+};
+themeToggleButton.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
+applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 
-async function initApp() {
-  try {
-    setupEventListeners();
-    setupAuthListener();
-    await loadInitialPosts();
-    renderFeed();
-    setupVerticalSwipe();
-    console.log('Skrolz initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
-  }
-}
+// Load group info
+const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
+groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// Like Manager with persistent likes
-class LikeManager {
-  constructor() {
-    this.likes = JSON.parse(localStorage.getItem('videoLikes') || '{}');
-    this.init();
-  }
+// Load members - Updated query to include profiles
+const { data: memberData } = await supabase
+  .from('group_members')
+  .select(`
+    user_id,
+    profiles:user_id (
+      id,
+      username,
+      full_name,
+      avatar_url
+    )
+  `)
+  .eq('group_id', gid);
+memberDetails = memberData || [];
+isMember = memberDetails.some(m => m.user_id === user.id);
 
-  init() {
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('like-btn')) {
-        e.stopPropagation();
-        this.handleLike(e.target);
-      }
-    });
-  }
-
-  async handleLike(button) {
-    const postId = button.closest('.post').dataset.id;
-    const isLiked = this.isLiked(postId);
-    const likeCountEl = button.parentElement.querySelector('.like-count');
-    const post = allPosts.find(p => p.id === postId);
-
-    if (isLiked && button.classList.contains('liked')) return;
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        alert('Please sign in to like videos');
-        return;
-      }
-
-      if (!isLiked) {
-        this.addLike(postId);
-        button.classList.add('liked');
-        post.liked = true;
-        post.likes = (post.likes || 0) + 1;
-        likeCountEl.textContent = post.likes;
-        showBlueHeart(button.closest('.post'));
-        
-        // Update in Supabase
-        await this.updateLikeInSupabase(postId, true);
-      } else {
-        this.removeLike(postId);
-        button.classList.remove('liked');
-        post.liked = false;
-        post.likes = Math.max(0, (post.likes || 1) - 1);
-        likeCountEl.textContent = post.likes;
-        
-        // Update in Supabase
-        await this.updateLikeInSupabase(postId, false);
-      }
-      updatePostElement(postId, post);
-    } catch (error) {
-      console.error('Like error:', error);
-    }
-  }
-
-  async updateLikeInSupabase(postId, liked) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      if (liked) {
-        await supabase.from('likes').insert({
-          post_id: postId,
-          user_id: session.user.id
-        });
-      } else {
-        await supabase.from('likes').delete()
-          .eq('post_id', postId)
-          .eq('user_id', session.user.id);
-      }
-    } catch (error) {
-      console.error('Error updating like in Supabase:', error);
-    }
-  }
-
-  isLiked(videoId) {
-    return this.likes[videoId] === true;
-  }
-
-  addLike(videoId) {
-    this.likes[videoId] = true;
-    this.saveLikes();
-  }
-
-  removeLike(videoId) {
-    delete this.likes[videoId];
-    this.saveLikes();
-  }
-
-  saveLikes() {
-    localStorage.setItem('videoLikes', JSON.stringify(this.likes));
-  }
-}
-
-const likeManager = new LikeManager();
-
-// Avatar and session management
-const sessionInfoEl = document.getElementById('sessionInfo');
-const userAvatar = document.getElementById('userAvatar');
-
-async function updateSessionInfo() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      sessionInfoEl.innerHTML = '<div class="avatar">?</div>';
-      return null;
-    }
-    const u = session.user;
-    const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email || u.id;
-    const initial = name.charAt(0).toUpperCase();
-    userAvatar.textContent = initial;
-    sessionInfoEl.innerHTML = `<div class="avatar">${initial}</div>`;
-    return session;
-  } catch (err) {
-    console.error('updateSessionInfo error', err);
-    sessionInfoEl.innerHTML = '<div class="avatar">!</div>';
-    return null;
-  }
-}
-
-function setupAuthListener() {
-  supabase.auth.onAuthStateChange((event, session) => {
-    updateSessionInfo().catch(() => {});
-  });
-}
-
-// Post loading with infinite scroll
-async function loadInitialPosts(limit = 10) {
-  try {
-    await updateSessionInfo();
-    const { data: { session } } = await supabase.auth.getSession();
-    const currentUserId = session?.user?.id || null;
-
-    // Load posts from Supabase
-    const { data, error } = await supabase
-      .from('posts')
-      .select(`
-        id, 
-        author_id, 
-        author_name, 
-        video_url, 
-        created_at, 
-        title,
-        caption,
-        likes_count
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error loading posts:', error);
-      loadMockData();
-      return;
-    }
-
-    if (data && data.length > 0) {
-      // Load likes for each post
-      const postsWithLikes = await Promise.all(data.map(async (post) => {
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
-        
-        const userLiked = likesData?.some(like => like.user_id === currentUserId) || false;
-        
-        return {
-          id: post.id,
-          user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
-          title: post.title || 'Untitled',
-          caption: post.caption || '',
-          src: post.video_url,
-          likes: post.likes_count || likesData?.length || 0,
-          comments: [],
-          liked: userLiked,
-          uploading: false,
-          owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
-        };
-      }));
-
-      allPosts = postsWithLikes;
-      posts = [...allPosts];
-      console.log(`Loaded ${posts.length} posts from Supabase`);
+// Check if AI user is in the group, if not add them
+async function ensureAIUserInGroup() {
+  const isAIInGroup = memberDetails.some(m => m.user_id === AI_USER_ID);
+  
+  if (!isAIInGroup) {
+    console.log('Adding AI user to group...');
+    const { error } = await supabase
+      .from('group_members')
+      .insert({
+        group_id: gid,
+        user_id: AI_USER_ID,
+        role: 'ai'
+      });
+    
+    if (error && error.code !== '23505') {
+      console.log('Error adding AI user to group:', error);
     } else {
-      loadMockData();
+      // Reload member details to include AI user
+      const { data: updatedMemberData } = await supabase
+        .from('group_members')
+        .select(`
+          user_id,
+          profiles:user_id (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('group_id', gid);
+      
+      memberDetails = updatedMemberData || [];
     }
-  } catch (err) {
-    console.error('Error loading initial posts:', err);
-    loadMockData();
   }
 }
 
-function loadMockData() {
-  console.log('Loading mock data...');
-  allPosts = [
+// Initialize AI user in group
+await ensureAIUserInGroup();
+
+// ---------- Enhanced Mention System ----------
+let mentionUsers = [];
+let currentMentionQuery = '';
+
+// Create a proper data URL for default avatar
+const createDefaultAvatar = (name) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  
+  const colors = ['#4a90e2', '#50e3c2', '#9013fe', '#f5a623', '#d0021b'];
+  const color = colors[name.length % colors.length];
+  
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 64, 64);
+  
+  ctx.fillStyle = 'white';
+  ctx.font = '24px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name.charAt(0).toUpperCase(), 32, 32);
+  
+  return canvas.toDataURL();
+};
+
+// Initialize mention system
+function initMentionSystem() {
+  // Build mention users list with PeerPal AI always first
+  mentionUsers = [
     {
-      id: '1',
-      user: '@creative_mind',
-      title: 'Sunset Vibes 🌅',
-      caption: 'Chasing golden hour never gets old',
-      src: '',
-      likes: 42,
-      comments: ['So beautiful!', 'Where was this taken?'],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
-    },
-    {
-      id: '2', 
-      user: '@tech_guru',
-      title: 'Coding Session',
-      caption: 'Late night coding with some lo-fi beats',
-      src: '',
-      likes: 18,
-      comments: ['What language is this?', 'Great setup!'],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
-    },
-    {
-      id: '3',
-      user: '@adventure_seeker',
-      title: 'Mountain Hike',
-      caption: 'The view from the top was worth every step',
-      src: '',
-      likes: 156,
-      comments: ['Amazing view!', 'Which mountain is this?'],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
+      id: AI_USER_ID,
+      name: AI_USER_NAME,
+      username: '@PeerPal AI',
+      isAI: true,
+      avatar: createDefaultAvatar('AI')
     }
   ];
-  posts = [...allPosts];
-}
 
-// Search functionality
-const searchBar = document.getElementById('searchBar');
-
-function setupEventListeners() {
-  searchBar.addEventListener('input', debounce((e) => {
-    searchQuery = e.target.value.toLowerCase();
-    filterPosts();
-    renderFeed();
-  }, 300));
-
-  document.getElementById('fab').addEventListener('click', openUploadModal);
-  setupThemeSwipe();
-}
-
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-function filterPosts() {
-  if (!searchQuery) {
-    posts = [...allPosts];
-  } else {
-    posts = allPosts.filter(post =>
-      post.user.toLowerCase().includes(searchQuery) ||
-      (post.title && post.title.toLowerCase().includes(searchQuery)) ||
-      (post.caption && post.caption.toLowerCase().includes(searchQuery))
-    );
-  }
-}
-
-// Feed rendering with videos
-function renderFeed() {
-  if (!feed) return;
-
-  feed.innerHTML = `
-    <div id="pullIndicator">
-      <div><span id="pullIcon">⬇</span><span id="pullText" class="muted">Pull to refresh</span></div>
-    </div>
-    <div id="feedContent"></div>
-  `;
-
-  feedContent = document.getElementById('feedContent');
-
-  if (posts.length === 0) {
-    feedContent.innerHTML = `
-      <div style="color: var(--muted); text-align: center; padding: 50px;">
-        ${searchQuery ? 'No posts found' : 'No posts available'}
-      </div>
-    `;
-    return;
-  }
-
-  posts.forEach((post, index) => {
-    const postEl = createPostElement(post, index);
-    feedContent.appendChild(postEl);
-  });
-
-  setupPullToRefresh();
-  setupVideoPlayback();
-  setupInfiniteScroll();
-}
-
-function createPostElement(post, index) {
-  const postEl = document.createElement('article');
-  postEl.className = `post ${post.paused ? 'paused' : ''} ${post.uploading ? 'uploading' : ''}`;
-  postEl.dataset.id = post.id;
-  postEl.dataset.index = index;
-  
-  postEl.innerHTML = `
-    <div class="post-inner">
-      ${post.uploading ? `<div class="upload-progress"><div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div></div>` : ''}
-      
-      <!-- Video Element -->
-      <video 
-        playsinline 
-        ${!post.paused ? 'autoplay' : ''} 
-        loop 
-        preload="metadata" 
-        crossorigin="anonymous"
-        oncontextmenu="return false;"
-        style="width: 100%; height: 100%; object-fit: cover;"
-      >
-        ${post.src ? `<source src="${post.src}" type="video/mp4">` : ''}
-      </video>
-      
-      <div class="blue-heart">♥</div>
-      <div class="play-overlay"><div class="play-icon">▶</div></div>
-      <div class="overlay">
-        <h3>${post.user}</h3>
-        <p>${post.title}</p>
-        ${post.caption ? `<p style="display: block; margin-top: 4px;">${post.caption}</p>` : ''}
-      </div>
-      <div class="icons">
-        <div class="like-wrap">
-          <button class="btn like-btn ${post.liked ? 'liked' : ''}" title="Like">♡</button>
-          <div class="like-count">${post.likes}</div>
-        </div>
-        ${post.owner ? 
-          '<button class="btn delete-btn" title="Delete Post">🗑️</button>' : 
-          '<button class="btn comment-open" title="Comments">💬</button><button class="btn share-btn" title="Share">↗️</button>'
-        }
-      </div>
-      
-      ${!post.owner ? `
-      <div class="drawer" aria-hidden="true">
-        <div class="drawer-inner">
-          <div class="drawer-handle"></div>
-          <div class="comments-header">Comments</div>
-          <div class="comments-list" aria-live="polite"></div>
-          <div class="drawer-footer">
-            <div class="comment-input"><input placeholder="Write your comment..." /></div>
-            <button class="send-small">Send</button>
-          </div>
-        </div>
-      </div>
-      ` : ''}
-    </div>
-  `;
-
-  attachPostBehavior(postEl, post);
-  return postEl;
-}
-
-function attachPostBehavior(postEl, postData) {
-  const video = postEl.querySelector('video');
-  const likeBtn = postEl.querySelector('.like-btn');
-  const deleteBtn = postEl.querySelector('.delete-btn');
-  const commentOpen = postEl.querySelector('.comment-open');
-  const shareBtn = postEl.querySelector('.share-btn');
-  const blueHeart = postEl.querySelector('.blue-heart');
-
-  // Load video source if available
-  if (postData.src && video) {
-    const source = video.querySelector('source');
-    if (source) {
-      source.src = postData.src;
-      video.load();
-    }
-  }
-
-  // Single tap to pause/play
-  let tapCount = 0;
-  let tapTimer;
-
-  postEl.addEventListener('click', (e) => {
-    if (e.target.closest('.icons') || e.target.closest('.drawer')) return;
-    
-    tapCount++;
-    
-    if (tapCount === 1) {
-      tapTimer = setTimeout(() => {
-        // Single tap - toggle play/pause
-        if (video.paused) {
-          video.play().catch(console.error);
-          postData.paused = false;
-        } else {
-          video.pause();
-          postData.paused = true;
-        }
-        postEl.classList.toggle('paused');
-        tapCount = 0;
-      }, 300);
-    } else if (tapCount === 2) {
-      clearTimeout(tapTimer);
-      // Double tap - like
-      if (!postData.liked) {
-        likeManager.handleLike(likeBtn);
-      }
-      tapCount = 0;
-    }
-  });
-
-  // Like button
-  likeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    likeManager.handleLike(likeBtn);
-  });
-
-  // Delete post
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      if (confirm('Delete this post permanently?')) {
-        try {
-          await supabase.from('posts').delete().eq('id', postData.id);
-          allPosts = allPosts.filter(p => p.id !== postData.id);
-          posts = posts.filter(p => p.id !== postData.id);
-          postEl.remove();
-        } catch (error) {
-          console.error('Error deleting post:', error);
-          alert('Error deleting post');
-        }
-      }
-    });
-  }
-
-  // Share post
-  if (shareBtn) {
-    shareBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const shareUrl = `${window.location.origin}/post/${postData.id}`;
-      if (navigator.share) {
-        navigator.share({
-          title: `${postData.title} by ${postData.user}`,
-          text: postData.caption,
-          url: shareUrl,
-        });
-      } else {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          alert('Link copied to clipboard!');
-        });
-      }
-    });
-  }
-
-  // Comments drawer
-  if (commentOpen) {
-    setupCommentsDrawer(postEl, postData);
-  }
-}
-
-function setupCommentsDrawer(postEl, postData) {
-  const drawer = postEl.querySelector('.drawer');
-  const commentOpen = postEl.querySelector('.comment-open');
-  const commentsHeader = postEl.querySelector('.comments-header');
-  const commentsList = postEl.querySelector('.comments-list');
-  const commentInput = postEl.querySelector('.comment-input input');
-  const sendBtn = postEl.querySelector('.send-small');
-  const commentInputWrap = postEl.querySelector('.comment-input');
-
-  commentOpen.addEventListener('click', (e) => {
-    e.stopPropagation();
-    drawer.classList.toggle('open');
-  });
-
-  // Close drawer when clicking outside
-  postEl.addEventListener('click', (e) => {
-    if (drawer.classList.contains('open') && !e.target.closest('.drawer')) {
-      drawer.classList.remove('open');
-    }
-  });
-
-  // Long press on comment header to add comment
-  let headerPressTimer;
-  
-  commentsHeader.addEventListener('pointerdown', (e) => {
-    headerPressTimer = setTimeout(() => {
-      drawer.classList.add('open');
-      commentInputWrap.classList.add('active');
-      commentInput.focus();
-    }, 300);
-  });
-
-  commentsHeader.addEventListener('pointerup', () => {
-    clearTimeout(headerPressTimer);
-  });
-
-  commentsHeader.addEventListener('pointerleave', () => {
-    clearTimeout(headerPressTimer);
-  });
-
-  // Long press on comments to reply
-  commentsList.addEventListener('pointerdown', (e) => {
-    if (!e.target.classList.contains('comment')) return;
-    
-    const commentEl = e.target;
-    let pressTimer = setTimeout(() => {
-      const username = commentEl.textContent.split(':')[0];
-      drawer.classList.add('open');
-      commentInputWrap.classList.add('active');
-      commentInput.value = `${username} `;
-      commentInput.focus();
-    }, 300);
-
-    const cancelPress = () => {
-      clearTimeout(pressTimer);
-      document.removeEventListener('pointerup', cancelPress);
-      document.removeEventListener('pointermove', cancelPress);
-    };
-
-    document.addEventListener('pointerup', cancelPress);
-    document.addEventListener('pointermove', cancelPress);
-  });
-
-  // Send comment
-  sendBtn.addEventListener('click', async () => {
-    const comment = commentInput.value.trim();
-    if (comment) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          alert('Please sign in to comment');
-          return;
-        }
-
-        const userName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-        const newComment = `@${userName}: ${comment}`;
+  // Add real users from memberDetails (excluding AI user to avoid duplicates)
+  if (memberDetails && memberDetails.length > 0) {
+    memberDetails.forEach(member => {
+      if (member.user_id !== AI_USER_ID && member.profiles) {
+        const profile = member.profiles;
+        const name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
+        const username = `@${name}`;
         
-        // Add to Supabase
-        const { error } = await supabase.from('comments').insert({
-          post_id: postData.id,
-          user_id: session.user.id,
-          user_name: userName,
-          comment: comment
+        mentionUsers.push({
+          id: member.user_id,
+          name: name,
+          username: username,
+          isAI: false,
+          avatar: profile.avatar_url || createDefaultAvatar(name)
         });
-
-        if (error) throw error;
-
-        if (!postData.comments) postData.comments = [];
-        postData.comments.push(newComment);
-        refreshComments(commentsList, postData.comments);
-        commentInput.value = '';
-      } catch (error) {
-        console.error('Error posting comment:', error);
-        alert('Error posting comment');
-      }
-    }
-  });
-
-  // Load comments from Supabase
-  loadComments(postData.id, commentsList);
-}
-
-async function loadComments(postId, commentsList) {
-  try {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('user_name, comment, created_at')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    const comments = data.map(c => `@${c.user_name}: ${c.comment}`);
-    refreshComments(commentsList, comments);
-  } catch (error) {
-    console.error('Error loading comments:', error);
-  }
-}
-
-function refreshComments(commentsList, comments) {
-  commentsList.innerHTML = '';
-  comments.forEach(comment => {
-    const commentEl = document.createElement('div');
-    commentEl.className = 'comment';
-    commentEl.textContent = comment;
-    commentsList.appendChild(commentEl);
-  });
-}
-
-function updatePostElement(postId, postData) {
-  const postEl = document.querySelector(`[data-id="${postId}"]`);
-  if (!postEl) return;
-  
-  const likeBtn = postEl.querySelector('.like-btn');
-  const likeCountEl = postEl.querySelector('.like-count');
-  const overlay = postEl.querySelector('.overlay h3');
-  const caption = postEl.querySelector('.overlay p:last-child');
-  
-  if (likeBtn) likeBtn.classList.toggle('liked', postData.liked);
-  if (likeCountEl) likeCountEl.textContent = postData.likes;
-  if (overlay) overlay.textContent = postData.user;
-  if (caption) caption.textContent = postData.title;
-}
-
-function showBlueHeart(postEl) {
-  const blueHeart = postEl.querySelector('.blue-heart');
-  blueHeart.classList.remove('animate');
-  void blueHeart.offsetWidth; // Trigger reflow
-  blueHeart.classList.add('animate');
-}
-
-// Video playback management
-function setupVideoPlayback() {
-  const videos = document.querySelectorAll('.post video');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const video = entry.target;
-      const postEl = video.closest('.post');
-      
-      if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-        if (!postEl.classList.contains('paused')) {
-          video.play().catch(console.error);
-        }
-      } else {
-        video.pause();
-      }
-    });
-  }, { threshold: [0.7], rootMargin: '50px' });
-
-  videos.forEach(video => observer.observe(video));
-}
-
-// Vertical swipe between videos
-function setupVerticalSwipe() {
-  let startY = 0;
-  let currentTranslate = 0;
-  let currentIndex = 0;
-
-  feed.addEventListener('touchstart', (e) => {
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  feed.addEventListener('touchmove', (e) => {
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
-    
-    // Only allow swipe if at the top or bottom of scroll
-    if (feed.scrollTop === 0 && deltaY > 0) {
-      e.preventDefault();
-    } else if (feed.scrollHeight - feed.scrollTop === feed.clientHeight && deltaY < 0) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  feed.addEventListener('touchend', (e) => {
-    const endY = e.changedTouches[0].clientY;
-    const deltaY = endY - startY;
-    const swipeThreshold = 50;
-
-    if (Math.abs(deltaY) > swipeThreshold) {
-      if (deltaY < 0 && currentIndex < posts.length - 1) {
-        // Swipe up - next video
-        currentIndex++;
-        scrollToVideo(currentIndex);
-      } else if (deltaY > 0 && currentIndex > 0) {
-        // Swipe down - previous video
-        currentIndex--;
-        scrollToVideo(currentIndex);
-      }
-    }
-  }, { passive: true });
-}
-
-function scrollToVideo(index) {
-  const postEl = document.querySelector(`[data-index="${index}"]`);
-  if (postEl) {
-    postEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
-    // Pause all other videos
-    document.querySelectorAll('.post video').forEach((video, i) => {
-      if (i !== index) {
-        video.pause();
       }
     });
   }
-}
 
-// Pull to refresh
-function setupPullToRefresh() {
-  let startY = 0;
-  let pulling = false;
-  let translateY = 0;
-  const refreshThreshold = 100;
+  console.log('Mention Users:', mentionUsers);
 
-  if (!feedContent) return;
-
-  feed.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch' || feed.scrollTop !== 0) return;
-    startY = e.clientY;
-    pulling = true;
-    feedContent.style.transition = 'none';
-  });
-
-  feed.addEventListener('pointermove', (e) => {
-    if (!pulling) return;
-    const deltaY = e.clientY - startY;
-    if (deltaY <= 0) return;
-    e.preventDefault();
-    translateY = deltaY * 0.5;
-    translateY = Math.min(translateY, 200);
-    feedContent.style.transform = `translateY(${translateY}px)`;
-    updateRefreshIndicator(translateY);
-  });
-
-  feed.addEventListener('pointerup', () => {
-    if (!pulling) return;
-    pulling = false;
-    if (translateY >= refreshThreshold) {
-      refreshContent();
-    } else {
-      resetPull();
-    }
-  });
-
-  function updateRefreshIndicator(dist) {
-    const indicator = document.getElementById('pullIndicator');
-    const icon = document.getElementById('pullIcon');
-    const text = document.getElementById('pullText');
-
-    if (dist < 10) {
-      indicator.style.opacity = '0';
-      indicator.style.transform = 'translateX(-50%) translateY(-100%)';
-      return;
-    }
-
-    indicator.style.opacity = '1';
-    indicator.style.transform = 'translateX(-50%) translateY(0px)';
-
-    if (dist > refreshThreshold) {
-      icon.textContent = '○';
-      text.textContent = 'Release to refresh';
-    } else {
-      icon.textContent = '⬇';
-      text.textContent = 'Pull to refresh';
-    }
-  }
-
-  function resetPull() {
-    feedContent.style.transition = 'transform 0.3s ease';
-    feedContent.style.transform = 'translateY(0px)';
-    updateRefreshIndicator(0);
-  }
-
-  function refreshContent() {
-    const indicator = document.getElementById('pullIndicator');
-    const icon = document.getElementById('pullIcon');
-    const text = document.getElementById('pullText');
-
-    icon.textContent = '🔄';
-    icon.classList.add('refreshing');
-    text.textContent = 'Refreshing...';
-
-    setTimeout(async () => {
-      await loadInitialPosts();
-      renderFeed();
-      icon.classList.remove('refreshing');
-      icon.textContent = '✅';
-      text.textContent = 'Updated!';
-      setTimeout(() => {
-        indicator.style.opacity = '0';
-        resetPull();
-      }, 1000);
-    }, 1500);
-  }
-}
-
-// Infinite scroll
-function setupInfiniteScroll() {
-  let loading = false;
-
-  feed.addEventListener('scroll', debounce(() => {
-    if (loading || searchQuery) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = feed;
-    if (scrollTop + clientHeight >= scrollHeight - 100) {
-      loading = true;
-      loadMorePosts();
-    }
-  }, 100));
-}
-
-async function loadMorePosts() {
-  try {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id, author_id, author_name, video_url, created_at, title, caption')
-      .order('created_at', { ascending: false })
-      .range(allPosts.length, allPosts.length + 4);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id || null;
-
-      const newPosts = data.map(post => ({
-        id: post.id,
-        user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
-        title: post.title || 'Untitled',
-        caption: post.caption || '',
-        src: post.video_url,
-        likes: 0,
-        comments: [],
-        liked: likeManager.isLiked(post.id),
-        uploading: false,
-        owner: currentUserId && post.author_id === currentUserId,
-        paused: false,
-      }));
-
-      allPosts.push(...newPosts);
-      posts = [...allPosts];
-      renderFeed();
-    }
-  } catch (error) {
-    console.error('Error loading more posts:', error);
-  } finally {
-    loading = false;
-  }
-}
-
-// Theme swipe functionality
-function setupThemeSwipe() {
-  const header = document.getElementById('header');
-  let pDown = false, pStartX = 0;
+  // Setup mention input handling
+  messageBar.addEventListener('input', handleMentionInput);
+  messageBar.addEventListener('keydown', handleMentionNavigation);
   
-  header.addEventListener('pointerdown', (e) => {
-    pDown = true;
-    pStartX = e.clientX;
-  });
-  
-  header.addEventListener('pointermove', (e) => {
-    if (!pDown) return;
-    const dx = e.clientX - pStartX;
-    header.style.transform = `translateX(${dx * 0.08}px)`;
-  });
-  
-  header.addEventListener('pointerup', (e) => {
-    header.style.transform = '';
-    if (!pDown) return;
-    pDown = false;
-    const dx = e.clientX - pStartX;
-    const threshold = 80;
-    if (dx <= -threshold || dx >= threshold) {
-      document.documentElement.classList.toggle('light');
-    }
-  });
-}
-
-// Upload functionality
-function openUploadModal() {
-  uploadModal.classList.add('show');
-  
-  document.getElementById('closeUpload').addEventListener('click', () => {
-    uploadModal.classList.remove('show');
-  });
-
-  document.getElementById('recordBtn').addEventListener('click', openRecordModal);
-  
-  document.getElementById('filePicker').addEventListener('change', handleFileUpload);
-}
-
-function openRecordModal() {
-  const title = document.getElementById('uploadTitle').value.trim();
-  const caption = document.getElementById('uploadCaption').value.trim();
-  
-  if (!title) {
-    alert('Please enter a title for your video');
-    return;
-  }
-
-  uploadModal.classList.remove('show');
-  
-  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    .then(stream => {
-      const videoPreview = document.getElementById('videoPreview');
-      videoPreview.srcObject = stream;
-
-      const recordModal = document.getElementById('recordModal');
-      recordModal.classList.add('show');
-
-      let mediaRecorder;
-      let recordedChunks = [];
-      let recordingTimer;
-      let recordingTime = 0;
-      const recordBtnModal = document.getElementById('recordBtnModal');
-
-      recordBtnModal.addEventListener('click', () => {
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-          // Start recording
-          mediaRecorder = new MediaRecorder(stream, { 
-            mimeType: 'video/webm;codecs=vp9,opus',
-            videoBitsPerSecond: 2500000
-          });
-          
-          recordedChunks = [];
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-          };
-          
-          mediaRecorder.onstop = async () => {
-            clearInterval(recordingTimer);
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            
-            // Check duration
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(blob);
-            await new Promise(resolve => {
-              video.onloadedmetadata = resolve;
-            });
-            
-            if (video.duration > 60) {
-              alert('Video must be 60 seconds or less');
-              URL.revokeObjectURL(video.src);
-              return;
-            }
-            
-            const id = 'p' + Math.random().toString(36).slice(2, 9);
-            const newPost = { 
-              id, 
-              user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-              title, 
-              caption, 
-              src: URL.createObjectURL(blob), 
-              likes: 0, 
-              comments: [], 
-              liked: false, 
-              uploading: true, 
-              owner: true, 
-              uploadProgress: 0, 
-              paused: false 
-            };
-            
-            allPosts.unshift(newPost);
-            filterPosts();
-            renderFeed();
-            uploadVideo(newPost, blob, title, caption);
-            
-            stream.getTracks().forEach(track => track.stop());
-            recordedChunks = [];
-            recordModal.classList.remove('show');
-          };
-          
-          mediaRecorder.start(1000); // Collect data every second
-          recordBtnModal.textContent = '⏹';
-          recordBtnModal.classList.add('recording');
-          
-          // Start timer
-          recordingTime = 0;
-          recordingTimer = setInterval(() => {
-            recordingTime++;
-            if (recordingTime >= 60) {
-              mediaRecorder.stop();
-            }
-          }, 1000);
-        } else {
-          // Stop recording
-          mediaRecorder.stop();
-          recordBtnModal.textContent = '⏺';
-          recordBtnModal.classList.remove('recording');
-        }
-      });
-
-      document.getElementById('closeRecord').addEventListener('click', () => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-        stream.getTracks().forEach(track => track.stop());
-        recordModal.classList.remove('show');
-        clearInterval(recordingTimer);
-      });
-    })
-    .catch(err => {
-      console.error('Camera access error:', err);
-      alert('Camera access denied or not available.');
-    });
-}
-
-async function handleFileUpload(e) {
-  const file = e.target.files[0];
-  const title = document.getElementById('uploadTitle').value.trim();
-  const caption = document.getElementById('uploadCaption').value.trim();
-  
-  if (!title) {
-    alert('Please enter a title for your video');
-    return;
-  }
-  
-  if (!file) return;
-  
-  if (!file.type.startsWith('video/')) {
-    alert('Please select a video file');
-    return;
-  }
-
-  // Check duration
-  const video = document.createElement('video');
-  video.src = URL.createObjectURL(file);
-  
-  try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = reject;
-    });
-    
-    if (video.duration > 60) {
-      alert('Video must be 60 seconds or less');
-      URL.revokeObjectURL(video.src);
-      return;
-    }
-    
-    uploadModal.classList.remove('show');
-    const id = 'p' + Math.random().toString(36).slice(2, 9);
-    const newPost = { 
-      id, 
-      user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-      title, 
-      caption, 
-      src: URL.createObjectURL(file), 
-      likes: 0, 
-      comments: [], 
-      liked: false, 
-      uploading: true, 
-      owner: true, 
-      uploadProgress: 0, 
-      paused: false 
-    };
-    
-    allPosts.unshift(newPost);
-    filterPosts();
-    renderFeed();
-    uploadVideo(newPost, file, title, caption);
-    
-    URL.revokeObjectURL(video.src);
-  } catch (error) {
-    console.error('Error checking video duration:', error);
-    alert('Error processing video file');
-  }
-}
-
-async function uploadVideo(post, file, title, caption) {
-  progressModal.classList.add('show');
-  updateProgress(0);
-  
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert('You must be signed in to upload.');
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
-    }
-    
-    const userId = session.user.id;
-    const authorName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-    const ext = file.name.split('.').pop() || 'mp4';
-    const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const path = `posts/${userId}/${filename}`;
-
-    // Start progress simulation
-    const progressInterval = setInterval(() => {
-      if (post.uploadProgress < 90) {
-        post.uploadProgress += Math.random() * 10;
-        updateProgress(post.uploadProgress);
-        updatePostElement(post.id, post);
+  messageBar.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (!mentionListBox.matches(':hover')) {
+        mentionListBox.style.display = 'none';
       }
     }, 200);
+  });
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('videos')
-      .upload(path, file, { 
-        cacheControl: '3600', 
-        upsert: false,
-        onUploadProgress: (progress) => {
-          const percent = (progress.loaded / progress.total) * 100;
-          post.uploadProgress = percent;
-          updateProgress(percent);
-          updatePostElement(post.id, post);
+  document.addEventListener('click', (e) => {
+    if (!mentionListBox.contains(e.target) && e.target !== messageBar) {
+      mentionListBox.style.display = 'none';
+    }
+  });
+}
+
+// Handle @ symbol input for mentions
+function handleMentionInput(e) {
+  const text = messageBar.value;
+  const cursorPos = messageBar.selectionStart;
+  
+  const textBeforeCursor = text.substring(0, cursorPos);
+  const lastAtPos = textBeforeCursor.lastIndexOf('@');
+  
+  if (lastAtPos !== -1) {
+    const charBeforeAt = lastAtPos > 0 ? textBeforeCursor[lastAtPos - 1] : ' ';
+    if (lastAtPos === 0 || charBeforeAt === ' ' || charBeforeAt === '\n') {
+      currentMentionQuery = textBeforeCursor.substring(lastAtPos + 1).toLowerCase();
+      showMentionList();
+      return;
+    }
+  }
+  
+  mentionListBox.style.display = 'none';
+}
+
+// Show filtered mention list
+function showMentionList() {
+  if (!currentMentionQuery) {
+    renderMentionList(mentionUsers);
+    return;
+  }
+  
+  const filteredUsers = mentionUsers.filter(user => 
+    user.name.toLowerCase().includes(currentMentionQuery) || 
+    user.username.toLowerCase().includes(currentMentionQuery)
+  );
+  
+  renderMentionList(filteredUsers);
+}
+
+function renderMentionList(users) {
+  mentionListBox.innerHTML = '';
+  
+  if (users.length === 0) {
+    mentionListBox.style.display = 'none';
+    return;
+  }
+  
+  users.forEach(user => {
+    const item = document.createElement('div');
+    item.className = `mention-item ${user.isAI ? 'ai-mention' : ''}`;
+    item.innerHTML = `
+      <img src="${user.avatar}" class="mention-avatar" alt="${user.name}">
+      <span>${user.name}</span>
+      ${user.isAI ? '<span class="mention-badge">AI</span>' : ''}
+    `;
+    
+    item.addEventListener('click', () => {
+      console.log('Mention selected:', user.name);
+      selectMention(user);
+    });
+    mentionListBox.appendChild(item);
+  });
+  
+  mentionListBox.style.display = 'flex';
+}
+
+// Handle keyboard navigation in mention list
+function handleMentionNavigation(e) {
+  if (mentionListBox.style.display !== 'flex') return;
+  
+  const items = mentionListBox.querySelectorAll('.mention-item');
+  const activeItem = mentionListBox.querySelector('.mention-item.active');
+  let activeIndex = activeItem ? Array.from(items).indexOf(activeItem) : -1;
+  
+  switch(e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (activeItem) {
+        const userName = activeItem.querySelector('span').textContent;
+        const user = mentionUsers.find(u => u.name === userName);
+        if (user) {
+          selectMention(user);
         }
-      });
-
-    clearInterval(progressInterval);
-
-    if (uploadError) {
-      console.error('Upload error', uploadError);
-      alert('Upload failed: ' + uploadError.message);
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
+      }
       return;
-    }
-
-    const { data: urlData } = supabase.storage.from('videos').getPublicUrl(uploadData.path);
-    const publicUrl = urlData?.publicUrl || '';
-
-    const insertPayload = { 
-      author_id: userId, 
-      author_name: authorName, 
-      video_url: publicUrl, 
-      title,
-      caption 
-    };
-    
-    const { data: inserted, error: insertError } = await supabase
-      .from('posts')
-      .insert(insertPayload)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Insert error', insertError);
-      alert('Insert failed: ' + insertError.message);
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
+    case 'Escape':
+      mentionListBox.style.display = 'none';
       return;
-    }
+    default:
+      return;
+  }
+  
+  items.forEach(item => item.classList.remove('active'));
+  if (items[activeIndex]) {
+    items[activeIndex].classList.add('active');
+  }
+}
 
-    post.src = publicUrl;
-    post.uploading = false;
-    post.uploadProgress = 100;
-    post.owner = true;
-    if (inserted && inserted.id) post.id = inserted.id;
+// Select a mention from the list
+function selectMention(selectedUser) {
+  console.log('Selecting mention:', selectedUser.name);
+  
+  const text = messageBar.value;
+  const cursorPos = messageBar.selectionStart;
+  const textBeforeCursor = text.substring(0, cursorPos);
+  const lastAtPos = textBeforeCursor.lastIndexOf('@');
+  
+  if (lastAtPos !== -1) {
+    const newText = text.substring(0, lastAtPos) + selectedUser.username + ' ' + text.substring(cursorPos);
+    messageBar.value = newText;
     
-    updatePostElement(post.id, post);
-    updateProgress(100);
-    
-    // Hide progress modal quickly after completion
+    const newCursorPos = lastAtPos + selectedUser.username.length + 1;
     setTimeout(() => {
-      progressModal.classList.remove('show');
-    }, 500);
+      messageBar.setSelectionRange(newCursorPos, newCursorPos);
+      messageBar.focus();
+    }, 10);
+  }
+  
+  mentionListBox.style.display = 'none';
+  currentMentionQuery = '';
+}
+
+// Process mentions in message content for highlighting
+function processMentions(content) {
+  let processedContent = content;
+  
+  const mentionRegex = /(@[^\s]+)/g;
+  const mentions = content.match(mentionRegex);
+  
+  if (mentions) {
+    mentions.forEach(mention => {
+      const username = mention.substring(1);
+      const user = mentionUsers.find(u => 
+        u.name.toLowerCase().includes(username.toLowerCase()) || 
+        u.username.toLowerCase() === mention.toLowerCase()
+      );
+      
+      if (user) {
+        const mentionClass = user.isAI ? 'mention ai-mention' : 'mention';
+        const mentionHtml = `<span class="${mentionClass}" data-user-id="${user.id}">${mention}</span>`;
+        processedContent = processedContent.replace(mention, mentionHtml);
+      }
+    });
+  }
+  
+  return processedContent;
+}
+
+// Handle PeerPal AI mention clicks
+function handleAIMentionClick(userId) {
+  console.log('AI mention clicked:', userId);
+  if (userId === AI_USER_ID) {
+    messageBar.value = messageBar.value.trim() + ' @PeerPal AI ';
+    messageBar.focus();
     
-  } catch (err) {
-    console.error('Unexpected upload error', err);
-    alert('Upload failed: ' + (err?.message || err));
-    post.uploading = false;
-    updateProgress(100);
-    setTimeout(() => progressModal.classList.remove('show'), 1000);
+    setTimeout(() => {
+      checkPeerloomAI('@PeerPal AI');
+    }, 500);
   }
 }
 
-function updateProgress(percent) {
-  progressFill.style.width = `${percent}%`;
-  progressText.textContent = `Uploading... ${Math.round(percent)}%`;
+// ---------- TRANSPARENT LIQUID GLASS DRAWER BEHAVIOUR ----------
+
+// Render members in the transparent glass list
+function renderMembers() {
+  membersList.innerHTML = '';
+  if (!memberDetails || memberDetails.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'member-item';
+    empty.innerHTML = `<div class="member-name">No members yet</div>`;
+    membersList.appendChild(empty);
+    return;
+  }
+
+  memberDetails.forEach(member => {
+    let name, avatarUrl, isAI = false;
+    
+    if (member.user_id === AI_USER_ID) {
+      name = AI_USER_NAME;
+      avatarUrl = createDefaultAvatar('AI');
+      isAI = true;
+    } else if (member.profiles) {
+      const profile = member.profiles;
+      name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
+      avatarUrl = profile.avatar_url || createDefaultAvatar(name);
+    } else {
+      name = `User ${member.user_id.substring(0,6)}`;
+      avatarUrl = createDefaultAvatar(name);
+    }
+
+    const item = document.createElement('div');
+    item.className = `member-item ${isAI ? 'ai-member' : ''}`;
+    item.innerHTML = `
+      <img src="${avatarUrl}" class="member-avatar" alt="${name}">
+      <div class="member-info">
+        <div class="member-name">${name}</div>
+        <div class="member-role">${isAI ? 'AI Assistant' : 'Member'}</div>
+      </div>
+      <div class="member-status ${isAI ? 'ai' : ''}"></div>
+    `;
+    membersList.appendChild(item);
+  });
 }
 
-// Global error handling
-window.addEventListener('error', (e) => {
-  console.error('Global error:', e.error);
+// Toggle drawer open/close
+function openDrawer() {
+  renderMembers();
+  groupDrawer.classList.add('open');
+  groupDrawer.setAttribute('aria-hidden', 'false');
+  drawerBackdrop.classList.add('visible');
+}
+function closeDrawer() {
+  groupDrawer.classList.remove('open');
+  groupDrawer.setAttribute('aria-hidden', 'true');
+  drawerBackdrop.classList.remove('visible');
+}
+
+// Toggle on group title click
+groupTitle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (groupDrawer.classList.contains('open')) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
 });
 
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('Unhandled promise rejection:', e.reason);
-});
+// Backdrop click closes drawer
+drawerBackdrop.addEventListener('click', () => closeDrawer());
 
-// Escape key to close modals
+// Also close when pressing ESC
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.drawer.open').forEach(d => d.classList.remove('open'));
-    uploadModal.classList.remove('show');
-    document.getElementById('recordModal').classList.remove('show');
+  if (e.key === 'Escape' && groupDrawer.classList.contains('open')) closeDrawer();
+});
+
+// ---------- Leave group with ripple ----------
+
+leaveGroupBtn.onclick = async (e) => {
+  createRipple(e);
+  if (confirm('Leave group?')) {
+    await supabase.from('group_members').delete().eq('group_id', gid).eq('user_id', user.id);
+    closeDrawer();
+    location.reload();
+  }
+};
+
+function createRipple(event) {
+  const button = event.currentTarget;
+  const circle = document.createElement('span');
+  const diameter = Math.max(button.clientWidth, button.clientHeight);
+  const radius = diameter / 2;
+
+  circle.style.width = circle.style.height = `${diameter}px`;
+  circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+  circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+  circle.classList.add('ripple');
+
+  const ripple = button.getElementsByClassName('ripple')[0];
+  if (ripple) ripple.remove();
+
+  button.appendChild(circle);
+}
+
+// ---------- Clicks outside drawer ----------
+document.addEventListener('click', (e) => {
+  if (groupDrawer.classList.contains('open') && !groupDrawer.contains(e.target) && !groupTitle.contains(e.target)) {
+    closeDrawer();
   }
 });
-</script>
+
+// ---------- Messages rendering & history ----------
+function render(m) {
+  const mine = m.sender_id === user.id;
+  const isAI = m.sender_id === AI_USER_ID;
+  const senderName = mine ? (user.user_metadata.firstName || user.user_metadata.full_name || 'You') : 
+                    isAI ? AI_USER_NAME : m.sender_name || 'Unknown';
+  
+  const div = document.createElement('div');
+  div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
+  div.dataset.id = m.id;
+
+  if (m.reply_to) {
+    const br = document.createElement('div');
+    br.className = 'reply-banner';
+    br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
+    div.append(br);
+  }
+
+  const nameTag = document.createElement('div');
+  nameTag.className = 'sender-name';
+  nameTag.textContent = senderName;
+  
+  const ct = document.createElement('div');
+  ct.innerHTML = processMentions(m.content);
+  
+  const ts = document.createElement('div');
+  ts.className = 'timestamp';
+  ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  div.append(nameTag, ct, ts);
+  messagePanel.append(div);
+  messagePanel.scrollTop = messagePanel.scrollHeight;
+
+  const aiMentions = div.querySelectorAll('.mention.ai-mention');
+  aiMentions.forEach(mention => {
+    mention.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const userId = mention.dataset.userId;
+      handleAIMentionClick(userId);
+    });
+  });
+
+  attachGestures(div, mine, m);
+}
+
+// Load history
+async function loadHistory() {
+  const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
+  messagePanel.innerHTML = '';
+  data.forEach(render);
+}
+await loadHistory();
+
+// Real-time updates
+supabase.channel(`grp_${gid}`)
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
+    payload => {
+      if (payload.new.sender_id !== user.id) render(payload.new);
+    })
+  .subscribe();
+
+// Emoji and mention handling
+emojiButton.onclick = (e) => {
+  e.stopPropagation();
+  emojiPickerBox.style.display = emojiPickerBox.style.display === 'flex' ? 'none' : 'flex';
+  mentionListBox.style.display = 'none';
+};
+document.addEventListener('click', (e) => {
+  if (!emojiButton.contains(e.target) && !emojiPickerBox.contains(e.target)) {
+    emojiPickerBox.style.display = 'none';
+  }
+});
+emojiPickerBox.onclick = (e) => {
+  if (e.target.tagName === 'SPAN') {
+    messageBar.value += e.target.textContent;
+    emojiPickerBox.style.display = 'none';
+    sendMessageButton.focus();
+  }
+};
+
+// Initialize mention system after member data is loaded
+initMentionSystem();
+
+// Send message
+async function sendMsg() {
+  const txt = messageBar.value.trim();
+  if (!txt) return;
+
+  const { data, error } = await supabase.from('group_messages').insert({
+    group_id: gid,
+    sender_id: user.id,
+    sender_name: user.user_metadata.firstName,
+    content: txt,
+    reply_to: replyingMsg?.id,
+    reply_to_sender: replyingMsg?.sender_name,
+    reply_to_text: replyingMsg?.content
+  }).select().single();
+
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
+  render(data);
+  messageBar.value = '';
+  replyingMsg = null;
+  replyContextBox.style.display = 'none';
+  mentionListBox.style.display = 'none';
+
+  // Check if the message is replying to AI or mentions AI
+  if (replyingMsg && replyingMsg.sender_id === AI_USER_ID) {
+    await checkPeerloomAI(txt);
+  } else {
+    await checkPeerloomAI(txt);
+  }
+}
+sendMessageButton.onclick = sendMsg;
+messageBar.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+// ---------- FIXED GEMINI AI INTEGRATION ----------
+async function checkPeerloomAI(message) {
+  // Check for @PeerPal AI mention specifically or if replying to AI
+  const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
+  const hasAIMention = message.toLowerCase().includes('@peerpal ai');
+  
+  if (!hasAIMention && !isReplyingToAI) return;
+  
+  try {
+    console.log('Calling Gemini AI with message:', message);
+    
+    // Show typing indicator
+    showAITypingIndicator();
+    
+    // Clean the message by removing the mention if present
+    const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
+    
+    // Use the correct Gemini API endpoint
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom. 
+            A user has mentioned you with this message: "${cleanMessage}". 
+            Please respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 150,
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error details:', errorText);
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Gemini AI Response:', data);
+    
+    let aiReply = "I'm here to help! How can I assist you today?";
+    
+    if (data && data.candidates && data.candidates[0] && data.candidates[0].content) {
+      aiReply = data.candidates[0].content.parts[0].text;
+    }
+    
+    // Hide typing indicator
+    hideAITypingIndicator();
+    
+    // Insert AI message using the real AI user ID from profiles table
+    const { error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: aiReply,
+      role: 'ai'
+    });
+    
+    if (aiError) {
+      console.error('Error inserting AI message:', aiError);
+    }
+    
+  } catch (error) {
+    console.error('PeerPal AI Error:', error);
+    // Hide typing indicator
+    hideAITypingIndicator();
+    
+    // Fallback to smart responses based on message content
+    const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
+    const fallbackResponse = generateSmartResponse(cleanMessage);
+    
+    const { error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: fallbackResponse,
+      role: 'ai'
+    });
+    
+    if (aiError) {
+      console.error('Error inserting fallback AI message:', aiError);
+    }
+  }
+}
+
+// Show typing indicator for AI
+function showAITypingIndicator() {
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'msg ai typing-indicator';
+  typingDiv.id = 'ai-typing-indicator';
+  typingDiv.innerHTML = `
+    <div class="sender-name">${AI_USER_NAME}</div>
+    <div class="typing-dots">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  messagePanel.appendChild(typingDiv);
+  messagePanel.scrollTop = messagePanel.scrollHeight;
+}
+
+// Hide typing indicator for AI
+function hideAITypingIndicator() {
+  const typingIndicator = document.getElementById('ai-typing-indicator');
+  if (typingIndicator) {
+    typingIndicator.remove();
+  }
+}
+
+// Smart fallback responses when AI API fails
+function generateSmartResponse(message) {
+  const lowerMessage = message.toLowerCase();
+  
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+    return "Hello! I'm PeerPal AI, your helpful assistant in PeerLoom. How can I help you today?";
+  }
+  if (lowerMessage.includes('how are you')) {
+    return "I'm doing great! Ready to help with anything you need. What's on your mind?";
+  }
+  if (lowerMessage.includes('thank')) {
+    return "You're welcome! Happy to help. Is there anything else you'd like to know?";
+  }
+  if (lowerMessage.includes('help')) {
+    return "I'm here to assist you! You can ask me questions, get information, or just chat. What do you need help with?";
+  }
+  if (lowerMessage.includes('weather')) {
+    return "I don't have real-time weather data, but I can help you find weather information if you tell me your location!";
+  }
+  if (lowerMessage.includes('joke') || lowerMessage.includes('funny')) {
+    const jokes = [
+      "Why don't scientists trust atoms? Because they make up everything!",
+      "Why did the scarecrow win an award? He was outstanding in his field!",
+      "What do you call a fake noodle? An impasta!"
+    ];
+    return jokes[Math.floor(Math.random() * jokes.length)];
+  }
+  if (lowerMessage.includes('time')) {
+    return `The current time is ${new Date().toLocaleTimeString()}. How can I assist you further?`;
+  }
+  
+  const defaultResponses = [
+    "That's interesting! Tell me more about that.",
+    "I understand. How can I help you with this?",
+    "Thanks for sharing! Is there anything specific you'd like me to help with?",
+    "I see what you're saying. What would you like to do next?",
+    "That's a great point! How can I assist you further?"
+  ];
+  
+  return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+}
+
+// Placeholder audio & file
+recordAudioButton.onclick = () => {
+  isRecording = !isRecording;
+  recordAudioButton.classList.toggle('active', isRecording);
+  alert(isRecording ? 'Recording started...' : 'Recording stopped...');
+};
+fileShareButton.onclick = () => alert('File upload coming soon!');
+voiceCallButton.onclick = () => alert('Starting voice call...');
+videoCallButton.onclick = () => alert('Starting video call...');
+
+// Gestures & replies
+function attachGestures(el, mine, msg) {
+  let startX, startY, isSwiping = false;
+  let longT;
+  
+  // Create swipe indicator
+  const swipeIndicator = document.createElement('div');
+  swipeIndicator.className = 'swipe-indicator';
+  swipeIndicator.innerHTML = '<i class="fas fa-reply"></i><span>Reply</span>';
+  el.appendChild(swipeIndicator);
+  
+  el.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+    if (mine) longT = setTimeout(() => { 
+      if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); 
+    }, 800);
+  });
+  
+  el.addEventListener('mousemove', (e) => {
+    if (e.buttons === 1) {
+      const deltaX = e.clientX - startX;
+      const deltaY = Math.abs(e.clientY - startY);
+      
+      // Only consider horizontal movement with minimal vertical movement
+      if (deltaX > 30 && deltaY < 20) {
+        isSwiping = true;
+        el.classList.add('swiping');
+        swipeIndicator.classList.add('show');
+        
+        if (deltaX > 120) {
+          startReply(msg);
+          el.classList.remove('swiping');
+          swipeIndicator.classList.remove('show');
+        }
+      }
+    }
+  });
+  
+  el.addEventListener('mouseup', () => {
+    clearTimeout(longT);
+    el.classList.remove('swiping');
+    swipeIndicator.classList.remove('show');
+    isSwiping = false;
+  });
+  
+  el.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    if (mine) longT = setTimeout(() => { 
+      if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); 
+    }, 800);
+  });
+  
+  el.addEventListener('touchmove', (e) => {
+    const deltaX = e.touches[0].clientX - startX;
+    const deltaY = Math.abs(e.touches[0].clientY - startY);
+    
+    // Only consider horizontal movement with minimal vertical movement
+    if (deltaX > 30 && deltaY < 20) {
+      isSwiping = true;
+      el.classList.add('swiping');
+      swipeIndicator.classList.add('show');
+      
+      if (deltaX > 120) {
+        startReply(msg);
+        el.classList.remove('swiping');
+        swipeIndicator.classList.remove('show');
+      }
+    }
+  });
+  
+  el.addEventListener('touchend', () => {
+    clearTimeout(longT);
+    el.classList.remove('swiping');
+    swipeIndicator.classList.remove('show');
+    isSwiping = false;
+  });
+  
+  el.addEventListener('dblclick', () => {
+    if (mine) {
+      const u = prompt('Edit msg:', msg.content);
+      if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
+    }
+  });
+}
+
+function startReply(msg) {
+  replyingMsg = msg;
+  replyContextSender.textContent = msg.sender_name;
+  replyContextText.textContent = msg.content;
+  replyContextBox.style.display = 'flex';
+  
+  // Highlight the message being replied to
+  const allMsgs = document.querySelectorAll('.msg');
+  allMsgs.forEach(m => m.classList.remove('replying'));
+  const repliedMsg = document.querySelector(`.msg[data-id="${msg.id}"]`);
+  if (repliedMsg) {
+    repliedMsg.classList.add('replying');
+    setTimeout(() => {
+      repliedMsg.classList.remove('replying');
+    }, 2000);
+  }
+}
+
+replyContextClose.onclick = () => { 
+  replyingMsg = null; 
+  replyContextBox.style.display = 'none'; 
+};
+  </script>
 </body>
 </html>
