@@ -400,21 +400,12 @@
     <div class="header-inner">
       <input type="text" id="searchBar" placeholder="Search posts..." />
       <div id="sessionInfo" style="position:absolute; left:12px; top:12px; font-size:12px; opacity:0.9; pointer-events:auto"></div>
-      <div id="debugPanelToggle" style="position:absolute; right:90px; top:12px; font-size:12px; opacity:0.9; cursor:pointer">Debug</div>
+  <!-- debug toggle removed for production -->
       <div class="header-title">Skrolz</div>
       <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
   </header>
-  <div id="debugPanel" style="position:fixed; right:12px; bottom:12px; width:360px; max-width:92vw; max-height:46vh; overflow:auto; background:rgba(0,0,0,0.7); border-radius:10px; padding:10px; color:#fff; font-size:12px; display:none; z-index:120">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <strong>Last response</strong>
-      <div>
-        <button id="dbgCopy" style="margin-right:6px">Copy</button>
-        <button id="dbgClear">Clear</button>
-      </div>
-    </div>
-    <pre id="dbgContent" style="white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow:auto;margin:0;padding:0;font-size:11px"></pre>
-  </div>
+  <!-- debug panel removed for production -->
 
   <!-- small floating loader for next-post fetch -->
   <div id="nextLoader" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);padding:8px 12px;background:rgba(0,0,0,0.6);border-radius:999px;color:#fff;font-size:13px;display:none;z-index:130">Loading next…</div>
@@ -422,6 +413,8 @@
   <div id="prefetchToast" style="position:fixed;left:50%;top:12px;transform:translateX(-50%);padding:8px 12px;background:#ff5252;color:#fff;border-radius:8px;font-size:13px;display:none;z-index:140">Prefetch failed — retrying…</div>
 
   <main id="feed" aria-live="polite"></main>
+
+  <!-- stream status overlay removed for production -->
 
   <button class="fab" id="fab">＋</button>
 
@@ -445,25 +438,38 @@ let currentIndex = 0;
 let loadingMore = false;
 let searchQuery = '';
 
+// Debug / behavior flags
+// Set DEBUG=true during troubleshooting to enable verbose debug logs
+const DEBUG = false;
+// Show on-page debug/status overlay (streamStatus). Set to false for production.
+const DEBUG_UI = false;
+// How many prefetched items to auto-consume on startup (1+). Set to 0 to disable.
+const INITIAL_CONSUME = 1;
+
+function dbg(...args) { if (DEBUG) console.debug(...args); }
+
 // --- debug panel for last response ---
 let lastResponse = null;
-const dbgToggle = document.getElementById('debugPanelToggle');
-const dbgPanel = document.getElementById('debugPanel');
-const dbgContent = document.getElementById('dbgContent');
-const dbgCopy = document.getElementById('dbgCopy');
-const dbgClear = document.getElementById('dbgClear');
-if (dbgToggle) dbgToggle.addEventListener('click', () => { dbgPanel.style.display = dbgPanel.style.display === 'none' ? 'block' : 'none'; });
-if (dbgCopy) dbgCopy.addEventListener('click', () => { navigator.clipboard?.writeText(JSON.stringify(lastResponse, null, 2)).catch(()=>{}); });
-if (dbgClear) dbgClear.addEventListener('click', () => { lastResponse = null; renderDebug(); });
 
+// Debug UI removed in production build. Keep no-op renderers so calls are safe.
 function renderDebug() {
-  dbgContent.textContent = lastResponse ? JSON.stringify(lastResponse, null, 2) : 'No response yet';
+  // intentionally empty in production
 }
 
 function setLastResponse(obj) {
   lastResponse = obj;
-  renderDebug();
+  // safe no-op; updateStreamStatus is defensive below
+  try { updateStreamStatus(); } catch(e) {}
 }
+
+// On-page stream status updater
+function updateStreamStatus() {
+  // debug overlay removed; keep function present to avoid runtime errors
+  return;
+}
+
+// expose some manual debug buttons
+// debug buttons removed; click handlers intentionally omitted in production
 
 const feed = document.getElementById('feed');
 let feedContent;
@@ -592,6 +598,7 @@ const prefetchLimit = 3; // keep 2-3 items ready
 let prefetchRetryDelay = 1200; // ms to wait before retrying on failure
 
 async function fetchNextBatch(afterCursor = null, size = pageSize) {
+  dbg('fetchNextBatch start', { afterCursor, size });
   // returns array of rows using compound cursor (created_at, id)
   // Supabase supports range/limit and basic filters; to simulate compound cursor
   // we request rows where created_at < cursor.created_at OR (created_at = cursor.created_at AND id < cursor.id)
@@ -610,6 +617,7 @@ async function fetchNextBatch(afterCursor = null, size = pageSize) {
   }
 
   const res = await query;
+  dbg('fetchNextBatch response', res);
   setLastResponse(res);
   if (res.error) throw res.error;
   let rows = res.data || [];
@@ -627,13 +635,17 @@ async function fetchNextBatch(afterCursor = null, size = pageSize) {
 }
 
 async function prefetchNext() {
-  if (!hasMore || prefetchBuffer.length >= prefetchLimit || loadingMore) return;
+  if (!hasMore || prefetchBuffer.length >= prefetchLimit || loadingMore) {
+  dbg('prefetchNext early-return', { hasMore, bufferLen: prefetchBuffer.length, prefetchLimit, loadingMore });
+    return;
+  }
   const loader = document.getElementById('nextLoader');
   const toast = document.getElementById('prefetchToast');
   try {
     loadingMore = true;
     if (loader) loader.style.display = 'block';
     const rows = await fetchNextBatch(lastCursor, pageSize);
+  dbg('prefetchNext fetched rows count', (rows||[]).length, { lastCursor, pageSize });
     const mapped = (rows || []).map(r => ({
       id: r.id,
       user: r.author_name ? `@${r.author_name}` : '@user',
@@ -647,7 +659,10 @@ async function prefetchNext() {
       paused: false,
     }));
     if (mapped.length > 0) {
+  dbg('prefetchNext mapped -> pushing to buffer', mapped.length);
       prefetchBuffer.push(...mapped);
+      // update on-page status so the overlay reflects the buffer change
+      try { updateStreamStatus(); } catch(e) {}
       // update cursor to the last fetched row's compound cursor for next prefetch
       const lastRow = rows[rows.length - 1];
       lastCursor = { created_at: lastRow.created_at, id: lastRow.id };
@@ -657,6 +672,8 @@ async function prefetchNext() {
     }
   } catch (err) {
     console.error('prefetchNext error', err);
+    // surface the error in the debug panel
+    try { setLastResponse({ error: err, stack: err?.stack }); } catch(e) {}
     // show a toast and schedule a retry
     if (toast) {
       toast.textContent = 'Prefetch failed — retrying…';
@@ -669,6 +686,7 @@ async function prefetchNext() {
   } finally {
     loadingMore = false;
     if (loader) loader.style.display = 'none';
+    try { updateStreamStatus(); } catch(e) {}
   }
 }
 
@@ -683,13 +701,26 @@ async function loadOneFromBuffer() {
     allPosts.push(next);
     filterPosts();
     renderFeed();
+    try { updateStreamStatus(); } catch(e) {}
     // kick off background prefetch for following post
     prefetchNext().catch(() => {});
   }
 }
 
-// initial prefetch and pagination-aware scroll handler consuming buffer
-prefetchNext().catch(() => {});
+// initial prefetch and pagination-aware startup: fetch then consume one so the feed isn't empty
+(async function initFeed() {
+  try {
+    await prefetchNext();
+    // if we have prefetched items, consume one to populate the feed immediately
+    if (prefetchBuffer.length > 0 && allPosts.length === 0) {
+      await loadOneFromBuffer();
+    }
+  } catch (err) {
+    console.warn('initFeed prefetch error', err);
+  } finally {
+    try { updateStreamStatus(); } catch(e) {}
+  }
+})();
 
 async function handleScroll() {
   if (loadingMore || searchQuery) return;
@@ -1480,7 +1511,15 @@ function initVideoLazyLoader() {
   const videos = document.querySelectorAll('video[data-src]');
   if (!videos.length) return;
   if (!('IntersectionObserver' in window)) {
-    videos.forEach(v => { if (v.dataset.src) { v.src = v.dataset.src; v.load(); } });
+    videos.forEach(async v => {
+      if (v.dataset.src) {
+        const ok = await probeUrl(v.dataset.src).catch(()=>false);
+        if (ok) { v.src = v.dataset.src; v.load(); }
+        else {
+          renderVideoError(v, 'Unavailable');
+        }
+      }
+    });
     return;
   }
   const io = new IntersectionObserver((entries, obs) => {
@@ -1491,11 +1530,24 @@ function initVideoLazyLoader() {
         // show loading state
         const indicator = v.closest('.post')?.querySelector('.video-indicator');
         if (indicator) indicator.classList.add('loading');
-        // debug: log the src being set so we can inspect in console
-        console.debug('initVideoLazyLoader: setting video src', v.dataset.src, 'for', v.closest('.post')?.dataset.id);
-        v.src = v.dataset.src;
-        v.load();
-        v.dataset.loaded = '1';
+        // debug: probe the url first so we can detect 403/404/CORS
+  dbg('initVideoLazyLoader: probing video src', v.dataset.src, 'for', v.closest('.post')?.dataset.id);
+        probeUrl(v.dataset.src).then((ok) => {
+          if (ok) {
+            dbg('initVideoLazyLoader: probe ok, setting src', v.dataset.src);
+            v.src = v.dataset.src;
+            v.load();
+            v.dataset.loaded = '1';
+          } else {
+            dbg('initVideoLazyLoader: probe failed for', v.dataset.src);
+            renderVideoError(v, 'Unavailable');
+            // try to obtain a signed URL as a fallback
+            trySignedUrlAndSet(v).catch(()=>{});
+          }
+        }).catch((err)=>{
+          console.error('initVideoLazyLoader probe error', err);
+          renderVideoError(v, 'Error');
+        });
         // when video has enough data, mark as loaded
         v.addEventListener('loadeddata', () => {
           if (indicator) {
@@ -1504,19 +1556,100 @@ function initVideoLazyLoader() {
           }
         }, { once: true });
 
-        // listen for errors to show diagnostic info
+        // listen for errors to show diagnostic info and offer retry
         v.addEventListener('error', (ev) => {
           console.error('Video failed to load', { src: v.dataset.src, postId: v.closest('.post')?.dataset.id, ev });
           if (indicator) {
             indicator.classList.remove('loading');
             indicator.classList.remove('loaded');
           }
+          renderVideoError(v, 'Failed to load');
+          trySignedUrlAndSet(v).catch(()=>{});
         }, { once: true });
       }
       obs.unobserve(v);
     });
   }, { rootMargin: '200px 0px' });
   videos.forEach(v => io.observe(v));
+}
+
+// Probe a URL quickly to check accessibility. Try HEAD first, then GET fallback.
+async function probeUrl(url, timeout = 4000) {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    // Try HEAD first to avoid downloading content
+    let res = await fetch(url, { method: 'HEAD', mode: 'cors', signal: controller.signal });
+    clearTimeout(id);
+    if (res && res.ok) return true;
+    // Some servers don't support HEAD; try GET but do not read body
+    const controller2 = new AbortController();
+    const id2 = setTimeout(() => controller2.abort(), timeout);
+    res = await fetch(url, { method: 'GET', mode: 'cors', signal: controller2.signal });
+    clearTimeout(id2);
+    return !!(res && res.ok);
+  } catch (err) {
+  dbg('probeUrl error', err, url);
+    return false;
+  }
+}
+
+function renderVideoError(videoEl, message) {
+  const postEl = videoEl.closest('.post');
+  if (!postEl) return;
+  // avoid duplicating overlay
+  if (postEl.querySelector('.video-error')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'video-error';
+  Object.assign(overlay.style, { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40, background: 'linear-gradient(180deg, rgba(0,0,0,0.6), transparent 40%)', color: '#fff' });
+  overlay.innerHTML = `<div style="text-align:center"><div style="margin-bottom:8px">${message}</div><button class="retry-video" style="padding:8px 12px;border-radius:8px;border:none;background:#2fb3ff;color:#000;cursor:pointer">Retry</button></div>`;
+  postEl.appendChild(overlay);
+  overlay.querySelector('.retry-video').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    overlay.remove();
+    // attempt signed URL then re-run loader for this video
+    trySignedUrlAndSet(videoEl).catch(()=>{});
+  });
+}
+
+async function trySignedUrlAndSet(videoEl) {
+  // Attempt to call Supabase storage.createSignedUrl for the path if possible.
+  // We expect videoEl.dataset.src to be a public URL or path; if it's a public URL
+  // from Supabase with a path like https://.../bucket/..../file, we try to extract the path.
+  try {
+    const src = videoEl.dataset.src;
+    if (!src) return false;
+    // Try to extract `path` from a Supabase public URL (heuristic)
+    const u = new URL(src);
+    // Supabase public urls often contain '/object/public/<bucket>/' or '/storage/v1/object/public/<bucket>/'
+    const idx = u.pathname.indexOf('/object/public/');
+    let path = null;
+    if (idx !== -1) {
+      path = u.pathname.slice(idx + '/object/public/'.length + 1); // crude
+    }
+    // Fallback: if dataset also stores a `data-path` attribute, use that
+    if (!path && videoEl.dataset.path) path = videoEl.dataset.path;
+    if (!path) {
+    dbg('trySignedUrlAndSet: could not determine storage path for', src);
+      return false;
+    }
+    // request a signed URL (1 minute) and set it
+    const name = path.replace(/^\//, '');
+    const { data, error } = await supabase.storage.from('Facts').createSignedUrl(name, 60);
+    setLastResponse({ data, error });
+    if (error || !data || !data.signedURL) {
+      console.warn('trySignedUrlAndSet: signed URL not available', error);
+      return false;
+    }
+    // set video src to signed URL and load
+  dbg('trySignedUrlAndSet: using signed URL for', videoEl.closest('.post')?.dataset.id);
+    videoEl.src = data.signedURL;
+    videoEl.load();
+    return true;
+  } catch (err) {
+    console.error('trySignedUrlAndSet error', err);
+    return false;
+  }
 }
 
 // Re-init after rendering feed content
