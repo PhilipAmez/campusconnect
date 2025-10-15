@@ -389,23 +389,13 @@
 <body>
   <header id="header" aria-hidden="false">
     <div class="header-inner">
-<<<<<<< HEAD
-      <input type="text" id="searchBar" placeholder="Search posts..." />
-      <div id="sessionInfo" style="position:absolute; left:12px; top:12px; font-size:12px; opacity:0.9; pointer-events:auto"></div>
-  <!-- debug toggle removed for production -->
-=======
       <div id="sessionInfo" style="position: absolute; left: 12px; top: 12px; display: flex; align-items: center; gap: 8px; pointer-events: auto">
         <div class="avatar" id="userAvatar">?</div>
       </div>
->>>>>>> 4352a24f1018fc300f0dfa3e862d54a62deafc07
       <div class="header-title">Skrolz</div>
       <div class="header-hint">Swipe ← / → to toggle theme</div>
     </div>
   </header>
-<<<<<<< HEAD
-  <!-- debug panel removed for production -->
-=======
->>>>>>> 4352a24f1018fc300f0dfa3e862d54a62deafc07
 
   <div class="search-container">
     <div class="search-wrapper">
@@ -414,8 +404,6 @@
   </div>
 
   <main id="feed" aria-live="polite"></main>
-
-  <!-- stream status overlay removed for production -->
 
   <button class="fab" id="fab">＋</button>
 
@@ -461,6 +449,7 @@
 <script type="module">
 // Import Supabase client
 import { supabase } from './js/supabaseClient.js';
+import './js/toast.js';
 
 // Global state
 let allPosts = [];
@@ -469,43 +458,7 @@ let currentVideoIndex = 0;
 let loadingMore = false;
 let searchQuery = '';
 
-<<<<<<< HEAD
-// Debug / behavior flags
-// Set DEBUG=true during troubleshooting to enable verbose debug logs
-const DEBUG = false;
-// Show on-page debug/status overlay (streamStatus). Set to false for production.
-const DEBUG_UI = false;
-// How many prefetched items to auto-consume on startup (1+). Set to 0 to disable.
-const INITIAL_CONSUME = 1;
-
-function dbg(...args) { if (DEBUG) console.debug(...args); }
-
-// --- debug panel for last response ---
-let lastResponse = null;
-
-// Debug UI removed in production build. Keep no-op renderers so calls are safe.
-function renderDebug() {
-  // intentionally empty in production
-}
-
-function setLastResponse(obj) {
-  lastResponse = obj;
-  // safe no-op; updateStreamStatus is defensive below
-  try { updateStreamStatus(); } catch(e) {}
-}
-
-// On-page stream status updater
-function updateStreamStatus() {
-  // debug overlay removed; keep function present to avoid runtime errors
-  return;
-}
-
-// expose some manual debug buttons
-// debug buttons removed; click handlers intentionally omitted in production
-
-=======
 // DOM elements
->>>>>>> 4352a24f1018fc300f0dfa3e862d54a62deafc07
 const feed = document.getElementById('feed');
 let feedContent;
 const progressModal = document.getElementById('uploadProgressModal');
@@ -798,180 +751,9 @@ function debounce(func, wait) {
   };
 }
 
-<<<<<<< HEAD
-/* INFINITE SCROLL - handled by pagination-aware handler below */
-
-// DB-backed pagination state
-// Load one post per page so scrolling loads the next post on demand
-// Cursor-based pagination state (prefetch 1 next post into a buffer)
-let pageSize = 1;
-// compound cursor: { created_at, id }
-let lastCursor = null;
-let hasMore = true;
-let prefetchBuffer = []; // holds prefetched posts (up to prefetchLimit)
-const prefetchLimit = 3; // keep 2-3 items ready
-let prefetchRetryDelay = 1200; // ms to wait before retrying on failure
-
-async function fetchNextBatch(afterCursor = null, size = pageSize) {
-  dbg('fetchNextBatch start', { afterCursor, size });
-  // returns array of rows using compound cursor (created_at, id)
-  // Supabase supports range/limit and basic filters; to simulate compound cursor
-  // we request rows where created_at < cursor.created_at OR (created_at = cursor.created_at AND id < cursor.id)
-  let query = supabase
-    .from('posts')
-    .select('id, author_id, author_name, video_url, created_at')
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(size);
-
-  if (afterCursor && afterCursor.created_at) {
-    // build a filter that matches rows with created_at < cursor OR (created_at = cursor AND id < cursorId)
-    // Supabase query builder doesn't support OR directly; instead we fetch a slightly larger window
-    // and then client-side filter to enforce the compound cursor.
-    query = query.lt('created_at', afterCursor.created_at).limit(size * 2);
-  }
-
-  const res = await query;
-  dbg('fetchNextBatch response', res);
-  setLastResponse(res);
-  if (res.error) throw res.error;
-  let rows = res.data || [];
-
-  // if we passed a cursor, perform client-side compound cursor filtering
-  if (afterCursor && afterCursor.created_at) {
-    rows = rows.filter(r => {
-      if (r.created_at < afterCursor.created_at) return true;
-      if (r.created_at === afterCursor.created_at && r.id < afterCursor.id) return true;
-      return false;
-    }).slice(0, size);
-  }
-
-  return rows;
-}
-
-async function prefetchNext() {
-  if (!hasMore || prefetchBuffer.length >= prefetchLimit || loadingMore) {
-  dbg('prefetchNext early-return', { hasMore, bufferLen: prefetchBuffer.length, prefetchLimit, loadingMore });
-    return;
-  }
-  const loader = document.getElementById('nextLoader');
-  const toast = document.getElementById('prefetchToast');
-  try {
-    loadingMore = true;
-    if (loader) loader.style.display = 'block';
-    const rows = await fetchNextBatch(lastCursor, pageSize);
-  dbg('prefetchNext fetched rows count', (rows||[]).length, { lastCursor, pageSize });
-    const mapped = (rows || []).map(r => ({
-      id: r.id,
-      user: r.author_name ? `@${r.author_name}` : '@user',
-      caption: '',
-      src: r.video_url,
-      likes: 0,
-      comments: [],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
-    }));
-    if (mapped.length > 0) {
-  dbg('prefetchNext mapped -> pushing to buffer', mapped.length);
-      prefetchBuffer.push(...mapped);
-      // update on-page status so the overlay reflects the buffer change
-      try { updateStreamStatus(); } catch(e) {}
-      // update cursor to the last fetched row's compound cursor for next prefetch
-      const lastRow = rows[rows.length - 1];
-      lastCursor = { created_at: lastRow.created_at, id: lastRow.id };
-      if (mapped.length < pageSize) hasMore = false;
-    } else {
-      hasMore = false;
-    }
-  } catch (err) {
-    console.error('prefetchNext error', err);
-    // surface the error in the debug panel
-    try { setLastResponse({ error: err, stack: err?.stack }); } catch(e) {}
-    // show a toast and schedule a retry
-    if (toast) {
-      toast.textContent = 'Prefetch failed — retrying…';
-      toast.style.display = 'block';
-    }
-    setTimeout(() => {
-      if (toast) toast.style.display = 'none';
-      prefetchNext().catch(() => {});
-    }, prefetchRetryDelay);
-  } finally {
-    loadingMore = false;
-    if (loader) loader.style.display = 'none';
-    try { updateStreamStatus(); } catch(e) {}
-  }
-}
-
-async function loadOneFromBuffer() {
-  // consume one post from buffer and render it
-  if (prefetchBuffer.length === 0) {
-    // if buffer empty, trigger immediate fetch then consume
-    await prefetchNext();
-  }
-  if (prefetchBuffer.length > 0) {
-    const next = prefetchBuffer.shift();
-    allPosts.push(next);
-    filterPosts();
-    renderFeed();
-    try { updateStreamStatus(); } catch(e) {}
-    // kick off background prefetch for following post
-    prefetchNext().catch(() => {});
-  }
-}
-
-// initial prefetch and pagination-aware startup: fetch then consume one so the feed isn't empty
-(async function initFeed() {
-  try {
-    await prefetchNext();
-    // if we have prefetched items, consume one to populate the feed immediately
-    if (prefetchBuffer.length > 0 && allPosts.length === 0) {
-      await loadOneFromBuffer();
-    }
-  } catch (err) {
-    console.warn('initFeed prefetch error', err);
-  } finally {
-    try { updateStreamStatus(); } catch(e) {}
-  }
-})();
-
-async function handleScroll() {
-  if (loadingMore || searchQuery) return;
-  const { scrollTop, scrollHeight, clientHeight } = feed;
-  if (scrollTop + clientHeight >= scrollHeight - 200) {
-    // consume one prefetched post and let prefetchNext fill the buffer
-    await loadOneFromBuffer();
-  }
-}
-
-// attach scroll listener once, debounced
-feed.addEventListener('scroll', debounce(handleScroll, 100));
-
-/* PULL-TO-REFRESH */
-function updateRefreshIndicator(dist) {
-  const indicator = document.getElementById('pullIndicator');
-  const icon = document.getElementById('pullIcon');
-  const text = document.getElementById('pullText');
-
-  if (dist < 10) {
-    indicator.style.opacity = '0';
-    indicator.style.transform = 'translateX(-50%) translateY(-100%)';
-    return;
-  }
-
-  indicator.style.opacity = '1';
-  indicator.style.transform = 'translateX(-50%) translateY(0px)';
-
-  if (dist > refreshThreshold) {
-    icon.textContent = '○';
-    text.textContent = 'Release to refresh';
-=======
 function filterPosts() {
   if (!searchQuery) {
     posts = [...allPosts];
->>>>>>> 4352a24f1018fc300f0dfa3e862d54a62deafc07
   } else {
     posts = allPosts.filter(post =>
       post.user.toLowerCase().includes(searchQuery) ||
@@ -1863,191 +1645,6 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('recordModal').classList.remove('show');
   }
 });
-<<<<<<< HEAD
-
-renderFeed();
-
-// Video lazy-loader: set video.src from data-src when the element becomes visible
-function initVideoLazyLoader() {
-  const videos = document.querySelectorAll('video[data-src]');
-  if (!videos.length) return;
-  if (!('IntersectionObserver' in window)) {
-    videos.forEach(async v => {
-      if (v.dataset.src) {
-        const ok = await probeUrl(v.dataset.src).catch(()=>false);
-        if (ok) { v.src = v.dataset.src; v.load(); }
-        else {
-          renderVideoError(v, 'Unavailable');
-        }
-      }
-    });
-    return;
-  }
-  const io = new IntersectionObserver((entries, obs) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const v = entry.target;
-      if (v.dataset.src && !v.dataset.loaded) {
-        // show loading state
-        const indicator = v.closest('.post')?.querySelector('.video-indicator');
-        if (indicator) indicator.classList.add('loading');
-        // debug: probe the url first so we can detect 403/404/CORS
-  dbg('initVideoLazyLoader: probing video src', v.dataset.src, 'for', v.closest('.post')?.dataset.id);
-        probeUrl(v.dataset.src).then((ok) => {
-          if (ok) {
-            dbg('initVideoLazyLoader: probe ok, setting src', v.dataset.src);
-            v.src = v.dataset.src;
-            v.load();
-            v.dataset.loaded = '1';
-          } else {
-            dbg('initVideoLazyLoader: probe failed for', v.dataset.src);
-            renderVideoError(v, 'Unavailable');
-            // try to obtain a signed URL as a fallback
-            trySignedUrlAndSet(v).catch(()=>{});
-          }
-        }).catch((err)=>{
-          console.error('initVideoLazyLoader probe error', err);
-          renderVideoError(v, 'Error');
-        });
-        // when video has enough data, mark as loaded
-        v.addEventListener('loadeddata', () => {
-          if (indicator) {
-            indicator.classList.remove('loading');
-            indicator.classList.add('loaded');
-          }
-        }, { once: true });
-
-        // listen for errors to show diagnostic info and offer retry
-        v.addEventListener('error', (ev) => {
-          console.error('Video failed to load', { src: v.dataset.src, postId: v.closest('.post')?.dataset.id, ev });
-          if (indicator) {
-            indicator.classList.remove('loading');
-            indicator.classList.remove('loaded');
-          }
-          renderVideoError(v, 'Failed to load');
-          trySignedUrlAndSet(v).catch(()=>{});
-        }, { once: true });
-      }
-      obs.unobserve(v);
-    });
-  }, { rootMargin: '200px 0px' });
-  videos.forEach(v => io.observe(v));
-}
-
-// Probe a URL quickly to check accessibility. Try HEAD first, then GET fallback.
-async function probeUrl(url, timeout = 4000) {
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    // Try HEAD first to avoid downloading content
-    let res = await fetch(url, { method: 'HEAD', mode: 'cors', signal: controller.signal });
-    clearTimeout(id);
-    if (res && res.ok) return true;
-    // Some servers don't support HEAD; try GET but do not read body
-    const controller2 = new AbortController();
-    const id2 = setTimeout(() => controller2.abort(), timeout);
-    res = await fetch(url, { method: 'GET', mode: 'cors', signal: controller2.signal });
-    clearTimeout(id2);
-    return !!(res && res.ok);
-  } catch (err) {
-  dbg('probeUrl error', err, url);
-    return false;
-  }
-}
-
-function renderVideoError(videoEl, message) {
-  const postEl = videoEl.closest('.post');
-  if (!postEl) return;
-  // avoid duplicating overlay
-  if (postEl.querySelector('.video-error')) return;
-  const overlay = document.createElement('div');
-  overlay.className = 'video-error';
-  Object.assign(overlay.style, { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40, background: 'linear-gradient(180deg, rgba(0,0,0,0.6), transparent 40%)', color: '#fff' });
-  overlay.innerHTML = `<div style="text-align:center"><div style="margin-bottom:8px">${message}</div><button class="retry-video" style="padding:8px 12px;border-radius:8px;border:none;background:#2fb3ff;color:#000;cursor:pointer">Retry</button></div>`;
-  postEl.appendChild(overlay);
-  overlay.querySelector('.retry-video').addEventListener('click', async (e) => {
-    e.stopPropagation();
-    overlay.remove();
-    // attempt signed URL then re-run loader for this video
-    trySignedUrlAndSet(videoEl).catch(()=>{});
-  });
-}
-
-async function trySignedUrlAndSet(videoEl) {
-  // Attempt to call Supabase storage.createSignedUrl for the path if possible.
-  // We expect videoEl.dataset.src to be a public URL or path; if it's a public URL
-  // from Supabase with a path like https://.../bucket/..../file, we try to extract the path.
-  try {
-    const src = videoEl.dataset.src;
-    if (!src) return false;
-    // Try to extract `path` from a Supabase public URL (heuristic)
-    const u = new URL(src);
-    // Supabase public urls often contain '/object/public/<bucket>/' or '/storage/v1/object/public/<bucket>/'
-    const idx = u.pathname.indexOf('/object/public/');
-    let path = null;
-    if (idx !== -1) {
-      path = u.pathname.slice(idx + '/object/public/'.length + 1); // crude
-    }
-    // Fallback: if dataset also stores a `data-path` attribute, use that
-    if (!path && videoEl.dataset.path) path = videoEl.dataset.path;
-    if (!path) {
-    dbg('trySignedUrlAndSet: could not determine storage path for', src);
-      return false;
-    }
-    // request a signed URL (1 minute) and set it
-    const name = path.replace(/^\//, '');
-    const { data, error } = await supabase.storage.from('Facts').createSignedUrl(name, 60);
-    setLastResponse({ data, error });
-    if (error || !data || !data.signedURL) {
-      console.warn('trySignedUrlAndSet: signed URL not available', error);
-      return false;
-    }
-    // set video src to signed URL and load
-  dbg('trySignedUrlAndSet: using signed URL for', videoEl.closest('.post')?.dataset.id);
-    videoEl.src = data.signedURL;
-    videoEl.load();
-    return true;
-  } catch (err) {
-    console.error('trySignedUrlAndSet error', err);
-    return false;
-  }
-}
-
-// Re-init after rendering feed content
-const origRenderFeed = renderFeed;
-renderFeed = function() { origRenderFeed(); initVideoLazyLoader(); };
-
-// Initial call
-initVideoLazyLoader();
-
-// Start auth listener and rely on pagination-based infinite scroll (loadPostsPage)
-setupAuthListener();
-// Note: using DB-backed pagination via loadPostsPage(0) as the initial loader
-// so we don't bootstrap twice with loadInitialPosts(). If you prefer eager
-// bootstrap, call loadInitialPosts() instead and remove the initial
-// loadPostsPage(0) call above.
-
-// Helper: animate coarse upload progress while an upload Promise is pending
-function startCoarseProgress(post, uploadPromise) {
-  if (!post) return;
-  post.uploadProgress = 6;
-  renderFeed();
-  // slowly increase to 80% while pending
-  const iv = setInterval(() => {
-    if (!post.uploading) { clearInterval(iv); return; }
-    post.uploadProgress = Math.min(80, (post.uploadProgress || 0) + Math.floor(Math.random() * 8) + 2);
-    renderFeed();
-  }, 400);
-  // when the promise resolves, push to 100 and clear
-  uploadPromise.finally(() => {
-    clearInterval(iv);
-    post.uploadProgress = 100;
-    post.uploading = false;
-    renderFeed();
-  });
-}
-=======
->>>>>>> 4352a24f1018fc300f0dfa3e862d54a62deafc07
 </script>
 </body>
 </html>

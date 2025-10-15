@@ -1,5 +1,6 @@
 /* dashboardGroups.js – Active vs. Suggested lists */
 import { supabase } from './supabaseClient.js'
+import '../js/toast.js'
 
 /* ─────────────────────────────  DOM shortcuts  ───────────────────────────── */
 const activeEl    = document.getElementById('groupList')        // “Active Study Groups”
