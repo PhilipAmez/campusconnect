@@ -1286,4 +1286,242 @@ async function checkPeerloomAI(message) {
     const data = await response.json();
     console.log('Gemini AI Response:', data);
     
-    let aiReply = "I'm here to help! How can I assist you today
+    let aiReply = "I'm here to help! How can I assist you today?";
+    
+    if (data && data.candidates && data.candidates[0] && data.candidates[0].content) {
+      aiReply = data.candidates[0].content.parts[0].text;
+    }
+    
+    // Hide typing indicator
+    hideAITypingIndicator();
+    
+    // Insert AI message using the real AI user ID from profiles table
+    const { data: aiMessage, error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: aiReply,
+      role: 'ai'
+    }).select().single();
+    
+    if (aiError) {
+      console.error('Error inserting AI message:', aiError);
+      // If error, still hide the typing indicator
+      hideAITypingIndicator();
+    }
+    
+  } catch (error) {
+    console.error('PeerPal AI Error:', error);
+    // Hide typing indicator
+    hideAITypingIndicator();
+    
+    // Fallback to smart responses based on message content
+    const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
+    const fallbackResponse = generateSmartResponse(cleanMessage);
+    
+    const { error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: fallbackResponse,
+      role: 'ai'
+    });
+    
+    if (aiError) {
+      console.error('Error inserting fallback AI message:', aiError);
+    }
+  }
+}
+
+// Show typing indicator for AI - FIXED implementation
+function showAITypingIndicator() {
+  // Remove any existing typing indicator first
+  hideAITypingIndicator();
+  
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'typing-indicator';
+  typingDiv.id = 'ai-typing-indicator';
+  typingDiv.innerHTML = `
+    <div class="sender-name">${AI_USER_NAME}</div>
+    <div class="typing-dots">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  messagePanel.appendChild(typingDiv);
+  messagePanel.scrollTop = messagePanel.scrollHeight;
+}
+
+// Hide typing indicator for AI - FIXED implementation
+function hideAITypingIndicator() {
+  const typingIndicator = document.getElementById('ai-typing-indicator');
+  if (typingIndicator) {
+    typingIndicator.remove();
+  }
+}
+
+// Smart fallback responses when AI API fails
+function generateSmartResponse(message) {
+  const lowerMessage = message.toLowerCase();
+  
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+    return "Hello! I'm PeerPal AI, your helpful assistant in PeerLoom. How can I help you today?";
+  }
+  if (lowerMessage.includes('how are you')) {
+    return "I'm doing great! Ready to help with anything you need. What's on your mind?";
+  }
+  if (lowerMessage.includes('thank')) {
+    return "You're welcome! Happy to help. Is there anything else you'd like to know?";
+  }
+  if (lowerMessage.includes('help')) {
+    return "I'm here to assist you! You can ask me questions, get information, or just chat. What do you need help with?";
+  }
+  if (lowerMessage.includes('weather')) {
+    return "I don't have real-time weather data, but I can help you find weather information if you tell me your location!";
+  }
+  if (lowerMessage.includes('joke') || lowerMessage.includes('funny')) {
+    const jokes = [
+      "Why don't scientists trust atoms? Because they make up everything!",
+      "Why did the scarecrow win an award? He was outstanding in his field!",
+      "What do you call a fake noodle? An impasta!"
+    ];
+    return jokes[Math.floor(Math.random() * jokes.length)];
+  }
+  if (lowerMessage.includes('time')) {
+    return `The current time is ${new Date().toLocaleTimeString()}. How can I assist you further?`;
+  }
+  
+  const defaultResponses = [
+    "That's interesting! Tell me more about that.",
+    "I understand. How can I help you with this?",
+    "Thanks for sharing! Is there anything specific you'd like me to help with?",
+    "I see what you're saying. What would you like to do next?",
+    "That's a great point! How can I assist you further?"
+  ];
+  
+  return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+}
+
+// Placeholder audio & file
+recordAudioButton.onclick = () => {
+  isRecording = !isRecording;
+  recordAudioButton.classList.toggle('active', isRecording);
+  alert(isRecording ? 'Recording started...' : 'Recording stopped...');
+};
+fileShareButton.onclick = () => alert('File upload coming soon!');
+voiceCallButton.onclick = () => alert('Starting voice call...');
+videoCallButton.onclick = () => alert('Starting video call...');
+
+// Gestures & replies
+function attachGestures(el, mine, msg) {
+  let startX, startY, isSwiping = false;
+  let longT;
+  
+  // Create swipe indicator
+  const swipeIndicator = document.createElement('div');
+  swipeIndicator.className = 'swipe-indicator';
+  swipeIndicator.innerHTML = '<i class="fas fa-reply"></i><span>Reply</span>';
+  el.appendChild(swipeIndicator);
+  
+  el.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+    if (mine) longT = setTimeout(() => { 
+      if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); 
+    }, 800);
+  });
+  
+  el.addEventListener('mousemove', (e) => {
+    if (e.buttons === 1) {
+      const deltaX = e.clientX - startX;
+      const deltaY = Math.abs(e.clientY - startY);
+      
+      // Only consider horizontal movement with minimal vertical movement
+      if (deltaX > 30 && deltaY < 20) {
+        isSwiping = true;
+        el.classList.add('swiping');
+        swipeIndicator.classList.add('show');
+        
+        if (deltaX > 120) {
+          startReply(msg);
+          el.classList.remove('swiping');
+          swipeIndicator.classList.remove('show');
+        }
+      }
+    }
+  });
+  
+  el.addEventListener('mouseup', () => {
+    clearTimeout(longT);
+    el.classList.remove('swiping');
+    swipeIndicator.classList.remove('show');
+    isSwiping = false;
+  });
+  
+  el.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    if (mine) longT = setTimeout(() => { 
+      if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); 
+    }, 800);
+  });
+  
+  el.addEventListener('touchmove', (e) => {
+    const deltaX = e.touches[0].clientX - startX;
+    const deltaY = Math.abs(e.touches[0].clientY - startY);
+    
+    // Only consider horizontal movement with minimal vertical movement
+    if (deltaX > 30 && deltaY < 20) {
+      isSwiping = true;
+      el.classList.add('swiping');
+      swipeIndicator.classList.add('show');
+      
+      if (deltaX > 120) {
+        startReply(msg);
+        el.classList.remove('swiping');
+        swipeIndicator.classList.remove('show');
+      }
+    }
+  });
+  
+  el.addEventListener('touchend', () => {
+    clearTimeout(longT);
+    el.classList.remove('swiping');
+    swipeIndicator.classList.remove('show');
+    isSwiping = false;
+  });
+  
+  el.addEventListener('dblclick', () => {
+    if (mine) {
+      const u = prompt('Edit msg:', msg.content);
+      if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
+    }
+  });
+}
+
+function startReply(msg) {
+  replyingMsg = msg;
+  replyContextSender.textContent = msg.sender_name;
+  replyContextText.textContent = msg.content;
+  replyContextBox.style.display = 'flex';
+  
+  // Highlight the message being replied to
+  const allMsgs = document.querySelectorAll('.msg');
+  allMsgs.forEach(m => m.classList.remove('replying'));
+  const repliedMsg = document.querySelector(`.msg[data-id="${msg.id}"]`);
+  if (repliedMsg) {
+    repliedMsg.classList.add('replying');
+    setTimeout(() => {
+      repliedMsg.classList.remove('replying');
+    }, 2000);
+  }
+}
+
+replyContextClose.onclick = () => { 
+  replyingMsg = null; 
+  replyContextBox.style.display = 'none'; 
+};
+  </script>
+</body>
+</html>
