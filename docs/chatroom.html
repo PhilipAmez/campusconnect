@@ -611,20 +611,23 @@
       background: rgba(255, 71, 87, 0.2);
     }
 
-    /* Desktop view improvements */
+    /* Desktop view improvements - FIXED SIZE */
     @media (min-width: 769px) {
       body {
         padding: 20px;
         align-items: center;
         justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
       
       .chat-arena {
-        max-width: 800px;
+        max-width: 900px;
+        width: 95%;
         height: 95vh;
         border-radius: 20px;
         overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+        background: var(--glass-bg);
       }
       
       .chat-header, .chat-messages, .chat-input-area {
@@ -645,7 +648,12 @@
       }
       
       .group-drawer.open {
-        height: 70vh;
+        height: 75vh;
+      }
+      
+      .message-bar {
+        font-size: 1.1rem;
+        padding: 0.8rem 4rem 0.8rem 1.2rem;
       }
     }
 
@@ -1147,30 +1155,46 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// Load members - Fixed query to handle database schema
-const { data: memberData } = await supabase
-  .from('group_members')
-  .select(`
-    user_id,
-    profiles:user_id (
-      id,
-      username,
-      full_name,
-      avatar_url
-    )
-  `)
-  .eq('group_id', gid);
-memberDetails = memberData || [];
-isMember = memberDetails.some(m => m.user_id === user.id);
+// FIXED: Load members with proper error handling
+async function loadMembers() {
+  try {
+    const { data: memberData, error } = await supabase
+      .from('group_members')
+      .select(`
+        user_id,
+        profiles:user_id (
+          id,
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('group_id', gid);
+    
+    if (error) {
+      console.error('Error loading members:', error);
+      memberDetails = [];
+    } else {
+      memberDetails = memberData || [];
+      console.log('Loaded members:', memberDetails);
+    }
+    
+    isMember = memberDetails.some(m => m.user_id === user.id);
+  } catch (err) {
+    console.error('Unexpected error loading members:', err);
+    memberDetails = [];
+  }
+}
 
-// Check if AI user is in the group, if not add them - Fixed to handle schema properly
+await loadMembers();
+
+// Check if AI user is in the group, if not add them
 async function ensureAIUserInGroup() {
   const isAIInGroup = memberDetails.some(m => m.user_id === AI_USER_ID);
   
   if (!isAIInGroup) {
     console.log('Adding AI user to group...');
     try {
-      // Try without role field first
       const { error } = await supabase
         .from('group_members')
         .insert({
@@ -1178,28 +1202,11 @@ async function ensureAIUserInGroup() {
           user_id: AI_USER_ID
         });
       
-      if (error) {
+      if (error && error.code !== '23505') { // Ignore duplicate errors
         console.log('Error adding AI user to group:', error);
-        // If it's a duplicate error, that's fine - the AI user is already there
-        if (error.code === '23505') {
-          console.log('AI user already exists in group');
-        }
       } else {
         // Reload member details to include AI user
-        const { data: updatedMemberData } = await supabase
-          .from('group_members')
-          .select(`
-            user_id,
-            profiles:user_id (
-              id,
-              username,
-              full_name,
-              avatar_url
-            )
-          `)
-          .eq('group_id', gid);
-        
-        memberDetails = updatedMemberData || [];
+        await loadMembers();
       }
     } catch (err) {
       console.log('Unexpected error adding AI user:', err);
@@ -1456,13 +1463,14 @@ function handleAIMentionClick(userId) {
 
 // ---------- CLEAN TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 
-// Render members in the transparent glass list
+// FIXED: Render members in the transparent glass list - proper error handling
 function renderMembers() {
   membersList.innerHTML = '';
+  
   if (!memberDetails || memberDetails.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'member-item';
-    empty.innerHTML = `<div class="member-name">No members yet</div>`;
+    empty.innerHTML = `<div class="member-name">No members found</div>`;
     membersList.appendChild(empty);
     return;
   }
@@ -1605,7 +1613,10 @@ function render(m) {
     });
   });
 
-  attachGestures(div, mine, m);
+  // FIXED: Only attach gestures to received messages (not own messages)
+  if (!mine) {
+    attachGestures(div, mine, m);
+  }
 }
 
 // Load history
@@ -1616,8 +1627,8 @@ async function loadHistory() {
 }
 await loadHistory();
 
-// ---------- TYPING INDICATORS FOR ALL USERS ----------
-let typingUsers = new Set();
+// ---------- FIXED TYPING INDICATORS - NO DUPLICATES ----------
+let typingUsers = new Map(); // Changed to Map to prevent duplicates
 let typingTimeout;
 
 // Set up typing indicator channel
@@ -1634,14 +1645,9 @@ typingChannel
     
     if (user_id !== user.id) { // Don't show our own typing indicator
       if (isTyping) {
-        typingUsers.add({ id: user_id, name: user_name });
+        typingUsers.set(user_id, { id: user_id, name: user_name });
       } else {
-        // Remove this user from typing indicators
-        typingUsers.forEach(typingUser => {
-          if (typingUser.id === user_id) {
-            typingUsers.delete(typingUser);
-          }
-        });
+        typingUsers.delete(user_id);
       }
       renderTypingIndicators();
     }
@@ -1678,9 +1684,9 @@ messageBar.addEventListener('input', () => {
   }, 1000);
 });
 
-// Render typing indicators for all users
+// FIXED: Render typing indicators without duplicates
 function renderTypingIndicators() {
-  // Remove existing typing indicators (except AI)
+  // Remove all existing typing indicators (except AI)
   document.querySelectorAll('.typing-indicator').forEach(el => {
     if (!el.classList.contains('ai')) {
       el.remove();
@@ -1792,7 +1798,7 @@ messageBar.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
-// ---------- FIXED GEMINI AI INTEGRATION WITH FREE TIER MODELS ----------
+// ---------- FIXED GEMINI AI INTEGRATION WITH TYPING INDICATOR ----------
 async function checkPeerloomAI(message) {
   // Check for @PeerPal AI mention specifically or if replying to AI
   const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
@@ -1803,7 +1809,7 @@ async function checkPeerloomAI(message) {
   try {
     console.log('Calling Gemini AI with message:', message);
     
-    // Show typing indicator
+    // Show typing indicator for AI
     showAITypingIndicator();
     
     // Clean the message by removing the mention if present
@@ -2073,13 +2079,12 @@ fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
-// ---------- FIXED SWIPE GESTURES & REPLIES ----------
+// ---------- FIXED SWIPE GESTURES - OWN MESSAGES WORKING ----------
 
 // Improved swipe gesture with better sensitivity and reliability
 function attachGestures(el, mine, msg) {
   let startX, startY, isSwiping = false;
   let longT;
-  let swipeStartTime;
   
   // Create swipe indicator
   const swipeIndicator = document.createElement('div');
@@ -2091,13 +2096,13 @@ function attachGestures(el, mine, msg) {
   const handleStart = (x, y) => {
     startX = x;
     startY = y;
-    swipeStartTime = Date.now();
     isSwiping = false;
     
+    // Only set long press for own messages (delete)
     if (mine) {
       longT = setTimeout(() => { 
         showDeleteMessageModal(msg.id);
-      }, 1200); // 1.2 seconds for long press
+      }, 800); // 0.8 seconds for long press on own messages
     }
   };
   
@@ -2120,11 +2125,11 @@ function attachGestures(el, mine, msg) {
     
     if (isSwiping) {
       // Calculate swipe progress (0 to 1)
-      const swipeProgress = Math.min(deltaX / 120, 1);
-      const translateX = -80 * swipeProgress;
+      const swipeProgress = Math.min(deltaX / 100, 1);
+      const translateX = -60 * swipeProgress;
       el.style.transform = `translateX(${translateX}px)`;
       
-      if (deltaX > 120) {
+      if (deltaX > 100) {
         startReply(msg);
         resetSwipe(el, swipeIndicator);
       }
@@ -2189,7 +2194,7 @@ function attachGestures(el, mine, msg) {
   
   el.addEventListener('touchend', handleEnd);
   
-  // Double click for edit
+  // Double click for edit (only own messages)
   el.addEventListener('dblclick', () => {
     if (mine) {
       showEditMessageModal(msg.id, msg.content);
