@@ -28,18 +28,23 @@
       --gloss-red: rgba(255,71,87,0.14);
       --gloss-red-strong: rgba(255,71,87,0.28);
     }
+    
+    /* FIXED: Dark mode applies to entire page */
     [data-theme="dark"] {
-      --glass-bg: rgba(20, 22, 28, 0.98);
+      --page-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      --glass-bg: rgba(20, 22, 28, 0.95);
       --text: #f1f1f1;
-      --msg-bg: rgba(40, 42, 54, 0.98);
+      --msg-bg: rgba(40, 42, 54, 0.95);
       --msg-hover: rgba(60, 62, 74, 1);
       --ai-bg: var(--ai-bg-dark);
-      --circle-bg: rgba(30, 32, 38, 0.98);
+      --circle-bg: rgba(30, 32, 38, 0.95);
       --placeholder-fade: rgba(200, 200, 200, 0.3);
       --gloss-red: rgba(255,71,87,0.12);
       --gloss-red-strong: rgba(255,71,87,0.22);
     }
+    
     [data-theme="light"] {
+      --page-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --glass-bg: var(--glass-bg-light);
       --text: var(--text-light);
       --msg-bg: var(--msg-bg-light);
@@ -47,6 +52,7 @@
       --ai-bg: var(--ai-bg-light);
       --circle-bg: var(--glass-bg-light);
     }
+    
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     /* Mobile viewport fixes */
@@ -58,7 +64,7 @@
     }
     
     body {
-      background: var(--glass-bg);
+      background: var(--page-bg);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       display: flex;
@@ -617,7 +623,6 @@
         padding: 20px;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
       
       .chat-arena {
@@ -1155,9 +1160,12 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// FIXED: Load members with proper error handling
+// FIXED: Load members with better query and error handling
 async function loadMembers() {
   try {
+    console.log('Loading members for group:', gid);
+    
+    // First try to get members with profiles
     const { data: memberData, error } = await supabase
       .from('group_members')
       .select(`
@@ -1172,14 +1180,29 @@ async function loadMembers() {
       .eq('group_id', gid);
     
     if (error) {
-      console.error('Error loading members:', error);
-      memberDetails = [];
+      console.error('Error loading members with profiles:', error);
+      
+      // Fallback: try without profiles relation
+      const { data: simpleMemberData, error: simpleError } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', gid);
+      
+      if (simpleError) {
+        console.error('Error loading simple members:', simpleError);
+        memberDetails = [];
+      } else {
+        console.log('Loaded simple members:', simpleMemberData);
+        memberDetails = simpleMemberData || [];
+      }
     } else {
+      console.log('Loaded members with profiles:', memberData);
       memberDetails = memberData || [];
-      console.log('Loaded members:', memberDetails);
     }
     
     isMember = memberDetails.some(m => m.user_id === user.id);
+    console.log('Is current user a member?', isMember);
+    
   } catch (err) {
     console.error('Unexpected error loading members:', err);
     memberDetails = [];
@@ -1259,17 +1282,24 @@ function initMentionSystem() {
   // Add real users from memberDetails (excluding AI user to avoid duplicates)
   if (memberDetails && memberDetails.length > 0) {
     memberDetails.forEach(member => {
-      if (member.user_id !== AI_USER_ID && member.profiles) {
-        const profile = member.profiles;
-        const name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
-        const username = `@${name}`;
+      if (member.user_id !== AI_USER_ID) {
+        let name, username;
+        
+        if (member.profiles) {
+          const profile = member.profiles;
+          name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
+        } else {
+          name = `User ${member.user_id.substring(0,6)}`;
+        }
+        
+        username = `@${name}`;
         
         mentionUsers.push({
           id: member.user_id,
           name: name,
           username: username,
           isAI: false,
-          avatar: profile.avatar_url || createDefaultAvatar(name)
+          avatar: member.profiles?.avatar_url || createDefaultAvatar(name)
         });
       }
     });
@@ -1463,7 +1493,7 @@ function handleAIMentionClick(userId) {
 
 // ---------- CLEAN TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 
-// FIXED: Render members in the transparent glass list - proper error handling
+// FIXED: Render members in the transparent glass list - better error handling
 function renderMembers() {
   membersList.innerHTML = '';
   
@@ -1474,6 +1504,8 @@ function renderMembers() {
     membersList.appendChild(empty);
     return;
   }
+
+  console.log('Rendering members:', memberDetails);
 
   memberDetails.forEach(member => {
     let name, avatarUrl, isAI = false;
