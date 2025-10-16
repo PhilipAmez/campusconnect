@@ -1446,7 +1446,7 @@ function setupThemeSwipe() {
   });
 }
 
-// Upload functionality
+// Upload functionality - FIXED VERSION
 function openUploadModal() {
   uploadModal.classList.add('show');
   
@@ -1501,43 +1501,42 @@ function openRecordModal() {
             clearInterval(recordingTimer);
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             
-            // Check duration
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(blob);
-            await new Promise(resolve => {
-              video.onloadedmetadata = resolve;
-            });
-            
-            if (video.duration > 60) {
-              alert('Video must be 60 seconds or less');
-              URL.revokeObjectURL(video.src);
-              return;
+            // Check duration - FIXED VERSION
+            try {
+              const duration = await getVideoDuration(blob);
+              if (duration > 60) {
+                alert('Video must be 60 seconds or less');
+                return;
+              }
+              
+              const id = 'p' + Math.random().toString(36).slice(2, 9);
+              const newPost = { 
+                id, 
+                user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
+                title, 
+                caption, 
+                src: URL.createObjectURL(blob), 
+                likes: 0, 
+                comments: [], 
+                liked: false, 
+                uploading: true, 
+                owner: true, 
+                uploadProgress: 0, 
+                paused: false 
+              };
+              
+              allPosts.unshift(newPost);
+              filterPosts();
+              renderFeed();
+              uploadVideo(newPost, blob, title, caption);
+              
+              stream.getTracks().forEach(track => track.stop());
+              recordedChunks = [];
+              recordModal.classList.remove('show');
+            } catch (error) {
+              console.error('Error checking video duration:', error);
+              alert('Error processing video file');
             }
-            
-            const id = 'p' + Math.random().toString(36).slice(2, 9);
-            const newPost = { 
-              id, 
-              user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-              title, 
-              caption, 
-              src: URL.createObjectURL(blob), 
-              likes: 0, 
-              comments: [], 
-              liked: false, 
-              uploading: true, 
-              owner: true, 
-              uploadProgress: 0, 
-              paused: false 
-            };
-            
-            allPosts.unshift(newPost);
-            filterPosts();
-            renderFeed();
-            uploadVideo(newPost, blob, title, caption);
-            
-            stream.getTracks().forEach(track => track.stop());
-            recordedChunks = [];
-            recordModal.classList.remove('show');
           };
           
           mediaRecorder.start(1000); // Collect data every second
@@ -1575,6 +1574,27 @@ function openRecordModal() {
     });
 }
 
+// Helper function to get video duration
+function getVideoDuration(blob) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video metadata'));
+    };
+    
+    video.src = URL.createObjectURL(blob);
+  });
+}
+
+// FIXED handleFileUpload function
 async function handleFileUpload(e) {
   const file = e.target.files[0];
   const title = document.getElementById('uploadTitle').value.trim();
@@ -1592,19 +1612,11 @@ async function handleFileUpload(e) {
     return;
   }
 
-  // Check duration
-  const video = document.createElement('video');
-  video.src = URL.createObjectURL(file);
-  
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = reject;
-    });
-    
-    if (video.duration > 60) {
+    // Check duration using the helper function
+    const duration = await getVideoDuration(file);
+    if (duration > 60) {
       alert('Video must be 60 seconds or less');
-      URL.revokeObjectURL(video.src);
       return;
     }
     
@@ -1630,10 +1642,9 @@ async function handleFileUpload(e) {
     renderFeed();
     uploadVideo(newPost, file, title, caption);
     
-    URL.revokeObjectURL(video.src);
   } catch (error) {
     console.error('Error checking video duration:', error);
-    alert('Error processing video file');
+    alert('Error processing video file. Please try another file.');
   }
 }
 
@@ -1670,13 +1681,7 @@ async function uploadVideo(post, file, title, caption) {
       .from('Facts')
       .upload(path, file, { 
         cacheControl: '3600', 
-        upsert: false,
-        onUploadProgress: (progress) => {
-          const percent = (progress.loaded / progress.total) * 100;
-          post.uploadProgress = percent;
-          updateProgress(percent);
-          updatePostElement(post.id, post);
-        }
+        upsert: false
       });
 
     clearInterval(progressInterval);
