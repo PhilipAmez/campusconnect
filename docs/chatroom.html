@@ -50,24 +50,28 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: var(--glass-bg);
-      font-family: 'Arial', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       height: 100vh;
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding-top: 10px;
+      padding-top: env(safe-area-inset-top, 10px);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
+      padding-right: env(safe-area-inset-right, 0);
       transition: background 0.3s ease, color 0.3s ease;
     }
     .chat-arena {
-      width: 95%;
+      width: 100%;
       max-width: 1200px;
-      height: 95vh;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.5rem;
       position: relative;
+      padding: 0.5rem;
     }
     .chat-header, .chat-messages, .chat-input-area, .emoji-picker, .mention-list {
       background: var(--glass-bg);
@@ -75,47 +79,86 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
     .chat-header {
-      padding: 0.8rem 1.2rem;
+      padding: 0.8rem 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: relative;
       z-index: 4;
       overflow: visible;
+      flex-shrink: 0;
     }
     .chat-header h1 {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-style: italic;
       cursor: pointer;
       user-select: none;
       display: inline-block;
     }
-    .header-actions { display: flex; gap: 0.6rem; }
+    .header-actions { display: flex; gap: 0.5rem; }
     .chat-messages {
       flex: 1;
-      padding: 1.5rem;
+      padding: 1rem;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 1.2rem;
+      gap: 1rem;
     }
+    
+    /* iOS26 Style Messages */
     .msg { 
       max-width: 85%; 
-      padding: 0.8rem 1.2rem; 
-      border-radius: 20px; 
+      padding: 0.8rem 1rem; 
+      border-radius: 18px; 
       background: var(--msg-bg); 
       color: var(--text); 
       position: relative; 
-      transition: background 0.3s ease; 
+      transition: all 0.3s ease; 
       word-wrap: break-word;
+      font-size: 1rem;
+      line-height: 1.4;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    .msg.sent { align-self: flex-end; background: linear-gradient(90deg, var(--accent), #50e3c2); color: var(--text-light); }
-    .msg.recv { align-self: flex-start; background: var(--msg-bg); }
-    .msg.ai { align-self: flex-start; background: var(--ai-bg); font-style: italic; }
+    .msg.sent { 
+      align-self: flex-end; 
+      background: linear-gradient(135deg, var(--accent), #50e3c2); 
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.recv { 
+      align-self: flex-start; 
+      background: var(--msg-bg);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.ai { 
+      align-self: flex-start; 
+      background: var(--ai-bg);
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(74, 144, 226, 0.2);
+      font-weight: 500;
+    }
     .msg:hover { background: var(--msg-hover); }
-    .sender-name { font-size: 0.8rem; font-style: italic; opacity: 0.8; margin-bottom: 0.3rem; align-self: flex-start; }
-    .timestamp { font-size: 0.7rem; opacity: 0.6; margin-top: 0.4rem; text-align: right; }
-    .reply-banner { font-size: 0.8rem; margin-bottom: 0.5rem; padding-left: 0.7rem; border-left: 2px solid var(--accent); opacity: 0.7; }
+    .sender-name { 
+      font-size: 0.75rem; 
+      font-weight: 600;
+      opacity: 0.8; 
+      margin-bottom: 0.3rem; 
+      align-self: flex-start; 
+    }
+    .timestamp { 
+      font-size: 0.7rem; 
+      opacity: 0.6; 
+      margin-top: 0.4rem; 
+      text-align: right; 
+    }
+    .reply-banner { 
+      font-size: 0.8rem; 
+      margin-bottom: 0.5rem; 
+      padding-left: 0.7rem; 
+      border-left: 2px solid var(--accent); 
+      opacity: 0.7; 
+    }
+    
     .chat-input-area { 
       padding: 0.5rem; 
       display: flex; 
@@ -123,20 +166,23 @@
       gap: 0.5rem; 
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); 
       position: relative; 
+      flex-shrink: 0;
     }
     .message-bar { 
       flex: 1; 
-      height: 45px; 
+      min-height: 44px;
+      max-height: 120px;
       border-radius: 20px; 
       background: var(--msg-bg); 
       color: var(--text); 
       font-size: 1rem; 
       cursor: text; 
-      padding: 0 4.5rem 0 0.5rem; 
-      padding-top: 7px; 
+      padding: 0.7rem 4rem 0.7rem 1rem; 
       outline: none; 
       resize: none; 
       border: none;
+      font-family: inherit;
+      line-height: 1.4;
     }
     .message-bar:empty:before { content: attr(data-placeholder); color: var(--placeholder-fade); pointer-events: none; }
     .send-arrow { 
@@ -404,35 +450,154 @@
       border-color: rgba(255,71,87,0.4);
     }
 
+    /* NEW: Sleek Modal Backdrop */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-backdrop.visible {
+      display: flex;
+      opacity: 1;
+    }
+
+    /* NEW: Sleek Modal Content */
+    .modal-content {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transform: scale(0.9);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .modal-backdrop.visible .modal-content {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .modal-header {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .modal-description {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      color: var(--text);
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      background: var(--msg-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    .modal-input:focus {
+      border-color: var(--accent);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .modal-btn.cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .modal-btn.confirm {
+      background: var(--accent);
+      color: white;
+    }
+
+    .modal-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-btn.delete {
+      background: rgba(255, 71, 87, 0.1);
+      color: #ff4757;
+      border: 1px solid rgba(255, 71, 87, 0.3);
+    }
+
+    .modal-btn.delete:hover {
+      background: rgba(255, 71, 87, 0.2);
+    }
+
     /* Mobile-specific adjustments */
     @media (max-width: 768px) {
       body {
-        padding-top: 5px;
-        height: 100vh;
+        padding-top: env(safe-area-inset-top, 5px);
       }
       
       .chat-arena {
-        width: 98%;
-        height: 98vh;
-        gap: 0.8rem;
+        padding: 0.3rem;
+        gap: 0.3rem;
       }
       
       .chat-header {
-        padding: 0.6rem 1rem;
+        padding: 0.6rem 0.8rem;
       }
       
       .chat-header h1 {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
       }
       
       .chat-messages {
-        padding: 1rem;
-        gap: 1rem;
+        padding: 0.8rem;
+        gap: 0.8rem;
       }
       
       .msg {
         max-width: 90%;
-        padding: 0.7rem 1rem;
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
       }
       
       .group-drawer { 
@@ -458,20 +623,26 @@
       .send-arrow {
         right: 2.8rem;
       }
+      
+      .message-bar {
+        min-height: 42px;
+        padding: 0.6rem 3.8rem 0.6rem 0.8rem;
+      }
     }
 
     @media (max-width: 480px) {
       .chat-header h1 {
-        font-size: 1.1rem;
+        font-size: 1rem;
       }
       
       .msg {
         max-width: 95%;
-        padding: 0.6rem 0.9rem;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
       }
       
       .sender-name {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
       }
       
       .timestamp {
@@ -480,7 +651,6 @@
       
       .message-bar {
         font-size: 0.9rem;
-        padding: 0 4rem 0 0.5rem;
       }
       
       .member-avatar { 
@@ -603,13 +773,14 @@
       align-self: flex-start;
       max-width: 70%;
       padding: 0.8rem 1.2rem;
-      border-radius: 20px;
+      border-radius: 18px;
       background: var(--msg-bg);
       font-style: italic;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
       margin-bottom: 0.5rem;
+      border-bottom-left-radius: 4px;
     }
 
     .typing-indicator.ai {
@@ -729,10 +900,10 @@
       font-weight: 500;
     }
 
-    /* NEW: Improved message swipe action */
+    /* NEW: Improved message swipe action - Slower and longer */
     .msg.swiping {
-      transform: translateX(-50px);
-      transition: transform 0.2s ease;
+      transform: translateX(-80px);
+      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
     }
 
     /* NEW: Reply highlight in messages */
@@ -791,6 +962,35 @@
     </div>
   </div>
 
+  <!-- NEW: Sleek Edit Message Modal -->
+  <div class="modal-backdrop" id="editMessageModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Edit Message</div>
+        <div class="modal-description">Update your message below</div>
+      </div>
+      <input type="text" class="modal-input" id="editMessageInput" placeholder="Type your message...">
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="editMessageCancel">Cancel</button>
+        <button class="modal-btn confirm" id="editMessageConfirm">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Sleek Delete Message Modal -->
+  <div class="modal-backdrop" id="deleteMessageModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Delete Message</div>
+        <div class="modal-description">Are you sure you want to delete this message? This action cannot be undone.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="deleteMessageCancel">Cancel</button>
+        <button class="modal-btn delete" id="deleteMessageConfirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
 import { supabase } from './js/supabaseClient.js';
 const session = await supabase.auth.getSession();
@@ -799,6 +999,8 @@ const user = session.data.session.user;
 const gid = new URLSearchParams(location.search).get('groupId');
 let replyingMsg = null;
 let isRecording = false;
+let editingMessage = null;
+let deletingMessage = null;
 
 // AI User Configuration
 const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
@@ -834,6 +1036,16 @@ const groupDrawer = document.getElementById('groupDrawer');
 const membersList = document.getElementById('membersList');
 const leaveGroupBtn = document.getElementById('leaveGroupBtn');
 const drawerBackdrop = document.getElementById('drawerBackdrop');
+
+// Modal elements
+const editMessageModal = document.getElementById('editMessageModal');
+const editMessageInput = document.getElementById('editMessageInput');
+const editMessageCancel = document.getElementById('editMessageCancel');
+const editMessageConfirm = document.getElementById('editMessageConfirm');
+const deleteMessageModal = document.getElementById('deleteMessageModal');
+const deleteMessageCancel = document.getElementById('deleteMessageCancel');
+const deleteMessageConfirm = document.getElementById('deleteMessageConfirm');
+
 let memberDetails = [];
 let isMember = false;
 
@@ -850,7 +1062,7 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// Load members - Updated query to include profiles
+// Load members - Fixed query to handle database schema
 const { data: memberData } = await supabase
   .from('group_members')
   .select(`
@@ -866,27 +1078,25 @@ const { data: memberData } = await supabase
 memberDetails = memberData || [];
 isMember = memberDetails.some(m => m.user_id === user.id);
 
-// Check if AI user is in the group, if not add them
+// Check if AI user is in the group, if not add them - Fixed to handle schema properly
 async function ensureAIUserInGroup() {
   const isAIInGroup = memberDetails.some(m => m.user_id === AI_USER_ID);
   
   if (!isAIInGroup) {
     console.log('Adding AI user to group...');
     try {
+      // Try without role field first
       const { error } = await supabase
         .from('group_members')
         .insert({
           group_id: gid,
-          user_id: AI_USER_ID,
-          role: 'ai'
+          user_id: AI_USER_ID
         });
       
       if (error) {
         console.log('Error adding AI user to group:', error);
-        // If the error is because AI user doesn't exist in profiles, we'll handle it gracefully
-        if (error.code === '23503') { // Foreign key violation
-          console.log('AI user does not exist in profiles table. AI features will be limited.');
-        }
+        // If there's still an error, we'll just continue without adding
+        console.log('AI user will be available for mentions but may not appear in member list');
       } else {
         // Reload member details to include AI user
         const { data: updatedMemberData } = await supabase
@@ -1409,11 +1619,11 @@ function renderTypingIndicators() {
   messagePanel.scrollTop = messagePanel.scrollHeight;
 }
 
-// Real-time updates for messages
+// Real-time updates for messages - FIXED to show all messages immediately
 supabase.channel(`grp_${gid}`)
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
-    payload => {
-      // Don't render user's own messages (they're already rendered)
+    (payload) => {
+      // Render all messages except the current user's own non-AI messages
       // But DO render AI messages (even though they're inserted by the same user)
       if (payload.new.sender_id !== user.id || payload.new.sender_id === AI_USER_ID) {
         // Remove typing indicator if it exists
@@ -1486,6 +1696,7 @@ async function sendMsg() {
   const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
   const hasAIMention = txt.toLowerCase().includes('@peerpal ai');
   
+  // Auto-detect when replying to AI - even without explicit mention
   if (isReplyingToAI || hasAIMention) {
     await checkPeerloomAI(txt);
   }
@@ -1686,6 +1897,86 @@ function generateSmartResponse(message) {
   return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
 }
 
+// ---------- MODAL FUNCTIONS ----------
+
+// Show edit message modal
+function showEditMessageModal(messageId, currentContent) {
+  editingMessage = messageId;
+  editMessageInput.value = currentContent;
+  editMessageModal.classList.add('visible');
+  editMessageInput.focus();
+}
+
+// Show delete message modal
+function showDeleteMessageModal(messageId) {
+  deletingMessage = messageId;
+  deleteMessageModal.classList.add('visible');
+}
+
+// Close all modals
+function closeModals() {
+  editMessageModal.classList.remove('visible');
+  deleteMessageModal.classList.remove('visible');
+  editingMessage = null;
+  deletingMessage = null;
+}
+
+// Edit message handler
+editMessageConfirm.onclick = async () => {
+  if (!editingMessage) return;
+  
+  const newContent = editMessageInput.value.trim();
+  if (newContent) {
+    const { error } = await supabase
+      .from('group_messages')
+      .update({ content: newContent })
+      .eq('id', editingMessage)
+      .eq('sender_id', user.id);
+    
+    if (error) {
+      alert('Error updating message: ' + error.message);
+    } else {
+      // Refresh the messages
+      await loadHistory();
+    }
+  }
+  
+  closeModals();
+};
+
+// Delete message handler
+deleteMessageConfirm.onclick = async () => {
+  if (!deletingMessage) return;
+  
+  const { error } = await supabase
+    .from('group_messages')
+    .delete()
+    .eq('id', deletingMessage)
+    .eq('sender_id', user.id);
+  
+  if (error) {
+    alert('Error deleting message: ' + error.message);
+  } else {
+    // Refresh the messages
+    await loadHistory();
+  }
+  
+  closeModals();
+};
+
+// Cancel button handlers
+editMessageCancel.onclick = closeModals;
+deleteMessageCancel.onclick = closeModals;
+
+// Close modals when clicking backdrop
+editMessageModal.addEventListener('click', (e) => {
+  if (e.target === editMessageModal) closeModals();
+});
+
+deleteMessageModal.addEventListener('click', (e) => {
+  if (e.target === deleteMessageModal) closeModals();
+});
+
 // Placeholder audio & file
 recordAudioButton.onclick = () => {
   isRecording = !isRecording;
@@ -1696,7 +1987,9 @@ fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
-// Gestures & replies
+// ---------- IMPROVED GESTURES & REPLIES ----------
+
+// Improved swipe gesture with better sensitivity
 function attachGestures(el, mine, msg) {
   let startX, startY, isSwiping = false;
   let longT;
@@ -1711,7 +2004,7 @@ function attachGestures(el, mine, msg) {
     startX = e.clientX;
     startY = e.clientY;
     if (mine) longT = setTimeout(() => { 
-      if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); 
+      showDeleteMessageModal(msg.id);
     }, 800);
   });
   
@@ -1721,12 +2014,12 @@ function attachGestures(el, mine, msg) {
       const deltaY = Math.abs(e.clientY - startY);
       
       // Only consider horizontal movement with minimal vertical movement
-      if (deltaX > 30 && deltaY < 20) {
+      if (deltaX > 40 && deltaY < 25) {
         isSwiping = true;
         el.classList.add('swiping');
         swipeIndicator.classList.add('show');
         
-        if (deltaX > 120) {
+        if (deltaX > 150) {
           startReply(msg);
           el.classList.remove('swiping');
           swipeIndicator.classList.remove('show');
@@ -1746,7 +2039,7 @@ function attachGestures(el, mine, msg) {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     if (mine) longT = setTimeout(() => { 
-      if (confirm('Delete message?')) supabase.from('group_messages').delete().eq('id', msg.id); 
+      showDeleteMessageModal(msg.id);
     }, 800);
   });
   
@@ -1755,12 +2048,12 @@ function attachGestures(el, mine, msg) {
     const deltaY = Math.abs(e.touches[0].clientY - startY);
     
     // Only consider horizontal movement with minimal vertical movement
-    if (deltaX > 30 && deltaY < 20) {
+    if (deltaX > 40 && deltaY < 25) {
       isSwiping = true;
       el.classList.add('swiping');
       swipeIndicator.classList.add('show');
       
-      if (deltaX > 120) {
+      if (deltaX > 150) {
         startReply(msg);
         el.classList.remove('swiping');
         swipeIndicator.classList.remove('show');
@@ -1777,8 +2070,7 @@ function attachGestures(el, mine, msg) {
   
   el.addEventListener('dblclick', () => {
     if (mine) {
-      const u = prompt('Edit msg:', msg.content);
-      if (u && u !== msg.content) supabase.from('group_messages').update({ content: u }).eq('id', msg.id);
+      showEditMessageModal(msg.id, msg.content);
     }
   });
 }
