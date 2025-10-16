@@ -21,8 +21,8 @@
       --msg-hover-light: rgba(0, 0, 0, 0.15);
       --msg-hover-dark: rgba(255, 255, 255, 0.15);
       --accent: #4a90e2;
-      --ai-bg-light: rgba(0, 102, 255, 0.1);
-      --ai-bg-dark: rgba(0, 102, 255, 0.15);
+      --ai-bg-light: rgba(0, 102, 255, 0.2);
+      --ai-bg-dark: rgba(0, 102, 255, 0.25);
       --circle-bg-dark: rgba(255, 255, 255, 0.2);
       --placeholder-fade: rgba(0, 0, 0, 0.3);
       --gloss-red: rgba(255,71,87,0.14);
@@ -33,7 +33,7 @@
       --text: #f1f1f1;
       --msg-bg: rgba(40, 42, 54, 0.98);
       --msg-hover: rgba(60, 62, 74, 1);
-      --ai-bg: rgba(0, 102, 255, 0.18);
+      --ai-bg: var(--ai-bg-dark);
       --circle-bg: rgba(30, 32, 38, 0.98);
       --placeholder-fade: rgba(200, 200, 200, 0.3);
       --gloss-red: rgba(255,71,87,0.12);
@@ -121,7 +121,7 @@
       margin-bottom: 0;
     }
     
-    /* iOS26 Style Messages */
+    /* iOS26 Style Messages - FIXED AI BUBBLE VISIBILITY */
     .msg { 
       max-width: 85%; 
       padding: 0.8rem 1rem; 
@@ -156,8 +156,9 @@
       align-self: flex-start; 
       background: var(--ai-bg);
       border-bottom-left-radius: 4px;
-      border: 1px solid rgba(74, 144, 226, 0.2);
+      border: 1px solid rgba(74, 144, 226, 0.3);
       font-weight: 500;
+      color: var(--text);
     }
     
     .msg:hover { background: var(--msg-hover); }
@@ -610,6 +611,44 @@
       background: rgba(255, 71, 87, 0.2);
     }
 
+    /* Desktop view improvements */
+    @media (min-width: 769px) {
+      body {
+        padding: 20px;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .chat-arena {
+        max-width: 800px;
+        height: 95vh;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      }
+      
+      .chat-header, .chat-messages, .chat-input-area {
+        margin: 0.8rem;
+      }
+      
+      .chat-messages {
+        padding: 1.5rem;
+      }
+      
+      .msg {
+        max-width: 70%;
+      }
+      
+      .group-drawer {
+        max-width: 600px;
+        height: 0;
+      }
+      
+      .group-drawer.open {
+        height: 70vh;
+      }
+    }
+
     /* Mobile-specific adjustments */
     @media (max-width: 768px) {
       body {
@@ -946,7 +985,7 @@
       font-weight: 500;
     }
 
-    /* NEW: Improved message swipe action - Slower and longer */
+    /* NEW: Improved message swipe action - Fixed swipe behavior */
     .msg.swiping {
       transform: translateX(-80px);
       transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -1667,12 +1706,11 @@ function renderTypingIndicators() {
   messagePanel.scrollTop = messagePanel.scrollHeight;
 }
 
-// Real-time updates for messages - FIXED to show all messages immediately
+// FIXED: Real-time updates for messages - Now renders all messages immediately
 supabase.channel(`grp_${gid}`)
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
     (payload) => {
-      // Render all messages except the current user's own non-AI messages
-      // But DO render AI messages (even though they're inserted by the same user)
+      // Render all messages immediately, including AI messages
       if (payload.new.sender_id !== user.id || payload.new.sender_id === AI_USER_ID) {
         // Remove typing indicator if it exists
         hideAITypingIndicator();
@@ -2035,9 +2073,9 @@ fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
-// ---------- IMPROVED GESTURES & REPLIES ----------
+// ---------- FIXED SWIPE GESTURES & REPLIES ----------
 
-// Improved swipe gesture with better sensitivity
+// Improved swipe gesture with better sensitivity and reliability
 function attachGestures(el, mine, msg) {
   let startX, startY, isSwiping = false;
   let longT;
@@ -2054,6 +2092,7 @@ function attachGestures(el, mine, msg) {
     startX = x;
     startY = y;
     swipeStartTime = Date.now();
+    isSwiping = false;
     
     if (mine) {
       longT = setTimeout(() => { 
@@ -2073,17 +2112,19 @@ function attachGestures(el, mine, msg) {
     }
     
     // Only consider horizontal movement with minimal vertical movement
-    if (deltaX > 20 && deltaY < 30) {
+    if (deltaX > 15 && deltaY < 50 && !isSwiping) {
       isSwiping = true;
       el.classList.add('swiping');
       swipeIndicator.classList.add('show');
-      
+    }
+    
+    if (isSwiping) {
       // Calculate swipe progress (0 to 1)
-      const swipeProgress = Math.min(deltaX / 150, 1);
+      const swipeProgress = Math.min(deltaX / 120, 1);
       const translateX = -80 * swipeProgress;
       el.style.transform = `translateX(${translateX}px)`;
       
-      if (deltaX > 150) {
+      if (deltaX > 120) {
         startReply(msg);
         resetSwipe(el, swipeIndicator);
       }
@@ -2119,16 +2160,21 @@ function attachGestures(el, mine, msg) {
   el.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return; // Only left click
     handleStart(e.clientX, e.clientY);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   });
   
-  el.addEventListener('mousemove', (e) => {
-    if (e.buttons === 1 && isSwiping) {
+  function handleMouseMove(e) {
+    if (isSwiping || Math.abs(e.clientX - startX) > 10) {
       handleMove(e.clientX, e.clientY);
     }
-  });
+  }
   
-  el.addEventListener('mouseup', handleEnd);
-  el.addEventListener('mouseleave', handleEnd);
+  function handleMouseUp() {
+    handleEnd();
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }
   
   // Touch events
   el.addEventListener('touchstart', (e) => {
@@ -2136,7 +2182,7 @@ function attachGestures(el, mine, msg) {
   });
   
   el.addEventListener('touchmove', (e) => {
-    if (isSwiping) {
+    if (isSwiping || Math.abs(e.touches[0].clientX - startX) > 10) {
       handleMove(e.touches[0].clientX, e.touches[0].clientY);
     }
   });
