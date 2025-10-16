@@ -1160,48 +1160,62 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// FIXED: Load members with better query and error handling
+// FIXED: Load members with proper profile data and names
 async function loadMembers() {
   try {
     console.log('Loading members for group:', gid);
     
-    // First try to get members with profiles
-    const { data: memberData, error } = await supabase
+    // First get group members with user IDs
+    const { data: groupMembers, error: gmError } = await supabase
       .from('group_members')
-      .select(`
-        user_id,
-        profiles:user_id (
-          id,
-          username,
-          full_name,
-          avatar_url
-        )
-      `)
+      .select('user_id')
       .eq('group_id', gid);
     
-    if (error) {
-      console.error('Error loading members with profiles:', error);
-      
-      // Fallback: try without profiles relation
-      const { data: simpleMemberData, error: simpleError } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', gid);
-      
-      if (simpleError) {
-        console.error('Error loading simple members:', simpleError);
-        memberDetails = [];
-      } else {
-        console.log('Loaded simple members:', simpleMemberData);
-        memberDetails = simpleMemberData || [];
-      }
+    if (gmError) {
+      console.error('Error loading group members:', gmError);
+      memberDetails = [];
+      return;
+    }
+    
+    console.log('Group members found:', groupMembers);
+    
+    if (!groupMembers || groupMembers.length === 0) {
+      memberDetails = [];
+      return;
+    }
+    
+    // Extract user IDs
+    const userIds = groupMembers.map(member => member.user_id);
+    console.log('User IDs to fetch:', userIds);
+    
+    // Fetch user profiles with proper error handling
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error('Error loading profiles:', profilesError);
+      // Fallback: create basic member info from user IDs
+      memberDetails = groupMembers.map(member => ({
+        user_id: member.user_id,
+        profiles: null
+      }));
     } else {
-      console.log('Loaded members with profiles:', memberData);
-      memberDetails = memberData || [];
+      console.log('Profiles loaded:', profiles);
+      
+      // Combine group members with their profiles
+      memberDetails = groupMembers.map(member => {
+        const profile = profiles.find(p => p.id === member.user_id);
+        return {
+          user_id: member.user_id,
+          profiles: profile || null
+        };
+      });
     }
     
     isMember = memberDetails.some(m => m.user_id === user.id);
-    console.log('Is current user a member?', isMember);
+    console.log('Final member details:', memberDetails);
     
   } catch (err) {
     console.error('Unexpected error loading members:', err);
@@ -1266,6 +1280,21 @@ const createDefaultAvatar = (name) => {
   return canvas.toDataURL();
 };
 
+// FIXED: Get proper display name for users
+function getDisplayName(member) {
+  if (member.user_id === AI_USER_ID) {
+    return AI_USER_NAME;
+  }
+  
+  if (member.profiles) {
+    // Try full_name first, then username
+    return member.profiles.full_name || member.profiles.username || `User ${member.user_id.substring(0,6)}`;
+  }
+  
+  // Fallback to user ID
+  return `User ${member.user_id.substring(0,6)}`;
+}
+
 // Initialize mention system
 function initMentionSystem() {
   // Build mention users list with PeerPal AI always first
@@ -1283,23 +1312,15 @@ function initMentionSystem() {
   if (memberDetails && memberDetails.length > 0) {
     memberDetails.forEach(member => {
       if (member.user_id !== AI_USER_ID) {
-        let name, username;
-        
-        if (member.profiles) {
-          const profile = member.profiles;
-          name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
-        } else {
-          name = `User ${member.user_id.substring(0,6)}`;
-        }
-        
-        username = `@${name}`;
+        const displayName = getDisplayName(member);
+        const username = `@${displayName}`;
         
         mentionUsers.push({
           id: member.user_id,
-          name: name,
+          name: displayName,
           username: username,
           isAI: false,
-          avatar: member.profiles?.avatar_url || createDefaultAvatar(name)
+          avatar: member.profiles?.avatar_url || createDefaultAvatar(displayName)
         });
       }
     });
@@ -1493,14 +1514,14 @@ function handleAIMentionClick(userId) {
 
 // ---------- CLEAN TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 
-// FIXED: Render members in the transparent glass list - better error handling
+// FIXED: Render members with proper names and avatars
 function renderMembers() {
   membersList.innerHTML = '';
   
   if (!memberDetails || memberDetails.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'member-item';
-    empty.innerHTML = `<div class="member-name">No members found</div>`;
+    empty.innerHTML = `<div class="member-name">No members found in this group</div>`;
     membersList.appendChild(empty);
     return;
   }
@@ -1508,27 +1529,22 @@ function renderMembers() {
   console.log('Rendering members:', memberDetails);
 
   memberDetails.forEach(member => {
-    let name, avatarUrl, isAI = false;
+    const displayName = getDisplayName(member);
+    const isAI = member.user_id === AI_USER_ID;
     
-    if (member.user_id === AI_USER_ID) {
-      name = AI_USER_NAME;
+    let avatarUrl;
+    if (isAI) {
       avatarUrl = createDefaultAvatar('AI');
-      isAI = true;
-    } else if (member.profiles) {
-      const profile = member.profiles;
-      name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
-      avatarUrl = profile.avatar_url || createDefaultAvatar(name);
     } else {
-      name = `User ${member.user_id.substring(0,6)}`;
-      avatarUrl = createDefaultAvatar(name);
+      avatarUrl = member.profiles?.avatar_url || createDefaultAvatar(displayName);
     }
 
     const item = document.createElement('div');
     item.className = `member-item ${isAI ? 'ai-member' : ''}`;
     item.innerHTML = `
-      <img src="${avatarUrl}" class="member-avatar" alt="${name}">
+      <img src="${avatarUrl}" class="member-avatar" alt="${displayName}">
       <div class="member-info">
-        <div class="member-name">${name}</div>
+        <div class="member-name">${displayName}</div>
         <div class="member-role">${isAI ? 'AI Assistant' : 'Member'}</div>
       </div>
       <div class="member-status ${isAI ? 'ai' : ''}"></div>
@@ -1607,8 +1623,23 @@ document.addEventListener('click', (e) => {
 function render(m) {
   const mine = m.sender_id === user.id;
   const isAI = m.sender_id === AI_USER_ID;
-  const senderName = mine ? (user.user_metadata.firstName || user.user_metadata.full_name || 'You') : 
-                    isAI ? AI_USER_NAME : m.sender_name || 'Unknown';
+  
+  // FIXED: Get proper sender name from member details or message data
+  let senderName;
+  if (mine) {
+    senderName = user.user_metadata.firstName || user.user_metadata.full_name || 'You';
+  } else if (isAI) {
+    senderName = AI_USER_NAME;
+  } else {
+    // Try to find the sender in member details
+    const senderMember = memberDetails.find(member => member.user_id === m.sender_id);
+    if (senderMember) {
+      senderName = getDisplayName(senderMember);
+    } else {
+      // Fallback to message data or user ID
+      senderName = m.sender_name || `User ${m.sender_id.substring(0,6)}`;
+    }
+  }
   
   const div = document.createElement('div');
   div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
