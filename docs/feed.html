@@ -337,6 +337,14 @@
     background: rgba(255,255,255,0.1); 
     border: 1px solid rgba(255,255,255,0.2);
   }
+  .auth-btn.provider {
+    background: #4285f4;
+  }
+  .auth-btn.provider.secondary {
+    background: #fff;
+    color: #4285f4;
+    border-color: #4285f4;
+  }
 
   #recordModal {
     position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 70;
@@ -425,6 +433,16 @@
     50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   }
+
+  .error-placeholder {
+    width: 100%; height: 100%; background: rgba(0,0,0,0.8); 
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #ff6b6b; font-size: 14px; text-align: center; padding: 20px;
+  }
+  .error-retry { 
+    margin-top: 10px; padding: 8px 16px; background: var(--accent); 
+    color: white; border: none; border-radius: 20px; cursor: pointer; 
+  }
 </style>
 </head>
 <body>
@@ -454,8 +472,9 @@
       <div class="auth-title">Join Skrolz</div>
       <div class="auth-subtitle">Sign in to create and interact with posts</div>
       <div class="auth-buttons">
-        <button class="auth-btn" id="signInBtn">Sign In</button>
-        <button class="auth-btn secondary" id="signUpBtn">Sign Up</button>
+        <button class="auth-btn provider" id="googleSignIn">Sign in with Google</button>
+        <button class="auth-btn" id="emailSignIn">Sign In with Email</button>
+        <button class="auth-btn secondary" id="signUpBtn">Create Account</button>
       </div>
     </div>
   </div>
@@ -536,11 +555,15 @@ async function initApp() {
     console.log('Skrolz initialized successfully');
   } catch (error) {
     console.error('Failed to initialize app:', error);
+    showAuthModal('Initialization failed. Please sign in.');
   }
 }
 
-// Auth Modal Management
-function showAuthModal() {
+// FIXED: Auth Modal Management with session timeout handling
+async function showAuthModal(reason = 'Please sign in to continue') {
+  // Update subtitle with reason
+  const subtitleEl = authModal.querySelector('.auth-subtitle');
+  subtitleEl.textContent = reason;
   authModal.classList.add('show');
 }
 
@@ -548,7 +571,65 @@ function hideAuthModal() {
   authModal.classList.remove('show');
 }
 
-// Like Manager with proper Supabase integration
+// FIXED: Enhanced session management with timeout detection
+async function setupAuthListener() {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth state changed:', event, !!session);
+    
+    await updateSessionInfo();
+    
+    // Show auth modal on sign out or token refresh failure
+    if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+      showAuthModal('Session expired. Please sign in again.');
+      // Clear auth-required posts
+      posts = posts.filter(post => !post.owner && !post.liked);
+      renderFeed();
+    }
+    
+    if (event === 'SIGNED_IN') {
+      hideAuthModal();
+      await loadInitialPosts();
+      renderFeed();
+    }
+  });
+
+  // Check initial session state
+  const session = await updateSessionInfo();
+  if (!session) {
+    showAuthModal('Welcome! Please sign in to use Skrolz.');
+  }
+}
+
+// FIXED: Robust session info update
+async function updateSessionInfo() {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    const sessionInfoEl = document.getElementById('sessionInfo');
+    const userAvatar = document.getElementById('userAvatar');
+    
+    if (error || !session) {
+      userAvatar.textContent = '?';
+      sessionInfoEl.innerHTML = '<div class="avatar">?</div>';
+      return null;
+    }
+    
+    const u = session.user;
+    const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email?.split('@')[0] || u.id?.slice(0, 2);
+    const initial = name.charAt(0).toUpperCase();
+    
+    userAvatar.textContent = initial;
+    sessionInfoEl.innerHTML = `<div class="avatar">${initial}</div>`;
+    
+    return session;
+  } catch (err) {
+    console.error('updateSessionInfo error', err);
+    document.getElementById('userAvatar').textContent = '!';
+    return null;
+  }
+}
+
+// Like Manager with proper auth checks
 class LikeManager {
   constructor() {
     this.init();
@@ -558,7 +639,10 @@ class LikeManager {
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('like-btn')) {
         e.stopPropagation();
-        this.handleLike(e.target);
+        this.handleLike(e.target).catch(err => {
+          console.error('Like error:', err);
+          showAuthModal('Please sign in to like posts');
+        });
       }
     });
   }
@@ -575,12 +659,11 @@ class LikeManager {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        showAuthModal();
+        showAuthModal('Please sign in to like posts');
         return;
       }
 
       if (isLiked) {
-        // Unlike
         const { error } = await supabase
           .from('likes')
           .delete()
@@ -591,13 +674,10 @@ class LikeManager {
           button.classList.remove('liked');
           post.liked = false;
           post.likes = Math.max(0, (post.likes || 1) - 1);
-          likeCountEl.textContent = post.likes;
+          if (likeCountEl) likeCountEl.textContent = post.likes;
           updatePostElement(postId, post);
-        } else {
-          console.error('Error unliking post:', error);
         }
       } else {
-        // Like
         const { error } = await supabase
           .from('likes')
           .insert({
@@ -609,62 +689,27 @@ class LikeManager {
           button.classList.add('liked');
           post.liked = true;
           post.likes = (post.likes || 0) + 1;
-          likeCountEl.textContent = post.likes;
+          if (likeCountEl) likeCountEl.textContent = post.likes;
           showBlueHeart(postEl);
           updatePostElement(postId, post);
-        } else {
-          console.error('Error liking post:', error);
         }
       }
     } catch (error) {
       console.error('Like error:', error);
+      showAuthModal('Authentication required for liking');
     }
   }
 }
 
 const likeManager = new LikeManager();
 
-// Avatar and session management
-const sessionInfoEl = document.getElementById('sessionInfo');
-const userAvatar = document.getElementById('userAvatar');
-
-async function updateSessionInfo() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      sessionInfoEl.innerHTML = '<div class="avatar">?</div>';
-      return null;
-    }
-    const u = session.user;
-    const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email || u.id;
-    const initial = name.charAt(0).toUpperCase();
-    userAvatar.textContent = initial;
-    sessionInfoEl.innerHTML = `<div class="avatar">${initial}</div>`;
-    return session;
-  } catch (err) {
-    console.error('updateSessionInfo error', err);
-    sessionInfoEl.innerHTML = '<div class="avatar">!</div>';
-    return null;
-  }
-}
-
-function setupAuthListener() {
-  supabase.auth.onAuthStateChange((event, session) => {
-    updateSessionInfo().catch(() => {});
-    if (event === 'SIGNED_OUT') {
-      showAuthModal();
-    }
-  });
-}
-
-// Post loading with proper like handling
+// FIXED: Post loading with video error handling
 async function loadInitialPosts(limit = 10) {
   try {
     await updateSessionInfo();
     const { data: { session } } = await supabase.auth.getSession();
     const currentUserId = session?.user?.id || null;
 
-    // Load posts from Supabase
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -687,33 +732,48 @@ async function loadInitialPosts(limit = 10) {
     }
 
     if (data && data.length > 0) {
-      // Load likes for each post
       const postsWithLikes = await Promise.all(data.map(async (post) => {
-        // Get like count and user like status
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
+        try {
+          const { data: likesData } = await supabase
+            .from('likes')
+            .select('user_id')
+            .eq('post_id', post.id);
+          
+          const userLiked = currentUserId ? 
+            likesData?.some(like => like.user_id === currentUserId) || false : false;
+          
+          // Check video accessibility
+          let videoError = false;
+          if (post.video_url) {
+            try {
+              const response = await fetch(post.video_url, { method: 'HEAD', mode: 'no-cors' });
+              // For no-cors, we can't check status, so assume accessible for now
+            } catch (e) {
+              videoError = true;
+            }
+          }
         
-        const userLiked = currentUserId ? 
-          likesData?.some(like => like.user_id === currentUserId) || false : false;
-        
-        return {
-          id: post.id,
-          user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
-          title: post.title || 'Untitled',
-          caption: post.caption || '',
-          src: post.video_url,
-          likes: likesData?.length || post.likes_count || 0,
-          comments: [],
-          liked: userLiked,
-          uploading: false,
-          owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
-        };
+          return {
+            id: post.id,
+            user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
+            title: post.title || 'Untitled',
+            caption: post.caption || '',
+            src: post.video_url,
+            videoError,
+            likes: likesData?.length || post.likes_count || 0,
+            comments: [],
+            liked: userLiked,
+            uploading: false,
+            owner: currentUserId && post.author_id === currentUserId,
+            paused: false,
+          };
+        } catch (postError) {
+          console.error(`Error processing post ${post.id}:`, postError);
+          return null;
+        }
       }));
 
-      allPosts = postsWithLikes;
+      allPosts = postsWithLikes.filter(p => p !== null);
       posts = [...allPosts];
       console.log(`Loaded ${posts.length} posts from Supabase`);
     } else {
@@ -721,6 +781,7 @@ async function loadInitialPosts(limit = 10) {
     }
   } catch (err) {
     console.error('Error loading initial posts:', err);
+    showAuthModal('Failed to load posts. Please sign in.');
     loadMockData();
   }
 }
@@ -734,6 +795,7 @@ function loadMockData() {
       title: 'Sunset Vibes 🌅',
       caption: 'Chasing golden hour never gets old',
       src: '',
+      videoError: false,
       likes: 42,
       comments: ['So beautiful!', 'Where was this taken?'],
       liked: false,
@@ -747,6 +809,7 @@ function loadMockData() {
       title: 'Coding Session',
       caption: 'Late night coding with some lo-fi beats',
       src: '',
+      videoError: false,
       likes: 18,
       comments: ['What language is this?', 'Great setup!'],
       liked: false,
@@ -760,6 +823,7 @@ function loadMockData() {
       title: 'Mountain Hike',
       caption: 'The view from the top was worth every step',
       src: '',
+      videoError: false,
       likes: 156,
       comments: ['Amazing view!', 'Which mountain is this?'],
       liked: false,
@@ -771,7 +835,7 @@ function loadMockData() {
   posts = [...allPosts];
 }
 
-// Search functionality
+// FIXED: Search and event listeners with auth checks
 const searchBar = document.getElementById('searchBar');
 
 function setupEventListeners() {
@@ -781,27 +845,69 @@ function setupEventListeners() {
     renderFeed();
   }, 300));
 
-  document.getElementById('fab').addEventListener('click', () => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        openUploadModal();
-      } else {
-        showAuthModal();
+  document.getElementById('fab').addEventListener('click', async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      openUploadModal();
+    } else {
+      showAuthModal('Please sign in to create posts');
+    }
+  });
+
+  // FIXED: Proper Supabase authentication implementation
+  document.getElementById('googleSignIn').addEventListener('click', async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      hideAuthModal();
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      alert('Google sign in failed: ' + error.message);
+    }
+  });
+
+  document.getElementById('emailSignIn').addEventListener('click', async () => {
+    const email = prompt('Enter your email:');
+    const password = prompt('Enter your password:');
+    if (email && password) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password 
+        });
+        if (error) throw error;
+        hideAuthModal();
+      } catch (error) {
+        console.error('Email sign in error:', error);
+        alert('Sign in failed: ' + error.message);
       }
-    });
+    }
   });
 
-  // Auth modal buttons
-  document.getElementById('signInBtn').addEventListener('click', () => {
-    // Implement sign in logic here
-    hideAuthModal();
-    console.log('Sign in clicked');
-  });
-
-  document.getElementById('signUpBtn').addEventListener('click', () => {
-    // Implement sign up logic here
-    hideAuthModal();
-    console.log('Sign up clicked');
+  document.getElementById('signUpBtn').addEventListener('click', async () => {
+    const email = prompt('Enter your email:');
+    const password = prompt('Enter a password (6+ characters):');
+    if (email && password && password.length >= 6) {
+      try {
+        const { data, error } = await supabase.auth.signUp({ 
+          email, 
+          password 
+        });
+        if (error) throw error;
+        alert('Check your email for confirmation link!');
+        hideAuthModal();
+      } catch (error) {
+        console.error('Sign up error:', error);
+        alert('Sign up failed: ' + error.message);
+      }
+    } else if (password && password.length < 6) {
+      alert('Password must be at least 6 characters');
+    }
   });
 
   setupThemeSwipe();
@@ -831,7 +937,7 @@ function filterPosts() {
   }
 }
 
-// Feed rendering with videos
+// FIXED: Feed rendering with video error handling
 function renderFeed() {
   if (!feed) return;
 
@@ -847,7 +953,7 @@ function renderFeed() {
   if (posts.length === 0) {
     feedContent.innerHTML = `
       <div style="color: var(--muted); text-align: center; padding: 50px;">
-        ${searchQuery ? 'No posts found' : 'No posts available'}
+        ${searchQuery ? 'No posts found' : 'No posts available. Sign in to see content!'}
       </div>
     `;
     return;
@@ -863,29 +969,43 @@ function renderFeed() {
   setupInfiniteScroll();
 }
 
+// FIXED: Post element creation with video error fallback
 function createPostElement(post, index) {
   const postEl = document.createElement('article');
   postEl.className = `post ${post.paused ? 'paused' : ''} ${post.uploading ? 'uploading' : ''}`;
   postEl.dataset.id = post.id;
   postEl.dataset.index = index;
   
-  postEl.innerHTML = `
-    <div class="post-inner">
-      ${post.uploading ? `<div class="upload-progress"><div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div></div>` : ''}
-      
-      <!-- Video Element -->
+  // Video content with error handling
+  let videoContent;
+  if (post.videoError || !post.src) {
+    videoContent = `
+      <div class="error-placeholder">
+        <div>⚠ ${post.videoError ? 'Video unavailable' : 'No video'}</div>
+        <button class="error-retry" onclick="window.retryPost('${post.id}')">Retry Load</button>
+      </div>
+    `;
+  } else {
+    videoContent = `
       <video 
         playsinline 
-        ${!post.paused ? 'autoplay' : ''} 
+        ${!post.paused ? 'autoplay muted' : 'muted'} 
         loop 
         preload="metadata" 
         crossorigin="anonymous"
         oncontextmenu="return false;"
+        onerror="window.handleVideoError(this.parentElement, '${post.id}')"
         style="width: 100%; height: 100%; object-fit: cover;"
       >
-        ${post.src ? `<source src="${post.src}" type="video/mp4">` : ''}
+        <source src="${post.src}" type="video/mp4">
       </video>
-      
+    `;
+  }
+  
+  postEl.innerHTML = `
+    <div class="post-inner">
+      ${post.uploading ? `<div class="upload-progress"><div class="upload-progress-bar" style="width: ${post.uploadProgress || 0}%"></div></div>` : ''}
+      ${videoContent}
       <div class="blue-heart">♥</div>
       <div class="play-overlay"><div class="play-icon">▶</div></div>
       <div class="overlay">
@@ -903,7 +1023,6 @@ function createPostElement(post, index) {
           '<button class="btn comment-open" title="Comments">💬</button><button class="btn share-btn" title="Share">↗️</button>'
         }
       </div>
-      
       ${!post.owner ? `
       <div class="drawer" aria-hidden="true">
         <div class="drawer-inner">
@@ -924,6 +1043,33 @@ function createPostElement(post, index) {
   return postEl;
 }
 
+// FIXED: Global video error handlers
+window.handleVideoError = function(postInner, postId) {
+  console.error('Video load failed for post:', postId);
+  const post = allPosts.find(p => p.id === postId);
+  if (post) {
+    post.videoError = true;
+    postInner.innerHTML = `
+      <div class="error-placeholder">
+        <div>⚠ Video failed to load</div>
+        <button class="error-retry" onclick="window.retryPost('${postId}')">Retry</button>
+      </div>
+      ${postInner.querySelector('.overlay')?.outerHTML || ''}
+      ${postInner.querySelector('.icons')?.outerHTML || ''}
+      ${postInner.querySelector('.blue-heart')?.outerHTML || ''}
+    `;
+  }
+};
+
+window.retryPost = async function(postId) {
+  const post = allPosts.find(p => p.id === postId);
+  if (post) {
+    post.videoError = false;
+    await loadInitialPosts();
+    renderFeed();
+  }
+};
+
 function attachPostBehavior(postEl, postData) {
   const video = postEl.querySelector('video');
   const likeBtn = postEl.querySelector('.like-btn');
@@ -931,26 +1077,20 @@ function attachPostBehavior(postEl, postData) {
   const commentOpen = postEl.querySelector('.comment-open');
   const shareBtn = postEl.querySelector('.share-btn');
 
-  // Load video source if available and ensure it's playable
-  if (postData.src && video) {
+  // Load video source if available
+  if (postData.src && video && !postData.videoError) {
     const source = video.querySelector('source');
     if (source) {
       source.src = postData.src;
-      video.load().then(() => {
-        // Ensure video can play after load
-        if (!postData.paused) {
-          video.play().catch(e => {
-            console.log('Video play failed:', e);
-            postEl.classList.add('paused');
-          });
-        }
-      }).catch(e => {
+      video.load().catch(e => {
         console.error('Video load error:', e);
+        postData.videoError = true;
+        handleVideoError(video.parentElement, postData.id);
       });
     }
   }
 
-  // Single tap to pause/play
+  // Single/double tap handling
   let tapCount = 0;
   let tapTimer;
 
@@ -961,43 +1101,45 @@ function attachPostBehavior(postEl, postData) {
     
     if (tapCount === 1) {
       tapTimer = setTimeout(() => {
-        // Single tap - toggle play/pause
-        if (video.paused) {
-          video.play().catch(console.error);
-          postData.paused = false;
-        } else {
-          video.pause();
-          postData.paused = true;
+        if (video && !postData.videoError) {
+          if (video.paused) {
+            video.play().catch(console.error);
+            postData.paused = false;
+          } else {
+            video.pause();
+            postData.paused = true;
+          }
+          postEl.classList.toggle('paused');
         }
-        postEl.classList.toggle('paused');
         tapCount = 0;
       }, 300);
     } else if (tapCount === 2) {
       clearTimeout(tapTimer);
-      // Double tap - like
-      if (!postData.liked) {
+      if (!postData.liked && likeBtn) {
         likeManager.handleLike(likeBtn);
       }
       tapCount = 0;
     }
   });
 
-  // Like button
-  likeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    likeManager.handleLike(likeBtn);
-  });
+  if (likeBtn) {
+    likeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      likeManager.handleLike(likeBtn);
+    });
+  }
 
-  // Delete post
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (confirm('Delete this post permanently?')) {
         try {
-          await supabase.from('posts').delete().eq('id', postData.id);
-          allPosts = allPosts.filter(p => p.id !== postData.id);
-          posts = posts.filter(p => p.id !== postData.id);
-          postEl.remove();
+          const { error } = await supabase.from('posts').delete().eq('id', postData.id);
+          if (!error) {
+            allPosts = allPosts.filter(p => p.id !== postData.id);
+            posts = posts.filter(p => p.id !== postData.id);
+            postEl.remove();
+          }
         } catch (error) {
           console.error('Error deleting post:', error);
           alert('Error deleting post');
@@ -1006,7 +1148,6 @@ function attachPostBehavior(postEl, postData) {
     });
   }
 
-  // Share post
   if (shareBtn) {
     shareBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1019,13 +1160,12 @@ function attachPostBehavior(postEl, postData) {
         });
       } else {
         navigator.clipboard.writeText(shareUrl).then(() => {
-          alert('Link copied to clipboard!');
+          alert('Link copied!');
         });
       }
     });
   }
 
-  // Comments drawer
   if (commentOpen) {
     setupCommentsDrawer(postEl, postData);
   }
@@ -1045,16 +1185,13 @@ function setupCommentsDrawer(postEl, postData) {
     drawer.classList.toggle('open');
   });
 
-  // Close drawer when clicking outside
   postEl.addEventListener('click', (e) => {
     if (drawer.classList.contains('open') && !e.target.closest('.drawer')) {
       drawer.classList.remove('open');
     }
   });
 
-  // Long press on comment header to add comment
   let headerPressTimer;
-  
   commentsHeader.addEventListener('pointerdown', (e) => {
     headerPressTimer = setTimeout(() => {
       drawer.classList.add('open');
@@ -1063,52 +1200,20 @@ function setupCommentsDrawer(postEl, postData) {
     }, 300);
   });
 
-  commentsHeader.addEventListener('pointerup', () => {
-    clearTimeout(headerPressTimer);
-  });
+  commentsHeader.addEventListener('pointerup', () => clearTimeout(headerPressTimer));
+  commentsHeader.addEventListener('pointerleave', () => clearTimeout(headerPressTimer));
 
-  commentsHeader.addEventListener('pointerleave', () => {
-    clearTimeout(headerPressTimer);
-  });
-
-  // Long press on comments to reply
-  commentsList.addEventListener('pointerdown', (e) => {
-    if (!e.target.classList.contains('comment')) return;
-    
-    const commentEl = e.target;
-    let pressTimer = setTimeout(() => {
-      const username = commentEl.textContent.split(':')[0];
-      drawer.classList.add('open');
-      commentInputWrap.classList.add('active');
-      commentInput.value = `${username} `;
-      commentInput.focus();
-    }, 300);
-
-    const cancelPress = () => {
-      clearTimeout(pressTimer);
-      document.removeEventListener('pointerup', cancelPress);
-      document.removeEventListener('pointermove', cancelPress);
-    };
-
-    document.addEventListener('pointerup', cancelPress);
-    document.addEventListener('pointermove', cancelPress);
-  });
-
-  // Send comment
   sendBtn.addEventListener('click', async () => {
     const comment = commentInput.value.trim();
     if (comment) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          showAuthModal();
+          showAuthModal('Please sign in to comment');
           return;
         }
 
         const userName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-        const newComment = `@${userName}: ${comment}`;
-        
-        // Add to Supabase
         const { error } = await supabase.from('comments').insert({
           post_id: postData.id,
           user_id: session.user.id,
@@ -1119,7 +1224,7 @@ function setupCommentsDrawer(postEl, postData) {
         if (error) throw error;
 
         if (!postData.comments) postData.comments = [];
-        postData.comments.push(newComment);
+        postData.comments.push(`@${userName}: ${comment}`);
         refreshComments(commentsList, postData.comments);
         commentInput.value = '';
       } catch (error) {
@@ -1129,7 +1234,6 @@ function setupCommentsDrawer(postEl, postData) {
     }
   });
 
-  // Load comments from Supabase
   loadComments(postData.id, commentsList);
 }
 
@@ -1166,25 +1270,22 @@ function updatePostElement(postId, postData) {
   
   const likeBtn = postEl.querySelector('.like-btn');
   const likeCountEl = postEl.querySelector('.like-count');
-  const overlay = postEl.querySelector('.overlay h3');
-  const caption = postEl.querySelector('.overlay p:last-child');
   
   if (likeBtn) likeBtn.classList.toggle('liked', postData.liked);
   if (likeCountEl) likeCountEl.textContent = postData.likes;
-  if (overlay) overlay.textContent = postData.user;
-  if (caption) caption.textContent = postData.title;
 }
 
 function showBlueHeart(postEl) {
   const blueHeart = postEl.querySelector('.blue-heart');
-  blueHeart.classList.remove('animate');
-  void blueHeart.offsetWidth; // Trigger reflow
-  blueHeart.classList.add('animate');
+  if (blueHeart) {
+    blueHeart.classList.remove('animate');
+    void blueHeart.offsetWidth;
+    blueHeart.classList.add('animate');
+  }
 }
 
-// Video playback management
 function setupVideoPlayback() {
-  const videos = document.querySelectorAll('.post video');
+  const videos = document.querySelectorAll('.post video:not(.videoError)');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const video = entry.target;
@@ -1192,7 +1293,7 @@ function setupVideoPlayback() {
       
       if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
         if (!postEl.classList.contains('paused')) {
-          video.play().catch(console.error);
+          video.play().catch(e => console.log('Autoplay prevented'));
         }
       } else {
         video.pause();
@@ -1203,7 +1304,6 @@ function setupVideoPlayback() {
   videos.forEach(video => observer.observe(video));
 }
 
-// Vertical swipe between videos
 function setupVerticalSwipe() {
   let startY = 0;
   let currentTranslate = 0;
@@ -1217,7 +1317,6 @@ function setupVerticalSwipe() {
     const currentY = e.touches[0].clientY;
     const deltaY = currentY - startY;
     
-    // Only allow swipe if at the top or bottom of scroll
     if (feed.scrollTop === 0 && deltaY > 0) {
       e.preventDefault();
     } else if (feed.scrollHeight - feed.scrollTop === feed.clientHeight && deltaY < 0) {
@@ -1232,11 +1331,9 @@ function setupVerticalSwipe() {
 
     if (Math.abs(deltaY) > swipeThreshold) {
       if (deltaY < 0 && currentIndex < posts.length - 1) {
-        // Swipe up - next video
         currentIndex++;
         scrollToVideo(currentIndex);
       } else if (deltaY > 0 && currentIndex > 0) {
-        // Swipe down - previous video
         currentIndex--;
         scrollToVideo(currentIndex);
       }
@@ -1248,17 +1345,10 @@ function scrollToVideo(index) {
   const postEl = document.querySelector(`[data-index="${index}"]`);
   if (postEl) {
     postEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
-    // Pause all other videos
-    document.querySelectorAll('.post video').forEach((video, i) => {
-      if (i !== index) {
-        video.pause();
-      }
-    });
+    document.querySelectorAll('.post video').forEach(video => video.pause());
   }
 }
 
-// Improved Pull to refresh
 function setupPullToRefresh() {
   let startY = 0;
   let pulling = false;
@@ -1335,6 +1425,12 @@ function setupPullToRefresh() {
     text.textContent = 'Refreshing...';
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showAuthModal('Session expired during refresh');
+        return;
+      }
+      
       await loadInitialPosts();
       renderFeed();
       icon.textContent = '✅';
@@ -1354,7 +1450,6 @@ function setupPullToRefresh() {
   }
 }
 
-// Infinite scroll
 function setupInfiniteScroll() {
   let loading = false;
 
@@ -1364,9 +1459,7 @@ function setupInfiniteScroll() {
     const { scrollTop, scrollHeight, clientHeight } = feed;
     if (scrollTop + clientHeight >= scrollHeight - 100) {
       loading = true;
-      loadMorePosts().finally(() => {
-        loading = false;
-      });
+      loadMorePosts().finally(() => loading = false);
     }
   }, 100));
 }
@@ -1400,6 +1493,7 @@ async function loadMorePosts() {
           title: post.title || 'Untitled',
           caption: post.caption || '',
           src: post.video_url,
+          videoError: false,
           likes: likesData?.length || 0,
           comments: [],
           liked: userLiked,
@@ -1418,7 +1512,6 @@ async function loadMorePosts() {
   }
 }
 
-// Theme swipe functionality
 function setupThemeSwipe() {
   const header = document.getElementById('header');
   let pDown = false, pStartX = 0;
@@ -1440,26 +1533,27 @@ function setupThemeSwipe() {
     pDown = false;
     const dx = e.clientX - pStartX;
     const threshold = 80;
-    if (dx <= -threshold || dx >= threshold) {
+    if (Math.abs(dx) >= threshold) {
       document.documentElement.classList.toggle('light');
     }
   });
 }
 
-// Upload functionality - COMPLETELY REWRITTEN
+// FIXED: Upload functionality with consistent "Facts" bucket
 function openUploadModal() {
   uploadModal.classList.add('show');
   
-  document.getElementById('closeUpload').addEventListener('click', () => {
-    uploadModal.classList.remove('show');
-  });
-
-  document.getElementById('recordBtn').addEventListener('click', openRecordModal);
+  // Clean up old listeners
+  const closeUpload = document.getElementById('closeUpload');
+  const recordBtn = document.getElementById('recordBtn');
+  const filePicker = document.getElementById('filePicker');
   
-  document.getElementById('filePicker').addEventListener('change', handleFileUpload);
+  closeUpload.onclick = () => uploadModal.classList.remove('show');
+  recordBtn.onclick = openRecordModal;
+  filePicker.onchange = handleFileUpload;
 }
 
-function openRecordModal() {
+async function openRecordModal() {
   const title = document.getElementById('uploadTitle').value.trim();
   const caption = document.getElementById('uploadCaption').value.trim();
   
@@ -1470,107 +1564,96 @@ function openRecordModal() {
 
   uploadModal.classList.remove('show');
   
-  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    .then(stream => {
-      const videoPreview = document.getElementById('videoPreview');
-      videoPreview.srcObject = stream;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const videoPreview = document.getElementById('videoPreview');
+    videoPreview.srcObject = stream;
 
-      const recordModal = document.getElementById('recordModal');
-      recordModal.classList.add('show');
+    const recordModal = document.getElementById('recordModal');
+    recordModal.classList.add('show');
 
-      let mediaRecorder;
-      let recordedChunks = [];
-      let recordingTimer;
-      let recordingTime = 0;
-      const recordBtnModal = document.getElementById('recordBtnModal');
+    let mediaRecorder;
+    let recordedChunks = [];
+    let recordingTimer;
+    let recordingTime = 0;
+    const recordBtnModal = document.getElementById('recordBtnModal');
 
-      recordBtnModal.addEventListener('click', () => {
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-          // Start recording
-          mediaRecorder = new MediaRecorder(stream, { 
-            mimeType: 'video/webm;codecs=vp9,opus',
-            videoBitsPerSecond: 2500000
-          });
-          
-          recordedChunks = [];
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
+    recordBtnModal.onclick = () => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        mediaRecorder = new MediaRecorder(stream, { 
+          mimeType: 'video/webm;codecs=vp9,opus',
+          videoBitsPerSecond: 2500000
+        });
+        
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+        
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const id = 'p' + Math.random().toString(36).slice(2, 9);
+          const newPost = { 
+            id, 
+            user: `@you`, 
+            title, 
+            caption, 
+            src: URL.createObjectURL(blob), 
+            likes: 0, 
+            comments: [], 
+            liked: false, 
+            uploading: true, 
+            owner: true, 
+            uploadProgress: 0, 
+            paused: false,
+            videoError: false
           };
           
-          mediaRecorder.onstop = async () => {
-            clearInterval(recordingTimer);
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            
-            // Skip duration check for now to fix the upload issue
-            const id = 'p' + Math.random().toString(36).slice(2, 9);
-            const newPost = { 
-              id, 
-              user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-              title, 
-              caption, 
-              src: URL.createObjectURL(blob), 
-              likes: 0, 
-              comments: [], 
-              liked: false, 
-              uploading: true, 
-              owner: true, 
-              uploadProgress: 0, 
-              paused: false 
-            };
-            
-            allPosts.unshift(newPost);
-            filterPosts();
-            renderFeed();
-            uploadVideo(newPost, blob, title, caption);
-            
-            stream.getTracks().forEach(track => track.stop());
-            recordedChunks = [];
-            recordModal.classList.remove('show');
-          };
+          allPosts.unshift(newPost);
+          filterPosts();
+          renderFeed();
+          uploadVideo(newPost, blob, title, caption);
           
-          mediaRecorder.start(1000); // Collect data every second
-          recordBtnModal.textContent = '⏹';
-          recordBtnModal.classList.add('recording');
-          
-          // Start timer
-          recordingTime = 0;
-          recordingTimer = setInterval(() => {
-            recordingTime++;
-            if (recordingTime >= 60) {
-              mediaRecorder.stop();
-            }
-          }, 1000);
-        } else {
-          // Stop recording
-          mediaRecorder.stop();
-          recordBtnModal.textContent = '⏺';
-          recordBtnModal.classList.remove('recording');
-        }
-      });
+          stream.getTracks().forEach(track => track.stop());
+          recordModal.classList.remove('show');
+        };
+        
+        mediaRecorder.start(1000);
+        recordBtnModal.textContent = '⏹';
+        recordBtnModal.classList.add('recording');
+        
+        recordingTime = 0;
+        recordingTimer = setInterval(() => {
+          recordingTime++;
+          if (recordingTime >= 60) mediaRecorder.stop();
+        }, 1000);
+      } else {
+        mediaRecorder.stop();
+        recordBtnModal.textContent = '⏺';
+        recordBtnModal.classList.remove('recording');
+      }
+    };
 
-      document.getElementById('closeRecord').addEventListener('click', () => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-        stream.getTracks().forEach(track => track.stop());
-        recordModal.classList.remove('show');
-        clearInterval(recordingTimer);
-      });
-    })
-    .catch(err => {
-      console.error('Camera access error:', err);
-      alert('Camera access denied or not available.');
-    });
+    document.getElementById('closeRecord').onclick = () => {
+      if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+      stream.getTracks().forEach(track => track.stop());
+      clearInterval(recordingTimer);
+      recordModal.classList.remove('show');
+    };
+  } catch (err) {
+    console.error('Camera access error:', err);
+    alert('Camera access denied or unavailable');
+  }
 }
 
-// SIMPLIFIED handleFileUpload - removed duration check temporarily
+// FIXED: File upload without duration check
 async function handleFileUpload(e) {
   const file = e.target.files[0];
   const title = document.getElementById('uploadTitle').value.trim();
   const caption = document.getElementById('uploadCaption').value.trim();
   
   if (!title) {
-    alert('Please enter a title for your video');
+    alert('Please enter a title');
     return;
   }
   
@@ -1581,37 +1664,32 @@ async function handleFileUpload(e) {
     return;
   }
 
-  try {
-    // Skip duration check for now to fix upload issues
-    uploadModal.classList.remove('show');
-    const id = 'p' + Math.random().toString(36).slice(2, 9);
-    const newPost = { 
-      id, 
-      user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-      title, 
-      caption, 
-      src: URL.createObjectURL(file), 
-      likes: 0, 
-      comments: [], 
-      liked: false, 
-      uploading: true, 
-      owner: true, 
-      uploadProgress: 0, 
-      paused: false 
-    };
-    
-    allPosts.unshift(newPost);
-    filterPosts();
-    renderFeed();
-    uploadVideo(newPost, file, title, caption);
-    
-  } catch (error) {
-    console.error('Error processing video file:', error);
-    alert('Error processing video file. Please try another file.');
-  }
+  uploadModal.classList.remove('show');
+  
+  const id = 'p' + Math.random().toString(36).slice(2, 9);
+  const newPost = { 
+    id, 
+    user: `@you`, 
+    title, 
+    caption, 
+    src: URL.createObjectURL(file), 
+    likes: 0, 
+    comments: [], 
+    liked: false, 
+    uploading: true, 
+    owner: true, 
+    uploadProgress: 0, 
+    paused: false,
+    videoError: false
+  };
+  
+  allPosts.unshift(newPost);
+  filterPosts();
+  renderFeed();
+  uploadVideo(newPost, file, title, caption);
 }
 
-// FIXED uploadVideo function
+// FIXED: Upload with consistent "Facts" bucket name
 async function uploadVideo(post, file, title, caption) {
   progressModal.classList.add('show');
   updateProgress(0);
@@ -1619,11 +1697,7 @@ async function uploadVideo(post, file, title, caption) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      alert('You must be signed in to upload.');
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
+      throw new Error('Authentication required');
     }
     
     const userId = session.user.id;
@@ -1632,89 +1706,70 @@ async function uploadVideo(post, file, title, caption) {
     const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const path = `posts/${userId}/${filename}`;
 
-    // Start progress simulation
+    // Progress simulation
     const progressInterval = setInterval(() => {
       if (post.uploadProgress < 90) {
-        post.uploadProgress += Math.random() * 10;
+        post.uploadProgress = Math.min(90, post.uploadProgress + Math.random() * 15);
         updateProgress(post.uploadProgress);
         updatePostElement(post.id, post);
       }
-    }, 200);
+    }, 300);
 
-    // Upload to Supabase storage - FIXED BUCKET NAME
+    // FIXED: Consistent use of "Facts" bucket
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Facts') // Changed from 'Facts' to 'videos'
-      .upload(path, file);
+      .from('Facts')
+      .upload(path, file, { upsert: true });
 
     clearInterval(progressInterval);
 
     if (uploadError) {
-      console.error('Upload error', uploadError);
-      // Try with 'Facts' bucket if 'videos' doesn't work
-      const { data: uploadData2, error: uploadError2 } = await supabase.storage
-        .from('Facts')
-        .upload(path, file);
-
-      if (uploadError2) {
-        alert('Upload failed: ' + uploadError2.message);
-        post.uploading = false;
-        updateProgress(100);
-        setTimeout(() => progressModal.classList.remove('show'), 1000);
-        return;
-      }
+      console.error('Upload error:', uploadError);
+      throw uploadError;
     }
 
-    // Get public URL - FIXED BUCKET NAME
+    // Get public URL from Facts bucket
     const { data: urlData } = supabase.storage
-      .from('Facts') // Changed from 'videos' to match upload bucket
-      .getPublicUrl(uploadData?.path || uploadData2?.path);
+      .from('Facts')
+      .getPublicUrl(uploadData.path);
     
-    const publicUrl = urlData?.publicUrl || '';
+    const publicUrl = urlData.publicUrl;
 
-    const insertPayload = { 
-      author_id: userId, 
-      author_name: authorName, 
-      video_url: publicUrl, 
-      title,
-      caption 
-    };
-    
     const { data: inserted, error: insertError } = await supabase
       .from('posts')
-      .insert(insertPayload)
+      .insert({ 
+        author_id: userId, 
+        author_name: authorName, 
+        video_url: publicUrl, 
+        title,
+        caption 
+      })
       .select()
       .single();
 
-    if (insertError) {
-      console.error('Insert error', insertError);
-      alert('Error saving post: ' + insertError.message);
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
-    }
+    if (insertError) throw insertError;
 
-    // Update post with real data from Supabase
+    // Update post with real data
     post.id = inserted.id;
     post.src = publicUrl;
     post.uploading = false;
     post.uploadProgress = 100;
     post.owner = true;
+    post.videoError = false;
     
-    updatePostElement(post.id, post);
     updateProgress(100);
+    setTimeout(() => progressModal.classList.remove('show'), 1500);
     
-    // Hide progress modal after completion
-    setTimeout(() => {
-      progressModal.classList.remove('show');
-    }, 1000);
+    await loadInitialPosts();
+    renderFeed();
     
   } catch (err) {
-    console.error('Unexpected upload error', err);
-    alert('Upload failed: ' + (err?.message || 'Unknown error'));
+    console.error('Upload error:', err);
+    alert('Upload failed: ' + err.message);
     post.uploading = false;
+    post.videoError = true;
     updateProgress(100);
     setTimeout(() => progressModal.classList.remove('show'), 1000);
+    renderFeed();
   }
 }
 
@@ -1724,23 +1779,20 @@ function updateProgress(percent) {
 }
 
 // Global error handling
-window.addEventListener('error', (e) => {
-  console.error('Global error:', e.error);
-});
+window.addEventListener('error', (e) => console.error('Global error:', e.error));
+window.addEventListener('unhandledrejection', (e) => console.error('Promise rejection:', e.reason));
 
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('Unhandled promise rejection:', e.reason);
-});
-
-// Escape key to close modals
+// Keyboard support
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.drawer.open').forEach(d => d.classList.remove('open'));
-    uploadModal.classList.remove('show');
-    document.getElementById('recordModal').classList.remove('show');
-    authModal.classList.remove('show');
+    [uploadModal, authModal, document.getElementById('recordModal')].forEach(modal => 
+      modal.classList.remove('show')
+    );
   }
 });
+
+console.log('Skrolz loaded with fixes');
 </script>
 </body>
 </html>
