@@ -13,6 +13,7 @@
     <script type="module" src="js/supabaseClient.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Your existing CSS styles remain the same */
         :root {
             --primary: #7c3aed;
             --secondary: #4f46e5;
@@ -652,49 +653,94 @@
             if (!suggestedGroupsDiv) return;
             
             suggestedGroupsDiv.innerHTML = '';
-            data.forEach(group => {
-                const div = document.createElement('div');
-                div.className = 'group-item';
-                div.innerHTML = `
-                    <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">${group.name}</p>
-                        <p class="text-gray-600">${group.course_code}</p>
-                    </div>
-                    <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
-                `;
-                suggestedGroupsDiv.appendChild(div);
-            });
-
-            // Add join handlers
-            document.querySelectorAll('.join-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    const groupId = btn.dataset.groupid;
-                    const { data: { user } } = await supabase.auth.getUser();
-                    
-                    if (!user) {
-                        showNotification('Please log in to join groups.');
-                        return;
-                    }
-
-                    // FIXED: Using group_Id instead of group_id
-                    const { error } = await supabase
-                        .from('group_members')
-                        .insert({ group_Id: groupId, user_id: user.id });
-                        
-                    if (error) {
-                        console.error('Error joining group:', error);
-                        showNotification('Failed to join group: ' + error.message);
-                    } else {
-                        showNotification('Successfully joined group!', () => {
-                            window.location.href = `chatroom.html?groupId=${groupId}`;
-                        });
-                        loadActiveGroups(); // Refresh active groups
-                        loadSuggestedGroups(); // Refresh suggested groups to remove joined group
-                    }
+            
+            if (data && data.length > 0) {
+                data.forEach(group => {
+                    const div = document.createElement('div');
+                    div.className = 'group-item';
+                    div.innerHTML = `
+                        <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <p class="font-semibold text-gray-800">${group.name}</p>
+                            <p class="text-gray-600">${group.course_code}</p>
+                        </div>
+                        <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
+                    `;
+                    suggestedGroupsDiv.appendChild(div);
                 });
-            });
+
+                // Add join handlers
+                document.querySelectorAll('.join-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const groupId = btn.dataset.groupid;
+                        await joinGroup(groupId, btn);
+                    });
+                });
+            } else {
+                suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No suggested groups found.</p>';
+            }
+        }
+
+        // Join group function
+        async function joinGroup(groupId, button) {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                showNotification('Please log in to join groups.');
+                return;
+            }
+
+            try {
+                // First check if user is already a member
+                const { data: existingMember, error: checkError } = await supabase
+                    .from('group_members')
+                    .select('*')
+                    .eq('group_Id', groupId)
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (existingMember) {
+                    showNotification('You are already a member of this group.');
+                    return;
+                }
+
+                // FIXED: Using group_Id instead of group_id and ensuring user exists in profiles
+                const { error } = await supabase
+                    .from('group_members')
+                    .insert({ group_Id: groupId, user_id: user.id });
+                    
+                if (error) {
+                    console.error('Error joining group:', error);
+                    
+                    // Handle specific error cases
+                    if (error.code === '23503') {
+                        // Foreign key violation - user might not exist in profiles table
+                        showNotification('Cannot join group: User profile issue. Please check your profile.');
+                    } else if (error.code === '23505') {
+                        // Unique violation - already a member
+                        showNotification('You are already a member of this group.');
+                    } else {
+                        showNotification('Failed to join group: ' + error.message);
+                    }
+                } else {
+                    showNotification('Successfully joined group!', () => {
+                        window.location.href = `chatroom.html?groupId=${groupId}`;
+                    });
+                    loadActiveGroups(); // Refresh active groups
+                    loadSuggestedGroups(); // Refresh suggested groups to remove joined group
+                    
+                    // Disable the join button
+                    if (button) {
+                        button.textContent = 'Joined';
+                        button.disabled = true;
+                        button.style.background = '#d1d5db';
+                    }
+                }
+            } catch (error) {
+                console.error('Unexpected error joining group:', error);
+                showNotification('An unexpected error occurred while joining the group.');
+            }
         }
 
         // Load active groups for the user
@@ -720,28 +766,36 @@
             if (!groupListDiv) return;
             
             groupListDiv.innerHTML = '';
-            const groupIds = data.map(m => m.group_Id);
             
-            for (const groupId of groupIds) {
-                const { data: groupData, error: groupError } = await supabase
-                    .from('groups')
-                    .select('id, name, course_code')
-                    .eq('id', groupId)
-                    .single();
-                    
-                if (groupError) continue;
+            if (data && data.length > 0) {
+                const groupIds = data.map(m => m.group_Id);
                 
-                const div = document.createElement('div');
-                div.className = 'group-item';
-                div.innerHTML = `
-                    <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">${groupData.name}</p>
-                        <p class="text-gray-600">${groupData.course_code}</p>
-                    </div>
-                    <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
-                `;
-                groupListDiv.appendChild(div);
+                for (const groupId of groupIds) {
+                    const { data: groupData, error: groupError } = await supabase
+                        .from('groups')
+                        .select('id, name, course_code')
+                        .eq('id', groupId)
+                        .single();
+                        
+                    if (groupError) {
+                        console.error('Error loading group details:', groupError);
+                        continue;
+                    }
+                    
+                    const div = document.createElement('div');
+                    div.className = 'group-item';
+                    div.innerHTML = `
+                        <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <p class="font-semibold text-gray-800">${groupData.name}</p>
+                            <p class="text-gray-600">${groupData.course_code}</p>
+                        </div>
+                        <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
+                    `;
+                    groupListDiv.appendChild(div);
+                }
+            } else {
+                groupListDiv.innerHTML = '<p class="text-center text-gray-500">You are not a member of any groups yet.</p>';
             }
         }
 
@@ -791,7 +845,12 @@
 
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
-                    showNotification('Group created but failed to add you as member: ' + memberError.message);
+                    
+                    if (memberError.code === '23503') {
+                        showNotification('Group created but failed to add you as member: User profile issue.');
+                    } else {
+                        showNotification('Group created but failed to add you as member: ' + memberError.message);
+                    }
                     return;
                 }
 
@@ -817,20 +876,17 @@
             const courseList = document.getElementById('courseList');
             if (!courseSearch) return;
 
-            courseLoading.style.display = 'block'; // Show loading immediately
-            let loadingTimeout = setTimeout(() => {}, 8000); // Ensure 8 seconds minimum
+            courseLoading.style.display = 'block';
 
             try {
                 const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(courseSearch + ' tutorial')}&type=video&maxResults=10&key=AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y`;
-                const response = await fetch(url, {
-                    method: 'GET'
-                });
+                const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message || 'YouTube API error');
+                
+                courseList.innerHTML = '';
                 if (data.items && data.items.length > 0) {
-                    console.log('Videos found:', data.items);
-                    courseList.innerHTML = '';
                     data.items.slice(0, 3).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'card';
@@ -845,16 +901,13 @@
                         courseList.appendChild(div);
                     });
                 } else {
-                    courseList.innerHTML = '<p class="text-center text-gray-500">No videos found or invalid query.</p>';
+                    courseList.innerHTML = '<p class="text-center text-gray-500">No videos found.</p>';
                 }
             } catch (error) {
                 console.error('Fetch error:', error.message);
-                courseList.innerHTML = `<p class="text-center text-red-500">Error loading videos: ${error.message}. Check console for details.</p>`;
+                courseList.innerHTML = `<p class="text-center text-red-500">Error loading videos: ${error.message}</p>`;
             } finally {
-                clearTimeout(loadingTimeout);
-                loadingTimeout = setTimeout(() => {
-                    courseLoading.style.display = 'none'; // Hide after 8 seconds
-                }, 8000);
+                courseLoading.style.display = 'none';
             }
         }
 
@@ -865,18 +918,18 @@
             const connectionList = document.getElementById('connectionList');
             if (!connectionSearch) return;
 
-            connectionLoading.style.display = 'block'; // Show loading immediately
-            let loadingTimeout = setTimeout(() => {}, 8000); // Ensure 8 seconds minimum
+            connectionLoading.style.display = 'block';
 
             try {
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('id, full_name, status')
-                    .ilike('full_name', `${connectionSearch}%`) // Match start of full_name
+                    .ilike('full_name', `${connectionSearch}%`)
                     .limit(5);
+                    
+                connectionList.innerHTML = '';
                 if (error) throw error;
 
-                connectionList.innerHTML = '';
                 if (data && data.length > 0) {
                     data.forEach(user => {
                         const fullName = user.full_name || 'Unknown';
@@ -900,12 +953,9 @@
                 }
             } catch (error) {
                 console.error('Connection search error:', error.message);
-                connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}. Check console for details.</p>`;
+                connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}</p>`;
             } finally {
-                clearTimeout(loadingTimeout);
-                loadingTimeout = setTimeout(() => {
-                    connectionLoading.style.display = 'none'; // Hide after 8 seconds
-                }, 8000);
+                connectionLoading.style.display = 'none';
             }
         }
 
@@ -920,7 +970,7 @@
         // Show notification with blur effect
         function showNotification(message, callback) {
             const modal = document.getElementById('notificationModal');
-            const body = document.querySelector('.dashboard'); // Blur only the dashboard
+            const body = document.querySelector('.dashboard');
             const modalMessage = document.getElementById('modalMessage');
             modalMessage.textContent = message;
             modal.classList.add('show');
@@ -930,7 +980,7 @@
                 modal.classList.remove('show');
                 body.classList.remove('blur-background');
                 if (callback) callback();
-            }, 3000); // 3 seconds
+            }, 3000);
         }
 
         // Add event listeners after DOM is loaded
@@ -945,6 +995,11 @@
                 searchCoursesBtn.addEventListener('click', searchCourses);
             }
         });
+
+        // Make functions globally available
+        window.createGroup = createGroup;
+        window.joinGroup = joinGroup;
+        window.addFriend = addFriend;
     </script>
 </body>
 </html>
