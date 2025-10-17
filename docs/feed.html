@@ -425,6 +425,22 @@
     50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   }
+
+  /* VIEW COUNT STYLES */
+  .view-count {
+    position: absolute;
+    left: 10px;
+    bottom: 84px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: white;
+    backdrop-filter: blur(8px);
+  }
 </style>
 </head>
 <body>
@@ -464,7 +480,7 @@
   <div id="recordModal">
     <div class="record-container">
       <button class="close-record" id="closeRecord">×</button>
-      <video id="videoPreview" autoplay playsinline></video>
+      <video id="videoPreview" autoplay playsinline muted></video>
       <div class="record-controls">
         <button class="record-btn" id="recordBtnModal">⏺</button>
       </div>
@@ -510,6 +526,7 @@ let currentVideoIndex = 0;
 let loadingMore = false;
 let searchQuery = '';
 let isRefreshing = false;
+let viewedPosts = new Set(); // Track viewed posts for view count
 
 // DOM elements
 const feed = document.getElementById('feed');
@@ -691,7 +708,8 @@ async function loadInitialPosts(limit = 10) {
         created_at, 
         title,
         caption,
-        likes_count
+        likes_count,
+        views
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -722,12 +740,13 @@ async function loadInitialPosts(limit = 10) {
           title: post.title || 'Untitled',
           caption: post.caption || '',
           src: post.video_url,
-          likes: post.likes_count || 0, // Use likes_count from your schema
+          likes: post.likes_count || 0,
+          views: post.views || 0,
           comments: [],
           liked: userLiked,
           uploading: false,
           owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
+          paused: true, // Start paused to avoid autoplay errors
         };
       }));
 
@@ -753,11 +772,12 @@ function loadMockData() {
       caption: 'Chasing golden hour never gets old',
       src: '',
       likes: 42,
+      views: 1250,
       comments: ['So beautiful!', 'Where was this taken?'],
       liked: false,
       uploading: false,
       owner: false,
-      paused: false,
+      paused: true,
     },
     {
       id: '2', 
@@ -766,11 +786,12 @@ function loadMockData() {
       caption: 'Late night coding with some lo-fi beats',
       src: '',
       likes: 18,
+      views: 890,
       comments: ['What language is this?', 'Great setup!'],
       liked: false,
       uploading: false,
       owner: false,
-      paused: false,
+      paused: true,
     },
     {
       id: '3',
@@ -779,11 +800,12 @@ function loadMockData() {
       caption: 'The view from the top was worth every step',
       src: '',
       likes: 156,
+      views: 3200,
       comments: ['Amazing view!', 'Which mountain is this?'],
       liked: false,
       uploading: false,
       owner: false,
-      paused: false,
+      paused: true,
     }
   ];
   posts = [...allPosts];
@@ -894,7 +916,7 @@ function createPostElement(post, index) {
       <!-- Video Element -->
       <video 
         playsinline 
-        ${!post.paused ? 'autoplay' : ''} 
+        muted
         loop 
         preload="metadata" 
         crossorigin="anonymous"
@@ -911,18 +933,19 @@ function createPostElement(post, index) {
         <p>${post.title}</p>
         ${post.caption ? `<p style="display: block; margin-top: 4px;">${post.caption}</p>` : ''}
       </div>
+      <div class="view-count">
+        <span>👁️ ${post.views || 0}</span>
+      </div>
       <div class="icons">
         <div class="like-wrap">
           <button class="btn like-btn ${post.liked ? 'liked' : ''}" title="Like">♡</button>
           <div class="like-count">${post.likes}</div>
         </div>
-        ${post.owner ? 
-          '<button class="btn delete-btn" title="Delete Post">🗑️</button>' : 
-          '<button class="btn comment-open" title="Comments">💬</button><button class="btn share-btn" title="Share">↗️</button>'
-        }
+        <button class="btn comment-open" title="Comments">💬</button>
+        <button class="btn share-btn" title="Share">↗️</button>
+        ${post.owner ? '<button class="btn delete-btn" title="Delete Post">🗑️</button>' : ''}
       </div>
       
-      ${!post.owner ? `
       <div class="drawer" aria-hidden="true">
         <div class="drawer-inner">
           <div class="drawer-handle"></div>
@@ -934,7 +957,6 @@ function createPostElement(post, index) {
           </div>
         </div>
       </div>
-      ` : ''}
     </div>
   `;
 
@@ -951,53 +973,52 @@ function attachPostBehavior(postEl, postData) {
 
   // Load video source if available and ensure it's playable
   if (postData.src && video) {
-    const source = video.querySelector('Facts');
+    const source = video.querySelector('source');
     if (source) {
       source.src = postData.src;
-      video.load().then(() => {
-        // Ensure video can play after load
-        if (!postData.paused) {
-          video.play().catch(e => {
-            console.log('Video play failed:', e);
-            postEl.classList.add('paused');
-          });
-        }
-      }).catch(e => {
+      video.load().catch(e => {
         console.error('Video load error:', e);
       });
     }
   }
 
-  // Single tap to pause/play
-  let tapCount = 0;
-  let tapTimer;
-
-  postEl.addEventListener('click', (e) => {
-    if (e.target.closest('.icons') || e.target.closest('.drawer')) return;
+  // Improved double tap to like
+  let lastTap = 0;
+  postEl.addEventListener('touchend', (e) => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
     
-    tapCount++;
-    
-    if (tapCount === 1) {
-      tapTimer = setTimeout(() => {
-        // Single tap - toggle play/pause
-        if (video.paused) {
-          video.play().catch(console.error);
-          postData.paused = false;
-        } else {
-          video.pause();
-          postData.paused = true;
-        }
-        postEl.classList.toggle('paused');
-        tapCount = 0;
-      }, 300);
-    } else if (tapCount === 2) {
-      clearTimeout(tapTimer);
-      // Double tap - like
+    if (tapLength < 500 && tapLength > 0) {
+      // Double tap detected
+      e.preventDefault();
       if (!postData.liked) {
         likeManager.handleLike(likeBtn);
       }
-      tapCount = 0;
+      lastTap = 0;
+    } else {
+      lastTap = currentTime;
     }
+  });
+
+  // Single tap to pause/play
+  postEl.addEventListener('click', (e) => {
+    if (e.target.closest('.icons') || e.target.closest('.drawer')) return;
+    
+    // Single tap - toggle play/pause
+    if (video.paused) {
+      video.play().catch(console.error);
+      postData.paused = false;
+      
+      // Increment view count when video starts playing
+      if (!viewedPosts.has(postData.id)) {
+        viewedPosts.add(postData.id);
+        incrementViewCount(postData.id);
+      }
+    } else {
+      video.pause();
+      postData.paused = true;
+    }
+    postEl.classList.toggle('paused');
   });
 
   // Like button
@@ -1024,7 +1045,7 @@ function attachPostBehavior(postEl, postData) {
     });
   }
 
-  // Share post
+  // Share post - FIXED for all users
   if (shareBtn) {
     shareBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1034,6 +1055,11 @@ function attachPostBehavior(postEl, postData) {
           title: `${postData.title} by ${postData.user}`,
           text: postData.caption,
           url: shareUrl,
+        }).catch(() => {
+          // Fallback to clipboard if share fails
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            alert('Link copied to clipboard!');
+          });
         });
       } else {
         navigator.clipboard.writeText(shareUrl).then(() => {
@@ -1043,9 +1069,26 @@ function attachPostBehavior(postEl, postData) {
     });
   }
 
-  // Comments drawer
+  // Comments drawer - ENABLED for all users including owners
   if (commentOpen) {
     setupCommentsDrawer(postEl, postData);
+  }
+}
+
+// View count increment function
+async function incrementViewCount(postId) {
+  try {
+    const { error } = await supabase.rpc('increment_views', { post_id: postId });
+    if (error) throw error;
+    
+    // Update local post data
+    const post = allPosts.find(p => p.id === postId);
+    if (post) {
+      post.views = (post.views || 0) + 1;
+      updatePostElement(postId, post);
+    }
+  } catch (error) {
+    console.error('Error incrementing view count:', error);
   }
 }
 
@@ -1184,11 +1227,13 @@ function updatePostElement(postId, postData) {
   
   const likeBtn = postEl.querySelector('.like-btn');
   const likeCountEl = postEl.querySelector('.like-count');
+  const viewCountEl = postEl.querySelector('.view-count span');
   const overlay = postEl.querySelector('.overlay h3');
   const caption = postEl.querySelector('.overlay p:last-child');
   
   if (likeBtn) likeBtn.classList.toggle('liked', postData.liked);
   if (likeCountEl) likeCountEl.textContent = postData.likes;
+  if (viewCountEl) viewCountEl.textContent = `👁️ ${postData.views || 0}`;
   if (overlay) overlay.textContent = postData.user;
   if (caption) caption.textContent = postData.title;
 }
@@ -1200,7 +1245,7 @@ function showBlueHeart(postEl) {
   blueHeart.classList.add('animate');
 }
 
-// Video playback management
+// Video playback management - FIXED autoplay issues
 function setupVideoPlayback() {
   const videos = document.querySelectorAll('.post video');
   const observer = new IntersectionObserver((entries) => {
@@ -1209,8 +1254,12 @@ function setupVideoPlayback() {
       const postEl = video.closest('.post');
       
       if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-        if (!postEl.classList.contains('paused')) {
-          video.play().catch(console.error);
+        // Only play if user has interacted with the page
+        if (!postEl.classList.contains('paused') && document.hasFocus()) {
+          video.play().catch(e => {
+            console.log('Autoplay prevented, waiting for user interaction');
+            postEl.classList.add('paused');
+          });
         }
       } else {
         video.pause();
@@ -1393,7 +1442,7 @@ async function loadMorePosts() {
   try {
     const { data, error } = await supabase
       .from('posts')
-      .select('id, author_id, author_name, video_url, created_at, title, caption, likes_count')
+      .select('id, author_id, author_name, video_url, created_at, title, caption, likes_count, views')
       .order('created_at', { ascending: false })
       .range(allPosts.length, allPosts.length + 4);
 
@@ -1420,11 +1469,12 @@ async function loadMorePosts() {
           caption: post.caption || '',
           src: post.video_url,
           likes: post.likes_count || 0,
+          views: post.views || 0,
           comments: [],
           liked: userLiked,
           uploading: false,
           owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
+          paused: true,
         };
       }));
 
@@ -1528,12 +1578,13 @@ function openRecordModal() {
               caption, 
               src: URL.createObjectURL(blob), 
               likes: 0, 
+              views: 0,
               comments: [], 
               liked: false, 
               uploading: true, 
               owner: true, 
               uploadProgress: 0, 
-              paused: false 
+              paused: true 
             };
             
             allPosts.unshift(newPost);
@@ -1616,12 +1667,13 @@ async function handleFileUpload(e) {
       caption, 
       src: previewUrl, 
       likes: 0, 
+      views: 0,
       comments: [], 
       liked: false, 
       uploading: true, 
       owner: true, 
       uploadProgress: 0, 
-      paused: false 
+      paused: true 
     };
     
     allPosts.unshift(newPost);
@@ -1675,7 +1727,7 @@ async function uploadVideo(post, file, title, caption) {
 
     // Try to upload to storage - FIRST check which buckets are available
     let uploadData, uploadError;
-    let bucketName = 'Facts'; // Try 'videos' first
+    let bucketName = 'videos'; // Try 'videos' first
     
     console.log('Attempting upload to bucket:', bucketName);
     
@@ -1725,7 +1777,8 @@ async function uploadVideo(post, file, title, caption) {
       video_url: publicUrl, 
       title: title,
       caption: caption,
-      likes_count: 0 // Initialize likes_count to 0
+      likes_count: 0, // Initialize likes_count to 0
+      views: 0 // Initialize views to 0
     };
     
     console.log('Inserting post with payload:', insertPayload);
@@ -1805,6 +1858,14 @@ document.addEventListener('keydown', (e) => {
     authModal.classList.remove('show');
   }
 });
+
+// User interaction required for audio - add a global click handler to enable audio
+document.addEventListener('click', () => {
+  // This will enable audio for future video plays
+  document.querySelectorAll('video').forEach(video => {
+    video.muted = false;
+  });
+}, { once: true });
 </script>
 </body>
 </html>
