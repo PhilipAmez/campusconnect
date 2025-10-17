@@ -1160,56 +1160,58 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// FIXED: Simplified member loading without complex joins
+// FIXED: Load members with proper profile data and names
 async function loadMembers() {
   try {
     console.log('Loading members for group:', gid);
     
-    // Simple approach: just get group members
-    const { data: groupMembers, error } = await supabase
+    // First get group members with user IDs
+    const { data: groupMembers, error: gmError } = await supabase
       .from('group_members')
       .select('user_id')
       .eq('group_id', gid);
     
-    if (error) {
-      console.error('Error loading group members:', error);
+    if (gmError) {
+      console.error('Error loading group members:', gmError);
       memberDetails = [];
       return;
     }
     
-    console.log('Raw group members:', groupMembers);
+    console.log('Group members found:', groupMembers);
     
     if (!groupMembers || groupMembers.length === 0) {
       memberDetails = [];
       return;
     }
     
-    // Create basic member details without profile joins
-    memberDetails = groupMembers.map(member => ({
-      user_id: member.user_id,
-      profiles: null // We'll handle names separately
-    }));
+    // Extract user IDs
+    const userIds = groupMembers.map(member => member.user_id);
+    console.log('User IDs to fetch:', userIds);
     
-    // Try to load profiles separately to avoid join errors
-    try {
-      const userIds = groupMembers.map(m => m.user_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', userIds);
+    // Fetch user profiles with proper error handling
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error('Error loading profiles:', profilesError);
+      // Fallback: create basic member info from user IDs
+      memberDetails = groupMembers.map(member => ({
+        user_id: member.user_id,
+        profiles: null
+      }));
+    } else {
+      console.log('Profiles loaded:', profiles);
       
-      if (!profilesError && profiles) {
-        // Merge profile data into member details
-        memberDetails = memberDetails.map(member => {
-          const profile = profiles.find(p => p.id === member.user_id);
-          return {
-            ...member,
-            profiles: profile || null
-          };
-        });
-      }
-    } catch (profileErr) {
-      console.log('Could not load profiles, using basic member info:', profileErr);
+      // Combine group members with their profiles
+      memberDetails = groupMembers.map(member => {
+        const profile = profiles.find(p => p.id === member.user_id);
+        return {
+          user_id: member.user_id,
+          profiles: profile || null
+        };
+      });
     }
     
     isMember = memberDetails.some(m => m.user_id === user.id);
@@ -1223,12 +1225,12 @@ async function loadMembers() {
 
 await loadMembers();
 
-// FIXED: Better AI user handling - don't force insert if it fails
+// Check if AI user is in the group, if not add them
 async function ensureAIUserInGroup() {
   const isAIInGroup = memberDetails.some(m => m.user_id === AI_USER_ID);
   
   if (!isAIInGroup) {
-    console.log('Attempting to add AI user to group...');
+    console.log('Adding AI user to group...');
     try {
       const { error } = await supabase
         .from('group_members')
@@ -1237,46 +1239,24 @@ async function ensureAIUserInGroup() {
           user_id: AI_USER_ID
         });
       
-      if (error) {
-        if (error.code === '23505') {
-          console.log('AI user already exists in group (duplicate)');
-        } else if (error.code === '23503') {
-          console.log('AI user cannot be added due to foreign key constraint. AI will still work for responses.');
-          // Don't reload members since insert failed
-          return;
-        } else {
-          console.log('Error adding AI user to group:', error);
-        }
+      if (error && error.code !== '23505') { // Ignore duplicate errors
+        console.log('Error adding AI user to group:', error);
       } else {
-        console.log('AI user added successfully, reloading members...');
+        // Reload member details to include AI user
         await loadMembers();
       }
     } catch (err) {
       console.log('Unexpected error adding AI user:', err);
     }
-  } else {
-    console.log('AI user already in group');
   }
 }
 
-// Initialize AI user in group (but don't block if it fails)
-ensureAIUserInGroup().catch(err => {
-  console.log('AI user initialization failed, but AI will still work:', err);
-});
+// Initialize AI user in group
+await ensureAIUserInGroup();
 
-// FIXED: Get proper display name for users
-function getDisplayName(member) {
-  if (member.user_id === AI_USER_ID) {
-    return AI_USER_NAME;
-  }
-  
-  if (member.profiles) {
-    return member.profiles.full_name || member.profiles.username || `User ${member.user_id.substring(0,6)}`;
-  }
-  
-  // Fallback: try to get from user metadata or use ID
-  return `User ${member.user_id.substring(0,6)}`;
-}
+// ---------- Enhanced Mention System ----------
+let mentionUsers = [];
+let currentMentionQuery = '';
 
 // Create a proper data URL for default avatar
 const createDefaultAvatar = (name) => {
@@ -1300,9 +1280,24 @@ const createDefaultAvatar = (name) => {
   return canvas.toDataURL();
 };
 
-// FIXED: Initialize mention system with AI user always available
+// FIXED: Get proper display name for users
+function getDisplayName(member) {
+  if (member.user_id === AI_USER_ID) {
+    return AI_USER_NAME;
+  }
+  
+  if (member.profiles) {
+    // Try full_name first, then username
+    return member.profiles.full_name || member.profiles.username || `User ${member.user_id.substring(0,6)}`;
+  }
+  
+  // Fallback to user ID
+  return `User ${member.user_id.substring(0,6)}`;
+}
+
+// Initialize mention system
 function initMentionSystem() {
-  // Always include AI user in mentions, even if not in group members
+  // Build mention users list with PeerPal AI always first
   mentionUsers = [
     {
       id: AI_USER_ID,
@@ -1313,12 +1308,12 @@ function initMentionSystem() {
     }
   ];
 
-  // Add real users from memberDetails
+  // Add real users from memberDetails (excluding AI user to avoid duplicates)
   if (memberDetails && memberDetails.length > 0) {
     memberDetails.forEach(member => {
       if (member.user_id !== AI_USER_ID) {
         const displayName = getDisplayName(member);
-        const username = `@${displayName.replace(/\s+/g, '')}`; // Remove spaces for mentions
+        const username = `@${displayName}`;
         
         mentionUsers.push({
           id: member.user_id,
@@ -1519,7 +1514,7 @@ function handleAIMentionClick(userId) {
 
 // ---------- CLEAN TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 
-// FIXED: Render members with better error handling
+// FIXED: Render members with proper names and avatars
 function renderMembers() {
   membersList.innerHTML = '';
   
@@ -1533,17 +1528,7 @@ function renderMembers() {
 
   console.log('Rendering members:', memberDetails);
 
-  // Always show AI user in members list, even if not in database
-  const allMembersToShow = [...memberDetails];
-  if (!memberDetails.some(m => m.user_id === AI_USER_ID)) {
-    allMembersToShow.push({
-      user_id: AI_USER_ID,
-      profiles: null,
-      isAI: true
-    });
-  }
-
-  allMembersToShow.forEach(member => {
+  memberDetails.forEach(member => {
     const displayName = getDisplayName(member);
     const isAI = member.user_id === AI_USER_ID;
     
@@ -1701,7 +1686,7 @@ function render(m) {
 async function loadHistory() {
   const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
   messagePanel.innerHTML = '';
-  if (data) data.forEach(render);
+  data.forEach(render);
 }
 await loadHistory();
 
@@ -1814,15 +1799,11 @@ document.addEventListener('click', (e) => {
     emojiPickerBox.style.display = 'none';
   }
 });
-
-// Initialize emoji picker
-const emojis = ['😀', '😂', '🥰', '😎', '🤔', '👍', '❤️', '🔥', '✨', '🎉', '💯', '👋', '🤝', '🙏', '👏', '🐱', '🐶', '🦊', '🐼', '🦁'];
-emojiPickerBox.innerHTML = emojis.map(emoji => `<span>${emoji}</span>`).join('');
 emojiPickerBox.onclick = (e) => {
   if (e.target.tagName === 'SPAN') {
     messageBar.value += e.target.textContent;
     emojiPickerBox.style.display = 'none';
-    messageBar.focus();
+    sendMessageButton.focus();
   }
 };
 
@@ -1834,19 +1815,16 @@ async function sendMsg() {
   const txt = messageBar.value.trim();
   if (!txt) return;
 
-  // Clear typing indicator
-  if (typingTimeout) {
-    clearTimeout(typingTimeout);
-    typingChannel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: {
-        user_id: user.id,
-        isTyping: false,
-        user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'You'
-      }
-    });
-  }
+  // Send typing stopped event
+  typingChannel.send({
+    type: 'broadcast',
+    event: 'typing',
+    payload: {
+      user_id: user.id,
+      isTyping: false,
+      user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'You'
+    }
+  });
 
   const { data, error } = await supabase.from('group_messages').insert({
     group_id: gid,
@@ -1873,6 +1851,7 @@ async function sendMsg() {
   const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
   const hasAIMention = txt.toLowerCase().includes('@peerpal ai');
   
+  // Auto-detect when replying to AI - even without explicit mention
   if (isReplyingToAI || hasAIMention) {
     await checkPeerloomAI(txt);
   }
@@ -1884,6 +1863,7 @@ messageBar.addEventListener('keydown', (e) => {
 
 // ---------- FIXED GEMINI AI INTEGRATION WITH TYPING INDICATOR ----------
 async function checkPeerloomAI(message) {
+  // Check for @PeerPal AI mention specifically or if replying to AI
   const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
   const hasAIMention = message.toLowerCase().includes('@peerpal ai');
   
@@ -1892,10 +1872,13 @@ async function checkPeerloomAI(message) {
   try {
     console.log('Calling Gemini AI with message:', message);
     
+    // Show typing indicator for AI
     showAITypingIndicator();
     
+    // Clean the message by removing the mention if present
     const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
     
+    // Try each model in order until one works
     let aiReply = "I'm here to help! How can I assist you today?";
     let success = false;
     
@@ -1936,7 +1919,7 @@ async function checkPeerloomAI(message) {
         if (!response.ok) {
           const errorText = await response.text();
           console.log(`Model ${model} failed:`, errorText);
-          continue;
+          continue; // Try next model
         }
         
         const data = await response.json();
@@ -1945,10 +1928,11 @@ async function checkPeerloomAI(message) {
         if (data && data.candidates && data.candidates[0] && data.candidates[0].content) {
           aiReply = data.candidates[0].content.parts[0].text;
           success = true;
-          break;
+          break; // Success, break out of loop
         }
       } catch (modelError) {
         console.log(`Error with model ${model}:`, modelError);
+        // Continue to next model
       }
     }
     
@@ -1957,54 +1941,43 @@ async function checkPeerloomAI(message) {
       aiReply = generateSmartResponse(cleanMessage);
     }
     
+    // Hide typing indicator
     hideAITypingIndicator();
     
-    // FIXED: Insert AI message with error handling
-    try {
-      const { data: aiMessage, error: aiError } = await supabase.from('group_messages').insert({
-        group_id: gid,
-        sender_id: AI_USER_ID,
-        sender_name: AI_USER_NAME,
-        content: aiReply,
-        role: 'ai'
-      }).select().single();
-      
-      if (aiError) {
-        console.error('Error inserting AI message:', aiError);
-        // Even if insert fails, we can still show the message locally
-        const tempAIMessage = {
-          id: 'temp-ai-' + Date.now(),
-          group_id: gid,
-          sender_id: AI_USER_ID,
-          sender_name: AI_USER_NAME,
-          content: aiReply,
-          role: 'ai',
-          created_at: new Date().toISOString()
-        };
-        render(tempAIMessage);
-      }
-    } catch (insertError) {
-      console.error('Failed to insert AI message:', insertError);
+    // Insert AI message using the real AI user ID from profiles table
+    const { data: aiMessage, error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: aiReply,
+      role: 'ai'
+    }).select().single();
+    
+    if (aiError) {
+      console.error('Error inserting AI message:', aiError);
+      // If error, still hide the typing indicator
       hideAITypingIndicator();
     }
     
   } catch (error) {
     console.error('PeerPal AI Error:', error);
+    // Hide typing indicator
     hideAITypingIndicator();
     
+    // Fallback to smart responses based on message content
     const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
     const fallbackResponse = generateSmartResponse(cleanMessage);
     
-    try {
-      await supabase.from('group_messages').insert({
-        group_id: gid,
-        sender_id: AI_USER_ID,
-        sender_name: AI_USER_NAME,
-        content: fallbackResponse,
-        role: 'ai'
-      });
-    } catch (fallbackError) {
-      console.error('Error inserting fallback AI message:', fallbackError);
+    const { error: aiError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: AI_USER_ID,
+      sender_name: AI_USER_NAME,
+      content: fallbackResponse,
+      role: 'ai'
+    });
+    
+    if (aiError) {
+      console.error('Error inserting fallback AI message:', aiError);
     }
   }
 }
