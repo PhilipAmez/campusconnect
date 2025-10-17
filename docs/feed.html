@@ -588,11 +588,19 @@ class LikeManager {
           .eq('user_id', session.user.id);
 
         if (!error) {
-          button.classList.remove('liked');
-          post.liked = false;
-          post.likes = Math.max(0, (post.likes || 1) - 1);
-          likeCountEl.textContent = post.likes;
-          updatePostElement(postId, post);
+          // Update likes_count in posts table
+          const { error: updateError } = await supabase
+            .from('posts')
+            .update({ likes_count: Math.max(0, (post.likes || 1) - 1) })
+            .eq('id', postId);
+
+          if (!updateError) {
+            button.classList.remove('liked');
+            post.liked = false;
+            post.likes = Math.max(0, (post.likes || 1) - 1);
+            likeCountEl.textContent = post.likes;
+            updatePostElement(postId, post);
+          }
         } else {
           console.error('Error unliking post:', error);
         }
@@ -606,12 +614,20 @@ class LikeManager {
           });
 
         if (!error) {
-          button.classList.add('liked');
-          post.liked = true;
-          post.likes = (post.likes || 0) + 1;
-          likeCountEl.textContent = post.likes;
-          showBlueHeart(postEl);
-          updatePostElement(postId, post);
+          // Update likes_count in posts table
+          const { error: updateError } = await supabase
+            .from('posts')
+            .update({ likes_count: (post.likes || 0) + 1 })
+            .eq('id', postId);
+
+          if (!updateError) {
+            button.classList.add('liked');
+            post.liked = true;
+            post.likes = (post.likes || 0) + 1;
+            likeCountEl.textContent = post.likes;
+            showBlueHeart(postEl);
+            updatePostElement(postId, post);
+          }
         } else {
           console.error('Error liking post:', error);
         }
@@ -664,7 +680,7 @@ async function loadInitialPosts(limit = 10) {
     const { data: { session } } = await supabase.auth.getSession();
     const currentUserId = session?.user?.id || null;
 
-    // Load posts from Supabase
+    // Load posts from Supabase - match your actual schema columns
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -687,24 +703,26 @@ async function loadInitialPosts(limit = 10) {
     }
 
     if (data && data.length > 0) {
-      // Load likes for each post
       const postsWithLikes = await Promise.all(data.map(async (post) => {
-        // Get like count and user like status
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
-        
-        const userLiked = currentUserId ? 
-          likesData?.some(like => like.user_id === currentUserId) || false : false;
-        
+        // Get user like status
+        let userLiked = false;
+        if (currentUserId) {
+          const { data: userLike } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', post.id)
+            .eq('user_id', currentUserId)
+            .single();
+          userLiked = !!userLike;
+        }
+
         return {
           id: post.id,
           user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
           title: post.title || 'Untitled',
           caption: post.caption || '',
           src: post.video_url,
-          likes: likesData?.length || post.likes_count || 0,
+          likes: post.likes_count || 0, // Use likes_count from your schema
           comments: [],
           liked: userLiked,
           uploading: false,
@@ -933,7 +951,7 @@ function attachPostBehavior(postEl, postData) {
 
   // Load video source if available and ensure it's playable
   if (postData.src && video) {
-    const source = video.querySelector('Facts');
+    const source = video.querySelector('source');
     if (source) {
       source.src = postData.src;
       video.load().then(() => {
@@ -1375,7 +1393,7 @@ async function loadMorePosts() {
   try {
     const { data, error } = await supabase
       .from('posts')
-      .select('id, author_id, author_name, video_url, created_at, title, caption')
+      .select('id, author_id, author_name, video_url, created_at, title, caption, likes_count')
       .order('created_at', { ascending: false })
       .range(allPosts.length, allPosts.length + 4);
 
@@ -1386,13 +1404,14 @@ async function loadMorePosts() {
       const currentUserId = session?.user?.id || null;
 
       const newPosts = await Promise.all(data.map(async (post) => {
-        const { data: likesData } = await supabase
+        const { data: userLike } = await supabase
           .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
+          .select('id')
+          .eq('post_id', post.id)
+          .eq('user_id', currentUserId)
+          .single();
         
-        const userLiked = currentUserId ? 
-          likesData?.some(like => like.user_id === currentUserId) || false : false;
+        const userLiked = !!userLike;
 
         return {
           id: post.id,
@@ -1400,7 +1419,7 @@ async function loadMorePosts() {
           title: post.title || 'Untitled',
           caption: post.caption || '',
           src: post.video_url,
-          likes: likesData?.length || 0,
+          likes: post.likes_count || 0,
           comments: [],
           liked: userLiked,
           uploading: false,
@@ -1446,7 +1465,7 @@ function setupThemeSwipe() {
   });
 }
 
-// Upload functionality - COMPLETELY REWRITTEN
+// Upload functionality - FIXED VERSION
 function openUploadModal() {
   uploadModal.classList.add('show');
   
@@ -1501,11 +1520,10 @@ function openRecordModal() {
             clearInterval(recordingTimer);
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             
-            // Skip duration check for now to fix the upload issue
             const id = 'p' + Math.random().toString(36).slice(2, 9);
             const newPost = { 
               id, 
-              user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
+              user: `@you`, 
               title, 
               caption, 
               src: URL.createObjectURL(blob), 
@@ -1563,7 +1581,7 @@ function openRecordModal() {
     });
 }
 
-// SIMPLIFIED handleFileUpload - removed duration check temporarily
+// FIXED handleFileUpload function
 async function handleFileUpload(e) {
   const file = e.target.files[0];
   const title = document.getElementById('uploadTitle').value.trim();
@@ -1581,16 +1599,22 @@ async function handleFileUpload(e) {
     return;
   }
 
+  // Reset file input
+  e.target.value = '';
+  
   try {
-    // Skip duration check for now to fix upload issues
     uploadModal.classList.remove('show');
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    
     const id = 'p' + Math.random().toString(36).slice(2, 9);
     const newPost = { 
       id, 
-      user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
+      user: `@you`, 
       title, 
       caption, 
-      src: URL.createObjectURL(file), 
+      src: previewUrl, 
       likes: 0, 
       comments: [], 
       liked: false, 
@@ -1603,11 +1627,21 @@ async function handleFileUpload(e) {
     allPosts.unshift(newPost);
     filterPosts();
     renderFeed();
-    uploadVideo(newPost, file, title, caption);
+    
+    // Start upload
+    await uploadVideo(newPost, file, title, caption);
     
   } catch (error) {
     console.error('Error processing video file:', error);
     alert('Error processing video file. Please try another file.');
+    
+    // Remove the failed post from the feed
+    const index = allPosts.findIndex(p => p.id === newPost.id);
+    if (index !== -1) {
+      allPosts.splice(index, 1);
+      filterPosts();
+      renderFeed();
+    }
   }
 }
 
@@ -1619,65 +1653,82 @@ async function uploadVideo(post, file, title, caption) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      alert('You must be signed in to upload.');
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
+      throw new Error('You must be signed in to upload.');
     }
     
     const userId = session.user.id;
     const authorName = session.user.user_metadata?.username || session.user.email.split('@')[0];
+    
+    // Generate unique filename
     const ext = file.name.split('.').pop() || 'mp4';
     const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const path = `posts/${userId}/${filename}`;
 
-    // Start progress simulation
+    // Progress simulation
     const progressInterval = setInterval(() => {
-      if (post.uploadProgress < 90) {
-        post.uploadProgress += Math.random() * 10;
+      if (post.uploadProgress < 80) {
+        post.uploadProgress += Math.random() * 15;
         updateProgress(post.uploadProgress);
         updatePostElement(post.id, post);
       }
-    }, 200);
+    }, 300);
 
-    // Upload to Supabase storage - FIXED BUCKET NAME
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Facts') // Changed from 'Facts' to 'videos'
-      .upload(path, file);
+    // Try to upload to storage - FIRST check which buckets are available
+    let uploadData, uploadError;
+    let bucketName = 'Facts'; // Try 'videos' first
+    
+    console.log('Attempting upload to bucket:', bucketName);
+    
+    ({ data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false
+      }));
+
+    // If 'videos' bucket doesn't exist, try 'Facts'
+    if (uploadError && uploadError.message.includes('bucket')) {
+      console.log('Trying Facts bucket...');
+      bucketName = 'Facts';
+      ({ data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false
+        }));
+    }
 
     clearInterval(progressInterval);
 
     if (uploadError) {
-      console.error('Upload error', uploadError);
-      // Try with 'Facts' bucket if 'videos' doesn't work
-      const { data: uploadData2, error: uploadError2 } = await supabase.storage
-        .from('Facts')
-        .upload(path, file);
-
-      if (uploadError2) {
-        alert('Upload failed: ' + uploadError2.message);
-        post.uploading = false;
-        updateProgress(100);
-        setTimeout(() => progressModal.classList.remove('show'), 1000);
-        return;
-      }
+      console.error('Upload error:', uploadError);
+      throw new Error(`Upload failed: ${uploadError.message}. Please check your storage buckets.`);
     }
 
-    // Get public URL - FIXED BUCKET NAME
+    // Get public URL
     const { data: urlData } = supabase.storage
-      .from('Facts') // Changed from 'videos' to match upload bucket
-      .getPublicUrl(uploadData?.path || uploadData2?.path);
+      .from(bucketName)
+      .getPublicUrl(uploadData.path);
     
-    const publicUrl = urlData?.publicUrl || '';
+    const publicUrl = urlData.publicUrl;
+    console.log('Upload successful. Public URL:', publicUrl);
 
+    // Update progress to 90%
+    post.uploadProgress = 90;
+    updateProgress(90);
+    updatePostElement(post.id, post);
+
+    // Insert into posts table - match your schema exactly
     const insertPayload = { 
       author_id: userId, 
       author_name: authorName, 
       video_url: publicUrl, 
-      title,
-      caption 
+      title: title,
+      caption: caption,
+      likes_count: 0 // Initialize likes_count to 0
     };
+    
+    console.log('Inserting post with payload:', insertPayload);
     
     const { data: inserted, error: insertError } = await supabase
       .from('posts')
@@ -1686,15 +1737,11 @@ async function uploadVideo(post, file, title, caption) {
       .single();
 
     if (insertError) {
-      console.error('Insert error', insertError);
-      alert('Error saving post: ' + insertError.message);
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
+      console.error('Database insert error:', insertError);
+      throw new Error(`Error saving post: ${insertError.message}`);
     }
 
-    // Update post with real data from Supabase
+    // Final update
     post.id = inserted.id;
     post.src = publicUrl;
     post.uploading = false;
@@ -1704,17 +1751,34 @@ async function uploadVideo(post, file, title, caption) {
     updatePostElement(post.id, post);
     updateProgress(100);
     
-    // Hide progress modal after completion
+    console.log('Post created successfully with ID:', inserted.id);
+    
+    // Hide progress modal
     setTimeout(() => {
       progressModal.classList.remove('show');
     }, 1000);
     
   } catch (err) {
-    console.error('Unexpected upload error', err);
-    alert('Upload failed: ' + (err?.message || 'Unknown error'));
+    console.error('Upload process failed:', err);
+    
+    // Clean up on failure
     post.uploading = false;
+    updatePostElement(post.id, post);
     updateProgress(100);
-    setTimeout(() => progressModal.classList.remove('show'), 1000);
+    
+    setTimeout(() => {
+      progressModal.classList.remove('show');
+    }, 1000);
+    
+    alert('Upload failed: ' + (err?.message || 'Unknown error'));
+    
+    // Remove failed post from feed
+    const index = allPosts.findIndex(p => p.id === post.id);
+    if (index !== -1) {
+      allPosts.splice(index, 1);
+      filterPosts();
+      renderFeed();
+    }
   }
 }
 
