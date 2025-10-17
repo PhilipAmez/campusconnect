@@ -411,6 +411,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            white-space: nowrap;
         }
         
         .chat-button:hover {
@@ -447,6 +448,7 @@
             color: var(--white);
             opacity: 0.9;
             transition: opacity 0.3s;
+            text-decoration: none;
         }
         
         .footer-links a:hover {
@@ -476,6 +478,7 @@
             border-radius: 50%;
             color: var(--white);
             transition: background 0.3s;
+            text-decoration: none;
         }
         
         .social-links a:hover {
@@ -504,6 +507,11 @@
                 flex-direction: column;
             }
             
+            .chat-button {
+                width: 100%;
+                justify-content: center;
+            }
+            
             .footer-links {
                 flex-direction: column;
                 gap: 1rem;
@@ -528,6 +536,10 @@
                 height: 80px;
                 line-height: 80px;
                 font-size: 2.5rem;
+            }
+            
+            .assistant-section {
+                padding: 1.5rem;
             }
         }
     </style>
@@ -685,10 +697,10 @@
                     
                     <div class="chat-input-container">
                         <input type="text" class="chat-input" id="userInput" placeholder="Ask about PeerLoom features or how to use the platform..." aria-label="Ask a question">
-                        <button class="chat-button" onclick="getAIResponse()" aria-label="Submit question">
+                        <button class="chat-button" id="sendButton" aria-label="Submit question">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
-                        <button class="chat-button voice-button" onclick="startVoiceInput()" aria-label="Start voice input">
+                        <button class="chat-button voice-button" id="voiceButton" aria-label="Start voice input">
                             <i class="fas fa-microphone"></i> Speak
                         </button>
                     </div>
@@ -703,7 +715,7 @@
                 <a href="/index.html">Home</a>
                 <a href="/privacy.html">Privacy Policy</a>
                 <a href="/terms.html">Terms of Service</a>
-                <a href="/contact.html">Contact Us</a>
+                <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
             </div>
             <div class="social-links">
                 <a href="#"><i class="fab fa-twitter"></i></a>
@@ -745,13 +757,15 @@
             "difference|how is peerloom different|whatsapp|telegram": "Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub designed to enhance your educational experience.",
             "invite|can i invite|add friends": "Yes! You can add friends easily and create your own study groups with them inside PeerLoom. Collaboration is at the heart of what we do.",
             "features|what can i do|capabilities": "With PeerLoom, you can create study groups, chat with classmates, use PeerPal AI for academic support, share resources, and collaborate on learning materials - all in one place!",
-            "help|support|problem": "If you're having trouble with PeerLoom, you can email our support team at support@peerloom.online. We typically respond within 24 hours.",
+            "help|support|problem": "If you're having trouble with PeerLoom, you can email our support team at peerloomonline@gmail.com. We typically respond within 24 hours.",
+            "contact|email|mail": "You can reach us at peerloomonline@gmail.com for any questions or support.",
             "hello|hi|hey": "Hello! I'm PeerPal, your learning assistant. How can I help you learn better today?",
             "thank|thanks": "You're welcome! Is there anything else I can help you with?",
             "study groups|create group|join group": "You can create or join study groups based on subjects or topics. Just navigate to the 'Groups' section in the app to get started!",
             "how to use|getting started|tutorial": "To get started with PeerLoom, simply create an account, then you can join existing study groups or create your own. Use the chat feature to communicate and don't forget to try PeerPal AI for academic help!"
         };
 
+        // Get AI response function
         function getAIResponse() {
             const input = document.getElementById('userInput').value.trim();
             if (!input) return;
@@ -792,12 +806,14 @@
             }, 500);
         }
 
+        // Handle Enter key press
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 getAIResponse();
             }
         }
 
+        // Voice input function
         function startVoiceInput() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -822,6 +838,7 @@
             }
         }
 
+        // Helper function to add AI messages
         function addAIMessage(message) {
             const chatMessages = document.getElementById('chatMessages');
             const aiMessage = document.createElement('div');
@@ -831,8 +848,29 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Add event listener for Enter key
-        document.getElementById('userInput').addEventListener('keypress', handleKeyPress);
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chat input event listeners
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+            const voiceButton = document.getElementById('voiceButton');
+            
+            userInput.addEventListener('keypress', handleKeyPress);
+            sendButton.addEventListener('click', getAIResponse);
+            voiceButton.addEventListener('click', startVoiceInput);
+            
+            // Make sure buttons are responsive
+            const buttons = document.querySelectorAll('.chat-button');
+            buttons.forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'translateY(-1px)';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        });
     </script>
 </body>
 </html>
