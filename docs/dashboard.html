@@ -585,6 +585,9 @@
                 window.location.replace('login.html');
             } else {
                 console.log("User authenticated, loading dashboard");
+                // Load groups after authentication
+                loadSuggestedGroups();
+                loadActiveGroups();
             }
         });
 
@@ -629,18 +632,25 @@
         // Load suggested groups (excluding your own)
         async function loadSuggestedGroups() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                console.error('No user found');
+                return;
+            }
 
             const { data, error } = await supabase
                 .from('groups')
                 .select('id, name, course_code')
                 .neq('created_by', user.id) // Exclude groups you created
                 .limit(5);
+                
             if (error) {
                 console.error('Error loading suggested groups:', error);
                 return;
             }
+            
             const suggestedGroupsDiv = document.getElementById('suggestedGroups');
+            if (!suggestedGroupsDiv) return;
+            
             suggestedGroupsDiv.innerHTML = '';
             data.forEach(group => {
                 const div = document.createElement('div');
@@ -661,46 +671,27 @@
                 btn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     const groupId = btn.dataset.groupid;
-                    const groupName = btn.closest('.group-item').querySelector('p.font-semibold').textContent;
                     const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) return;
+                    
+                    if (!user) {
+                        showNotification('Please log in to join groups.');
+                        return;
+                    }
 
-                    try {
-                        // Check if user is already a member
-                        const { data: existingMembership, error: checkError } = await supabase
-                            .from('group_members')
-                            .select('*')
-                            .eq('group_Id', groupId) // Changed from group_id to group_Id
-                            .eq('user_id', user.id)
-                            .single();
-
-                        if (existingMembership) {
-                            showNotification('You are already a member of this group.');
-                            return;
-                        }
-
-                        // Join the group
-                        const { error } = await supabase
-                            .from('group_members')
-                            .insert({ 
-                                group_Id: groupId, // Changed from group_id to group_Id
-                                user_id: user.id, 
-                                is_admin: false 
-                            });
-
-                        if (error) {
-                            console.error('Error joining group:', error);
-                            showNotification('Failed to join group: ' + error.message);
-                        } else {
-                            showNotification(`Successfully joined ${groupName}!`, () => {
-                                window.location.href = `chatroom.html?groupId=${groupId}`;
-                            });
-                            loadActiveGroups(); // Refresh active groups
-                            loadSuggestedGroups(); // Refresh suggested groups to remove joined group
-                        }
-                    } catch (error) {
-                        console.error('Unexpected error joining group:', error);
-                        showNotification('An unexpected error occurred while joining the group.');
+                    // FIXED: Using group_Id instead of group_id
+                    const { error } = await supabase
+                        .from('group_members')
+                        .insert({ group_Id: groupId, user_id: user.id, is_admin: false });
+                        
+                    if (error) {
+                        console.error('Error joining group:', error);
+                        showNotification('Failed to join group: ' + error.message);
+                    } else {
+                        showNotification('Successfully joined group!', () => {
+                            window.location.href = `chatroom.html?groupId=${groupId}`;
+                        });
+                        loadActiveGroups(); // Refresh active groups
+                        loadSuggestedGroups(); // Refresh suggested groups to remove joined group
                     }
                 });
             });
@@ -709,26 +700,37 @@
         // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                console.error('No user found');
+                return;
+            }
 
+            // FIXED: Using group_Id instead of group_id
             const { data, error } = await supabase
                 .from('group_members')
-                .select('group_Id') // Changed from group_id to group_Id
+                .select('group_Id')
                 .eq('user_id', user.id);
+                
             if (error) {
                 console.error('Error loading active groups:', error);
                 return;
             }
+            
             const groupListDiv = document.getElementById('groupList');
+            if (!groupListDiv) return;
+            
             groupListDiv.innerHTML = '';
-            const groupIds = data.map(m => m.group_Id); // Changed from group_id to group_Id
+            const groupIds = data.map(m => m.group_Id);
+            
             for (const groupId of groupIds) {
                 const { data: groupData, error: groupError } = await supabase
                     .from('groups')
                     .select('id, name, course_code')
                     .eq('id', groupId)
                     .single();
+                    
                 if (groupError) continue;
+                
                 const div = document.createElement('div');
                 div.className = 'group-item';
                 div.innerHTML = `
@@ -748,7 +750,11 @@
             const groupName = document.getElementById('groupName').value.trim();
             const course = document.getElementById('groupCourse').value;
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            
+            if (!user) {
+                showNotification('Please log in to create a group.');
+                return;
+            }
             
             if (!groupName || !course) {
                 showNotification('Please fill in all fields.');
@@ -783,10 +789,11 @@
                 }
 
                 // Then, add the creator as an admin member
+                // FIXED: Using group_Id instead of group_id
                 const { error: memberError } = await supabase
                     .from('group_members')
                     .insert({ 
-                        group_Id: data.id, // Changed from group_id to group_Id
+                        group_Id: data.id, 
                         user_id: user.id, 
                         is_admin: true 
                     });
@@ -932,7 +939,7 @@
                 modal.classList.remove('show');
                 body.classList.remove('blur-background');
                 if (callback) callback();
-            }, 4000); // 4 seconds
+            }, 3000); // 3 seconds
         }
 
         // Add event listeners after DOM is loaded
@@ -947,10 +954,6 @@
                 searchCoursesBtn.addEventListener('click', searchCourses);
             }
         });
-
-        // Initial load
-        loadSuggestedGroups();
-        loadActiveGroups();
     </script>
 </body>
 </html>
