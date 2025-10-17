@@ -592,18 +592,16 @@
             console.log('Auto-logging out due to inactivity');
             const { error } = await supabase.auth.signOut();
             if (!error) {
-                showNotification('Session expired due to inactivity. Please log in again.');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                // Redirect to index.html with session timeout message
+                window.location.href = 'index.html?message=session_timeout';
             }
         }
 
         // Function to setup activity listeners
         function setupActivityListeners() {
-            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
             events.forEach(event => {
-                document.addEventListener(event, resetLogoutTimer);
+                document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
 
@@ -611,7 +609,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                window.location.replace('login.html');
+                window.location.replace('index.html?message=session_expired');
             } else {
                 console.log("User authenticated, loading dashboard");
                 // Setup auto-logout functionality
@@ -638,7 +636,7 @@
                     console.error('Logout failed:', error);
                     return;
                 }
-                window.location.href = 'logout.html';
+                window.location.href = 'index.html?message=logout_success';
             });
         });
 
@@ -715,7 +713,7 @@
             }
         }
 
-        // Join group function
+        // Join group function - MATCHING YOUR EXACT SCHEMA
         async function joinGroup(groupId, button) {
             const { data: { user } } = await supabase.auth.getUser();
             
@@ -729,7 +727,7 @@
                 const { data: existingMember, error: checkError } = await supabase
                     .from('group_members')
                     .select('*')
-                    .eq('group_Id', groupId)
+                    .eq('group_id', groupId)
                     .eq('user_id', user.id)
                     .single();
 
@@ -738,24 +736,26 @@
                     return;
                 }
 
+                // INSERT with joined_at timestamp and role
                 const { error } = await supabase
                     .from('group_members')
-                    .insert({ group_Id: groupId, user_id: user.id });
+                    .insert({ 
+                        group_id: groupId, 
+                        user_id: user.id,
+                        joined_at: new Date().toISOString(),
+                        role: 'member'
+                    });
                     
                 if (error) {
                     console.error('Error joining group:', error);
                     
-                    if (error.code === '23503') {
-                        showNotification('Cannot join group: User profile issue. Please check your profile.');
-                    } else if (error.code === '23505') {
+                    if (error.code === '23505') {
                         showNotification('You are already a member of this group.');
                     } else {
-                        showNotification('Failed to join group: ' + error.message);
+                        showNotification('Failed to join group. Please try again.');
                     }
                 } else {
-                    showNotification('Successfully joined group!', () => {
-                        window.location.href = `chatroom.html?groupId=${groupId}`;
-                    });
+                    showNotification('Successfully joined group!');
                     loadActiveGroups();
                     loadSuggestedGroups();
                     
@@ -772,7 +772,7 @@
             }
         }
 
-        // Load active groups for the user
+        // Load active groups for the user - MATCHING YOUR EXACT SCHEMA
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -782,7 +782,7 @@
 
             const { data, error } = await supabase
                 .from('group_members')
-                .select('group_Id')
+                .select('group_id')
                 .eq('user_id', user.id);
                 
             if (error) {
@@ -796,7 +796,7 @@
             groupListDiv.innerHTML = '';
             
             if (data && data.length > 0) {
-                const groupIds = data.map(m => m.group_Id);
+                const groupIds = data.map(m => m.group_id);
                 
                 for (const groupId of groupIds) {
                     const { data: groupData, error: groupError } = await supabase
@@ -827,7 +827,7 @@
             }
         }
 
-        // Create group
+        // Create group - MATCHING YOUR EXACT SCHEMA
         async function createGroup() {
             resetLogoutTimer(); // Reset timer on user action
             
@@ -860,21 +860,23 @@
 
                 if (error) {
                     console.error('Error creating group:', error);
-                    showNotification('Failed to create group: ' + error.message);
+                    showNotification('Failed to create group. Please try again.');
                     return;
                 }
 
-                // Add creator as member
+                // Add creator as member with admin role and timestamp
                 const { error: memberError } = await supabase
                     .from('group_members')
                     .insert({ 
-                        group_Id: data.id, 
-                        user_id: user.id
+                        group_id: data.id,
+                        user_id: user.id,
+                        joined_at: new Date().toISOString(),
+                        role: 'admin'
                     });
 
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
-                    showNotification('Group created but failed to add you as member: ' + memberError.message);
+                    showNotification('Group created but failed to add you as member.');
                     return;
                 }
 
