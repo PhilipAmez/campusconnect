@@ -150,12 +150,27 @@
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
   @media (max-width: 420px) {
+    main#feed {
+      padding: 12px;
+      gap: 20px;
+      height: calc(100vh - 120px);
+    }
     #pullIndicator { width: 92vw; }
     .search-wrapper { max-width: 100%; }
     #searchBar { font-size: 16px; }
     .post { width: 92vw; height: 70vh; border-radius: 12px; }
     .icons { right: 6px; bottom: 60px; }
-    .drawer.open { height: 60% }
+    .drawer.open { height: 50%; }
+    .overlay { padding: 12px; }
+    .overlay h3 { font-size: 13px; }
+    .overlay p { font-size: 12px; }
+    .fab {
+      right: 16px;
+      bottom: 16px;
+      width: 56px;
+      height: 56px;
+      font-size: 24px;
+    }
   }
 
   /* LOADING */
@@ -404,7 +419,7 @@
   @media (max-width: 420px) {
     .post { width: 92vw; height: 70vh; }
     .icons { right: 6px; bottom: 60px; }
-    .drawer.open { height: 60% }
+    .drawer.open { height: 50% }
     .progress-box { width: 90vw; }
   }
 
@@ -499,10 +514,7 @@
     </div>
   </div>
 
-<script type="module">
-// Import Supabase client
-import { supabase } from './js/supabaseClient.js';
-
+<script>
 // Global state
 let allPosts = [];
 let posts = [];
@@ -548,7 +560,7 @@ function hideAuthModal() {
   authModal.classList.remove('show');
 }
 
-// Like Manager with proper Supabase integration
+// Like Manager
 class LikeManager {
   constructor() {
     this.init();
@@ -573,48 +585,22 @@ class LikeManager {
     if (!post) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        showAuthModal();
-        return;
-      }
-
+      // For demo purposes - in real app, check authentication
       if (isLiked) {
         // Unlike
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', session.user.id);
-
-        if (!error) {
-          button.classList.remove('liked');
-          post.liked = false;
-          post.likes = Math.max(0, (post.likes || 1) - 1);
-          likeCountEl.textContent = post.likes;
-          updatePostElement(postId, post);
-        } else {
-          console.error('Error unliking post:', error);
-        }
+        button.classList.remove('liked');
+        post.liked = false;
+        post.likes = Math.max(0, (post.likes || 1) - 1);
+        likeCountEl.textContent = post.likes;
+        updatePostElement(postId, post);
       } else {
         // Like
-        const { error } = await supabase
-          .from('likes')
-          .insert({
-            post_id: postId,
-            user_id: session.user.id
-          });
-
-        if (!error) {
-          button.classList.add('liked');
-          post.liked = true;
-          post.likes = (post.likes || 0) + 1;
-          likeCountEl.textContent = post.likes;
-          showBlueHeart(postEl);
-          updatePostElement(postId, post);
-        } else {
-          console.error('Error liking post:', error);
-        }
+        button.classList.add('liked');
+        post.liked = true;
+        post.likes = (post.likes || 0) + 1;
+        likeCountEl.textContent = post.likes;
+        showBlueHeart(postEl);
+        updatePostElement(postId, post);
       }
     } catch (error) {
       console.error('Like error:', error);
@@ -630,17 +616,12 @@ const userAvatar = document.getElementById('userAvatar');
 
 async function updateSessionInfo() {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      sessionInfoEl.innerHTML = '<div class="avatar">?</div>';
-      return null;
-    }
-    const u = session.user;
-    const name = u.user_metadata?.username || u.user_metadata?.full_name || u.email || u.id;
+    // For demo purposes - in real app, integrate with your auth system
+    const name = "Demo User";
     const initial = name.charAt(0).toUpperCase();
     userAvatar.textContent = initial;
     sessionInfoEl.innerHTML = `<div class="avatar">${initial}</div>`;
-    return session;
+    return { user: { id: 'demo-user' } };
   } catch (err) {
     console.error('updateSessionInfo error', err);
     sessionInfoEl.innerHTML = '<div class="avatar">!</div>';
@@ -649,126 +630,78 @@ async function updateSessionInfo() {
 }
 
 function setupAuthListener() {
-  supabase.auth.onAuthStateChange((event, session) => {
-    updateSessionInfo().catch(() => {});
-    if (event === 'SIGNED_OUT') {
-      showAuthModal();
-    }
-  });
+  // For demo purposes - in real app, integrate with your auth system
+  updateSessionInfo().catch(() => {});
 }
 
-// Post loading with proper like handling
+// Post loading
 async function loadInitialPosts(limit = 10) {
   try {
     await updateSessionInfo();
-    const { data: { session } } = await supabase.auth.getSession();
-    const currentUserId = session?.user?.id || null;
-
-    // Load posts from Supabase
-    const { data, error } = await supabase
-      .from('posts')
-      .select(`
-        id, 
-        author_id, 
-        author_name, 
-        video_url, 
-        created_at, 
-        title,
-        caption,
-        likes_count
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error loading posts:', error);
-      loadMockData();
-      return;
+    
+    // For demo purposes - load sample data
+    // In real app, fetch from your backend/Supabase
+    allPosts = [
+      {
+        id: '1',
+        user: '@creative_mind',
+        title: 'Sunset Vibes 🌅',
+        caption: 'Chasing golden hour never gets old',
+        src: '',
+        likes: 42,
+        comments: ['So beautiful!', 'Where was this taken?'],
+        liked: false,
+        uploading: false,
+        owner: false,
+        paused: false,
+      },
+      {
+        id: '2', 
+        user: '@tech_guru',
+        title: 'Coding Session',
+        caption: 'Late night coding with some lo-fi beats',
+        src: '',
+        likes: 18,
+        comments: ['What language is this?', 'Great setup!'],
+        liked: false,
+        uploading: false,
+        owner: false,
+        paused: false,
+      },
+      {
+        id: '3',
+        user: '@adventure_seeker',
+        title: 'Mountain Hike',
+        caption: 'The view from the top was worth every step',
+        src: '',
+        likes: 156,
+        comments: ['Amazing view!', 'Which mountain is this?'],
+        liked: false,
+        uploading: false,
+        owner: false,
+        paused: false,
+      }
+    ];
+    
+    // Check if we have any uploaded posts in localStorage
+    const savedPosts = localStorage.getItem('skrolz_posts');
+    if (savedPosts) {
+      try {
+        const parsedPosts = JSON.parse(savedPosts);
+        if (Array.isArray(parsedPosts) {
+          allPosts = [...parsedPosts, ...allPosts];
+        }
+      } catch (e) {
+        console.error('Error loading saved posts:', e);
+      }
     }
-
-    if (data && data.length > 0) {
-      // Load likes for each post
-      const postsWithLikes = await Promise.all(data.map(async (post) => {
-        // Get like count and user like status
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
-        
-        const userLiked = currentUserId ? 
-          likesData?.some(like => like.user_id === currentUserId) || false : false;
-        
-        return {
-          id: post.id,
-          user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
-          title: post.title || 'Untitled',
-          caption: post.caption || '',
-          src: post.video_url,
-          likes: likesData?.length || post.likes_count || 0,
-          comments: [],
-          liked: userLiked,
-          uploading: false,
-          owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
-        };
-      }));
-
-      allPosts = postsWithLikes;
-      posts = [...allPosts];
-      console.log(`Loaded ${posts.length} posts from Supabase`);
-    } else {
-      loadMockData();
-    }
+    
+    posts = [...allPosts];
+    console.log(`Loaded ${posts.length} posts`);
   } catch (err) {
     console.error('Error loading initial posts:', err);
     loadMockData();
   }
-}
-
-function loadMockData() {
-  console.log('Loading mock data...');
-  allPosts = [
-    {
-      id: '1',
-      user: '@creative_mind',
-      title: 'Sunset Vibes 🌅',
-      caption: 'Chasing golden hour never gets old',
-      src: '',
-      likes: 42,
-      comments: ['So beautiful!', 'Where was this taken?'],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
-    },
-    {
-      id: '2', 
-      user: '@tech_guru',
-      title: 'Coding Session',
-      caption: 'Late night coding with some lo-fi beats',
-      src: '',
-      likes: 18,
-      comments: ['What language is this?', 'Great setup!'],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
-    },
-    {
-      id: '3',
-      user: '@adventure_seeker',
-      title: 'Mountain Hike',
-      caption: 'The view from the top was worth every step',
-      src: '',
-      likes: 156,
-      comments: ['Amazing view!', 'Which mountain is this?'],
-      liked: false,
-      uploading: false,
-      owner: false,
-      paused: false,
-    }
-  ];
-  posts = [...allPosts];
 }
 
 // Search functionality
@@ -782,13 +715,8 @@ function setupEventListeners() {
   }, 300));
 
   document.getElementById('fab').addEventListener('click', () => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        openUploadModal();
-      } else {
-        showAuthModal();
-      }
-    });
+    // For demo purposes - in real app, check authentication
+    openUploadModal();
   });
 
   // Auth modal buttons
@@ -934,8 +862,7 @@ function attachPostBehavior(postEl, postData) {
   // Load video source if available and ensure it's playable
   if (postData.src && video) {
     const source = video.querySelector('source');
-    if (source) {
-      source.src = postData.src;
+    if (source && source.src) {
       video.load().then(() => {
         // Ensure video can play after load
         if (!postData.paused) {
@@ -994,9 +921,13 @@ function attachPostBehavior(postEl, postData) {
       e.stopPropagation();
       if (confirm('Delete this post permanently?')) {
         try {
-          await supabase.from('posts').delete().eq('id', postData.id);
+          // Remove from allPosts array
           allPosts = allPosts.filter(p => p.id !== postData.id);
           posts = posts.filter(p => p.id !== postData.id);
+          
+          // Remove from localStorage
+          savePostsToStorage();
+          
           postEl.remove();
         } catch (error) {
           console.error('Error deleting post:', error);
@@ -1099,29 +1030,16 @@ function setupCommentsDrawer(postEl, postData) {
     const comment = commentInput.value.trim();
     if (comment) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          showAuthModal();
-          return;
-        }
-
-        const userName = session.user.user_metadata?.username || session.user.email.split('@')[0];
+        const userName = "You";
         const newComment = `@${userName}: ${comment}`;
         
-        // Add to Supabase
-        const { error } = await supabase.from('comments').insert({
-          post_id: postData.id,
-          user_id: session.user.id,
-          user_name: userName,
-          comment: comment
-        });
-
-        if (error) throw error;
-
         if (!postData.comments) postData.comments = [];
         postData.comments.push(newComment);
         refreshComments(commentsList, postData.comments);
         commentInput.value = '';
+        
+        // Save to localStorage
+        savePostsToStorage();
       } catch (error) {
         console.error('Error posting comment:', error);
         alert('Error posting comment');
@@ -1129,35 +1047,27 @@ function setupCommentsDrawer(postEl, postData) {
     }
   });
 
-  // Load comments from Supabase
-  loadComments(postData.id, commentsList);
-}
-
-async function loadComments(postId, commentsList) {
-  try {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('user_name, comment, created_at')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    const comments = data.map(c => `@${c.user_name}: ${c.comment}`);
-    refreshComments(commentsList, comments);
-  } catch (error) {
-    console.error('Error loading comments:', error);
-  }
+  // Load comments
+  refreshComments(commentsList, postData.comments || []);
 }
 
 function refreshComments(commentsList, comments) {
   commentsList.innerHTML = '';
-  comments.forEach(comment => {
-    const commentEl = document.createElement('div');
-    commentEl.className = 'comment';
-    commentEl.textContent = comment;
-    commentsList.appendChild(commentEl);
-  });
+  if (comments && comments.length > 0) {
+    comments.forEach(comment => {
+      const commentEl = document.createElement('div');
+      commentEl.className = 'comment';
+      commentEl.textContent = comment;
+      commentsList.appendChild(commentEl);
+    });
+  } else {
+    const noComments = document.createElement('div');
+    noComments.className = 'muted';
+    noComments.textContent = 'No comments yet';
+    noComments.style.padding = '10px';
+    noComments.style.textAlign = 'center';
+    commentsList.appendChild(noComments);
+  }
 }
 
 function updatePostElement(postId, postData) {
@@ -1373,46 +1283,28 @@ function setupInfiniteScroll() {
 
 async function loadMorePosts() {
   try {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id, author_id, author_name, video_url, created_at, title, caption')
-      .order('created_at', { ascending: false })
-      .range(allPosts.length, allPosts.length + 4);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id || null;
-
-      const newPosts = await Promise.all(data.map(async (post) => {
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
-        
-        const userLiked = currentUserId ? 
-          likesData?.some(like => like.user_id === currentUserId) || false : false;
-
-        return {
-          id: post.id,
-          user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
-          title: post.title || 'Untitled',
-          caption: post.caption || '',
-          src: post.video_url,
-          likes: likesData?.length || 0,
-          comments: [],
-          liked: userLiked,
-          uploading: false,
-          owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
-        };
-      }));
-
-      allPosts.push(...newPosts);
-      posts = [...allPosts];
-      renderFeed();
-    }
+    // For demo purposes - simulate loading more posts
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newPosts = [
+      {
+        id: 'more-' + Date.now(),
+        user: '@new_user',
+        title: 'New Content',
+        caption: 'Just added to the feed!',
+        src: '',
+        likes: 5,
+        comments: [],
+        liked: false,
+        uploading: false,
+        owner: false,
+        paused: false,
+      }
+    ];
+    
+    allPosts.push(...newPosts);
+    posts = [...allPosts];
+    renderFeed();
   } catch (error) {
     console.error('Error loading more posts:', error);
   }
@@ -1446,17 +1338,22 @@ function setupThemeSwipe() {
   });
 }
 
-// Upload functionality - COMPLETELY REWRITTEN
+// Upload functionality - FIXED VERSION
 function openUploadModal() {
   uploadModal.classList.add('show');
   
+  // Clear previous inputs
+  document.getElementById('uploadTitle').value = '';
+  document.getElementById('uploadCaption').value = '';
+  document.getElementById('filePicker').value = '';
+  
   document.getElementById('closeUpload').addEventListener('click', () => {
     uploadModal.classList.remove('show');
-  });
+  }, { once: true });
 
-  document.getElementById('recordBtn').addEventListener('click', openRecordModal);
+  document.getElementById('recordBtn').addEventListener('click', openRecordModal, { once: true });
   
-  document.getElementById('filePicker').addEventListener('change', handleFileUpload);
+  document.getElementById('filePicker').addEventListener('change', handleFileUpload, { once: true });
 }
 
 function openRecordModal() {
@@ -1501,11 +1398,10 @@ function openRecordModal() {
             clearInterval(recordingTimer);
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             
-            // Skip duration check for now to fix the upload issue
             const id = 'p' + Math.random().toString(36).slice(2, 9);
             const newPost = { 
               id, 
-              user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
+              user: '@you', 
               title, 
               caption, 
               src: URL.createObjectURL(blob), 
@@ -1521,14 +1417,14 @@ function openRecordModal() {
             allPosts.unshift(newPost);
             filterPosts();
             renderFeed();
-            uploadVideo(newPost, blob, title, caption);
+            simulateUpload(newPost, blob, title, caption);
             
             stream.getTracks().forEach(track => track.stop());
             recordedChunks = [];
             recordModal.classList.remove('show');
           };
           
-          mediaRecorder.start(1000); // Collect data every second
+          mediaRecorder.start(1000);
           recordBtnModal.textContent = '⏹';
           recordBtnModal.classList.add('recording');
           
@@ -1555,7 +1451,7 @@ function openRecordModal() {
         stream.getTracks().forEach(track => track.stop());
         recordModal.classList.remove('show');
         clearInterval(recordingTimer);
-      });
+      }, { once: true });
     })
     .catch(err => {
       console.error('Camera access error:', err);
@@ -1563,7 +1459,7 @@ function openRecordModal() {
     });
 }
 
-// SIMPLIFIED handleFileUpload - removed duration check temporarily
+// Handle file upload
 async function handleFileUpload(e) {
   const file = e.target.files[0];
   const title = document.getElementById('uploadTitle').value.trim();
@@ -1582,12 +1478,11 @@ async function handleFileUpload(e) {
   }
 
   try {
-    // Skip duration check for now to fix upload issues
     uploadModal.classList.remove('show');
     const id = 'p' + Math.random().toString(36).slice(2, 9);
     const newPost = { 
       id, 
-      user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
+      user: '@you', 
       title, 
       caption, 
       src: URL.createObjectURL(file), 
@@ -1603,7 +1498,7 @@ async function handleFileUpload(e) {
     allPosts.unshift(newPost);
     filterPosts();
     renderFeed();
-    uploadVideo(newPost, file, title, caption);
+    simulateUpload(newPost, file, title, caption);
     
   } catch (error) {
     console.error('Error processing video file:', error);
@@ -1611,106 +1506,43 @@ async function handleFileUpload(e) {
   }
 }
 
-// FIXED uploadVideo function
-async function uploadVideo(post, file, title, caption) {
+// Simulate upload process (since we don't have Supabase in this demo)
+async function simulateUpload(post, file, title, caption) {
   progressModal.classList.add('show');
   updateProgress(0);
   
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert('You must be signed in to upload.');
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
-    }
-    
-    const userId = session.user.id;
-    const authorName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-    const ext = file.name.split('.').pop() || 'mp4';
-    const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const path = `posts/${userId}/${filename}`;
-
-    // Start progress simulation
+    // Simulate upload progress
+    let progress = 0;
     const progressInterval = setInterval(() => {
-      if (post.uploadProgress < 90) {
-        post.uploadProgress += Math.random() * 10;
-        updateProgress(post.uploadProgress);
+      progress += Math.random() * 15;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(progressInterval);
+        
+        // Mark upload as complete
+        post.uploading = false;
+        post.uploadProgress = 100;
+        
+        // Save to localStorage
+        savePostsToStorage();
+        
+        updatePostElement(post.id, post);
+        updateProgress(100);
+        
+        // Hide progress modal after completion
+        setTimeout(() => {
+          progressModal.classList.remove('show');
+        }, 1000);
+      } else {
+        post.uploadProgress = progress;
+        updateProgress(progress);
         updatePostElement(post.id, post);
       }
     }, 200);
-
-    // Upload to Supabase storage - FIXED BUCKET NAME
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Facts') // Changed from 'Facts' to 'videos'
-      .upload(path, file);
-
-    clearInterval(progressInterval);
-
-    if (uploadError) {
-      console.error('Upload error', uploadError);
-      // Try with 'Facts' bucket if 'videos' doesn't work
-      const { data: uploadData2, error: uploadError2 } = await supabase.storage
-        .from('Facts')
-        .upload(path, file);
-
-      if (uploadError2) {
-        alert('Upload failed: ' + uploadError2.message);
-        post.uploading = false;
-        updateProgress(100);
-        setTimeout(() => progressModal.classList.remove('show'), 1000);
-        return;
-      }
-    }
-
-    // Get public URL - FIXED BUCKET NAME
-    const { data: urlData } = supabase.storage
-      .from('Facts') // Changed from 'videos' to match upload bucket
-      .getPublicUrl(uploadData?.path || uploadData2?.path);
-    
-    const publicUrl = urlData?.publicUrl || '';
-
-    const insertPayload = { 
-      author_id: userId, 
-      author_name: authorName, 
-      video_url: publicUrl, 
-      title,
-      caption 
-    };
-    
-    const { data: inserted, error: insertError } = await supabase
-      .from('posts')
-      .insert(insertPayload)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Insert error', insertError);
-      alert('Error saving post: ' + insertError.message);
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
-    }
-
-    // Update post with real data from Supabase
-    post.id = inserted.id;
-    post.src = publicUrl;
-    post.uploading = false;
-    post.uploadProgress = 100;
-    post.owner = true;
-    
-    updatePostElement(post.id, post);
-    updateProgress(100);
-    
-    // Hide progress modal after completion
-    setTimeout(() => {
-      progressModal.classList.remove('show');
-    }, 1000);
     
   } catch (err) {
-    console.error('Unexpected upload error', err);
+    console.error('Upload error', err);
     alert('Upload failed: ' + (err?.message || 'Unknown error'));
     post.uploading = false;
     updateProgress(100);
@@ -1721,6 +1553,19 @@ async function uploadVideo(post, file, title, caption) {
 function updateProgress(percent) {
   progressFill.style.width = `${percent}%`;
   progressText.textContent = `Uploading... ${Math.round(percent)}%`;
+}
+
+// Save posts to localStorage
+function savePostsToStorage() {
+  try {
+    // Only save posts that are not uploading and have actual content
+    const postsToSave = allPosts.filter(post => 
+      !post.uploading && (post.src || post.title)
+    );
+    localStorage.setItem('skrolz_posts', JSON.stringify(postsToSave));
+  } catch (e) {
+    console.error('Error saving posts to storage:', e);
+  }
 }
 
 // Global error handling
