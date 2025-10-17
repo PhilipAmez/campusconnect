@@ -3,175 +3,793 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About PeerLoom</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>About PeerLoom | Collaborative Learning Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; line-height: 1.6; background: #f3e8ff; }
-        header { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; padding: 20px; text-align: center; position: relative; overflow: hidden; }
-        header::before { content: ''; position: absolute; top: -20%; left: -20%; width: 140%; height: 140%; background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%); z-index: -1; opacity: 0.3; }
-        main { padding: 20px; max-width: 900px; margin: auto; }
-        h1, h2 { color: #4a2c6d; }
-        .faq-section { margin-top: 40px; }
-        .faq-item { margin-bottom: 20px; }
-        .faq-item h3 { cursor: pointer; background: rgba(124, 58, 237, 0.2); padding: 10px; border-radius: 5px; color: #7c3aed; }
-        .faq-item p { display: none; padding: 10px; border-left: 3px solid #7c3aed; background: rgba(243, 232, 255, 0.5); }
-        .assistant { margin-top: 40px; padding: 20px; background: rgba(124, 58, 237, 0.1); border-radius: 5px; }
-        .chat-box { margin-top: 15px; }
-        .chat-box input { width: 70%; padding: 10px; border: 1px solid #a78bfa; border-radius: 5px; background: rgba(167, 139, 250, 0.1); }
-        .chat-box button, .chat-box .voice-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6b21a8;
+            --primary-light: #f3e8ff;
+            --secondary: #4f46e5;
+            --text-dark: #4a2c6d;
+            --text-medium: #6b7280;
+            --text-light: #9ca3af;
+            --white: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: var(--primary-light);
+            color: var(--text-dark);
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
+            padding: 3rem 1rem;
+            text-align: center;
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background: linear-gradient(45deg, #7c3aed, #a78bfa);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4), inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+            box-shadow: var(--shadow);
         }
-        .chat-box button::before, .chat-box .voice-button::before {
+        
+        header::before {
             content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            z-index: 0;
+            opacity: 0.3;
+        }
+        
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .header-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .header-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
             background: rgba(255, 255, 255, 0.2);
+            width: 100px;
+            height: 100px;
+            line-height: 100px;
             border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
+            animation: float 3s ease-in-out infinite;
         }
-        .chat-box button:hover, .chat-box .voice-button:hover {
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .breadcrumb {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+        }
+        
+        .breadcrumb a {
+            color: var(--white);
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            opacity: 1;
+        }
+        
+        .breadcrumb .separator {
+            opacity: 0.6;
+        }
+        
+        main {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .content-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .content-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+        }
+        
+        .mission-section {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .mission-text {
+            flex: 1;
+        }
+        
+        .mission-icon {
+            flex: 0 0 80px;
+            text-align: center;
+        }
+        
+        .mission-icon i {
+            font-size: 3rem;
+            color: var(--primary);
+            background: var(--primary-light);
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            border-radius: 50%;
+        }
+        
+        h2 {
+            color: var(--text-dark);
+            margin: 2.5rem 0 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            position: relative;
+        }
+        
+        h2::before {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+        
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--text-medium);
+            font-size: 1.05rem;
+        }
+        
+        .highlight-box {
+            background: var(--primary-light);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .feature-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-top: 4px solid var(--primary);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-card p {
+            font-size: 0.95rem;
+            color: var(--text-medium);
+        }
+        
+        .faq-section {
+            margin-top: 3rem;
+        }
+        
+        .faq-item {
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        
+        .faq-question {
+            background: var(--primary-light);
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        
+        .faq-question:hover {
+            background: rgba(124, 58, 237, 0.15);
+        }
+        
+        .faq-question h3 {
+            color: var(--text-dark);
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .faq-toggle {
+            color: var(--primary);
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+        }
+        
+        .faq-answer {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            background: var(--white);
+        }
+        
+        .faq-answer.active {
+            padding: 1.5rem;
+            max-height: 500px;
+        }
+        
+        .faq-item.active .faq-toggle {
+            transform: rotate(180deg);
+        }
+        
+        .assistant-section {
+            margin-top: 3rem;
+            background: var(--primary-light);
+            border-radius: 16px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .assistant-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(124, 58, 237, 0.05)"/></svg>');
+            background-size: cover;
+        }
+        
+        .assistant-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .assistant-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+            box-shadow: var(--shadow);
+        }
+        
+        .chat-container {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-top: 1.5rem;
+        }
+        
+        .chat-messages {
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(243, 232, 255, 0.3);
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            max-width: 80%;
+            position: relative;
+        }
+        
+        .user-message {
+            background: var(--primary);
+            color: var(--white);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .ai-message {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            font-size: 1rem;
+            background: var(--white);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+        }
+        
+        .chat-button {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .chat-button:hover {
+            background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6), inset 0 0 0 2px rgba(255, 255, 255, 0.5);
         }
-        .chat-box button:hover::before, .chat-box .voice-button:hover::before {
-            width: 300px;
-            height: 300px;
+        
+        .voice-button {
+            background: var(--secondary);
         }
-        .chat-box .voice-button {
-            background: linear-gradient(45deg, #a78bfa, #8b5cf6);
+        
+        footer {
+            background: var(--primary);
+            color: var(--white);
+            text-align: center;
+            padding: 3rem 1rem;
+            margin-top: 4rem;
         }
-        #aiResponse { margin-top: 10px; color: #6b7280; }
-        footer { text-align: center; padding: 20px; font-size: 14px; background: rgba(124, 58, 237, 0.9); border-top: 1px solid #d1d5db; margin-top: 40px; color: #fff; }
-        @media (max-width: 600px) {
-            .chat-box input { width: 100%; margin-bottom: 10px; }
-            .chat-box button, .chat-box .voice-button { width: 100%; margin-left: 0; }
+        
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links a {
+            color: var(--white);
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+        
+        .footer-links a:hover {
+            opacity: 1;
+        }
+        
+        .copyright {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: var(--white);
+            transition: background 0.3s;
+        }
+        
+        .social-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .content-card {
+                padding: 2rem;
+            }
+            
+            .mission-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-input-container {
+                flex-direction: column;
+            }
+            
+            .footer-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .content-card {
+                padding: 1.5rem;
+            }
+            
+            header {
+                padding: 2rem 1rem;
+            }
+            
+            .header-icon {
+                width: 80px;
+                height: 80px;
+                line-height: 80px;
+                font-size: 2.5rem;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>About PeerLoom</h1>
-        <p>Connecting Students. Empowering Learning. Building the Future.</p>
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h1>About PeerLoom</h1>
+            <p class="header-subtitle">Connecting Students. Empowering Learning. Building the Future.</p>
+            <div class="breadcrumb">
+                <a href="/index.html"><i class="fas fa-home"></i> Home</a>
+                <span class="separator">/</span>
+                <span>About PeerLoom</span>
+            </div>
+        </div>
     </header>
 
     <main>
-        <section>
-            <h2>Who We Are</h2>
-            <p><strong>PeerLoom</strong> is a student-first platform created to make learning collaborative, social, and fun. 
-            Inspired by the way students already connect on apps like WhatsApp, PeerLoom takes that experience and supercharges it for education.</p>
-
-            <p>On PeerLoom, students can instantly create or join study groups, chat with classmates, and get real-time academic support. 
-            With <strong>PeerPal</strong>, our built-in AI, you can ask tough questions, get clear explanations, or summarize notes — all without leaving the chat.</p>
-
-            <p>Our mission is simple: <em>to give every student the tools, community, and support to succeed academically and grow together.</em></p>
-        </section>
-
-        <section class="faq-section">
-            <h2>Frequently Asked Questions (FAQs)</h2>
-
-            <div class="faq-item">
-                <h3>What is PeerLoom?</h3>
-                <p>PeerLoom is a social learning app designed like WhatsApp but built for students. It allows you to form study groups, chat, and use AI to enhance your studies.</p>
+        <div class="content-card">
+            <div class="mission-section">
+                <div class="mission-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="mission-text">
+                    <h2>Our Mission</h2>
+                    <p><strong>PeerLoom</strong> is a student-first platform created to make learning collaborative, social, and fun. Inspired by the way students already connect on apps like WhatsApp, PeerLoom takes that experience and supercharges it for education.</p>
+                    <p>On PeerLoom, students can instantly create or join study groups, chat with classmates, and get real-time academic support. With <strong>PeerPal</strong>, our built-in AI, you can ask tough questions, get clear explanations, or summarize notes — all without leaving the chat.</p>
+                    <p>Our mission is simple: <em>to give every student the tools, community, and support to succeed academically and grow together.</em></p>
+                </div>
             </div>
 
-            <div class="faq-item">
-                <h3>What is PeerPal?</h3>
-                <p>PeerPal is our built-in AI assistant. It can explain topics, help summarize notes, and provide real-time academic support directly in your group chats.</p>
+            <div class="highlight-box">
+                <p><strong>Why PeerLoom Works:</strong> We've combined the familiarity of social messaging with powerful educational tools to create a seamless learning experience that students actually want to use.</p>
             </div>
 
-            <div class="faq-item">
-                <h3>Do I need to pay to use PeerLoom?</h3>
-                <p>Nope! PeerLoom is completely free for students.</p>
+            <h2>Our Core Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Study Groups</h3>
+                    <p>Create or join subject-specific study groups with classmates and peers from around the world.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>PeerPal AI</h3>
+                    <p>Get instant academic support from our AI assistant, available right in your group chats.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Real-time Chat</h3>
+                    <p>Communicate with your study groups through our intuitive, WhatsApp-style interface.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-share-alt"></i>
+                    </div>
+                    <h3>Resource Sharing</h3>
+                    <p>Easily share notes, documents, and learning materials with your study groups.</p>
+                </div>
             </div>
 
-            <div class="faq-item">
-                <h3>Do I have to select my school before using PeerLoom?</h3>
-                <p>No. PeerLoom is open to all students. You can join or create groups without selecting a specific school.</p>
+            <div class="faq-section">
+                <h2>Frequently Asked Questions</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What is PeerLoom?</h3>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>PeerLoom is a social learning app designed like WhatsApp but built for students. It allows you to form study groups, chat, and use AI to enhance your studies.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What is PeerPal?</h3>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>PeerPal is our built-in AI assistant. It can explain topics, help summarize notes, and provide real-time academic support directly in your group chats.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Do I need to pay to use PeerLoom?</h3>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Nope! PeerLoom is completely free for students. We believe education should be accessible to everyone.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Do I have to select my school before using PeerLoom?</h3>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>No. PeerLoom is open to all students. You can join or create groups without selecting a specific school, making it easy to connect with learners worldwide.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How is PeerLoom different from WhatsApp or Telegram?</h3>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub designed to enhance your educational experience.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Can I invite my friends?</h3>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! You can add friends easily and create your own study groups with them inside PeerLoom. Collaboration is at the heart of what we do.</p>
+                    </div>
+                </div>
             </div>
 
-            <div class="faq-item">
-                <h3>How is PeerLoom different from WhatsApp or Telegram?</h3>
-                <p>Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub.</p>
+            <div class="assistant-section">
+                <div class="assistant-header">
+                    <div class="assistant-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div>
+                        <h2>Talk to Our Assistant 🤖</h2>
+                        <p>Have questions about using the platform? Ask away — our AI assistant is here to help!</p>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai-message">
+                            Hi there! I'm PeerPal, your learning assistant. How can I help you today?
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="userInput" placeholder="Ask about PeerLoom features or how to use the platform..." aria-label="Ask a question">
+                        <button class="chat-button" onclick="getAIResponse()" aria-label="Submit question">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                        <button class="chat-button voice-button" onclick="startVoiceInput()" aria-label="Start voice input">
+                            <i class="fas fa-microphone"></i> Speak
+                        </button>
+                    </div>
+                </div>
             </div>
-
-            <div class="faq-item">
-                <h3>Can I invite my friends?</h3>
-                <p>Yes! You can add friends easily and create your own study groups with them inside PeerLoom.</p>
-            </div>
-        </section>
-
-        <section class="assistant">
-            <h2>Talk to Our Assistant 🤖</h2>
-            <p>Have questions about using the platform? Ask away — our AI assistant is here to help!</p>
-            <div class="chat-box">
-                <input type="text" id="userInput" placeholder="Ask about the site or features..." onkeypress="handleKeyPress(event)" aria-label="Ask a question">
-                <button onclick="getAIResponse()" aria-label="Submit question">Ask</button>
-                <button class="voice-button" onclick="startVoiceInput()" aria-label="Start voice input">🎤 Speak</button>
-                <p id="aiResponse" class="text-gray-600" role="alert"></p>
-            </div>
-        </section>
+        </div>
     </main>
 
     <footer>
-        <p>© 2025 PeerLoom. All rights reserved.</p>
-        <p>
-            <a href="/index.html">Home</a> | 
-            <a href="/privacy.html">Privacy Policy</a> | 
-            <a href="/terms.html">Terms of Service</a> | 
-            <a href="mailto:peerloomonline@gmail.com">Contact</a>
-        </p>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="/index.html">Home</a>
+                <a href="/privacy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms of Service</a>
+                <a href="/contact.html">Contact Us</a>
+            </div>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-linkedin"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-github"></i></a>
+            </div>
+            <p class="copyright">© 2025 PeerLoom. All rights reserved. | Collaborative Learning Reimagined</p>
+        </div>
     </footer>
 
     <script>
-        // Simple FAQ toggle
-        document.querySelectorAll('.faq-item h3').forEach(item => {
-            item.addEventListener('click', () => {
-                const p = item.nextElementSibling;
-                p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+        // Enhanced FAQ toggle functionality
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const faqItem = question.parentElement;
+                const answer = question.nextElementSibling;
+                
+                // Close all other FAQ items
+                document.querySelectorAll('.faq-item').forEach(item => {
+                    if (item !== faqItem) {
+                        item.classList.remove('active');
+                        item.querySelector('.faq-answer').classList.remove('active');
+                    }
+                });
+                
+                // Toggle current FAQ item
+                faqItem.classList.toggle('active');
+                answer.classList.toggle('active');
             });
         });
 
-        // AI Assistant Responses with broader keyword matching
+        // Enhanced AI Assistant with conversation history
         const assistantResponses = {
             "what is peerloom|what's peerloom|tell me about peerloom": "PeerLoom is a social learning app designed like WhatsApp but built for students. It allows you to form study groups, chat, and use AI to enhance your studies.",
             "what is peerpal|what's peerpal|tell me about peerpal": "PeerPal is our built-in AI assistant. It can explain topics, help summarize notes, and provide real-time academic support directly in your group chats.",
-            "cost|how much|price|do i need to pay": "Nope! PeerLoom is completely free for students.",
-            "school|select my school|do i have to select my school": "No. PeerLoom is open to all students. You can join or create groups without selecting a specific school.",
-            "difference|how is peerloom different|whatsapp|telegram": "Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub.",
-            "invite|can i invite|add friends": "Yes! You can add friends easily and create your own study groups with them inside PeerLoom."
+            "cost|how much|price|do i need to pay": "Nope! PeerLoom is completely free for students. We believe education should be accessible to everyone.",
+            "school|select my school|do i have to select my school": "No. PeerLoom is open to all students. You can join or create groups without selecting a specific school, making it easy to connect with learners worldwide.",
+            "difference|how is peerloom different|whatsapp|telegram": "Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub designed to enhance your educational experience.",
+            "invite|can i invite|add friends": "Yes! You can add friends easily and create your own study groups with them inside PeerLoom. Collaboration is at the heart of what we do.",
+            "features|what can i do|capabilities": "With PeerLoom, you can create study groups, chat with classmates, use PeerPal AI for academic support, share resources, and collaborate on learning materials - all in one place!",
+            "help|support|problem": "If you're having trouble with PeerLoom, you can email our support team at support@peerloom.online. We typically respond within 24 hours.",
+            "hello|hi|hey": "Hello! I'm PeerPal, your learning assistant. How can I help you learn better today?",
+            "thank|thanks": "You're welcome! Is there anything else I can help you with?",
+            "study groups|create group|join group": "You can create or join study groups based on subjects or topics. Just navigate to the 'Groups' section in the app to get started!",
+            "how to use|getting started|tutorial": "To get started with PeerLoom, simply create an account, then you can join existing study groups or create your own. Use the chat feature to communicate and don't forget to try PeerPal AI for academic help!"
         };
 
         function getAIResponse() {
-            const input = document.getElementById('userInput').value.trim().toLowerCase();
-            const responseElement = document.getElementById('aiResponse');
-            let response = "Sorry, I’m not sure about that. Try asking about PeerLoom, PeerPal, cost, or other features!";
-
+            const input = document.getElementById('userInput').value.trim();
+            if (!input) return;
+            
+            const inputElement = document.getElementById('userInput');
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // Add user message to chat
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = input;
+            chatMessages.appendChild(userMessage);
+            
+            // Clear input
+            inputElement.value = '';
+            
+            // Find appropriate response
+            const lowerInput = input.toLowerCase();
+            let response = "I'm not sure I understand. Try asking about PeerLoom features, PeerPal AI, study groups, or how to get started!";
+            
             for (const [keys, value] of Object.entries(assistantResponses)) {
                 const keywords = keys.split('|');
-                if (keywords.some(keyword => input.includes(keyword))) {
+                if (keywords.some(keyword => lowerInput.includes(keyword))) {
                     response = value;
                     break;
                 }
             }
-
-            responseElement.textContent = response;
-            responseElement.setAttribute('aria-live', 'polite');
+            
+            // Add AI response to chat after a short delay
+            setTimeout(() => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai-message';
+                aiMessage.textContent = response;
+                chatMessages.appendChild(aiMessage);
+                
+                // Scroll to bottom of chat
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 500);
         }
 
         function handleKeyPress(event) {
@@ -188,21 +806,33 @@
                 recognition.maxAlternatives = 1;
 
                 recognition.onresult = (event) => {
-                    const speechResult = event.results[0][0].transcript.toLowerCase();
+                    const speechResult = event.results[0][0].transcript;
                     document.getElementById('userInput').value = speechResult;
                     getAIResponse();
                 };
 
                 recognition.onerror = (event) => {
                     console.error('Speech recognition error:', event.error);
-                    document.getElementById('aiResponse').textContent = `Error with voice input: ${event.error}. Please type your question.`;
+                    addAIMessage("Sorry, I couldn't understand your voice input. Please try typing your question.");
                 };
 
                 recognition.start();
             } else {
-                document.getElementById('aiResponse').textContent = "Voice input is not supported in your browser. Please type your question.";
+                addAIMessage("Voice input is not supported in your browser. Please type your question.");
             }
         }
+
+        function addAIMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const aiMessage = document.createElement('div');
+            aiMessage.className = 'message ai-message';
+            aiMessage.textContent = message;
+            chatMessages.appendChild(aiMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add event listener for Enter key
+        document.getElementById('userInput').addEventListener('keypress', handleKeyPress);
     </script>
 </body>
 </html>
