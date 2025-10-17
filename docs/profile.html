@@ -893,6 +893,62 @@
             visibility: visible;
         }
 
+        /* Loading state */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--glass-border);
+            border-left: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background: var(--accent);
+            color: white;
+        }
+
+        .status-offline {
+            background: var(--text-secondary);
+            color: white;
+        }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .main-content {
@@ -950,13 +1006,13 @@
         }
     </style>
 </head>
-<body data-theme="light">
+<body data-theme="dark">
     <div class="app-container">
         <!-- Header with swipe functionality -->
         <header class="header" id="header">
             <a href="index.html" class="logo">
                 <div class="logo-icon">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-users"></i>
                 </div>
                 <span>Peerloom</span>
             </a>
@@ -984,7 +1040,7 @@
                     <div class="cover-overlay"></div>
                     <div class="avatar-container">
                         <label for="avatarUpload" class="avatar" id="avatar">
-                            <span id="avatarInitials">JD</span>
+                            <span id="avatarInitials">...</span>
                         </label>
                         <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
                     </div>
@@ -994,27 +1050,33 @@
                     <div class="profile-header">
                         <div class="profile-info">
                             <h1 id="fullName">
-                                John Doe
-                                <div class="verified-badge">
+                                <div class="loading" id="nameLoading">
+                                    <div class="spinner"></div>
+                                </div>
+                                <span id="nameText" style="display: none;">Loading...</span>
+                                <div class="verified-badge" id="verifiedBadge" style="display: none;">
                                     <i class="fas fa-check"></i>
                                 </div>
                             </h1>
-                            <p id="userTitle">Computer Science Student</p>
+                            <p id="userInfo">
+                                <span id="username">Loading...</span>
+                                <span class="status-indicator" id="statusIndicator">Online</span>
+                            </p>
                         </div>
                     </div>
                     
                     <div class="profile-stats">
                         <div class="stat-card">
-                            <div class="stat-value" id="groupsCount">24</div>
+                            <div class="stat-value" id="groupsCount">0</div>
                             <div class="stat-label">Groups</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="connectionsCount">156</div>
+                            <div class="stat-value" id="connectionsCount">0</div>
                             <div class="stat-label">Connections</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="projectsCount">12</div>
-                            <div class="stat-label">Projects</div>
+                            <div class="stat-value" id="joinDate">-</div>
+                            <div class="stat-label">Member Since</div>
                         </div>
                     </div>
                     
@@ -1037,23 +1099,23 @@
                             <div class="academic-grid" id="academicGrid">
                                 <div class="academic-item">
                                     <span class="academic-label">Campus</span>
-                                    <span class="academic-value" id="campusValue">Main Campus</span>
-                                    <input type="text" class="academic-input" id="campusInput" value="Main Campus" style="display: none;">
+                                    <span class="academic-value" id="campusValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="campusInput" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Level</span>
-                                    <span class="academic-value" id="levelValue">Undergraduate</span>
-                                    <input type="text" class="academic-input" id="levelInput" value="Undergraduate" style="display: none;">
+                                    <span class="academic-value" id="levelValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="levelInput" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Department</span>
-                                    <span class="academic-value" id="departmentValue">Computer Science</span>
-                                    <input type="text" class="academic-input" id="departmentInput" value="Computer Science" style="display: none;">
+                                    <span class="academic-value" id="departmentValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="departmentInput" style="display: none;">
                                 </div>
                                 <div class="academic-item">
-                                    <span class="academic-label">Year</span>
-                                    <span class="academic-value" id="yearValue">3rd Year</span>
-                                    <input type="text" class="academic-input" id="yearInput" value="3rd Year" style="display: none;">
+                                    <span class="academic-label">Contact</span>
+                                    <span class="academic-value" id="contactValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="contactInput" style="display: none;">
                                 </div>
                             </div>
                             <div class="modal-actions" id="academicActions" style="display: none; margin-top: 1rem;">
@@ -1070,7 +1132,9 @@
                                 </h2>
                             </div>
                             <div class="groups-grid" id="groupsGrid">
-                                <!-- Groups will be loaded here dynamically -->
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                </div>
                             </div>
                         </div>
                         
@@ -1085,9 +1149,9 @@
                                 <i class="fas fa-edit"></i>
                             </button>
                             <div class="bio-content" id="bioContent">
-                                Passionate computer science student with interest in web development, AI, and open-source projects. Always eager to learn new technologies and collaborate on innovative solutions.
+                                Loading...
                             </div>
-                            <textarea class="academic-input" id="bioInput" style="display: none; width: 100%; min-height: 120px; margin-top: 1rem;">Passionate computer science student with interest in web development, AI, and open-source projects. Always eager to learn new technologies and collaborate on innovative solutions.</textarea>
+                            <textarea class="academic-input" id="bioInput" style="display: none; width: 100%; min-height: 120px; margin-top: 1rem;"></textarea>
                             <div class="modal-actions" id="bioActions" style="display: none; margin-top: 1rem;">
                                 <button class="btn btn-secondary" id="cancelBioEdit">Cancel</button>
                                 <button class="btn btn-primary" id="saveBioEdit">Save Changes</button>
@@ -1112,7 +1176,49 @@
             <div class="settings-section">
                 <h3 class="section-title">
                     <i class="fas fa-user-cog section-icon"></i>
-                    Account Settings
+                    Profile Settings
+                </h3>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Full Name</div>
+                        <div class="settings-desc">Display your full name on profile</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showFullNameToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Academic Info</div>
+                        <div class="settings-desc">Display academic information</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showAcademicInfoToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Groups Count</div>
+                        <div class="settings-desc">Display number of groups joined</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showGroupsCountToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-bell section-icon"></i>
+                    Notifications
                 </h3>
                 
                 <div class="settings-item">
@@ -1136,6 +1242,15 @@
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-shield-alt section-icon"></i>
+                    Security
+                </h3>
                 
                 <div class="settings-item">
                     <div class="settings-info">
@@ -1144,48 +1259,6 @@
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="twoFactorToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="section-divider"></div>
-            
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-eye section-icon"></i>
-                    Privacy
-                </h3>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Profile Visibility</div>
-                        <div class="settings-desc">Control who can see your profile</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Academic Details</div>
-                        <div class="settings-desc">Show academic information</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Group Membership</div>
-                        <div class="settings-desc">Show groups you're part of</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1224,7 +1297,9 @@
         
         <div class="notifications-content">
             <div class="notifications-list" id="notificationsList">
-                <!-- Notifications will be loaded here dynamically -->
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
             </div>
             
             <button class="mark-all-read-btn" id="markAllReadBtn">
@@ -1313,6 +1388,9 @@
         const cancelBioEdit = document.getElementById('cancelBioEdit');
         const saveBioEdit = document.getElementById('saveBioEdit');
         const shareProfileBtn = document.getElementById('shareProfileBtn');
+        const showFullNameToggle = document.getElementById('showFullNameToggle');
+        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
+        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
 
         // Current user
         let currentUser = null;
@@ -1348,7 +1426,7 @@
                 
             } catch (error) {
                 console.error('Error initializing page:', error);
-                alert('Error loading profile data. Please try again.');
+                showError('Error loading profile data. Please try again.');
             }
         }
 
@@ -1361,13 +1439,48 @@
                     .eq('id', currentUser.id)
                     .single();
                     
-                if (error) throw error;
+                if (error) {
+                    // If profile doesn't exist, create one
+                    if (error.code === 'PGRST116') {
+                        await createUserProfile();
+                        return;
+                    }
+                    throw error;
+                }
                 
                 userProfile = profile;
                 updateProfileUI();
                 
             } catch (error) {
                 console.error('Error loading profile:', error);
+                showError('Error loading profile data');
+            }
+        }
+
+        // Create a new user profile if it doesn't exist
+        async function createUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .insert([
+                        {
+                            id: currentUser.id,
+                            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+                            email: currentUser.email,
+                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user'
+                        }
+                    ])
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error creating profile:', error);
+                showError('Error creating profile');
             }
         }
 
@@ -1375,28 +1488,63 @@
         function updateProfileUI() {
             if (!userProfile) return;
             
-            // Set user name and title
+            // Hide loading spinner and show name
+            document.getElementById('nameLoading').style.display = 'none';
+            document.getElementById('nameText').style.display = 'inline';
+            
+            // Set user name and info
             document.getElementById('fullName').textContent = userProfile.full_name || 'User';
-            document.getElementById('userTitle').textContent = userProfile.title || 'Student';
+            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
             document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
             
-            // Set academic details
-            document.getElementById('campusValue').textContent = userProfile.campus || 'Not set';
-            document.getElementById('campusInput').value = userProfile.campus || '';
-            document.getElementById('levelValue').textContent = userProfile.level || 'Not set';
-            document.getElementById('levelInput').value = userProfile.level || '';
+            // Set status
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.textContent = userProfile.status || 'Online';
+            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            
+            // Show verified badge if user is verified
+            if (userProfile.verified) {
+                document.getElementById('verifiedBadge').style.display = 'flex';
+            }
+            
+            // Set academic details - use custom fields if available
+            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
+            const level = userProfile.custom_level || userProfile.level || 'Not set';
+            
+            document.getElementById('campusValue').textContent = campus;
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelValue').textContent = level;
+            document.getElementById('levelInput').value = level;
             document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
             document.getElementById('departmentInput').value = userProfile.department || '';
-            document.getElementById('yearValue').textContent = userProfile.year || 'Not set';
-            document.getElementById('yearInput').value = userProfile.year || '';
+            document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
+            document.getElementById('contactInput').value = userProfile.contact || '';
             
             // Set bio
             document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
             document.getElementById('bioInput').value = userProfile.bio || '';
             
-            // Set stats (you might need to calculate these from your database)
+            // Set stats
             document.getElementById('groupsCount').textContent = userGroups.length;
-            // For connections and projects, you would need to fetch from your database
+            document.getElementById('connectionsCount').textContent = '0'; // Will be updated when you have connections
+            
+            // Set join date
+            if (userProfile.join_date) {
+                const joinDate = new Date(userProfile.join_date);
+                document.getElementById('joinDate').textContent = joinDate.toLocaleDateString();
+            } else {
+                document.getElementById('joinDate').textContent = 'Recently';
+            }
+            
+            // Set privacy toggles
+            showFullNameToggle.checked = userProfile.show_full_name !== false;
+            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
+            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
+            
+            // Apply theme from database
+            if (userProfile.theme_preference) {
+                applyTheme(userProfile.theme_preference);
+            }
         }
 
         // Load user groups from Supabase
@@ -1422,6 +1570,7 @@
                 
             } catch (error) {
                 console.error('Error loading groups:', error);
+                showError('Error loading groups');
             }
         }
 
@@ -1431,7 +1580,12 @@
             groupsGrid.innerHTML = '';
             
             if (userGroups.length === 0) {
-                groupsGrid.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No groups yet</p>';
+                groupsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>You haven't joined any groups yet</p>
+                    </div>
+                `;
                 return;
             }
             
@@ -1470,6 +1624,7 @@
                 
             } catch (error) {
                 console.error('Error loading notifications:', error);
+                showError('Error loading notifications');
             }
         }
 
@@ -1478,7 +1633,12 @@
             notificationsList.innerHTML = '';
             
             if (userNotifications.length === 0) {
-                notificationsList.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No notifications</p>';
+                notificationsList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>No notifications yet</p>
+                    </div>
+                `;
                 return;
             }
             
@@ -1524,7 +1684,15 @@
 
         // Get initials from full name
         function getInitials(fullName) {
+            if (!fullName) return 'U';
             return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
+        }
+
+        // Show error message
+        function showError(message) {
+            // You could implement a toast notification system here
+            console.error(message);
+            alert(message);
         }
 
         // Theme toggle with swipe
@@ -1605,10 +1773,30 @@
             body.setAttribute('data-theme', theme);
             localStorage.setItem('peerloom-theme', theme);
             darkModeToggle.checked = theme === 'dark';
+            
+            // Save theme preference to database
+            if (userProfile) {
+                saveThemePreference(theme);
+            }
+        }
+
+        // Save theme preference to database
+        async function saveThemePreference(theme) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ theme_preference: theme })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+            } catch (error) {
+                console.error('Error saving theme preference:', error);
+            }
         }
 
         // Initialize theme
-        const savedTheme = localStorage.getItem('peerloom-theme') || 'light';
+        const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
         applyTheme(savedTheme);
 
         // Settings drawer functionality
@@ -1663,7 +1851,7 @@
                 
             } catch (error) {
                 console.error('Error marking notifications as read:', error);
-                alert('Error marking notifications as read. Please try again.');
+                showError('Error marking notifications as read');
             }
         });
 
@@ -1685,13 +1873,45 @@
             twoFactorModal.classList.remove('active');
             overlay.classList.remove('active');
             // In a real app, you would enable 2FA here
-            alert('Two-factor authentication has been enabled!');
+            showError('Two-factor authentication has been enabled!');
         });
 
         // Dark mode toggle in settings
         darkModeToggle.addEventListener('change', () => {
             applyTheme(darkModeToggle.checked ? 'dark' : 'light');
         });
+
+        // Privacy toggles
+        showFullNameToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_full_name', showFullNameToggle.checked);
+        });
+
+        showAcademicInfoToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked);
+        });
+
+        showGroupsCountToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked);
+        });
+
+        // Save privacy setting to database
+        async function savePrivacySetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
 
         // Avatar upload
         const avatarUpload = document.getElementById('avatarUpload');
@@ -1721,7 +1941,7 @@
                 // Update profile with avatar URL
                 const { error: updateError } = await supabase
                     .from('profiles')
-                    .update({ avatar_url: publicUrl })
+                    .update({ profile_photo: publicUrl })
                     .eq('id', currentUser.id);
 
                 if (updateError) throw updateError;
@@ -1731,7 +1951,7 @@
                 
             } catch (error) {
                 console.error('Error uploading avatar:', error);
-                alert('Error uploading avatar. Please try again.');
+                showError('Error uploading avatar');
             }
         });
 
@@ -1752,10 +1972,13 @@
             editAcademicBtn.style.display = 'block';
             
             // Reset input values to current user data
-            document.getElementById('campusInput').value = userProfile.campus || '';
-            document.getElementById('levelInput').value = userProfile.level || '';
+            const campus = userProfile.custom_campus || userProfile.campus || '';
+            const level = userProfile.custom_level || userProfile.level || '';
+            
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelInput').value = level;
             document.getElementById('departmentInput').value = userProfile.department || '';
-            document.getElementById('yearInput').value = userProfile.year || '';
+            document.getElementById('contactInput').value = userProfile.contact || '';
         });
 
         saveAcademicEdit.addEventListener('click', async () => {
@@ -1765,9 +1988,11 @@
                     .from('profiles')
                     .update({
                         campus: document.getElementById('campusInput').value,
+                        custom_campus: document.getElementById('campusInput').value,
                         level: document.getElementById('levelInput').value,
+                        custom_level: document.getElementById('levelInput').value,
                         department: document.getElementById('departmentInput').value,
-                        year: document.getElementById('yearInput').value
+                        contact: document.getElementById('contactInput').value
                     })
                     .eq('id', currentUser.id);
                     
@@ -1775,15 +2000,17 @@
                 
                 // Update local user profile
                 userProfile.campus = document.getElementById('campusInput').value;
+                userProfile.custom_campus = document.getElementById('campusInput').value;
                 userProfile.level = document.getElementById('levelInput').value;
+                userProfile.custom_level = document.getElementById('levelInput').value;
                 userProfile.department = document.getElementById('departmentInput').value;
-                userProfile.year = document.getElementById('yearInput').value;
+                userProfile.contact = document.getElementById('contactInput').value;
                 
                 // Update displayed values
-                document.getElementById('campusValue').textContent = userProfile.campus || 'Not set';
-                document.getElementById('levelValue').textContent = userProfile.level || 'Not set';
+                document.getElementById('campusValue').textContent = userProfile.custom_campus || userProfile.campus || 'Not set';
+                document.getElementById('levelValue').textContent = userProfile.custom_level || userProfile.level || 'Not set';
                 document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
-                document.getElementById('yearValue').textContent = userProfile.year || 'Not set';
+                document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
                 
                 // Show values, hide inputs
                 document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
@@ -1791,11 +2018,11 @@
                 academicActions.style.display = 'none';
                 editAcademicBtn.style.display = 'block';
                 
-                alert('Academic details updated successfully!');
+                showError('Academic details updated successfully!');
                 
             } catch (error) {
                 console.error('Error updating academic details:', error);
-                alert('Error updating academic details. Please try again.');
+                showError('Error updating academic details');
             }
         });
 
@@ -1838,11 +2065,11 @@
                 bioActions.style.display = 'none';
                 editBioBtn.style.display = 'block';
                 
-                alert('Bio updated successfully!');
+                showError('Bio updated successfully!');
                 
             } catch (error) {
                 console.error('Error updating bio:', error);
-                alert('Error updating bio. Please try again.');
+                showError('Error updating bio');
             }
         });
 
@@ -1862,7 +2089,7 @@
                 } else {
                     // Fallback: copy to clipboard
                     await navigator.clipboard.writeText(profileUrl);
-                    alert('Profile link copied to clipboard!');
+                    showError('Profile link copied to clipboard!');
                 }
             } catch (error) {
                 console.error('Error sharing profile:', error);
@@ -1871,10 +2098,10 @@
                 try {
                     const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
                     await navigator.clipboard.writeText(profileUrl);
-                    alert('Profile link copied to clipboard!');
+                    showError('Profile link copied to clipboard!');
                 } catch (clipboardError) {
                     console.error('Error copying to clipboard:', clipboardError);
-                    alert('Error sharing profile. Please try again.');
+                    showError('Error sharing profile');
                 }
             }
         });
