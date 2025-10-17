@@ -115,6 +115,7 @@
     overflow-y: auto;
     height: calc(100vh - 128px);
     scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
   }
   #feedContent {
     display: flex;
@@ -235,7 +236,6 @@
     border: 1px solid rgba(255,255,255,0.1);
     transition: height 360ms cubic-bezier(.2,.9,.3,1), transform 320ms ease;
     z-index: 26;
-    pointer-events: none;
   }
   html.light .drawer { 
     background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03)); 
@@ -246,7 +246,6 @@
   .drawer.open { 
     height: 60%; 
     pointer-events: auto;
-    /* Remove aria-hidden when open to fix accessibility warning */
   }
 
   .drawer-inner {
@@ -528,6 +527,8 @@ let searchQuery = '';
 let isRefreshing = false;
 let viewedPosts = new Set(); // Track viewed posts for view count
 let realtimeSubscriptions = {}; // Track realtime subscriptions
+let swipeStartY = 0;
+let isSwiping = false;
 
 // DOM elements
 const feed = document.getElementById('feed');
@@ -582,6 +583,13 @@ class LikeManager {
   }
 
   async handleLike(button) {
+    // Check if user is signed in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showAuthModal();
+      return;
+    }
+
     const postEl = button.closest('.post');
     const postId = postEl.dataset.id;
     const isLiked = button.classList.contains('liked');
@@ -591,12 +599,6 @@ class LikeManager {
     if (!post) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        showAuthModal();
-        return;
-      }
-
       if (isLiked) {
         // Unlike
         const { error } = await supabase
@@ -849,9 +851,26 @@ function setupRealtimeSubscriptions() {
     )
     .subscribe();
 
+  // Subscribe to posts changes for view counts
+  const postsSubscription = supabase
+    .channel('posts-changes')
+    .on('postgres_changes', 
+      { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'posts' 
+      }, 
+      (payload) => {
+        console.log('Posts change received!', payload);
+        handlePostsChange(payload);
+      }
+    )
+    .subscribe();
+
   // Store subscriptions for cleanup if needed
   realtimeSubscriptions.likes = likesSubscription;
   realtimeSubscriptions.comments = commentsSubscription;
+  realtimeSubscriptions.posts = postsSubscription;
 }
 
 function handleLikesChange(payload) {
@@ -893,6 +912,18 @@ function handleCommentsChange(payload) {
         }
       }
     }
+  }
+}
+
+function handlePostsChange(payload) {
+  const { new: newRecord } = payload;
+  
+  // Update view count
+  const postId = newRecord.id;
+  const post = allPosts.find(p => p.id === postId);
+  if (post && newRecord.views !== undefined) {
+    post.views = newRecord.views;
+    updatePostElement(postId, post);
   }
 }
 
@@ -1061,12 +1092,9 @@ function attachPostBehavior(postEl, postData) {
   const shareBtn = postEl.querySelector('.share-btn');
   const drawer = postEl.querySelector('.drawer');
 
-  // Remove aria-hidden from drawer when open to fix accessibility warning
-  drawer.removeAttribute('aria-hidden');
-
   // Load video source if available and ensure it's playable
   if (postData.src && video) {
-    const source = video.querySelector('Facts');
+    const source = video.querySelector('source');
     if (source) {
       source.src = postData.src;
       video.load().catch(e => {
@@ -1087,10 +1115,20 @@ function attachPostBehavior(postEl, postData) {
       // Double tap detected
       e.preventDefault();
       clearTimeout(tapTimeout);
-      if (!postData.liked) {
-        likeManager.handleLike(likeBtn);
-        showBlueHeart(postEl);
-      }
+      
+      // Check if user is signed in
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          showAuthModal();
+          return;
+        }
+        
+        if (!postData.liked) {
+          likeManager.handleLike(likeBtn);
+          showBlueHeart(postEl);
+        }
+      });
+      
       lastTap = 0;
     } else {
       lastTap = currentTime;
@@ -1104,10 +1142,18 @@ function attachPostBehavior(postEl, postData) {
   postEl.addEventListener('dblclick', (e) => {
     if (e.target.closest('.icons') || e.target.closest('.drawer')) return;
     
-    if (!postData.liked) {
-      likeManager.handleLike(likeBtn);
-      showBlueHeart(postEl);
-    }
+    // Check if user is signed in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        showAuthModal();
+        return;
+      }
+      
+      if (!postData.liked) {
+        likeManager.handleLike(likeBtn);
+        showBlueHeart(postEl);
+      }
+    });
   });
 
   // Single tap to pause/play
@@ -1213,21 +1259,25 @@ function setupCommentsDrawer(postEl, postData) {
 
   commentOpen.addEventListener('click', (e) => {
     e.stopPropagation();
-    drawer.classList.toggle('open');
-    // Remove aria-hidden when drawer is open to fix accessibility warning
-    if (drawer.classList.contains('open')) {
-      drawer.removeAttribute('aria-hidden');
-      loadComments(postData.id, commentsList);
-    } else {
-      drawer.setAttribute('aria-hidden', 'true');
-    }
+    
+    // Check if user is signed in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        showAuthModal();
+        return;
+      }
+      
+      drawer.classList.toggle('open');
+      if (drawer.classList.contains('open')) {
+        loadComments(postData.id, commentsList);
+      }
+    });
   });
 
   // Close drawer when clicking outside
   document.addEventListener('click', (e) => {
     if (drawer.classList.contains('open') && !e.target.closest('.drawer') && !e.target.closest('.comment-open')) {
       drawer.classList.remove('open');
-      drawer.setAttribute('aria-hidden', 'true');
     }
   });
 
@@ -1236,11 +1286,18 @@ function setupCommentsDrawer(postEl, postData) {
   
   commentsHeader.addEventListener('pointerdown', (e) => {
     headerPressTimer = setTimeout(() => {
-      drawer.classList.add('open');
-      drawer.removeAttribute('aria-hidden');
-      commentInputWrap.classList.add('active');
-      commentInput.focus();
-      loadComments(postData.id, commentsList);
+      // Check if user is signed in
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          showAuthModal();
+          return;
+        }
+        
+        drawer.classList.add('open');
+        commentInputWrap.classList.add('active');
+        commentInput.focus();
+        loadComments(postData.id, commentsList);
+      });
     }, 300);
   });
 
@@ -1421,58 +1478,87 @@ function setupVideoPlayback() {
   videos.forEach(video => observer.observe(video));
 }
 
-// Vertical swipe between videos
+// Improved Vertical swipe between videos
 function setupVerticalSwipe() {
-  let startY = 0;
-  let currentTranslate = 0;
-  let currentIndex = 0;
-
   feed.addEventListener('touchstart', (e) => {
-    startY = e.touches[0].clientY;
+    swipeStartY = e.touches[0].clientY;
+    isSwiping = true;
   }, { passive: true });
 
   feed.addEventListener('touchmove', (e) => {
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
-    
-    // Only allow swipe if at the top or bottom of scroll
-    if (feed.scrollTop === 0 && deltaY > 0) {
-      e.preventDefault();
-    } else if (feed.scrollHeight - feed.scrollTop === feed.clientHeight && deltaY < 0) {
-      e.preventDefault();
-    }
+    if (!isSwiping) return;
+    e.preventDefault();
   }, { passive: false });
 
   feed.addEventListener('touchend', (e) => {
+    if (!isSwiping) return;
     const endY = e.changedTouches[0].clientY;
-    const deltaY = endY - startY;
+    const deltaY = endY - swipeStartY;
     const swipeThreshold = 50;
 
     if (Math.abs(deltaY) > swipeThreshold) {
-      if (deltaY < 0 && currentIndex < posts.length - 1) {
+      if (deltaY < 0) {
         // Swipe up - next video
-        currentIndex++;
-        scrollToVideo(currentIndex);
-      } else if (deltaY > 0 && currentIndex > 0) {
+        scrollToNextVideo();
+      } else {
         // Swipe down - previous video
-        currentIndex--;
-        scrollToVideo(currentIndex);
+        scrollToPreviousVideo();
       }
     }
+    isSwiping = false;
   }, { passive: true });
+
+  // Add keyboard support for desktop
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      scrollToNextVideo();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      scrollToPreviousVideo();
+    }
+  });
 }
 
-function scrollToVideo(index) {
-  const postEl = document.querySelector(`[data-index="${index}"]`);
-  if (postEl) {
-    postEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function scrollToNextVideo() {
+  const posts = document.querySelectorAll('.post');
+  let currentIndex = -1;
+  
+  // Find current post in viewport
+  posts.forEach((post, index) => {
+    const rect = post.getBoundingClientRect();
+    if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+      currentIndex = index;
+    }
+  });
+  
+  if (currentIndex < posts.length - 1) {
+    posts[currentIndex + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     
-    // Pause all other videos
-    document.querySelectorAll('.post video').forEach((video, i) => {
-      if (i !== index) {
-        video.pause();
-      }
-    });
+    // Pause current video
+    const currentVideo = posts[currentIndex].querySelector('video');
+    if (currentVideo) currentVideo.pause();
+  }
+}
+
+function scrollToPreviousVideo() {
+  const posts = document.querySelectorAll('.post');
+  let currentIndex = -1;
+  
+  // Find current post in viewport
+  posts.forEach((post, index) => {
+    const rect = post.getBoundingClientRect();
+    if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+      currentIndex = index;
+    }
+  });
+  
+  if (currentIndex > 0) {
+    posts[currentIndex - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Pause current video
+    const currentVideo = posts[currentIndex].querySelector('video');
+    if (currentVideo) currentVideo.pause();
   }
 }
 
@@ -2005,7 +2091,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.drawer.open').forEach(d => {
       d.classList.remove('open');
-      d.setAttribute('aria-hidden', 'true');
     });
     uploadModal.classList.remove('show');
     document.getElementById('recordModal').classList.remove('show');
