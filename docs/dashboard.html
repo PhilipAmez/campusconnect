@@ -588,7 +588,7 @@
             }
         });
 
-        // Hook up both “Logout” links
+        // Hook up both "Logout" links
         const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
             .filter(Boolean);
@@ -629,6 +629,8 @@
         // Load suggested groups (excluding your own)
         async function loadSuggestedGroups() {
             const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const { data, error } = await supabase
                 .from('groups')
                 .select('id, name, course_code')
@@ -659,20 +661,46 @@
                 btn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     const groupId = btn.dataset.groupid;
+                    const groupName = btn.closest('.group-item').querySelector('p.font-semibold').textContent;
                     const { data: { user } } = await supabase.auth.getUser();
-                    const { error } = await supabase
-                        .from('group_members')
-                        .insert({ group_id: groupId, user_id: user.id, is_admin: false });
-                    if (error) {
-                        console.error('Error joining group:', error);
-                        showNotification('Failed to join group.');
-                    } else {
-                        showNotification('Welcome', () => {
-                            window.location.href = `chatroom.html?groupId=${groupId}`;
-                        });
-                        loadActiveGroups(); // Refresh active groups
-                        loadSuggestedGroups(); // Refresh suggested groups to remove joined group
-                        btn.remove(); // Remove the join button after joining
+                    if (!user) return;
+
+                    try {
+                        // Check if user is already a member
+                        const { data: existingMembership, error: checkError } = await supabase
+                            .from('group_members')
+                            .select('*')
+                            .eq('group_Id', groupId) // Changed from group_id to group_Id
+                            .eq('user_id', user.id)
+                            .single();
+
+                        if (existingMembership) {
+                            showNotification('You are already a member of this group.');
+                            return;
+                        }
+
+                        // Join the group
+                        const { error } = await supabase
+                            .from('group_members')
+                            .insert({ 
+                                group_Id: groupId, // Changed from group_id to group_Id
+                                user_id: user.id, 
+                                is_admin: false 
+                            });
+
+                        if (error) {
+                            console.error('Error joining group:', error);
+                            showNotification('Failed to join group: ' + error.message);
+                        } else {
+                            showNotification(`Successfully joined ${groupName}!`, () => {
+                                window.location.href = `chatroom.html?groupId=${groupId}`;
+                            });
+                            loadActiveGroups(); // Refresh active groups
+                            loadSuggestedGroups(); // Refresh suggested groups to remove joined group
+                        }
+                    } catch (error) {
+                        console.error('Unexpected error joining group:', error);
+                        showNotification('An unexpected error occurred while joining the group.');
                     }
                 });
             });
@@ -681,9 +709,11 @@
         // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const { data, error } = await supabase
                 .from('group_members')
-                .select('group_id')
+                .select('group_Id') // Changed from group_id to group_Id
                 .eq('user_id', user.id);
             if (error) {
                 console.error('Error loading active groups:', error);
@@ -691,7 +721,7 @@
             }
             const groupListDiv = document.getElementById('groupList');
             groupListDiv.innerHTML = '';
-            const groupIds = data.map(m => m.group_id);
+            const groupIds = data.map(m => m.group_Id); // Changed from group_id to group_Id
             for (const groupId of groupIds) {
                 const { data: groupData, error: groupError } = await supabase
                     .from('groups')
@@ -718,33 +748,67 @@
             const groupName = document.getElementById('groupName').value.trim();
             const course = document.getElementById('groupCourse').value;
             const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            
             if (!groupName || !course) {
                 showNotification('Please fill in all fields.');
                 return;
             }
-            const { data, error } = await supabase
-                .from('groups')
-                .insert({
-                    name: groupName,
-                    course_code: course,
-                    created_by: user.id,
-                    description: `${course} Study Group`
-                })
-                .select()
-                .single();
-            if (error) {
-                console.error('Error creating group:', error);
-                showNotification('Failed to create group.');
-            } else {
-                showNotification('Group inserted');
-                document.getElementById('groupName').value = '';
-                document.getElementById('groupCourse').value = '';
+
+            try {
+                // First, create the group
+                const { data, error } = await supabase
+                    .from('groups')
+                    .insert({
+                        name: groupName,
+                        course_code: course,
+                        created_by: user.id,
+                        description: `${course} Study Group`
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Error creating group:', error);
+                    
+                    // Check for specific error types
+                    if (error.code === '23505') {
+                        showNotification('A group with this name already exists.');
+                    } else if (error.code === '42501') {
+                        showNotification('Permission denied. Please check your database permissions.');
+                    } else {
+                        showNotification('Failed to create group: ' + error.message);
+                    }
+                    return;
+                }
+
+                // Then, add the creator as an admin member
                 const { error: memberError } = await supabase
                     .from('group_members')
-                    .insert({ group_id: data.id, user_id: user.id, is_admin: true });
-                if (memberError) console.error('Error adding creator as member:', memberError);
-                loadActiveGroups(); // Refresh active groups
-                loadSuggestedGroups(); // Refresh suggested groups
+                    .insert({ 
+                        group_Id: data.id, // Changed from group_id to group_Id
+                        user_id: user.id, 
+                        is_admin: true 
+                    });
+
+                if (memberError) {
+                    console.error('Error adding creator as member:', memberError);
+                    showNotification('Group created but failed to add you as admin: ' + memberError.message);
+                    return;
+                }
+
+                // Success!
+                showNotification('Group created successfully!');
+                document.getElementById('groupName').value = '';
+                document.getElementById('groupCourse').value = '';
+                
+                // Refresh the lists
+                loadActiveGroups();
+                loadSuggestedGroups();
+                
+            } catch (error) {
+                console.error('Unexpected error creating group:', error);
+                showNotification('An unexpected error occurred.');
             }
         }
 
@@ -888,6 +952,5 @@
         loadSuggestedGroups();
         loadActiveGroups();
     </script>
-    <script type="module" src="js/dashboardGroups.js"></script>
 </body>
 </html>
