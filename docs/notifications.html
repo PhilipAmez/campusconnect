@@ -22,6 +22,7 @@
       --glass-border: rgba(255, 255, 255, 0.4);
       --hover-glow: rgba(124, 58, 237, 0.3);
       --danger: #dc2626;
+      --success: #10b981;
     }
 
     [data-theme="dark"] {
@@ -219,6 +220,10 @@
       color: var(--danger);
     }
 
+    .notification-action.mark-read {
+      color: var(--success);
+    }
+
     .notification:hover {
       transform: translateY(-5px);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
@@ -299,6 +304,27 @@
     .mark-all:hover {
       transform: translateY(-5px);
       box-shadow: 0 6px 20px rgba(124, 58, 237, 0.2);
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--glass-border);
+      border-left: 4px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     /* Scrollbar styling */
@@ -385,7 +411,7 @@
 
   <div class="notifications-container">
     <div class="notifications-header">
-      <div class="notifications-count" id="notificationsCount">0 Notifications</div>
+      <div class="notifications-count" id="notificationsCount">Loading...</div>
       <div class="notifications-filter">
         <select id="filterSelect" style="background: var(--glass-bg); color: var(--text); border: 1px solid var(--glass-border); border-radius: 0.8rem; padding: 0.3rem 0.6rem;">
           <option value="all">All</option>
@@ -395,7 +421,9 @@
     </div>
     
     <div class="notifications" id="notificationPanel">
-      <!-- Notifications will be loaded here -->
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
     </div>
   </div>
 
@@ -403,9 +431,11 @@
     <button class="mark-all" id="markAllRead">Mark All Read</button>
   </div>
 
-  <script>
-    // Since we don't have the actual Supabase client, we'll simulate the notifications
-    document.addEventListener('DOMContentLoaded', function() {
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', async function() {
       const notificationPanel = document.getElementById('notificationPanel');
       const markAllRead = document.getElementById('markAllRead');
       const themeToggle = document.getElementById('themeToggle');
@@ -413,44 +443,28 @@
       const notificationsCount = document.getElementById('notificationsCount');
       const filterSelect = document.getElementById('filterSelect');
       
-      // Sample notifications data
-      let notifications = [
-        {
-          id: 1,
-          sender_name: 'Alex Johnson',
-          content: 'Liked your post about design systems',
-          created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-          read: false
-        },
-        {
-          id: 2,
-          sender_name: 'Peerloom AI',
-          content: 'New connections suggested for you based on your interests',
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-          read: false
-        },
-        {
-          id: 3,
-          sender_name: 'Maria Garcia',
-          content: 'Commented on your discussion about UX trends',
-          created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-          read: true
-        },
-        {
-          id: 4,
-          sender_name: 'David Chen',
-          content: 'Sent you a connection request',
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-          read: false
-        },
-        {
-          id: 5,
-          sender_name: 'Sarah Williams',
-          content: 'Mentioned you in a comment on the design forum',
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-          read: true
+      let notifications = [];
+      let currentUser = null;
+
+      // Check authentication
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (!session) {
+          window.location.href = 'login.html';
+          return;
         }
-      ];
+        
+        currentUser = session.user;
+      } catch (error) {
+        console.error('Authentication error:', error);
+        showError('Authentication failed. Please log in again.');
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+        return;
+      }
 
       // Theme functionality
       function applyTheme(theme) {
@@ -491,8 +505,56 @@
         return date.toLocaleDateString();
       }
 
+      // Show error message
+      function showError(message) {
+        notificationPanel.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>${message}</p>
+          </div>
+        `;
+      }
+
+      // Get sender name with proper fallbacks
+      async function getSenderName(notification) {
+        // If sender_name is already provided, use it
+        if (notification.sender_name) {
+          return notification.sender_name;
+        }
+        
+        // If it's from Peerloom AI
+        if (notification.sender_id === 'peerloom-ai') {
+          return 'Peerloom AI';
+        }
+        
+        // Otherwise, try to fetch user data
+        if (notification.sender_id) {
+          try {
+            const { data: user, error } = await supabase
+              .from('profiles')
+              .select('full_name, username')
+              .eq('id', notification.sender_id)
+              .single();
+            
+            if (error) throw error;
+            
+            if (user && user.full_name) {
+              return user.full_name;
+            } else if (user && user.username) {
+              return user.username;
+            }
+          } catch (error) {
+            console.error('Error fetching sender name:', error);
+          }
+        }
+        
+        return 'Unknown User';
+      }
+
       // Render notification
-      function renderNotification(n) {
+      async function renderNotification(n) {
+        const senderName = await getSenderName(n);
+        
         const div = document.createElement('div');
         div.className = `notification ${!n.read ? 'unread' : ''}`;
         div.dataset.id = n.id;
@@ -500,7 +562,7 @@
         div.innerHTML = `
           <div class="notification-content">
             <div class="notification-header">
-              <div class="sender">${n.sender_name}</div>
+              <div class="sender">${senderName}</div>
               <div class="time">${formatTime(n.created_at)}</div>
             </div>
             <div class="message">${n.content}</div>
@@ -515,23 +577,58 @@
         const markReadBtn = div.querySelector('.mark-read');
         const deleteBtn = div.querySelector('.delete');
         
-        markReadBtn.addEventListener('click', (e) => {
+        markReadBtn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          n.read = !n.read;
-          renderNotifications();
+          try {
+            const { error } = await supabase
+              .from('notifications')
+              .update({ read: !n.read })
+              .eq('id', n.id);
+              
+            if (error) throw error;
+            
+            n.read = !n.read;
+            renderNotifications();
+          } catch (error) {
+            console.error('Error updating notification:', error);
+            showError('Failed to update notification');
+          }
         });
         
-        deleteBtn.addEventListener('click', (e) => {
+        deleteBtn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          notifications = notifications.filter(notification => notification.id !== n.id);
-          renderNotifications();
+          try {
+            const { error } = await supabase
+              .from('notifications')
+              .delete()
+              .eq('id', n.id);
+              
+            if (error) throw error;
+            
+            notifications = notifications.filter(notification => notification.id !== n.id);
+            renderNotifications();
+          } catch (error) {
+            console.error('Error deleting notification:', error);
+            showError('Failed to delete notification');
+          }
         });
         
         // Click notification to mark as read if unread
         if (!n.read) {
-          div.addEventListener('click', () => {
-            n.read = true;
-            renderNotifications();
+          div.addEventListener('click', async () => {
+            try {
+              const { error } = await supabase
+                .from('notifications')
+                .update({ read: true })
+                .eq('id', n.id);
+                
+              if (error) throw error;
+              
+              n.read = true;
+              renderNotifications();
+            } catch (error) {
+              console.error('Error marking notification as read:', error);
+            }
           });
         }
         
@@ -539,7 +636,7 @@
       }
 
       // Render all notifications
-      function renderNotifications() {
+      async function renderNotifications() {
         const filterValue = filterSelect.value;
         let filteredNotifications = notifications;
         
@@ -558,51 +655,107 @@
           `;
           notificationPanel.appendChild(emptyState);
         } else {
-          filteredNotifications.forEach(n => {
-            notificationPanel.appendChild(renderNotification(n));
-          });
+          for (const notification of filteredNotifications) {
+            const notificationElement = await renderNotification(notification);
+            notificationPanel.appendChild(notificationElement);
+          }
         }
         
         // Update notifications count
         const unreadCount = notifications.filter(n => !n.read).length;
-        notificationsCount.textContent = `${unreadCount} Unread ${unreadCount === 1 ? 'Notification' : 'Notifications'}`;
+        const totalCount = notifications.length;
+        notificationsCount.textContent = `${unreadCount} Unread • ${totalCount} Total`;
+      }
+
+      // Load notifications from Supabase
+      async function loadNotifications() {
+        try {
+          notificationPanel.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+          
+          const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+            
+          if (error) throw error;
+          
+          notifications = data || [];
+          await renderNotifications();
+          
+          // Set up real-time subscription
+          setupRealtimeSubscription();
+        } catch (error) {
+          console.error('Error loading notifications:', error);
+          showError('Failed to load notifications');
+        }
+      }
+
+      // Set up real-time subscription for new notifications
+      function setupRealtimeSubscription() {
+        const channel = supabase
+          .channel(`notifications-${currentUser.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${currentUser.id}`
+            },
+            async (payload) => {
+              // Add new notification to the beginning of the list
+              notifications.unshift(payload.new);
+              await renderNotifications();
+              
+              // Show a subtle animation for the new notification
+              const newNotifElement = document.querySelector(`[data-id="${payload.new.id}"]`);
+              if (newNotifElement) {
+                newNotifElement.style.animation = 'pulse 2s';
+                setTimeout(() => {
+                  newNotifElement.style.animation = '';
+                }, 2000);
+              }
+            }
+          )
+          .subscribe();
+          
+        return channel;
       }
 
       // Mark all as read
-      markAllRead.addEventListener('click', () => {
-        notifications.forEach(n => {
-          n.read = true;
-        });
-        renderNotifications();
+      markAllRead.addEventListener('click', async () => {
+        try {
+          const unreadNotifications = notifications.filter(n => !n.read);
+          if (unreadNotifications.length === 0) return;
+          
+          const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('user_id', currentUser.id)
+            .eq('read', false);
+            
+          if (error) throw error;
+          
+          // Update local state
+          notifications.forEach(n => {
+            n.read = true;
+          });
+          
+          await renderNotifications();
+        } catch (error) {
+          console.error('Error marking all as read:', error);
+          showError('Failed to mark all as read');
+        }
       });
 
       // Filter notifications
-      filterSelect.addEventListener('change', renderNotifications);
+      filterSelect.addEventListener('change', () => {
+        renderNotifications();
+      });
 
       // Initialize
-      renderNotifications();
-
-      // Simulate real-time notification
-      setTimeout(() => {
-        const newNotification = {
-          id: notifications.length + 1,
-          sender_name: 'System',
-          content: 'Welcome to Peerloom! Explore our new features.',
-          created_at: new Date().toISOString(),
-          read: false
-        };
-        notifications.unshift(newNotification);
-        renderNotifications();
-        
-        // Show a subtle animation for the new notification
-        const newNotifElement = document.querySelector(`[data-id="${newNotification.id}"]`);
-        if (newNotifElement) {
-          newNotifElement.style.animation = 'pulse 2s';
-          setTimeout(() => {
-            newNotifElement.style.animation = '';
-          }, 2000);
-        }
-      }, 3000);
+      await loadNotifications();
     });
   </script>
 </body>
