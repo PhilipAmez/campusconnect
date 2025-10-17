@@ -160,7 +160,7 @@
         .main-content {
             padding-top: 80px;
             display: grid;
-            grid-template-columns: 1fr 300px;
+            grid-template-columns: 1fr;
             gap: 1.5rem;
             padding-bottom: 2rem;
         }
@@ -357,6 +357,36 @@
             font-weight: 500;
         }
 
+        .academic-edit {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+
+        .academic-edit:hover {
+            background: var(--bg-secondary);
+            transform: scale(1.05);
+        }
+
+        .academic-input {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .academic-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
         .groups-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -436,117 +466,18 @@
             transform: scale(1.1);
         }
 
-        /* Sidebar */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .quick-actions {
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-
-        .action-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .action-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .action-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            transition: var(--transition);
-            cursor: pointer;
-        }
-
-        .action-item:hover {
-            background: var(--bg-primary);
-        }
-
-        .action-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .action-text {
-            flex: 1;
-            font-weight: 500;
-        }
-
-        .recent-activity {
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-
-        .activity-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .activity-item {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .activity-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: var(--bg-tertiary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-        }
-
-        .activity-content {
-            flex: 1;
-        }
-
-        .activity-text {
-            font-size: 0.875rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .activity-time {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-
-        /* Settings Drawer */
+        /* Settings Drawer with Glassmorphism */
         .settings-drawer {
             position: fixed;
             top: 0;
             right: -400px;
             width: 380px;
             height: 100vh;
-            background: var(--bg-primary);
-            box-shadow: var(--shadow-xl);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
@@ -560,10 +491,11 @@
 
         .drawer-header {
             padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .drawer-title {
@@ -597,7 +529,7 @@
 
         .section-divider {
             height: 1px;
-            background: var(--border);
+            background: rgba(255, 255, 255, 0.1);
             margin: 1.5rem 0;
         }
 
@@ -823,13 +755,6 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
-            .sidebar {
-                grid-column: 1;
-                grid-template-columns: repeat(2, 1fr);
-                display: grid;
-                gap: 1.5rem;
-            }
         }
 
         @media (max-width: 768px) {
@@ -846,10 +771,6 @@
             }
             
             .academic-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .sidebar {
                 grid-template-columns: 1fr;
             }
             
@@ -915,7 +836,7 @@
                     <div class="cover-overlay"></div>
                     <div class="avatar-container">
                         <label for="avatarUpload" class="avatar" id="avatar">
-                            <span>JD</span>
+                            <span id="avatarInitials">JD</span>
                         </label>
                         <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
                     </div>
@@ -924,27 +845,27 @@
                 <div class="profile-content">
                     <div class="profile-header">
                         <div class="profile-info">
-                            <h1>
+                            <h1 id="fullName">
                                 John Doe
                                 <div class="verified-badge">
                                     <i class="fas fa-check"></i>
                                 </div>
                             </h1>
-                            <p>Computer Science Student</p>
+                            <p id="userTitle">Computer Science Student</p>
                         </div>
                     </div>
                     
                     <div class="profile-stats">
                         <div class="stat-card">
-                            <div class="stat-value">24</div>
+                            <div class="stat-value" id="groupsCount">24</div>
                             <div class="stat-label">Groups</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">156</div>
+                            <div class="stat-value" id="connectionsCount">156</div>
                             <div class="stat-label">Connections</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">12</div>
+                            <div class="stat-value" id="projectsCount">12</div>
                             <div class="stat-label">Projects</div>
                         </div>
                     </div>
@@ -956,24 +877,35 @@
                                     <i class="fas fa-graduation-cap section-icon"></i>
                                     Academic Details
                                 </h2>
+                                <button class="academic-edit" id="editAcademicBtn">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
                             </div>
-                            <div class="academic-grid">
+                            <div class="academic-grid" id="academicGrid">
                                 <div class="academic-item">
                                     <span class="academic-label">Campus</span>
-                                    <span class="academic-value">Main Campus</span>
+                                    <span class="academic-value" id="campusValue">Main Campus</span>
+                                    <input type="text" class="academic-input" id="campusInput" value="Main Campus" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Level</span>
-                                    <span class="academic-value">Undergraduate</span>
+                                    <span class="academic-value" id="levelValue">Undergraduate</span>
+                                    <input type="text" class="academic-input" id="levelInput" value="Undergraduate" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Department</span>
-                                    <span class="academic-value">Computer Science</span>
+                                    <span class="academic-value" id="departmentValue">Computer Science</span>
+                                    <input type="text" class="academic-input" id="departmentInput" value="Computer Science" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Year</span>
-                                    <span class="academic-value">3rd Year</span>
+                                    <span class="academic-value" id="yearValue">3rd Year</span>
+                                    <input type="text" class="academic-input" id="yearInput" value="3rd Year" style="display: none;">
                                 </div>
+                            </div>
+                            <div class="modal-actions" id="academicActions" style="display: none; margin-top: 1rem;">
+                                <button class="btn btn-secondary" id="cancelAcademicEdit">Cancel</button>
+                                <button class="btn btn-primary" id="saveAcademicEdit">Save Changes</button>
                             </div>
                         </div>
                         
@@ -984,29 +916,8 @@
                                     Groups
                                 </h2>
                             </div>
-                            <div class="groups-grid">
-                                <div class="group-item">
-                                    <div class="group-avatar">CS</div>
-                                    <div class="group-info">
-                                        <div class="group-name">Computer Science Society</div>
-                                        <div class="group-members">245 members</div>
-                                    </div>
-                                    <div class="admin-badge">Admin</div>
-                                </div>
-                                <div class="group-item">
-                                    <div class="group-avatar">WD</div>
-                                    <div class="group-info">
-                                        <div class="group-name">Web Developers</div>
-                                        <div class="group-members">89 members</div>
-                                    </div>
-                                </div>
-                                <div class="group-item">
-                                    <div class="group-avatar">AI</div>
-                                    <div class="group-info">
-                                        <div class="group-name">AI Research Group</div>
-                                        <div class="group-members">67 members</div>
-                                    </div>
-                                </div>
+                            <div class="groups-grid" id="groupsGrid">
+                                <!-- Groups will be loaded here dynamically -->
                             </div>
                         </div>
                         
@@ -1017,83 +928,16 @@
                                     Bio
                                 </h2>
                             </div>
-                            <button class="edit-bio-btn">
+                            <button class="edit-bio-btn" id="editBioBtn">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <div class="bio-content">
+                            <div class="bio-content" id="bioContent">
                                 Passionate computer science student with interest in web development, AI, and open-source projects. Always eager to learn new technologies and collaborate on innovative solutions.
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Sidebar -->
-            <div class="sidebar">
-                <div class="quick-actions">
-                    <h3 class="action-title">
-                        <i class="fas fa-bolt"></i>
-                        Quick Actions
-                    </h3>
-                    <div class="action-list">
-                        <div class="action-item">
-                            <div class="action-icon">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                            <span class="action-text">Create Group</span>
-                        </div>
-                        <div class="action-item">
-                            <div class="action-icon">
-                                <i class="fas fa-user-friends"></i>
-                            </div>
-                            <span class="action-text">Find Connections</span>
-                        </div>
-                        <div class="action-item">
-                            <div class="action-icon">
-                                <i class="fas fa-share-alt"></i>
-                            </div>
-                            <span class="action-text">Share Profile</span>
-                        </div>
-                        <div class="action-item">
-                            <div class="action-icon">
-                                <i class="fas fa-qrcode"></i>
-                            </div>
-                            <span class="action-text">My QR Code</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="recent-activity">
-                    <h3 class="action-title">
-                        <i class="fas fa-history"></i>
-                        Recent Activity
-                    </h3>
-                    <div class="activity-list">
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-user-plus"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-text">You connected with Sarah Johnson</div>
-                                <div class="activity-time">2 hours ago</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-text">Commented on Web Dev Group discussion</div>
-                                <div class="activity-time">5 hours ago</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-text">Joined AI Research Group</div>
-                                <div class="activity-time">1 day ago</div>
+                            <textarea class="academic-input" id="bioInput" style="display: none; width: 100%; min-height: 120px; margin-top: 1rem;">Passionate computer science student with interest in web development, AI, and open-source projects. Always eager to learn new technologies and collaborate on innovative solutions.</textarea>
+                            <div class="modal-actions" id="bioActions" style="display: none; margin-top: 1rem;">
+                                <button class="btn btn-secondary" id="cancelBioEdit">Cancel</button>
+                                <button class="btn btn-primary" id="saveBioEdit">Save Changes</button>
                             </div>
                         </div>
                     </div>
@@ -1102,7 +946,7 @@
         </main>
     </div>
 
-    <!-- Settings Drawer -->
+    <!-- Settings Drawer with Glassmorphism -->
     <div class="settings-drawer" id="settingsDrawer">
         <div class="drawer-header">
             <h2 class="drawer-title">Settings</h2>
@@ -1261,7 +1105,10 @@
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
 
-    <script>
+    <script type="module">
+        // Import Supabase client (assuming you have this set up)
+        // import { supabase } from './js/supabaseClient.js';
+
         // DOM Elements
         const header = document.getElementById('header');
         const themeIndicator = document.getElementById('themeIndicator');
@@ -1275,6 +1122,94 @@
         const confirm2FA = document.getElementById('confirm2FA');
         const darkModeToggle = document.getElementById('darkModeToggle');
         const body = document.body;
+        const editAcademicBtn = document.getElementById('editAcademicBtn');
+        const academicGrid = document.getElementById('academicGrid');
+        const academicActions = document.getElementById('academicActions');
+        const cancelAcademicEdit = document.getElementById('cancelAcademicEdit');
+        const saveAcademicEdit = document.getElementById('saveAcademicEdit');
+        const editBioBtn = document.getElementById('editBioBtn');
+        const bioContent = document.getElementById('bioContent');
+        const bioInput = document.getElementById('bioInput');
+        const bioActions = document.getElementById('bioActions');
+        const cancelBioEdit = document.getElementById('cancelBioEdit');
+        const saveBioEdit = document.getElementById('saveBioEdit');
+
+        // Mock user data - in a real app, this would come from your backend
+        let userData = {
+            fullName: "John Doe",
+            title: "Computer Science Student",
+            campus: "Main Campus",
+            level: "Undergraduate",
+            department: "Computer Science",
+            year: "3rd Year",
+            bio: "Passionate computer science student with interest in web development, AI, and open-source projects. Always eager to learn new technologies and collaborate on innovative solutions.",
+            groups: [
+                { name: "Computer Science Society", members: 245, isAdmin: true },
+                { name: "Web Developers", members: 89, isAdmin: false },
+                { name: "AI Research Group", members: 67, isAdmin: false }
+            ],
+            stats: {
+                groups: 24,
+                connections: 156,
+                projects: 12
+            }
+        };
+
+        // Initialize the page with user data
+        function initializePage() {
+            document.getElementById('fullName').textContent = userData.fullName;
+            document.getElementById('userTitle').textContent = userData.title;
+            document.getElementById('avatarInitials').textContent = getInitials(userData.fullName);
+            
+            // Set academic details
+            document.getElementById('campusValue').textContent = userData.campus;
+            document.getElementById('campusInput').value = userData.campus;
+            document.getElementById('levelValue').textContent = userData.level;
+            document.getElementById('levelInput').value = userData.level;
+            document.getElementById('departmentValue').textContent = userData.department;
+            document.getElementById('departmentInput').value = userData.department;
+            document.getElementById('yearValue').textContent = userData.year;
+            document.getElementById('yearInput').value = userData.year;
+            
+            // Set bio
+            document.getElementById('bioContent').textContent = userData.bio;
+            document.getElementById('bioInput').value = userData.bio;
+            
+            // Set stats
+            document.getElementById('groupsCount').textContent = userData.stats.groups;
+            document.getElementById('connectionsCount').textContent = userData.stats.connections;
+            document.getElementById('projectsCount').textContent = userData.stats.projects;
+            
+            // Load groups
+            loadGroups();
+        }
+
+        // Get initials from full name
+        function getInitials(fullName) {
+            return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
+        }
+
+        // Load groups into the UI
+        function loadGroups() {
+            const groupsGrid = document.getElementById('groupsGrid');
+            groupsGrid.innerHTML = '';
+            
+            userData.groups.forEach(group => {
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-item';
+                
+                groupItem.innerHTML = `
+                    <div class="group-avatar">${group.name.substring(0, 2)}</div>
+                    <div class="group-info">
+                        <div class="group-name">${group.name}</div>
+                        <div class="group-members">${group.members} members</div>
+                    </div>
+                    ${group.isAdmin ? '<div class="admin-badge">Admin</div>' : ''}
+                `;
+                
+                groupsGrid.appendChild(groupItem);
+            });
+        }
 
         // Theme toggle with swipe
         let startX;
@@ -1418,17 +1353,85 @@
             }
         });
 
-        // Edit bio functionality
-        const editBioBtn = document.querySelector('.edit-bio-btn');
-        const bioContent = document.querySelector('.bio-content');
-        
-        editBioBtn.addEventListener('click', () => {
-            const currentBio = bioContent.textContent;
-            const newBio = prompt('Edit your bio:', currentBio);
-            if (newBio !== null) {
-                bioContent.textContent = newBio || 'No bio yet...';
-            }
+        // Edit academic details functionality
+        editAcademicBtn.addEventListener('click', () => {
+            // Hide values, show inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
+            academicActions.style.display = 'flex';
+            editAcademicBtn.style.display = 'none';
         });
+
+        cancelAcademicEdit.addEventListener('click', () => {
+            // Show values, hide inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+            academicActions.style.display = 'none';
+            editAcademicBtn.style.display = 'block';
+            
+            // Reset input values to current user data
+            document.getElementById('campusInput').value = userData.campus;
+            document.getElementById('levelInput').value = userData.level;
+            document.getElementById('departmentInput').value = userData.department;
+            document.getElementById('yearInput').value = userData.year;
+        });
+
+        saveAcademicEdit.addEventListener('click', () => {
+            // Update user data
+            userData.campus = document.getElementById('campusInput').value;
+            userData.level = document.getElementById('levelInput').value;
+            userData.department = document.getElementById('departmentInput').value;
+            userData.year = document.getElementById('yearInput').value;
+            
+            // Update displayed values
+            document.getElementById('campusValue').textContent = userData.campus;
+            document.getElementById('levelValue').textContent = userData.level;
+            document.getElementById('departmentValue').textContent = userData.department;
+            document.getElementById('yearValue').textContent = userData.year;
+            
+            // Show values, hide inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+            academicActions.style.display = 'none';
+            editAcademicBtn.style.display = 'block';
+            
+            // In a real app, you would save to backend here
+            alert('Academic details updated successfully!');
+        });
+
+        // Edit bio functionality
+        editBioBtn.addEventListener('click', () => {
+            bioContent.style.display = 'none';
+            bioInput.style.display = 'block';
+            bioActions.style.display = 'flex';
+            editBioBtn.style.display = 'none';
+        });
+
+        cancelBioEdit.addEventListener('click', () => {
+            bioContent.style.display = 'block';
+            bioInput.style.display = 'none';
+            bioActions.style.display = 'none';
+            editBioBtn.style.display = 'block';
+            
+            // Reset bio input to current value
+            bioInput.value = userData.bio;
+        });
+
+        saveBioEdit.addEventListener('click', () => {
+            userData.bio = bioInput.value;
+            bioContent.textContent = userData.bio;
+            
+            bioContent.style.display = 'block';
+            bioInput.style.display = 'none';
+            bioActions.style.display = 'none';
+            editBioBtn.style.display = 'block';
+            
+            // In a real app, you would save to backend here
+            alert('Bio updated successfully!');
+        });
+
+        // Initialize the page
+        initializePage();
     </script>
 </body>
 </html>
