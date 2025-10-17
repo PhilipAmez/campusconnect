@@ -681,7 +681,7 @@
                     // FIXED: Using group_Id instead of group_id
                     const { error } = await supabase
                         .from('group_members')
-                        .insert({ group_Id: groupId, user_id: user.id, is_admin: false });
+                        .insert({ group_Id: groupId, user_id: user.id });
                         
                     if (error) {
                         console.error('Error joining group:', error);
@@ -776,31 +776,22 @@
 
                 if (error) {
                     console.error('Error creating group:', error);
-                    
-                    // Check for specific error types
-                    if (error.code === '23505') {
-                        showNotification('A group with this name already exists.');
-                    } else if (error.code === '42501') {
-                        showNotification('Permission denied. Please check your database permissions.');
-                    } else {
-                        showNotification('Failed to create group: ' + error.message);
-                    }
+                    showNotification('Failed to create group: ' + error.message);
                     return;
                 }
 
-                // Then, add the creator as an admin member
+                // Then, add the creator as a member
                 // FIXED: Using group_Id instead of group_id
                 const { error: memberError } = await supabase
                     .from('group_members')
                     .insert({ 
                         group_Id: data.id, 
-                        user_id: user.id, 
-                        is_admin: true 
+                        user_id: user.id
                     });
 
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
-                    showNotification('Group created but failed to add you as admin: ' + memberError.message);
+                    showNotification('Group created but failed to add you as member: ' + memberError.message);
                     return;
                 }
 
