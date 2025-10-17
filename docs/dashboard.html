@@ -1,3 +1,4 @@
+now give me the updated code block and isntead of add friends lets make it follow and make the fixes and also i want the user session to automatically logged out after one hour of inactivity and also prevent hackers at all cost making them get a virus when they try to breach or hack
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +12,9 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script type="module" src="js/supabaseClient.js"></script>
+    <link rel="stylesheet" href="style.css">
     <style>
+        /* Your existing CSS styles remain the same */
         :root {
             --primary: #7c3aed;
             --secondary: #4f46e5;
@@ -300,7 +303,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.9); /* Increased opacity for visibility */
             backdrop-filter: blur(10px);
             border-radius: 1rem;
             padding: 1.5rem 2rem;
@@ -321,43 +324,8 @@
         }
         .blur-background {
             filter: blur(5px);
-            pointer-events: none;
+            pointer-events: none; /* Prevent interaction while blurred */
         }
-        
-        /* Security Modal Styles */
-        .security-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, #ff0000, #8b0000);
-            z-index: 3000;
-            color: white;
-            font-family: 'Courier New', monospace;
-            text-align: center;
-            padding-top: 20%;
-        }
-        .security-modal.show {
-            display: block;
-            animation: hackAlert 0.5s infinite alternate;
-        }
-        @keyframes hackAlert {
-            from { background: radial-gradient(circle, #ff0000, #8b0000); }
-            to { background: radial-gradient(circle, #8b0000, #ff0000); }
-        }
-        .security-message {
-            font-size: 2rem;
-            font-weight: bold;
-            text-shadow: 0 0 10px #fff;
-            margin-bottom: 2rem;
-        }
-        .countdown {
-            font-size: 3rem;
-            font-weight: bold;
-        }
-        
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -582,7 +550,7 @@
                         <p class="font-semibold text-gray-800">John Doe</p>
                         <p class="text-gray-600">CS 201 • Online</p>
                     </div>
-                    <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, 'john_doe')">Follow</button>
+                    <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, 'john_doe')">Add</button>
                 </div>
                 <div class="connection-item" data-userid="sarah_smith" data-name="Sarah Smith">
                     <div class="avatar">S</div>
@@ -590,7 +558,7 @@
                         <p class="font-semibold text-gray-800">Sarah Smith</p>
                         <p class="text-gray-600">CHEM 101 • Offline</p>
                     </div>
-                    <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, 'sarah_smith')">Follow</button>
+                    <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, 'sarah_smith')">Add</button>
                 </div>
                 <div class="connection-item" data-userid="mike_chen" data-name="Mike Chen">
                     <div class="avatar">M</div>
@@ -598,7 +566,7 @@
                         <p class="font-semibold text-gray-800">Mike Chen</p>
                         <p class="text-gray-600">PHYS 202 • Online</p>
                     </div>
-                    <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, 'mike_chen')">Follow</button>
+                    <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, 'mike_chen')">Add</button>
                 </div>
             </div>
         </div>
@@ -609,164 +577,11 @@
         <span id="modalMessage">Group inserted</span>
     </div>
 
-    <!-- Security Alert Modal -->
-    <div id="securityModal" class="security-modal">
-        <div class="security-message">
-            ⚠️ SECURITY BREACH DETECTED ⚠️
-        </div>
-        <div class="countdown" id="securityCountdown">10</div>
-        <div style="margin-top: 2rem; font-size: 1.2rem;">
-            System integrity compromised<br>
-            Initiating emergency protocols...
-        </div>
-    </div>
-
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        // Security and Session Management
-        let inactivityTimer;
-        const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
-        let securityBreachDetected = false;
-
-        // Initialize security protections
-        function initializeSecurity() {
-            console.log('🔒 Security system activated');
-            
-            // Detect common hacking tools
-            detectDevTools();
-            detectDebugger();
-            protectAgainstXSS();
-            setupActivityMonitoring();
-            
-            // Start inactivity timer
-            resetInactivityTimer();
-        }
-
-        // Detect browser developer tools (common hacker tool)
-        function detectDevTools() {
-            const devtools = /./;
-            devtools.toString = function() {
-                if (!securityBreachDetected) {
-                    triggerSecurityBreach();
-                }
-                return 'devtools';
-            };
-            console.log(devtools);
-        }
-
-        // Detect debugger attempts
-        function detectDebugger() {
-            setInterval(function() {
-                const start = performance.now();
-                debugger;
-                const end = performance.now();
-                if (end - start > 100) {
-                    if (!securityBreachDetected) {
-                        triggerSecurityBreach();
-                    }
-                }
-            }, 1000);
-        }
-
-        // Protect against XSS attacks
-        function protectAgainstXSS() {
-            // Sanitize all user inputs
-            document.addEventListener('input', function(e) {
-                if (e.target.matches('input, textarea, select')) {
-                    const originalValue = e.target.value;
-                    const sanitizedValue = originalValue
-                        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                        .replace(/javascript:/gi, '')
-                        .replace(/on\w+=/gi, '')
-                        .replace(/<\/?[^>]+(>|$)/g, '');
-                    
-                    if (originalValue !== sanitizedValue) {
-                        e.target.value = sanitizedValue;
-                        if (!securityBreachDetected) {
-                            triggerSecurityBreach();
-                        }
-                    }
-                }
-            });
-
-            // Prevent right-click context menu
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                if (!securityBreachDetected) {
-                    triggerSecurityBreach();
-                }
-                return false;
-            });
-
-            // Prevent keyboard shortcuts for developer tools
-            document.addEventListener('keydown', function(e) {
-                // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-                if (e.key === 'F12' || 
-                    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
-                    (e.ctrlKey && e.key === 'u')) {
-                    e.preventDefault();
-                    if (!securityBreachDetected) {
-                        triggerSecurityBreach();
-                    }
-                    return false;
-                }
-            });
-        }
-
-        // Setup activity monitoring for auto-logout
-        function setupActivityMonitoring() {
-            const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-            activityEvents.forEach(function(event) {
-                document.addEventListener(event, resetInactivityTimer, true);
-            });
-        }
-
-        // Reset inactivity timer
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(logoutDueToInactivity, INACTIVITY_TIMEOUT);
-        }
-
-        // Logout due to inactivity
-        async function logoutDueToInactivity() {
-            console.log('🕒 Session expired due to inactivity');
-            const { error } = await supabase.auth.signOut();
-            if (!error) {
-                window.location.href = 'login.html?reason=inactivity';
-            }
-        }
-
-        // Trigger security breach response
-        function triggerSecurityBreach() {
-            if (securityBreachDetected) return;
-            
-            securityBreachDetected = true;
-            console.log('🚨 SECURITY BREACH DETECTED - Activating countermeasures');
-            
-            const securityModal = document.getElementById('securityModal');
-            const countdownElement = document.getElementById('securityCountdown');
-            
-            securityModal.classList.add('show');
-            
-            let countdown = 10;
-            const countdownInterval = setInterval(() => {
-                countdown--;
-                countdownElement.textContent = countdown;
-                
-                if (countdown <= 0) {
-                    clearInterval(countdownInterval);
-                    // Redirect to fake "hacker trap" page or logout
-                    window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'; // Rickroll as a trap
-                }
-            }, 1000);
-        }
-
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize security first
-            initializeSecurity();
-            
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('login.html');
@@ -791,7 +606,7 @@
                     console.error('Logout failed:', error);
                     return;
                 }
-                window.location.href = 'logout.html';
+                window.location.href = 'logout.html'; // Redirect to logout page
             });
         });
 
@@ -803,12 +618,14 @@
                 navLinksMobile.classList.toggle('show');
             });
 
+            // Close menu when clicking outside or on a link
             document.addEventListener('click', (e) => {
                 if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
                     navLinksMobile.classList.remove('show');
                 }
             });
 
+            // Prevent scrolling when menu is open
             navLinksMobile.addEventListener('touchmove', (e) => {
                 e.preventDefault();
             }, { passive: false });
@@ -825,7 +642,7 @@
             const { data, error } = await supabase
                 .from('groups')
                 .select('id, name, course_code')
-                .neq('created_by', user.id)
+                .neq('created_by', user.id) // Exclude groups you created
                 .limit(5);
                 
             if (error) {
@@ -889,6 +706,7 @@
                     return;
                 }
 
+                // FIXED: Using group_Id instead of group_id and ensuring user exists in profiles
                 const { error } = await supabase
                     .from('group_members')
                     .insert({ group_Id: groupId, user_id: user.id });
@@ -896,9 +714,12 @@
                 if (error) {
                     console.error('Error joining group:', error);
                     
+                    // Handle specific error cases
                     if (error.code === '23503') {
+                        // Foreign key violation - user might not exist in profiles table
                         showNotification('Cannot join group: User profile issue. Please check your profile.');
                     } else if (error.code === '23505') {
+                        // Unique violation - already a member
                         showNotification('You are already a member of this group.');
                     } else {
                         showNotification('Failed to join group: ' + error.message);
@@ -907,8 +728,8 @@
                     showNotification('Successfully joined group!', () => {
                         window.location.href = `chatroom.html?groupId=${groupId}`;
                     });
-                    loadActiveGroups();
-                    loadSuggestedGroups();
+                    loadActiveGroups(); // Refresh active groups
+                    loadSuggestedGroups(); // Refresh suggested groups to remove joined group
                     
                     // Disable the join button
                     if (button) {
@@ -931,6 +752,7 @@
                 return;
             }
 
+            // FIXED: Using group_Id instead of group_id
             const { data, error } = await supabase
                 .from('group_members')
                 .select('group_Id')
@@ -1014,6 +836,7 @@
                 }
 
                 // Then, add the creator as a member
+                // FIXED: Using group_Id instead of group_id
                 const { error: memberError } = await supabase
                     .from('group_members')
                     .insert({ 
@@ -1089,7 +912,7 @@
             }
         }
 
-        // Search connections
+        // Search connections with loading animation
         async function searchConnections() {
             const connectionSearch = document.getElementById('connectionSearch').value.trim();
             const connectionLoading = document.getElementById('connectionLoading');
@@ -1122,7 +945,7 @@
                                 <p class="font-semibold text-gray-800">${fullName}</p>
                                 <p class="text-gray-600">${status}</p>
                             </div>
-                            <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${user.id}')">Follow</button>
+                            <button class="btn add-btn" style="margin-left: auto;" onclick="addFriend(this, '${user.id}')">Add</button>
                         `;
                         connectionList.appendChild(div);
                     });
@@ -1137,13 +960,12 @@
             }
         }
 
-        // Follow user function (replaces addFriend)
-        function followUser(button, userId) {
-            console.log(`Following user with ID: ${userId}`);
-            button.textContent = 'Following';
+        // Add friend (placeholder)
+        function addFriend(button, userId) {
+            console.log(`Adding friend with ID: ${userId}`);
+            button.textContent = 'Added';
             button.disabled = true;
             button.style.background = '#d1d5db';
-            showNotification('Successfully followed user!');
         }
 
         // Show notification with blur effect
@@ -1162,7 +984,7 @@
             }, 3000);
         }
 
-        // Add event listeners
+        // Add event listeners after DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             const searchConnectionsBtn = document.getElementById('searchConnectionsBtn');
             if (searchConnectionsBtn) {
@@ -1178,7 +1000,7 @@
         // Make functions globally available
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
-        window.followUser = followUser;
+        window.addFriend = addFriend;
     </script>
 </body>
 </html>
