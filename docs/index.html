@@ -43,6 +43,103 @@
             font-family: 'Segoe UI', sans-serif;
         }
 
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.8rem;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            max-width: 90%;
+            width: auto;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .notification.show {
+            opacity: 1;
+            visibility: visible;
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification.hide {
+            opacity: 0;
+            visibility: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        .notification.success {
+            color: #059669;
+            border-left: 4px solid #059669;
+        }
+
+        .notification.warning {
+            color: #d97706;
+            border-left: 4px solid #d97706;
+        }
+
+        .notification.error {
+            color: #dc2626;
+            border-left: 4px solid #dc2626;
+        }
+
+        .notification.info {
+            color: #2563eb;
+            border-left: 4px solid #2563eb;
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: currentColor;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s;
+            margin-left: auto;
+        }
+
+        .notification-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+        }
+
         /* Splash Screen Styles */
         #splash-screen {
             position: fixed;
@@ -235,6 +332,11 @@
             .nav-toggle {
                 display: block;
             }
+            .notification {
+                top: 70px;
+                padding: 0.8rem 1.2rem;
+                font-size: 0.9rem;
+            }
         }
         @media (max-width: 480px) {
             .navbar {
@@ -242,6 +344,11 @@
             }
             .logo img {
                 height: 28px;
+            }
+            .notification {
+                top: 60px;
+                padding: 0.7rem 1rem;
+                font-size: 0.85rem;
             }
         }
 
@@ -437,6 +544,15 @@
     </style>
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notification" class="notification">
+        <i class="notification-icon"></i>
+        <span class="notification-message"></span>
+        <button class="notification-close">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
     <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="splash-content">
@@ -520,6 +636,79 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationIcon = notification.querySelector('.notification-icon');
+            const notificationMessage = notification.querySelector('.notification-message');
+            
+            // Set notification content and type
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type}`;
+            
+            // Set appropriate icon based on type
+            switch(type) {
+                case 'success':
+                    notificationIcon.className = 'notification-icon fas fa-check-circle';
+                    break;
+                case 'warning':
+                    notificationIcon.className = 'notification-icon fas fa-exclamation-triangle';
+                    break;
+                case 'error':
+                    notificationIcon.className = 'notification-icon fas fa-times-circle';
+                    break;
+                case 'info':
+                default:
+                    notificationIcon.className = 'notification-icon fas fa-info-circle';
+                    break;
+            }
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.remove('show');
+            notification.classList.add('hide');
+            
+            // Remove hide class after animation completes
+            setTimeout(() => {
+                notification.classList.remove('hide');
+            }, 300);
+        }
+
+        // Close notification when close button is clicked
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeButton = document.querySelector('.notification-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', hideNotification);
+            }
+        });
+
+        // Check for URL parameters and show appropriate messages
+        function checkUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+
+            if (message === 'session_timeout') {
+                showNotification('Your session has expired due to inactivity. Please log in again.', 'warning');
+                // Clean URL (remove parameters)
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'logout_success') {
+                showNotification('You have been successfully logged out.', 'success');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'session_expired') {
+                showNotification('Your session has expired. Please log in again.', 'warning');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
         // Splash screen animation
         document.addEventListener('DOMContentLoaded', () => {
             const splashScreen = document.getElementById('splash-screen');
@@ -566,6 +755,9 @@
                     
                     // Initialize main page functionality
                     initMainPage();
+                    
+                    // Check for URL parameters after page loads
+                    checkUrlParameters();
                 }, 500);
             }, 3500);
         });
