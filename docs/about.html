@@ -18,6 +18,8 @@
             --border: #e5e7eb;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --ios-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+            --ios-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.12);
         }
         
         * {
@@ -391,6 +393,8 @@
             font-size: 1rem;
             background: var(--white);
             transition: border-color 0.3s, box-shadow 0.3s;
+            z-index: 10;
+            position: relative;
         }
         
         .chat-input:focus {
@@ -399,24 +403,46 @@
             box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
         }
         
-        .chat-button {
+        /* iOS 19 Style Buttons */
+        .ios-button {
             background: var(--primary);
             color: var(--white);
             border: none;
-            border-radius: 25px;
+            border-radius: 14px;
             padding: 0.75rem 1.5rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             display: flex;
             align-items: center;
             gap: 0.5rem;
             white-space: nowrap;
+            box-shadow: var(--ios-shadow);
+            position: relative;
+            overflow: hidden;
+            font-size: 0.95rem;
         }
         
-        .chat-button:hover {
-            background: var(--primary-dark);
+        .ios-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 14px;
+        }
+        
+        .ios-button:hover {
             transform: translateY(-2px);
+            box-shadow: var(--ios-shadow-hover);
+            background: var(--primary-dark);
+        }
+        
+        .ios-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
         
         .voice-button {
@@ -507,7 +533,7 @@
                 flex-direction: column;
             }
             
-            .chat-button {
+            .ios-button {
                 width: 100%;
                 justify-content: center;
             }
@@ -697,10 +723,10 @@
                     
                     <div class="chat-input-container">
                         <input type="text" class="chat-input" id="userInput" placeholder="Ask about PeerLoom features or how to use the platform..." aria-label="Ask a question">
-                        <button class="chat-button" id="sendButton" aria-label="Submit question">
+                        <button class="ios-button" id="sendButton" aria-label="Submit question">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
-                        <button class="chat-button voice-button" id="voiceButton" aria-label="Start voice input">
+                        <button class="ios-button voice-button" id="voiceButton" aria-label="Start voice input">
                             <i class="fas fa-microphone"></i> Speak
                         </button>
                     </div>
@@ -859,15 +885,37 @@
             sendButton.addEventListener('click', getAIResponse);
             voiceButton.addEventListener('click', startVoiceInput);
             
-            // Make sure buttons are responsive
-            const buttons = document.querySelectorAll('.chat-button');
-            buttons.forEach(button => {
+            // Make sure the input field is focusable and typeable
+            userInput.focus();
+            
+            // iOS-style button interactions
+            const iosButtons = document.querySelectorAll('.ios-button');
+            iosButtons.forEach(button => {
+                // Touch interactions
                 button.addEventListener('touchstart', function() {
-                    this.style.transform = 'translateY(-1px)';
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
                 });
                 
                 button.addEventListener('touchend', function() {
                     this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+                
+                // Mouse interactions
+                button.addEventListener('mousedown', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                });
+                
+                button.addEventListener('mouseup', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
                 });
             });
         });
