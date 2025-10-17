@@ -99,6 +99,7 @@
             font-weight: 700;
             font-size: 1.25rem;
             color: var(--primary);
+            text-decoration: none;
         }
 
         .logo-icon {
@@ -466,6 +467,27 @@
             transform: scale(1.1);
         }
 
+        /* Share Profile Button */
+        .share-profile-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .share-profile-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
         /* Settings Drawer with Glassmorphism */
         .settings-drawer {
             position: fixed;
@@ -552,6 +574,127 @@
         .settings-desc {
             font-size: 0.875rem;
             color: var(--text-secondary);
+        }
+
+        /* Notifications Drawer with Glassmorphism */
+        .notifications-drawer {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 380px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .notifications-drawer.open {
+            left: 0;
+        }
+
+        .notifications-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .notifications-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .close-notifications {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-notifications:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .notifications-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .notifications-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .notification-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: var(--transition);
+        }
+
+        .notification-item.unread {
+            background: rgba(124, 58, 237, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-sender {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .notification-message {
+            font-size: 0.875rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .mark-all-read-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        .mark-all-read-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
         }
 
         /* Toggle Switch */
@@ -774,9 +917,14 @@
                 grid-template-columns: 1fr;
             }
             
-            .settings-drawer {
+            .settings-drawer,
+            .notifications-drawer {
                 width: 100%;
                 right: -100%;
+            }
+            
+            .notifications-drawer {
+                left: -100%;
             }
         }
 
@@ -806,12 +954,12 @@
     <div class="app-container">
         <!-- Header with swipe functionality -->
         <header class="header" id="header">
-            <div class="logo">
+            <a href="index.html" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-layer-group"></i>
                 </div>
                 <span>Peerloom</span>
-            </div>
+            </a>
             
             <div class="theme-indicator" id="themeIndicator">
                 <i class="fas fa-moon"></i>
@@ -869,6 +1017,11 @@
                             <div class="stat-label">Projects</div>
                         </div>
                     </div>
+                    
+                    <button class="share-profile-btn" id="shareProfileBtn">
+                        <i class="fas fa-share-alt"></i>
+                        Share Profile
+                    </button>
                     
                     <div class="profile-sections">
                         <div class="section">
@@ -1060,6 +1213,27 @@
         </div>
     </div>
 
+    <!-- Notifications Drawer with Glassmorphism -->
+    <div class="notifications-drawer" id="notificationsDrawer">
+        <div class="notifications-header">
+            <h2 class="notifications-title">Notifications</h2>
+            <button class="close-notifications" id="closeNotifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="notifications-content">
+            <div class="notifications-list" id="notificationsList">
+                <!-- Notifications will be loaded here dynamically -->
+            </div>
+            
+            <button class="mark-all-read-btn" id="markAllReadBtn">
+                <i class="fas fa-check-double"></i>
+                Mark All as Read
+            </button>
+        </div>
+    </div>
+
     <!-- 2FA Setup Modal -->
     <div class="modal-overlay" id="twoFactorModal">
         <div class="modal">
@@ -1106,8 +1280,8 @@
     <div class="overlay" id="overlay"></div>
 
     <script type="module">
-        // Import Supabase client (assuming you have this set up)
-        // import { supabase } from './js/supabaseClient.js';
+        // Import Supabase client
+        import { supabase } from './js/supabaseClient.js';
 
         // DOM Elements
         const header = document.getElementById('header');
@@ -1115,6 +1289,11 @@
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsDrawer = document.getElementById('settingsDrawer');
         const closeDrawer = document.getElementById('closeDrawer');
+        const notificationsBtn = document.getElementById('notificationsBtn');
+        const notificationsDrawer = document.getElementById('notificationsDrawer');
+        const closeNotifications = document.getElementById('closeNotifications');
+        const notificationsList = document.getElementById('notificationsList');
+        const markAllReadBtn = document.getElementById('markAllReadBtn');
         const overlay = document.getElementById('overlay');
         const twoFactorToggle = document.getElementById('twoFactorToggle');
         const twoFactorModal = document.getElementById('twoFactorModal');
@@ -1133,68 +1312,131 @@
         const bioActions = document.getElementById('bioActions');
         const cancelBioEdit = document.getElementById('cancelBioEdit');
         const saveBioEdit = document.getElementById('saveBioEdit');
+        const shareProfileBtn = document.getElementById('shareProfileBtn');
 
-        // Mock user data - in a real app, this would come from your backend
-        let userData = {
-            fullName: "John Doe",
-            title: "Computer Science Student",
-            campus: "Main Campus",
-            level: "Undergraduate",
-            department: "Computer Science",
-            year: "3rd Year",
-            bio: "Passionate computer science student with interest in web development, AI, and open-source projects. Always eager to learn new technologies and collaborate on innovative solutions.",
-            groups: [
-                { name: "Computer Science Society", members: 245, isAdmin: true },
-                { name: "Web Developers", members: 89, isAdmin: false },
-                { name: "AI Research Group", members: 67, isAdmin: false }
-            ],
-            stats: {
-                groups: 24,
-                connections: 156,
-                projects: 12
+        // Current user
+        let currentUser = null;
+        let userProfile = null;
+        let userGroups = [];
+        let userNotifications = [];
+
+        // Initialize the page
+        async function initializePage() {
+            try {
+                // Get current user
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+                
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                currentUser = user;
+                
+                // Load user profile
+                await loadUserProfile();
+                
+                // Load user groups
+                await loadUserGroups();
+                
+                // Load user notifications
+                await loadUserNotifications();
+                
+                // Set up real-time notifications subscription
+                setupNotificationsSubscription();
+                
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                alert('Error loading profile data. Please try again.');
             }
-        };
+        }
 
-        // Initialize the page with user data
-        function initializePage() {
-            document.getElementById('fullName').textContent = userData.fullName;
-            document.getElementById('userTitle').textContent = userData.title;
-            document.getElementById('avatarInitials').textContent = getInitials(userData.fullName);
+        // Load user profile from Supabase
+        async function loadUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                    
+                if (error) throw error;
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        // Update the UI with profile data
+        function updateProfileUI() {
+            if (!userProfile) return;
+            
+            // Set user name and title
+            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
+            document.getElementById('userTitle').textContent = userProfile.title || 'Student';
+            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
             
             // Set academic details
-            document.getElementById('campusValue').textContent = userData.campus;
-            document.getElementById('campusInput').value = userData.campus;
-            document.getElementById('levelValue').textContent = userData.level;
-            document.getElementById('levelInput').value = userData.level;
-            document.getElementById('departmentValue').textContent = userData.department;
-            document.getElementById('departmentInput').value = userData.department;
-            document.getElementById('yearValue').textContent = userData.year;
-            document.getElementById('yearInput').value = userData.year;
+            document.getElementById('campusValue').textContent = userProfile.campus || 'Not set';
+            document.getElementById('campusInput').value = userProfile.campus || '';
+            document.getElementById('levelValue').textContent = userProfile.level || 'Not set';
+            document.getElementById('levelInput').value = userProfile.level || '';
+            document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('yearValue').textContent = userProfile.year || 'Not set';
+            document.getElementById('yearInput').value = userProfile.year || '';
             
             // Set bio
-            document.getElementById('bioContent').textContent = userData.bio;
-            document.getElementById('bioInput').value = userData.bio;
+            document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
+            document.getElementById('bioInput').value = userProfile.bio || '';
             
-            // Set stats
-            document.getElementById('groupsCount').textContent = userData.stats.groups;
-            document.getElementById('connectionsCount').textContent = userData.stats.connections;
-            document.getElementById('projectsCount').textContent = userData.stats.projects;
-            
-            // Load groups
-            loadGroups();
+            // Set stats (you might need to calculate these from your database)
+            document.getElementById('groupsCount').textContent = userGroups.length;
+            // For connections and projects, you would need to fetch from your database
         }
 
-        // Get initials from full name
-        function getInitials(fullName) {
-            return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
+        // Load user groups from Supabase
+        async function loadUserGroups() {
+            try {
+                // This query depends on your database structure
+                const { data: groups, error } = await supabase
+                    .from('group_members')
+                    .select(`
+                        groups (
+                            id,
+                            name,
+                            member_count
+                        ),
+                        is_admin
+                    `)
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userGroups = groups || [];
+                updateGroupsUI();
+                
+            } catch (error) {
+                console.error('Error loading groups:', error);
+            }
         }
 
-        // Load groups into the UI
-        function loadGroups() {
+        // Update the UI with groups data
+        function updateGroupsUI() {
             const groupsGrid = document.getElementById('groupsGrid');
             groupsGrid.innerHTML = '';
             
-            userData.groups.forEach(group => {
+            if (userGroups.length === 0) {
+                groupsGrid.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No groups yet</p>';
+                return;
+            }
+            
+            userGroups.forEach(groupData => {
+                const group = groupData.groups;
                 const groupItem = document.createElement('div');
                 groupItem.className = 'group-item';
                 
@@ -1202,13 +1444,87 @@
                     <div class="group-avatar">${group.name.substring(0, 2)}</div>
                     <div class="group-info">
                         <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.members} members</div>
+                        <div class="group-members">${group.member_count || 0} members</div>
                     </div>
-                    ${group.isAdmin ? '<div class="admin-badge">Admin</div>' : ''}
+                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
                 `;
                 
                 groupsGrid.appendChild(groupItem);
             });
+        }
+
+        // Load user notifications from Supabase
+        async function loadUserNotifications() {
+            try {
+                const { data: notifications, error } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                    
+                if (error) throw error;
+                
+                userNotifications = notifications || [];
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        }
+
+        // Update the UI with notifications data
+        function updateNotificationsUI() {
+            notificationsList.innerHTML = '';
+            
+            if (userNotifications.length === 0) {
+                notificationsList.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No notifications</p>';
+                return;
+            }
+            
+            userNotifications.forEach(notification => {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                
+                // Format time
+                const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                notificationItem.innerHTML = `
+                    <div class="notification-header">
+                        <div class="notification-sender">${notification.sender_name || 'System'}</div>
+                        <div class="notification-time">${time}</div>
+                    </div>
+                    <div class="notification-message">${notification.content}</div>
+                `;
+                
+                notificationsList.appendChild(notificationItem);
+            });
+        }
+
+        // Set up real-time notifications subscription
+        function setupNotificationsSubscription() {
+            const channel = supabase
+                .channel(`notifications-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        // Add new notification to the beginning of the list
+                        userNotifications.unshift(payload.new);
+                        updateNotificationsUI();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Get initials from full name
+        function getInitials(fullName) {
+            return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
         }
 
         // Theme toggle with swipe
@@ -1306,10 +1622,49 @@
             overlay.classList.remove('active');
         });
 
+        // Notifications drawer functionality
+        notificationsBtn.addEventListener('click', () => {
+            notificationsDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
+
+        closeNotifications.addEventListener('click', () => {
+            notificationsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
         overlay.addEventListener('click', () => {
             settingsDrawer.classList.remove('open');
+            notificationsDrawer.classList.remove('open');
             overlay.classList.remove('active');
             twoFactorModal.classList.remove('active');
+        });
+
+        // Mark all notifications as read
+        markAllReadBtn.addEventListener('click', async () => {
+            try {
+                const unreadNotifications = userNotifications.filter(n => !n.read);
+                if (unreadNotifications.length === 0) return;
+                
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ read: true })
+                    .eq('user_id', currentUser.id)
+                    .eq('read', false);
+                    
+                if (error) throw error;
+                
+                // Update local state
+                userNotifications.forEach(n => {
+                    n.read = true;
+                });
+                
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+                alert('Error marking notifications as read. Please try again.');
+            }
         });
 
         // 2FA functionality
@@ -1342,14 +1697,41 @@
         const avatarUpload = document.getElementById('avatarUpload');
         const avatar = document.getElementById('avatar');
         
-        avatarUpload.addEventListener('change', (e) => {
+        avatarUpload.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    avatar.innerHTML = `<img src="${e.target.result}" alt="Avatar">`;
-                };
-                reader.readAsDataURL(file);
+            if (!file) return;
+
+            try {
+                // Upload avatar to Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                // Update profile with avatar URL
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+
+                // Update UI
+                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar">`;
+                
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                alert('Error uploading avatar. Please try again.');
             }
         });
 
@@ -1370,33 +1752,51 @@
             editAcademicBtn.style.display = 'block';
             
             // Reset input values to current user data
-            document.getElementById('campusInput').value = userData.campus;
-            document.getElementById('levelInput').value = userData.level;
-            document.getElementById('departmentInput').value = userData.department;
-            document.getElementById('yearInput').value = userData.year;
+            document.getElementById('campusInput').value = userProfile.campus || '';
+            document.getElementById('levelInput').value = userProfile.level || '';
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('yearInput').value = userProfile.year || '';
         });
 
-        saveAcademicEdit.addEventListener('click', () => {
-            // Update user data
-            userData.campus = document.getElementById('campusInput').value;
-            userData.level = document.getElementById('levelInput').value;
-            userData.department = document.getElementById('departmentInput').value;
-            userData.year = document.getElementById('yearInput').value;
-            
-            // Update displayed values
-            document.getElementById('campusValue').textContent = userData.campus;
-            document.getElementById('levelValue').textContent = userData.level;
-            document.getElementById('departmentValue').textContent = userData.department;
-            document.getElementById('yearValue').textContent = userData.year;
-            
-            // Show values, hide inputs
-            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-            academicActions.style.display = 'none';
-            editAcademicBtn.style.display = 'block';
-            
-            // In a real app, you would save to backend here
-            alert('Academic details updated successfully!');
+        saveAcademicEdit.addEventListener('click', async () => {
+            try {
+                // Update user data in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        campus: document.getElementById('campusInput').value,
+                        level: document.getElementById('levelInput').value,
+                        department: document.getElementById('departmentInput').value,
+                        year: document.getElementById('yearInput').value
+                    })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.campus = document.getElementById('campusInput').value;
+                userProfile.level = document.getElementById('levelInput').value;
+                userProfile.department = document.getElementById('departmentInput').value;
+                userProfile.year = document.getElementById('yearInput').value;
+                
+                // Update displayed values
+                document.getElementById('campusValue').textContent = userProfile.campus || 'Not set';
+                document.getElementById('levelValue').textContent = userProfile.level || 'Not set';
+                document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+                document.getElementById('yearValue').textContent = userProfile.year || 'Not set';
+                
+                // Show values, hide inputs
+                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+                academicActions.style.display = 'none';
+                editAcademicBtn.style.display = 'block';
+                
+                alert('Academic details updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating academic details:', error);
+                alert('Error updating academic details. Please try again.');
+            }
         });
 
         // Edit bio functionality
@@ -1414,20 +1814,69 @@
             editBioBtn.style.display = 'block';
             
             // Reset bio input to current value
-            bioInput.value = userData.bio;
+            bioInput.value = userProfile.bio || '';
         });
 
-        saveBioEdit.addEventListener('click', () => {
-            userData.bio = bioInput.value;
-            bioContent.textContent = userData.bio;
-            
-            bioContent.style.display = 'block';
-            bioInput.style.display = 'none';
-            bioActions.style.display = 'none';
-            editBioBtn.style.display = 'block';
-            
-            // In a real app, you would save to backend here
-            alert('Bio updated successfully!');
+        saveBioEdit.addEventListener('click', async () => {
+            try {
+                const newBio = bioInput.value;
+                
+                // Update bio in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ bio: newBio })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.bio = newBio;
+                bioContent.textContent = userProfile.bio || 'No bio yet...';
+                
+                bioContent.style.display = 'block';
+                bioInput.style.display = 'none';
+                bioActions.style.display = 'none';
+                editBioBtn.style.display = 'block';
+                
+                alert('Bio updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating bio:', error);
+                alert('Error updating bio. Please try again.');
+            }
+        });
+
+        // Share profile functionality
+        shareProfileBtn.addEventListener('click', async () => {
+            try {
+                // Create a shareable link
+                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `${userProfile.full_name}'s Profile`,
+                        text: `Check out ${userProfile.full_name}'s profile on Peerloom`,
+                        url: profileUrl
+                    });
+                } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(profileUrl);
+                    alert('Profile link copied to clipboard!');
+                }
+            } catch (error) {
+                console.error('Error sharing profile:', error);
+                
+                // Fallback: copy to clipboard
+                try {
+                    const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                    await navigator.clipboard.writeText(profileUrl);
+                    alert('Profile link copied to clipboard!');
+                } catch (clipboardError) {
+                    console.error('Error copying to clipboard:', clipboardError);
+                    alert('Error sharing profile. Please try again.');
+                }
+            }
         });
 
         // Initialize the page
