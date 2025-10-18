@@ -1359,7 +1359,7 @@
                         <div class="settings-desc">Receive updates via email</div>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" checked>
+                        <input type="checkbox" id="emailNotificationsToggle" checked>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1370,7 +1370,7 @@
                         <div class="settings-desc">Receive push notifications</div>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" checked>
+                        <input type="checkbox" id="pushNotificationsToggle" checked>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1515,64 +1515,9 @@
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
 
-    <script>
-        // Mock Supabase client for demonstration
-        const supabase = {
-            auth: {
-                getUser: async () => ({
-                    data: { user: { id: 'user1', email: 'user@example.com', user_metadata: { full_name: 'John Doe' } } },
-                    error: null
-                })
-            },
-            from: (table) => ({
-                select: (columns) => ({
-                    eq: (field, value) => ({
-                        single: async () => {
-                            if (table === 'profiles' && value === 'user1') {
-                                return {
-                                    data: {
-                                        id: 'user1',
-                                        full_name: 'John Doe',
-                                        username: 'johndoe',
-                                        email: 'user@example.com',
-                                        status: 'Online',
-                                        verified: true,
-                                        campus: 'Main Campus',
-                                        level: 'Undergraduate',
-                                        department: 'Computer Science',
-                                        contact: 'john@example.com',
-                                        bio: 'Passionate about technology and innovation. Currently studying Computer Science.',
-                                        join_date: '2023-01-15',
-                                        theme_preference: 'dark'
-                                    },
-                                    error: null
-                                };
-                            }
-                            return { data: null, error: null };
-                        }
-                    })
-                }),
-                insert: (data) => ({
-                    select: () => ({
-                        single: async () => ({ data: data[0], error: null })
-                    })
-                }),
-                update: (data) => ({
-                    eq: () => ({ error: null })
-                })
-            }),
-            storage: {
-                from: (bucket) => ({
-                    upload: async (path, file) => ({ error: null }),
-                    getPublicUrl: (path) => ({ data: { publicUrl: `https://example.com/${path}` } })
-                })
-            },
-            channel: (name) => ({
-                on: (event, config, callback) => ({
-                    subscribe: () => {}
-                })
-            })
-        };
+    <script type="module">
+        // Import Supabase client
+        import { supabase } from './js/supabaseClient.js';
 
         // DOM Elements
         const header = document.getElementById('header');
@@ -1597,6 +1542,8 @@
         const cancel2FA = document.getElementById('cancel2FA');
         const confirm2FA = document.getElementById('confirm2FA');
         const darkModeToggle = document.getElementById('darkModeToggle');
+        const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
+        const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
         const body = document.body;
         const editAcademicBtn = document.getElementById('editAcademicBtn');
         const academicGrid = document.getElementById('academicGrid');
@@ -1614,7 +1561,7 @@
         const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
         const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
 
-        // Current user
+        // Current user and data
         let currentUser = null;
         let userProfile = null;
         let userGroups = [];
@@ -1651,7 +1598,8 @@
                 
                 // Set up real-time subscriptions
                 setupNotificationsSubscription();
-                setupPostNotificationsSubscription();
+                setupFollowersRealtime();
+                setupPostsRealtime();
                 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -1695,8 +1643,13 @@
                         {
                             id: currentUser.id,
                             full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
-                            email: currentUser.email,
-                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user'
+                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+                            status: 'Online',
+                            verified: false,
+                            theme_preference: 'dark',
+                            show_full_name: true,
+                            show_academic_info: true,
+                            show_groups_count: true
                         }
                     ])
                     .select()
@@ -1753,11 +1706,6 @@
             document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
             document.getElementById('bioInput').value = userProfile.bio || '';
             
-            // Set stats
-            document.getElementById('postsCount').textContent = userPostsCount;
-            document.getElementById('followersCount').textContent = followers.length;
-            document.getElementById('followingCount').textContent = following.length;
-            
             // Set join date
             if (userProfile.join_date) {
                 const joinDate = new Date(userProfile.join_date);
@@ -1780,33 +1728,21 @@
         // Load user groups from Supabase
         async function loadUserGroups() {
             try {
-                // Mock data for demonstration
-                userGroups = [
-                    { 
-                        groups: { 
-                            id: 'group1', 
-                            name: 'Computer Science Club', 
-                            member_count: 45 
-                        }, 
-                        is_admin: true 
-                    },
-                    { 
-                        groups: { 
-                            id: 'group2', 
-                            name: 'Web Development', 
-                            member_count: 32 
-                        }, 
-                        is_admin: false 
-                    },
-                    { 
-                        groups: { 
-                            id: 'group3', 
-                            name: 'AI & Machine Learning', 
-                            member_count: 28 
-                        }, 
-                        is_admin: false 
-                    }
-                ];
+                const { data: groups, error } = await supabase
+                    .from('group_members')
+                    .select(`
+                        groups (
+                            id,
+                            name,
+                            member_count
+                        ),
+                        is_admin
+                    `)
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userGroups = groups || [];
                 updateGroupsUI();
                 
             } catch (error) {
@@ -1852,48 +1788,44 @@
         async function initializeFollowers() {
             await loadFollowersData();
             await loadPostsCount();
-            setupFollowersRealtime();
         }
 
         // Load followers and following data
         async function loadFollowersData() {
             try {
-                // Mock data for demonstration
-                followers = [
-                    {
-                        id: 'user2',
-                        full_name: 'Alice Johnson',
-                        username: 'alicej',
-                        profile_photo: null
-                    },
-                    {
-                        id: 'user3',
-                        full_name: 'Bob Smith',
-                        username: 'bobsmith',
-                        profile_photo: null
-                    },
-                    {
-                        id: 'user4',
-                        full_name: 'Carol Williams',
-                        username: 'carolw',
-                        profile_photo: null
-                    }
-                ];
+                // Load followers (people who follow the current user)
+                const { data: followersData, error: followersError } = await supabase
+                    .from('followers')
+                    .select(`
+                        follower:profiles!follower_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('following_id', currentUser.id);
+                    
+                if (followersError) throw followersError;
                 
-                following = [
-                    {
-                        id: 'user2',
-                        full_name: 'Alice Johnson',
-                        username: 'alicej',
-                        profile_photo: null
-                    },
-                    {
-                        id: 'user5',
-                        full_name: 'David Brown',
-                        username: 'davidb',
-                        profile_photo: null
-                    }
-                ];
+                followers = followersData.map(item => item.follower);
+                
+                // Load following (people the current user follows)
+                const { data: followingData, error: followingError } = await supabase
+                    .from('followers')
+                    .select(`
+                        following:profiles!following_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('follower_id', currentUser.id);
+                    
+                if (followingError) throw followingError;
+                
+                following = followingData.map(item => item.following);
                 
                 updateFollowersUI();
                 
@@ -1906,8 +1838,14 @@
         // Load user's posts count
         async function loadPostsCount() {
             try {
-                // Mock data for demonstration
-                userPostsCount = 12;
+                const { data, count, error } = await supabase
+                    .from('posts')
+                    .select('id', { count: 'exact' })
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userPostsCount = count || 0;
                 document.getElementById('postsCount').textContent = userPostsCount;
                 
             } catch (error) {
@@ -2022,9 +1960,18 @@
         // Follow a user
         async function followUser(userId) {
             try {
-                // In a real app, this would call Supabase
-                following.push(followers.find(f => f.id === userId));
-                updateFollowersUI();
+                const { error } = await supabase
+                    .from('followers')
+                    .insert([
+                        {
+                            follower_id: currentUser.id,
+                            following_id: userId
+                        }
+                    ]);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
                 showError('User followed successfully!');
                 
             } catch (error) {
@@ -2036,9 +1983,15 @@
         // Unfollow a user
         async function unfollowUser(userId) {
             try {
-                // In a real app, this would call Supabase
-                following = following.filter(user => user.id !== userId);
-                updateFollowersUI();
+                const { error } = await supabase
+                    .from('followers')
+                    .delete()
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', userId);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
                 showError('User unfollowed');
                 
             } catch (error) {
@@ -2047,41 +2000,23 @@
             }
         }
 
-        // Set up real-time subscriptions for followers
-        function setupFollowersRealtime() {
-            // This would set up real-time subscriptions in a real app
-        }
-
         // Load user notifications from Supabase
         async function loadUserNotifications() {
             try {
-                // Mock data for demonstration
-                userNotifications = [
-                    {
-                        id: 'notif1',
-                        type: 'new_follower',
-                        sender_name: 'Alice Johnson',
-                        content: 'started following you',
-                        created_at: new Date(Date.now() - 300000), // 5 minutes ago
-                        read: false
-                    },
-                    {
-                        id: 'notif2',
-                        type: 'new_post',
-                        sender_name: 'Bob Smith',
-                        content: 'posted: "Check out this amazing new framework!"',
-                        created_at: new Date(Date.now() - 1800000), // 30 minutes ago
-                        read: true
-                    },
-                    {
-                        id: 'notif3',
-                        type: 'new_follower',
-                        sender_name: 'Carol Williams',
-                        content: 'started following you',
-                        created_at: new Date(Date.now() - 3600000), // 1 hour ago
-                        read: true
-                    }
-                ];
+                const { data: notifications, error } = await supabase
+                    .from('notifications')
+                    .select(`
+                        *,
+                        sender:profiles!sender_id(full_name, username),
+                        post:posts(id, content)
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                    
+                if (error) throw error;
+                
+                userNotifications = notifications || [];
                 updateNotificationsUI();
                 
             } catch (error) {
@@ -2111,12 +2046,22 @@
                 // Format time
                 const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
+                let message = '';
+                if (notification.type === 'new_post') {
+                    const postPreview = notification.post?.content?.substring(0, 50) + (notification.post?.content?.length > 50 ? '...' : '');
+                    message = `New post: "${postPreview}"`;
+                } else if (notification.type === 'new_follower') {
+                    message = 'Started following you';
+                } else {
+                    message = notification.content;
+                }
+                
                 notificationItem.innerHTML = `
                     <div class="notification-header">
-                        <div class="notification-sender">${notification.sender_name || 'System'}</div>
+                        <div class="notification-sender">${notification.sender?.full_name || 'System'}</div>
                         <div class="notification-time">${time}</div>
                     </div>
-                    <div class="notification-message">${notification.content}</div>
+                    <div class="notification-message">${message}</div>
                 `;
                 
                 notificationsList.appendChild(notificationItem);
@@ -2125,12 +2070,75 @@
 
         // Set up real-time notifications subscription
         function setupNotificationsSubscription() {
-            // This would set up real-time subscriptions in a real app
+            const channel = supabase
+                .channel(`notifications-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        // Add new notification to the beginning of the list
+                        userNotifications.unshift(payload.new);
+                        updateNotificationsUI();
+                    }
+                )
+                .subscribe();
         }
 
-        // Set up real-time notifications for new posts from followed users
-        function setupPostNotificationsSubscription() {
-            // This would set up real-time subscriptions in a real app
+        // Set up real-time subscriptions for followers
+        function setupFollowersRealtime() {
+            // Subscribe to followers changes
+            const followersChannel = supabase
+                .channel(`followers-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `following_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `follower_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for posts
+        function setupPostsRealtime() {
+            // Subscribe to posts count changes
+            const postsChannel = supabase
+                .channel(`posts-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'posts',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadPostsCount();
+                    }
+                )
+                .subscribe();
         }
 
         // Get initials from full name
@@ -2142,7 +2150,7 @@
         // Show error message
         function showError(message) {
             // You could implement a toast notification system here
-            console.log(message);
+            console.error(message);
             alert(message);
         }
 
@@ -2314,13 +2322,23 @@
         // Mark all notifications as read
         markAllReadBtn.addEventListener('click', async () => {
             try {
+                const unreadNotifications = userNotifications.filter(n => !n.read);
+                if (unreadNotifications.length === 0) return;
+                
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ read: true })
+                    .eq('user_id', currentUser.id)
+                    .eq('read', false);
+                    
+                if (error) throw error;
+                
                 // Update local state
                 userNotifications.forEach(n => {
                     n.read = true;
                 });
                 
                 updateNotificationsUI();
-                showError('All notifications marked as read');
                 
             } catch (error) {
                 console.error('Error marking notifications as read:', error);
@@ -2345,12 +2363,22 @@
         confirm2FA.addEventListener('click', () => {
             twoFactorModal.classList.remove('active');
             overlay.classList.remove('active');
+            // In a real app, you would enable 2FA here
             showError('Two-factor authentication has been enabled!');
         });
 
         // Dark mode toggle in settings
         darkModeToggle.addEventListener('change', () => {
             applyTheme(darkModeToggle.checked ? 'dark' : 'light');
+        });
+
+        // Notification toggles
+        emailNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
+        });
+
+        pushNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
         });
 
         // Privacy toggles
@@ -2368,6 +2396,25 @@
 
         // Save privacy setting to database
         async function savePrivacySetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
+
+        // Save notification setting to database
+        async function saveNotificationSetting(setting, value) {
             try {
                 const { error } = await supabase
                     .from('profiles')
