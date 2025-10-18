@@ -354,6 +354,18 @@
     border: 1px solid rgba(255,255,255,0.2);
   }
 
+  /* Login Link Styles */
+  .login-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  .login-link:hover {
+    opacity: 0.8;
+  }
+
   #recordModal {
     position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 70;
   }
@@ -705,7 +717,18 @@ async function updateSessionInfo() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      sessionInfoEl.innerHTML = '<div class="avatar">?</div>';
+      // When user is not signed in, show a login link
+      sessionInfoEl.innerHTML = `
+        <div class="avatar" style="cursor: pointer; background: linear-gradient(135deg, var(--accent), #b473ff);" title="Sign in to Skrolz">
+          <a href="#" class="login-link" style="color: white; text-decoration: none; font-size: 14px; font-weight: 600;">🔐</a>
+        </div>
+      `;
+      
+      // Add click event to show auth modal
+      const loginAvatar = sessionInfoEl.querySelector('.avatar');
+      if (loginAvatar) {
+        loginAvatar.onclick = showAuthModal;
+      }
       return null;
     }
     const u = session.user;
