@@ -111,18 +111,20 @@
             display: none;
             flex-direction: column;
             gap: 0.5rem;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.15));
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             position: fixed;
             top: 60px;
             left: 0;
             right: 0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border-radius: 0 0 0.7rem 0.7rem;
             padding: 1rem 0.5rem;
             z-index: 1001;
             max-height: 80vh;
             overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .nav-links.mobile.show {
             display: flex;
@@ -195,7 +197,7 @@
         .card:hover {
             transform: translateY(-2px);
         }
-        .search-bar, .input-field {
+        .search-bar, .input-field, .textarea-field {
             width: 100%;
             padding: 0.75rem;
             margin-bottom: 1rem;
@@ -205,11 +207,16 @@
             font-size: 1rem;
             color: var(--text-dark);
             transition: border 0.2s;
+            font-family: inherit;
         }
-        .search-bar:focus, .input-field:focus {
+        .search-bar:focus, .input-field:focus, .textarea-field:focus {
             border-color: var(--primary);
             outline: none;
             box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3);
+        }
+        .textarea-field {
+            min-height: 80px;
+            resize: vertical;
         }
         .search-container {
             display: flex;
@@ -272,6 +279,11 @@
             color: #fff;
             font-weight: bold;
             font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .avatar:hover {
+            transform: scale(1.1);
         }
         .video-container iframe {
             width: 100%;
@@ -453,7 +465,7 @@
             .card {
                 padding: 0.6rem;
             }
-            .search-bar, .input-field {
+            .search-bar, .input-field, .textarea-field {
                 padding: 0.6rem;
             }
             .btn, .search-btn {
@@ -491,15 +503,13 @@
         <div class="nav-links" id="navLinks">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
             <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-            <a href="feed.html" class="nav-link"><i class="fas fa-rss"></i> Feed</a>
-            <a href="notifications.html" class="nav-link"><i class="fas fa-bell"></i> Notifications</a>
+            <a href="skrolz.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
             <a href="logout.html" class="nav-link" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
         <div class="nav-links mobile" id="navLinksMobile">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
             <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-            <a href="feed.html" class="nav-link"><i class="fas fa-rss"></i> Feed</a>
-            <a href="notifications.html" class="nav-link"><i class="fas fa-bell"></i> Notifications</a>
+            <a href="skrolz.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
             <a href="logout.html" class="nav-link" id="logoutMobile"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>
@@ -544,6 +554,7 @@
             <div class="card">
                 <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
                 <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
+                <textarea id="groupDescription" class="textarea-field" placeholder="Group Description"></textarea>
                 <select id="groupCourse" class="input-field">
                     <option value="">Select Course</option>
                     <option value="engl101">ENGL 101 - College Writing</option>
@@ -593,30 +604,7 @@
                 <div id="connectionLoading" class="loading"></div>
             </div>
             <div id="connectionList">
-                <div class="connection-item" data-userid="john_doe" data-name="John Doe">
-                    <div class="avatar">J</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">John Doe</p>
-                        <p class="text-gray-600">CS 201 • Online</p>
-                    </div>
-                    <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, 'john_doe')">Follow</button>
-                </div>
-                <div class="connection-item" data-userid="sarah_smith" data-name="Sarah Smith">
-                    <div class="avatar">S</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">Sarah Smith</p>
-                        <p class="text-gray-600">CHEM 101 • Offline</p>
-                    </div>
-                    <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, 'sarah_smith')">Follow</button>
-                </div>
-                <div class="connection-item" data-userid="mike_chen" data-name="Mike Chen">
-                    <div class="avatar">M</div>
-                    <div>
-                        <p class="font-semibold text-gray-800">Mike Chen</p>
-                        <p class="text-gray-600">PHYS 202 • Online</p>
-                    </div>
-                    <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, 'mike_chen')">Follow</button>
-                </div>
+                <!-- Connections will be populated from Supabase -->
             </div>
         </div>
     </div>
@@ -712,9 +700,10 @@
                 // Start session indicator update interval
                 sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
                 
-                // Load groups after authentication
+                // Load groups and connections after authentication
                 loadSuggestedGroups();
                 loadActiveGroups();
+                loadConnections();
             }
         });
 
@@ -767,7 +756,7 @@
 
             const { data, error } = await supabase
                 .from('groups')
-                .select('id, name, course_code')
+                .select('id, name, course_code, description')
                 .neq('created_by', user.id)
                 .limit(5);
                 
@@ -790,6 +779,7 @@
                         <div>
                             <p class="font-semibold text-gray-800">${group.name}</p>
                             <p class="text-gray-600">${group.course_code}</p>
+                            ${group.description ? `<p class="text-sm text-gray-500 mt-1">${group.description}</p>` : ''}
                         </div>
                         <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
                     `;
@@ -898,7 +888,7 @@
                 for (const groupId of groupIds) {
                     const { data: groupData, error: groupError } = await supabase
                         .from('groups')
-                        .select('id, name, course_code')
+                        .select('id, name, course_code, description')
                         .eq('id', groupId)
                         .single();
                         
@@ -914,6 +904,7 @@
                         <div>
                             <p class="font-semibold text-gray-800">${groupData.name}</p>
                             <p class="text-gray-600">${groupData.course_code}</p>
+                            ${groupData.description ? `<p class="text-sm text-gray-500 mt-1">${groupData.description}</p>` : ''}
                         </div>
                         <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
                     `;
@@ -929,6 +920,7 @@
             resetLogoutTimer(); // Reset timer on user action
             
             const groupName = document.getElementById('groupName').value.trim();
+            const groupDescription = document.getElementById('groupDescription').value.trim();
             const course = document.getElementById('groupCourse').value;
             const { data: { user } } = await supabase.auth.getUser();
             
@@ -938,7 +930,7 @@
             }
             
             if (!groupName || !course) {
-                showNotification('Please fill in all fields.');
+                showNotification('Please fill in all required fields.');
                 return;
             }
 
@@ -948,9 +940,10 @@
                     .from('groups')
                     .insert({
                         name: groupName,
+                        description: groupDescription || null,
                         course_code: course,
                         created_by: user.id,
-                        description: `${course} Study Group`
+                        is_public: true
                     })
                     .select()
                     .single();
@@ -980,6 +973,7 @@
                 // Success!
                 showNotification('Group created successfully!');
                 document.getElementById('groupName').value = '';
+                document.getElementById('groupDescription').value = '';
                 document.getElementById('groupCourse').value = '';
                 
                 // Refresh the lists
@@ -989,6 +983,121 @@
             } catch (error) {
                 console.error('Unexpected error creating group:', error);
                 showNotification('An unexpected error occurred.');
+            }
+        }
+
+        // Load connections from Supabase profiles
+        async function loadConnections() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                console.error('No user found');
+                return;
+            }
+
+            try {
+                // Get profiles excluding current user
+                const { data: profiles, error } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, status, avatar_url')
+                    .neq('id', user.id)
+                    .limit(10);
+                    
+                if (error) throw error;
+
+                const connectionList = document.getElementById('connectionList');
+                connectionList.innerHTML = '';
+
+                if (profiles && profiles.length > 0) {
+                    profiles.forEach(profile => {
+                        const fullName = profile.full_name || 'Unknown User';
+                        const status = profile.status || 'Offline';
+                        const avatarUrl = profile.avatar_url;
+                        const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
+                        
+                        const div = document.createElement('div');
+                        div.className = 'connection-item';
+                        div.innerHTML = `
+                            <div class="avatar" onclick="navigateToProfile('${profile.id}')">
+                                ${avatarUrl ? 
+                                    `<img src="${avatarUrl}" alt="${fullName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+                                    initials
+                                }
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${fullName}</p>
+                                <p class="text-gray-600">${status}</p>
+                            </div>
+                            <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${profile.id}')">Follow</button>
+                        `;
+                        connectionList.appendChild(div);
+                    });
+                } else {
+                    connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading connections:', error);
+                const connectionList = document.getElementById('connectionList');
+                connectionList.innerHTML = '<p class="text-center text-red-500">Error loading users</p>';
+            }
+        }
+
+        // Search connections from Supabase profiles
+        async function searchConnections() {
+            resetLogoutTimer(); // Reset timer on user action
+            
+            const connectionSearch = document.getElementById('connectionSearch').value.trim();
+            const connectionLoading = document.getElementById('connectionLoading');
+            const connectionList = document.getElementById('connectionList');
+            if (!connectionSearch) return;
+
+            connectionLoading.style.display = 'block';
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, status, avatar_url')
+                    .neq('id', user.id)
+                    .ilike('full_name', `%${connectionSearch}%`)
+                    .limit(5);
+                    
+                connectionList.innerHTML = '';
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    data.forEach(profile => {
+                        const fullName = profile.full_name || 'Unknown User';
+                        const status = profile.status || 'Offline';
+                        const avatarUrl = profile.avatar_url;
+                        const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
+                        
+                        const div = document.createElement('div');
+                        div.className = 'connection-item';
+                        div.innerHTML = `
+                            <div class="avatar" onclick="navigateToProfile('${profile.id}')">
+                                ${avatarUrl ? 
+                                    `<img src="${avatarUrl}" alt="${fullName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+                                    initials
+                                }
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${fullName}</p>
+                                <p class="text-gray-600">${status}</p>
+                            </div>
+                            <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${profile.id}')">Follow</button>
+                        `;
+                        connectionList.appendChild(div);
+                    });
+                } else {
+                    connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                }
+            } catch (error) {
+                console.error('Connection search error:', error.message);
+                connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}</p>`;
+            } finally {
+                connectionLoading.style.display = 'none';
             }
         }
 
@@ -1036,64 +1145,57 @@
             }
         }
 
-        // Search connections
-        async function searchConnections() {
+        // Follow user function using the followers table
+        async function followUser(button, userId) {
             resetLogoutTimer(); // Reset timer on user action
             
-            const connectionSearch = document.getElementById('connectionSearch').value.trim();
-            const connectionLoading = document.getElementById('connectionLoading');
-            const connectionList = document.getElementById('connectionList');
-            if (!connectionSearch) return;
-
-            connectionLoading.style.display = 'block';
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showNotification('Please log in to follow users.');
+                return;
+            }
 
             try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('id, full_name, status')
-                    .ilike('full_name', `${connectionSearch}%`)
-                    .limit(5);
-                    
-                connectionList.innerHTML = '';
-                if (error) throw error;
+                // Check if already following
+                const { data: existingFollow, error: checkError } = await supabase
+                    .from('followers')
+                    .select('*')
+                    .eq('follower_id', user.id)
+                    .eq('following_id', userId)
+                    .single();
 
-                if (data && data.length > 0) {
-                    data.forEach(user => {
-                        const fullName = user.full_name || 'Unknown';
-                        const status = user.status || 'Offline';
-                        const div = document.createElement('div');
-                        div.className = 'connection-item';
-                        div.dataset.userid = user.id;
-                        div.dataset.name = fullName;
-                        div.innerHTML = `
-                            <div class="avatar">${fullName.charAt(0).toUpperCase()}</div>
-                            <div>
-                                <p class="font-semibold text-gray-800">${fullName}</p>
-                                <p class="text-gray-600">${status}</p>
-                            </div>
-                            <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${user.id}')">Follow</button>
-                        `;
-                        connectionList.appendChild(div);
+                if (existingFollow) {
+                    showNotification('You are already following this user.');
+                    return;
+                }
+
+                // Insert follow relationship
+                const { error } = await supabase
+                    .from('followers')
+                    .insert({ 
+                        follower_id: user.id,
+                        following_id: userId
                     });
+                    
+                if (error) {
+                    console.error('Error following user:', error);
+                    showNotification('Failed to follow user. Please try again.');
                 } else {
-                    connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                    button.textContent = 'Following';
+                    button.disabled = true;
+                    button.style.background = '#d1d5db';
+                    showNotification('You are now following this user');
                 }
             } catch (error) {
-                console.error('Connection search error:', error.message);
-                connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}</p>`;
-            } finally {
-                connectionLoading.style.display = 'none';
+                console.error('Unexpected error following user:', error);
+                showNotification('An unexpected error occurred while following the user.');
             }
         }
 
-        // Follow user function
-        function followUser(button, userId) {
+        // Navigate to user profile
+        function navigateToProfile(userId) {
             resetLogoutTimer(); // Reset timer on user action
-            console.log(`Following user with ID: ${userId}`);
-            button.textContent = 'Following';
-            button.disabled = true;
-            button.style.background = '#d1d5db';
-            showNotification('You are now following this user');
+            window.location.href = `profile.html?userId=${userId}`;
         }
 
         // Show notification with blur effect
@@ -1129,6 +1231,7 @@
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
         window.followUser = followUser;
+        window.navigateToProfile = navigateToProfile;
     </script>
 </body>
 </html>
