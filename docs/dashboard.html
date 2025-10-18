@@ -717,6 +717,7 @@
                 loadSuggestedGroups();
                 loadActiveGroups();
                 loadConnections();
+                checkFollowStatus();
             }
         });
 
@@ -759,7 +760,7 @@
             }, { passive: false });
         }
 
-        // Load suggested groups (excluding your own)
+        // Load suggested groups (excluding your own and groups you're already in)
         async function loadSuggestedGroups() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -767,10 +768,25 @@
                 return;
             }
 
+            // Get groups the user is already a member of
+            const { data: userGroups, error: userGroupsError } = await supabase
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', user.id);
+
+            if (userGroupsError) {
+                console.error('Error loading user groups:', userGroupsError);
+                return;
+            }
+
+            const userGroupIds = userGroups.map(g => g.group_id);
+
+            // Get groups not created by the user and not already joined
             const { data, error } = await supabase
                 .from('groups')
-                .select('id, name, course_code, description')
+                .select('id, name, course_code, description, created_by')
                 .neq('created_by', user.id)
+                .not('id', 'in', `(${userGroupIds.join(',')})`)
                 .limit(5);
                 
             if (error) {
@@ -813,7 +829,7 @@
             }
         }
 
-        // Join group function - MATCHING YOUR EXACT SCHEMA
+        // Join group function
         async function joinGroup(groupId, button) {
             const { data: { user } } = await supabase.auth.getUser();
             
@@ -856,6 +872,8 @@
                     }
                 } else {
                     showNotification('Successfully joined group!');
+                    
+                    // Update both lists to reflect the change
                     loadActiveGroups();
                     loadSuggestedGroups();
                     
@@ -872,7 +890,7 @@
             }
         }
 
-        // Load active groups for the user - MATCHING YOUR EXACT SCHEMA
+        // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -928,7 +946,7 @@
             }
         }
 
-        // Create group - MATCHING YOUR EXACT SCHEMA
+        // Create group
         async function createGroup() {
             resetLogoutTimer(); // Reset timer on user action
             
@@ -1013,7 +1031,7 @@
                     .from('profiles')
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
-                    .limit(5); // Limit to 5 profiles only
+                    .limit(3); // Limit to 3 profiles only
                     
                 if (error) {
                     console.error('Supabase error loading connections:', error);
@@ -1036,7 +1054,7 @@
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
-                            <div class="avatar" onclick="navigateToProfile('${profile.id}')">
+                            <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
                                 ${profilePhoto ? 
                                     `<img src="${profilePhoto}" alt="${fullName}" />` : 
                                     initials
@@ -1046,10 +1064,23 @@
                                 <p class="font-semibold text-gray-800">${fullName}</p>
                                 <p class="text-gray-600">${department} • ${status}</p>
                             </div>
-                            <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${profile.id}')">Follow</button>
+                            <button class="btn follow-btn" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
                         `;
                         connectionList.appendChild(div);
                     });
+
+                    // Add follow handlers after elements are created
+                    document.querySelectorAll('.follow-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            e.preventDefault();
+                            resetLogoutTimer(); // Reset timer on user action
+                            const userId = btn.dataset.userid;
+                            await followUser(btn, userId);
+                        });
+                    });
+
+                    // Check follow status for all users
+                    checkFollowStatus();
                 } else {
                     connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
                 }
@@ -1059,6 +1090,43 @@
                 if (connectionList) {
                     connectionList.innerHTML = '<p class="text-center text-red-500">Error loading users. Please try again.</p>';
                 }
+            }
+        }
+
+        // Check follow status for all displayed users
+        async function checkFollowStatus() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            try {
+                // Get all users the current user is following
+                const { data: following, error } = await supabase
+                    .from('followers')
+                    .select('following_id')
+                    .eq('follower_id', user.id);
+
+                if (error) {
+                    console.error('Error checking follow status:', error);
+                    return;
+                }
+
+                const followingIds = following.map(f => f.following_id);
+
+                // Update all follow buttons based on follow status
+                document.querySelectorAll('.follow-btn').forEach(btn => {
+                    const userId = btn.dataset.userid;
+                    if (followingIds.includes(userId)) {
+                        btn.textContent = 'Following';
+                        btn.disabled = true;
+                        btn.style.background = '#d1d5db';
+                    } else {
+                        btn.textContent = 'Follow';
+                        btn.disabled = false;
+                        btn.style.background = '';
+                    }
+                });
+            } catch (error) {
+                console.error('Error in checkFollowStatus:', error);
             }
         }
 
@@ -1089,7 +1157,7 @@
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%`)
-                    .limit(5); // Limit to 5 profiles only
+                    .limit(3); // Limit to 3 profiles only
                     
                 connectionList.innerHTML = '';
                 if (error) {
@@ -1108,7 +1176,7 @@
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
-                            <div class="avatar" onclick="navigateToProfile('${profile.id}')">
+                            <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
                                 ${profilePhoto ? 
                                     `<img src="${profilePhoto}" alt="${fullName}" />` : 
                                     initials
@@ -1118,10 +1186,23 @@
                                 <p class="font-semibold text-gray-800">${fullName}</p>
                                 <p class="text-gray-600">${department} • ${status}</p>
                             </div>
-                            <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${profile.id}')">Follow</button>
+                            <button class="btn follow-btn" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
                         `;
                         connectionList.appendChild(div);
                     });
+
+                    // Add follow handlers after elements are created
+                    document.querySelectorAll('.follow-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            e.preventDefault();
+                            resetLogoutTimer(); // Reset timer on user action
+                            const userId = btn.dataset.userid;
+                            await followUser(btn, userId);
+                        });
+                    });
+
+                    // Check follow status for all users
+                    checkFollowStatus();
                 } else {
                     connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
                 }
@@ -1224,8 +1305,8 @@
             }
         }
 
-        // Navigate to user profile
-        function navigateToProfile(userId) {
+        // Navigate to user profile (other user's profile)
+        function navigateToUserProfile(userId) {
             resetLogoutTimer(); // Reset timer on user action
             window.location.href = `profile.html?userId=${userId}`;
         }
@@ -1266,7 +1347,7 @@
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
         window.followUser = followUser;
-        window.navigateToProfile = navigateToProfile;
+        window.navigateToUserProfile = navigateToUserProfile;
     </script>
 </body>
 </html>
