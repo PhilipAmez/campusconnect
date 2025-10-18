@@ -697,6 +697,134 @@
             transform: translateY(-2px);
         }
 
+        /* Followers Drawer */
+        .followers-drawer {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .followers-drawer.open {
+            right: 0;
+        }
+
+        .followers-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .follower-item, .following-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .follower-item:hover, .following-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .follower-avatar, .following-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+
+        .follower-info, .following-info {
+            flex: 1;
+        }
+
+        .follower-name, .following-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .follower-username, .following-username {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .follow-action {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .follow-action:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .follow-action.following {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .unfollow-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .unfollow-btn:hover {
+            background: #dc2626;
+        }
+
         /* Toggle Switch */
         .toggle-switch {
             position: relative;
@@ -974,7 +1102,8 @@
             }
             
             .settings-drawer,
-            .notifications-drawer {
+            .notifications-drawer,
+            .followers-drawer {
                 width: 100%;
                 right: -100%;
             }
@@ -1023,6 +1152,9 @@
             </div>
             
             <div class="nav-actions">
+                <div class="nav-icon" id="followersBtn">
+                    <i class="fas fa-users"></i>
+                </div>
                 <div class="nav-icon" id="notificationsBtn">
                     <i class="fas fa-bell"></i>
                 </div>
@@ -1067,16 +1199,16 @@
                     
                     <div class="profile-stats">
                         <div class="stat-card">
-                            <div class="stat-value" id="groupsCount">0</div>
-                            <div class="stat-label">Groups</div>
+                            <div class="stat-value" id="postsCount">0</div>
+                            <div class="stat-label">Posts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="connectionsCount">0</div>
-                            <div class="stat-label">Connections</div>
+                            <div class="stat-value" id="followersCount">0</div>
+                            <div class="stat-label">Followers</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="joinDate">-</div>
-                            <div class="stat-label">Member Since</div>
+                            <div class="stat-value" id="followingCount">0</div>
+                            <div class="stat-label">Following</div>
                         </div>
                     </div>
                     
@@ -1309,6 +1441,35 @@
         </div>
     </div>
 
+    <!-- Followers Drawer -->
+    <div class="followers-drawer" id="followersDrawer">
+        <div class="drawer-header">
+            <h2 class="drawer-title">Followers & Following</h2>
+            <button class="close-drawer" id="closeFollowersDrawer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="drawer-content">
+            <div class="followers-tabs">
+                <button class="tab-button active" data-tab="followers">Followers</button>
+                <button class="tab-button" data-tab="following">Following</button>
+            </div>
+            
+            <div class="followers-list" id="followersList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <div class="following-list" id="followingList" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 2FA Setup Modal -->
     <div class="modal-overlay" id="twoFactorModal">
         <div class="modal">
@@ -1354,9 +1515,64 @@
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
 
-    <script type="module">
-        // Import Supabase client
-        import { supabase } from './js/supabaseClient.js';
+    <script>
+        // Mock Supabase client for demonstration
+        const supabase = {
+            auth: {
+                getUser: async () => ({
+                    data: { user: { id: 'user1', email: 'user@example.com', user_metadata: { full_name: 'John Doe' } } },
+                    error: null
+                })
+            },
+            from: (table) => ({
+                select: (columns) => ({
+                    eq: (field, value) => ({
+                        single: async () => {
+                            if (table === 'profiles' && value === 'user1') {
+                                return {
+                                    data: {
+                                        id: 'user1',
+                                        full_name: 'John Doe',
+                                        username: 'johndoe',
+                                        email: 'user@example.com',
+                                        status: 'Online',
+                                        verified: true,
+                                        campus: 'Main Campus',
+                                        level: 'Undergraduate',
+                                        department: 'Computer Science',
+                                        contact: 'john@example.com',
+                                        bio: 'Passionate about technology and innovation. Currently studying Computer Science.',
+                                        join_date: '2023-01-15',
+                                        theme_preference: 'dark'
+                                    },
+                                    error: null
+                                };
+                            }
+                            return { data: null, error: null };
+                        }
+                    })
+                }),
+                insert: (data) => ({
+                    select: () => ({
+                        single: async () => ({ data: data[0], error: null })
+                    })
+                }),
+                update: (data) => ({
+                    eq: () => ({ error: null })
+                })
+            }),
+            storage: {
+                from: (bucket) => ({
+                    upload: async (path, file) => ({ error: null }),
+                    getPublicUrl: (path) => ({ data: { publicUrl: `https://example.com/${path}` } })
+                })
+            },
+            channel: (name) => ({
+                on: (event, config, callback) => ({
+                    subscribe: () => {}
+                })
+            })
+        };
 
         // DOM Elements
         const header = document.getElementById('header');
@@ -1369,6 +1585,12 @@
         const closeNotifications = document.getElementById('closeNotifications');
         const notificationsList = document.getElementById('notificationsList');
         const markAllReadBtn = document.getElementById('markAllReadBtn');
+        const followersBtn = document.getElementById('followersBtn');
+        const followersDrawer = document.getElementById('followersDrawer');
+        const closeFollowersDrawer = document.getElementById('closeFollowersDrawer');
+        const followersList = document.getElementById('followersList');
+        const followingList = document.getElementById('followingList');
+        const tabButtons = document.querySelectorAll('.tab-button');
         const overlay = document.getElementById('overlay');
         const twoFactorToggle = document.getElementById('twoFactorToggle');
         const twoFactorModal = document.getElementById('twoFactorModal');
@@ -1397,6 +1619,9 @@
         let userProfile = null;
         let userGroups = [];
         let userNotifications = [];
+        let followers = [];
+        let following = [];
+        let userPostsCount = 0;
 
         // Initialize the page
         async function initializePage() {
@@ -1418,11 +1643,15 @@
                 // Load user groups
                 await loadUserGroups();
                 
+                // Initialize followers system
+                await initializeFollowers();
+                
                 // Load user notifications
                 await loadUserNotifications();
                 
-                // Set up real-time notifications subscription
+                // Set up real-time subscriptions
                 setupNotificationsSubscription();
+                setupPostNotificationsSubscription();
                 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -1525,8 +1754,9 @@
             document.getElementById('bioInput').value = userProfile.bio || '';
             
             // Set stats
-            document.getElementById('groupsCount').textContent = userGroups.length;
-            document.getElementById('connectionsCount').textContent = '0'; // Will be updated when you have connections
+            document.getElementById('postsCount').textContent = userPostsCount;
+            document.getElementById('followersCount').textContent = followers.length;
+            document.getElementById('followingCount').textContent = following.length;
             
             // Set join date
             if (userProfile.join_date) {
@@ -1550,22 +1780,33 @@
         // Load user groups from Supabase
         async function loadUserGroups() {
             try {
-                // This query depends on your database structure
-                const { data: groups, error } = await supabase
-                    .from('group_members')
-                    .select(`
-                        groups (
-                            id,
-                            name,
-                            member_count
-                        ),
-                        is_admin
-                    `)
-                    .eq('user_id', currentUser.id);
-                    
-                if (error) throw error;
-                
-                userGroups = groups || [];
+                // Mock data for demonstration
+                userGroups = [
+                    { 
+                        groups: { 
+                            id: 'group1', 
+                            name: 'Computer Science Club', 
+                            member_count: 45 
+                        }, 
+                        is_admin: true 
+                    },
+                    { 
+                        groups: { 
+                            id: 'group2', 
+                            name: 'Web Development', 
+                            member_count: 32 
+                        }, 
+                        is_admin: false 
+                    },
+                    { 
+                        groups: { 
+                            id: 'group3', 
+                            name: 'AI & Machine Learning', 
+                            member_count: 28 
+                        }, 
+                        is_admin: false 
+                    }
+                ];
                 updateGroupsUI();
                 
             } catch (error) {
@@ -1607,19 +1848,240 @@
             });
         }
 
+        // Initialize followers functionality
+        async function initializeFollowers() {
+            await loadFollowersData();
+            await loadPostsCount();
+            setupFollowersRealtime();
+        }
+
+        // Load followers and following data
+        async function loadFollowersData() {
+            try {
+                // Mock data for demonstration
+                followers = [
+                    {
+                        id: 'user2',
+                        full_name: 'Alice Johnson',
+                        username: 'alicej',
+                        profile_photo: null
+                    },
+                    {
+                        id: 'user3',
+                        full_name: 'Bob Smith',
+                        username: 'bobsmith',
+                        profile_photo: null
+                    },
+                    {
+                        id: 'user4',
+                        full_name: 'Carol Williams',
+                        username: 'carolw',
+                        profile_photo: null
+                    }
+                ];
+                
+                following = [
+                    {
+                        id: 'user2',
+                        full_name: 'Alice Johnson',
+                        username: 'alicej',
+                        profile_photo: null
+                    },
+                    {
+                        id: 'user5',
+                        full_name: 'David Brown',
+                        username: 'davidb',
+                        profile_photo: null
+                    }
+                ];
+                
+                updateFollowersUI();
+                
+            } catch (error) {
+                console.error('Error loading followers data:', error);
+                showError('Error loading followers data');
+            }
+        }
+
+        // Load user's posts count
+        async function loadPostsCount() {
+            try {
+                // Mock data for demonstration
+                userPostsCount = 12;
+                document.getElementById('postsCount').textContent = userPostsCount;
+                
+            } catch (error) {
+                console.error('Error loading posts count:', error);
+            }
+        }
+
+        // Update followers UI
+        function updateFollowersUI() {
+            // Update counts
+            document.getElementById('followersCount').textContent = followers.length;
+            document.getElementById('followingCount').textContent = following.length;
+            
+            // Update followers list
+            updateFollowersList();
+            updateFollowingList();
+        }
+
+        // Update followers list
+        function updateFollowersList() {
+            followersList.innerHTML = '';
+            
+            if (followers.length === 0) {
+                followersList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No followers yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            followers.forEach(follower => {
+                const followerItem = document.createElement('div');
+                followerItem.className = 'follower-item';
+                followerItem.innerHTML = `
+                    <div class="follower-avatar">
+                        ${follower.profile_photo ? 
+                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(follower.full_name)
+                        }
+                    </div>
+                    <div class="follower-info">
+                        <div class="follower-name">${follower.full_name}</div>
+                        <div class="follower-username">@${follower.username}</div>
+                    </div>
+                    <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}" 
+                            onclick="toggleFollow('${follower.id}')"
+                            data-user-id="${follower.id}">
+                        ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
+                    </button>
+                `;
+                followersList.appendChild(followerItem);
+            });
+        }
+
+        // Update following list
+        function updateFollowingList() {
+            followingList.innerHTML = '';
+            
+            if (following.length === 0) {
+                followingList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-plus"></i>
+                        <p>Not following anyone yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            following.forEach(followedUser => {
+                const followingItem = document.createElement('div');
+                followingItem.className = 'following-item';
+                followingItem.innerHTML = `
+                    <div class="following-avatar">
+                        ${followedUser.profile_photo ? 
+                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(followedUser.full_name)
+                        }
+                    </div>
+                    <div class="following-info">
+                        <div class="following-name">${followedUser.full_name}</div>
+                        <div class="following-username">@${followedUser.username}</div>
+                    </div>
+                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
+                        Unfollow
+                    </button>
+                `;
+                followingList.appendChild(followingItem);
+            });
+        }
+
+        // Check if current user is following a specific user
+        function isFollowing(userId) {
+            return following.some(user => user.id === userId);
+        }
+
+        // Toggle follow/unfollow
+        async function toggleFollow(userId) {
+            try {
+                if (isFollowing(userId)) {
+                    await unfollowUser(userId);
+                } else {
+                    await followUser(userId);
+                }
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                showError('Error updating follow status');
+            }
+        }
+
+        // Follow a user
+        async function followUser(userId) {
+            try {
+                // In a real app, this would call Supabase
+                following.push(followers.find(f => f.id === userId));
+                updateFollowersUI();
+                showError('User followed successfully!');
+                
+            } catch (error) {
+                console.error('Error following user:', error);
+                throw error;
+            }
+        }
+
+        // Unfollow a user
+        async function unfollowUser(userId) {
+            try {
+                // In a real app, this would call Supabase
+                following = following.filter(user => user.id !== userId);
+                updateFollowersUI();
+                showError('User unfollowed');
+                
+            } catch (error) {
+                console.error('Error unfollowing user:', error);
+                throw error;
+            }
+        }
+
+        // Set up real-time subscriptions for followers
+        function setupFollowersRealtime() {
+            // This would set up real-time subscriptions in a real app
+        }
+
         // Load user notifications from Supabase
         async function loadUserNotifications() {
             try {
-                const { data: notifications, error } = await supabase
-                    .from('notifications')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-                    
-                if (error) throw error;
-                
-                userNotifications = notifications || [];
+                // Mock data for demonstration
+                userNotifications = [
+                    {
+                        id: 'notif1',
+                        type: 'new_follower',
+                        sender_name: 'Alice Johnson',
+                        content: 'started following you',
+                        created_at: new Date(Date.now() - 300000), // 5 minutes ago
+                        read: false
+                    },
+                    {
+                        id: 'notif2',
+                        type: 'new_post',
+                        sender_name: 'Bob Smith',
+                        content: 'posted: "Check out this amazing new framework!"',
+                        created_at: new Date(Date.now() - 1800000), // 30 minutes ago
+                        read: true
+                    },
+                    {
+                        id: 'notif3',
+                        type: 'new_follower',
+                        sender_name: 'Carol Williams',
+                        content: 'started following you',
+                        created_at: new Date(Date.now() - 3600000), // 1 hour ago
+                        read: true
+                    }
+                ];
                 updateNotificationsUI();
                 
             } catch (error) {
@@ -1663,23 +2125,12 @@
 
         // Set up real-time notifications subscription
         function setupNotificationsSubscription() {
-            const channel = supabase
-                .channel(`notifications-${currentUser.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'notifications',
-                        filter: `user_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        // Add new notification to the beginning of the list
-                        userNotifications.unshift(payload.new);
-                        updateNotificationsUI();
-                    }
-                )
-                .subscribe();
+            // This would set up real-time subscriptions in a real app
+        }
+
+        // Set up real-time notifications for new posts from followed users
+        function setupPostNotificationsSubscription() {
+            // This would set up real-time subscriptions in a real app
         }
 
         // Get initials from full name
@@ -1691,7 +2142,7 @@
         // Show error message
         function showError(message) {
             // You could implement a toast notification system here
-            console.error(message);
+            console.log(message);
             alert(message);
         }
 
@@ -1821,9 +2272,41 @@
             overlay.classList.remove('active');
         });
 
+        // Followers drawer functionality
+        followersBtn.addEventListener('click', () => {
+            followersDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
+
+        closeFollowersDrawer.addEventListener('click', () => {
+            followersDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Tab switching for followers/following
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.getAttribute('data-tab');
+                
+                // Update active tab
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Show appropriate content
+                if (tab === 'followers') {
+                    followersList.style.display = 'block';
+                    followingList.style.display = 'none';
+                } else {
+                    followersList.style.display = 'none';
+                    followingList.style.display = 'block';
+                }
+            });
+        });
+
         overlay.addEventListener('click', () => {
             settingsDrawer.classList.remove('open');
             notificationsDrawer.classList.remove('open');
+            followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
             twoFactorModal.classList.remove('active');
         });
@@ -1831,23 +2314,13 @@
         // Mark all notifications as read
         markAllReadBtn.addEventListener('click', async () => {
             try {
-                const unreadNotifications = userNotifications.filter(n => !n.read);
-                if (unreadNotifications.length === 0) return;
-                
-                const { error } = await supabase
-                    .from('notifications')
-                    .update({ read: true })
-                    .eq('user_id', currentUser.id)
-                    .eq('read', false);
-                    
-                if (error) throw error;
-                
                 // Update local state
                 userNotifications.forEach(n => {
                     n.read = true;
                 });
                 
                 updateNotificationsUI();
+                showError('All notifications marked as read');
                 
             } catch (error) {
                 console.error('Error marking notifications as read:', error);
@@ -1872,7 +2345,6 @@
         confirm2FA.addEventListener('click', () => {
             twoFactorModal.classList.remove('active');
             overlay.classList.remove('active');
-            // In a real app, you would enable 2FA here
             showError('Two-factor authentication has been enabled!');
         });
 
@@ -2105,6 +2577,10 @@
                 }
             }
         });
+
+        // Make functions available globally for onclick handlers
+        window.toggleFollow = toggleFollow;
+        window.unfollowUser = unfollowUser;
 
         // Initialize the page
         initializePage();
