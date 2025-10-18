@@ -281,9 +281,15 @@
             font-size: 1.1rem;
             cursor: pointer;
             transition: transform 0.2s;
+            overflow: hidden;
         }
         .avatar:hover {
             transform: scale(1.1);
+        }
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .video-container iframe {
             width: 100%;
@@ -503,13 +509,13 @@
         <div class="nav-links" id="navLinks">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
             <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-            <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
+            <a href="skrolz.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
             <a href="logout.html" class="nav-link" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
         <div class="nav-links mobile" id="navLinksMobile">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
             <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-            <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
+            <a href="skrolz.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
             <a href="logout.html" class="nav-link" id="logoutMobile"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>
@@ -995,37 +1001,43 @@
             }
 
             try {
-                // Get profiles excluding current user
+                // Get profiles excluding current user - using profile_photo instead of avatar_url
                 const { data: profiles, error } = await supabase
                     .from('profiles')
-                    .select('id, full_name, status, avatar_url')
+                    .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .limit(10);
                     
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error loading connections:', error);
+                    throw error;
+                }
 
                 const connectionList = document.getElementById('connectionList');
+                if (!connectionList) return;
+                
                 connectionList.innerHTML = '';
 
                 if (profiles && profiles.length > 0) {
                     profiles.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
                         const status = profile.status || 'Offline';
-                        const avatarUrl = profile.avatar_url;
+                        const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
+                        const department = profile.department || 'No department';
                         
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
                             <div class="avatar" onclick="navigateToProfile('${profile.id}')">
-                                ${avatarUrl ? 
-                                    `<img src="${avatarUrl}" alt="${fullName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+                                ${profilePhoto ? 
+                                    `<img src="${profilePhoto}" alt="${fullName}" />` : 
                                     initials
                                 }
                             </div>
                             <div>
                                 <p class="font-semibold text-gray-800">${fullName}</p>
-                                <p class="text-gray-600">${status}</p>
+                                <p class="text-gray-600">${department} • ${status}</p>
                             </div>
                             <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${profile.id}')">Follow</button>
                         `;
@@ -1037,7 +1049,9 @@
             } catch (error) {
                 console.error('Error loading connections:', error);
                 const connectionList = document.getElementById('connectionList');
-                connectionList.innerHTML = '<p class="text-center text-red-500">Error loading users</p>';
+                if (connectionList) {
+                    connectionList.innerHTML = '<p class="text-center text-red-500">Error loading users. Please try again.</p>';
+                }
             }
         }
 
@@ -1048,7 +1062,14 @@
             const connectionSearch = document.getElementById('connectionSearch').value.trim();
             const connectionLoading = document.getElementById('connectionLoading');
             const connectionList = document.getElementById('connectionList');
-            if (!connectionSearch) return;
+            
+            if (!connectionList) return;
+            
+            if (!connectionSearch) {
+                // If search is empty, reload all connections
+                loadConnections();
+                return;
+            }
 
             connectionLoading.style.display = 'block';
 
@@ -1058,33 +1079,37 @@
 
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('id, full_name, status, avatar_url')
+                    .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
-                    .ilike('full_name', `%${connectionSearch}%`)
+                    .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%`)
                     .limit(5);
                     
                 connectionList.innerHTML = '';
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase search error:', error);
+                    throw error;
+                }
 
                 if (data && data.length > 0) {
                     data.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
                         const status = profile.status || 'Offline';
-                        const avatarUrl = profile.avatar_url;
+                        const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
+                        const department = profile.department || 'No department';
                         
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
                             <div class="avatar" onclick="navigateToProfile('${profile.id}')">
-                                ${avatarUrl ? 
-                                    `<img src="${avatarUrl}" alt="${fullName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : 
+                                ${profilePhoto ? 
+                                    `<img src="${profilePhoto}" alt="${fullName}" />` : 
                                     initials
                                 }
                             </div>
                             <div>
                                 <p class="font-semibold text-gray-800">${fullName}</p>
-                                <p class="text-gray-600">${status}</p>
+                                <p class="text-gray-600">${department} • ${status}</p>
                             </div>
                             <button class="btn follow-btn" style="margin-left: auto;" onclick="followUser(this, '${profile.id}')">Follow</button>
                         `;
@@ -1094,8 +1119,8 @@
                     connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
                 }
             } catch (error) {
-                console.error('Connection search error:', error.message);
-                connectionList.innerHTML = `<p class="text-center text-red-500">Error loading users: ${error.message}</p>`;
+                console.error('Connection search error:', error);
+                connectionList.innerHTML = `<p class="text-center text-red-500">Error searching users: ${error.message}</p>`;
             } finally {
                 connectionLoading.style.display = 'none';
             }
@@ -1203,6 +1228,9 @@
             const modal = document.getElementById('notificationModal');
             const body = document.querySelector('.dashboard');
             const modalMessage = document.getElementById('modalMessage');
+            
+            if (!modal || !body || !modalMessage) return;
+            
             modalMessage.textContent = message;
             modal.classList.add('show');
             body.classList.add('blur-background');
