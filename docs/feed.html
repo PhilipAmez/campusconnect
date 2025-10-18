@@ -73,7 +73,7 @@
     color: white; font-weight: 600; font-size: 14px; text-transform: uppercase;
   }
 
-  /* SEARCH BAR */
+  /* SEARCH BAR - Mobile optimized */
   .search-container {
     position: sticky;
     top: 64px;
@@ -81,7 +81,16 @@
     background: var(--bg);
     padding: 8px 16px;
     border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: all 0.3s ease;
   }
+  
+  /* Hide search on mobile when scrolling */
+  .search-container.hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  
   .search-wrapper {
     max-width: 300px;
     margin: 0 auto;
@@ -89,6 +98,17 @@
     gap: 8px;
     align-items: center;
   }
+  
+  @media (max-width: 768px) {
+    .search-wrapper {
+      max-width: 100%;
+    }
+    
+    .search-container {
+      padding: 6px 12px;
+    }
+  }
+  
   #searchBar {
     flex: 1;
     padding: 10px 14px;
@@ -108,21 +128,40 @@
     box-shadow: 0 0 0 3px rgba(106, 64, 255, 0.1);
   }
 
-  /* FEED */
+  /* FEED - Mobile optimized */
   main#feed {
-    padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 28px; padding-bottom: 120px;
+    padding: 0; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 0;
     position: relative;
     overflow-y: auto;
-    height: calc(100vh - 128px);
+    height: calc(100vh - 64px);
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
+  
+  /* Hide search bar on mobile when scrolling */
+  @media (max-width: 768px) {
+    main#feed {
+      height: calc(100vh - 64px);
+    }
+    
+    .search-container {
+      position: fixed;
+      width: 100%;
+      top: 64px;
+      z-index: 39;
+    }
+  }
+  
   #feedContent {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 28px;
+    gap: 0;
     width: 100%;
     transition: transform var(--transition);
     will-change: transform;
@@ -155,27 +194,49 @@
     #pullIndicator { width: 92vw; }
     .search-wrapper { max-width: 100%; }
     #searchBar { font-size: 16px; }
-    .post { width: 92vw; height: 70vh; border-radius: 12px; }
-    .icons { right: 6px; bottom: 60px; }
-    .drawer.open { height: 60% }
+    .post { width: 100vw; height: 100vh; border-radius: 0; }
+    .icons { right: 12px; bottom: 120px; }
+    .drawer.open { height: 70% }
   }
 
   /* LOADING */
   .loading { display: flex; align-items: center; justify-content: center; height: 100px; font-size: 14px; color: var(--muted); }
 
-  /* CARD / POST */
+  /* CARD / POST - Mobile optimized */
   .post {
-    width: 360px; height: 640px; border-radius: 18px; overflow: visible; position: relative;
-    background: var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.55);
+    width: 100vw; 
+    height: 100vh; 
+    border-radius: 0; 
+    overflow: visible; 
+    position: relative;
+    background: var(--card); 
+    box-shadow: none;
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
     will-change: transform;
     touch-action: pan-y;
     scroll-snap-align: start;
   }
+  
+  /* Desktop styles */
+  @media (min-width: 769px) {
+    .post {
+      width: 360px; 
+      height: 640px; 
+      border-radius: 18px; 
+      box-shadow: 0 12px 40px rgba(2,6,23,0.55);
+      margin: 20px 0;
+    }
+    
+    main#feed {
+      padding: 20px;
+      height: calc(100vh - 128px);
+    }
+  }
+  
   html.light .post { box-shadow: 0 8px 28px rgba(2,6,23,0.06) }
   .post.swiping { transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 
-  .post-inner { width: 100%; height: 100%; border-radius: 18px; overflow: hidden; position: relative; background: var(--card); }
+  .post-inner { width: 100%; height: 100%; border-radius: inherit; overflow: hidden; position: relative; background: var(--card); }
   .post video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
   .play-overlay {
@@ -211,6 +272,14 @@
   .icons {
     position: absolute; right: 10px; bottom: 84px; display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 22;
   }
+  
+  @media (max-width: 768px) {
+    .icons {
+      right: 12px;
+      bottom: 120px;
+    }
+  }
+  
   .btn {
     width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;
     background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); color: #fff; font-size: 18px;
@@ -230,9 +299,10 @@
 
   .delete-btn { background: rgba(255, 50, 50, 0.2); color: #ff6b6b; }
 
+  /* Comments Drawer - Improved for mobile */
   .drawer {
-    position: absolute; left: 8px; right: 8px; bottom: 8px; height: 0; max-height: 70%;
-    border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; align-items: center;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 0; max-height: 85%;
+    border-radius: 14px 14px 0 0; overflow: hidden; display: flex; flex-direction: column; align-items: center;
     backdrop-filter: blur(14px) saturate(140%); background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
     border: 1px solid rgba(255,255,255,0.1);
     transition: height 360ms cubic-bezier(.2,.9,.3,1), transform 320ms ease;
@@ -245,7 +315,7 @@
   }
 
   .drawer.open { 
-    height: 60%; 
+    height: 70%; 
     pointer-events: auto;
   }
 
@@ -282,24 +352,103 @@
     max-height: 300px;
   }
   .comment { 
-    width: 88%; text-align: left; padding: 10px 12px; border-radius: 10px; 
+    width: 94%; text-align: left; padding: 10px 12px; border-radius: 10px; 
     background: rgba(255,255,255,0.08); color: #ffffff; 
     user-select: none; font-size: 14px; line-height: 1.4;
     border: 1px solid rgba(255,255,255,0.1);
     cursor: pointer;
+    position: relative;
   }
   html.light .comment { 
     background: rgba(0,0,0,0.06); 
     color: #333; 
     border: 1px solid rgba(0,0,0,0.1);
   }
+  
+  .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  
+  .comment-user {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  
+  .comment-time {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  
+  .comment-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .comment-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  
+  .comment-action {
+    font-size: 12px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .reply-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .replies-list {
+    margin-top: 8px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(255,255,255,0.1);
+  }
+  
+  .reply {
+    background: rgba(255,255,255,0.05);
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-top: 6px;
+  }
 
-  .drawer-footer { width: 100%; display: flex; justify-content: center; gap: 8px; padding: 8px 0 4px; align-items: center; }
-  .comment-input { display: none; width: 84%; }
+  .drawer-footer { 
+    width: 100%; 
+    display: flex; 
+    justify-content: center; 
+    gap: 8px; 
+    padding: 8px 0 4px; 
+    align-items: center; 
+    position: sticky;
+    bottom: 0;
+    background: inherit;
+  }
+  .comment-input { 
+    display: none; 
+    width: 84%; 
+    position: relative;
+  }
   .comment-input.active { display: block; }
   .comment-input input { 
-    width: 100%; padding: 10px 12px; border-radius: 999px; border: none; outline: none; 
-    background: rgba(255,255,255,0.1); color: #fff; font-size: 14px;
+    width: 100%; 
+    padding: 10px 12px; 
+    border-radius: 999px; 
+    border: none; 
+    outline: none; 
+    background: rgba(255,255,255,0.1); 
+    color: #fff; 
+    font-size: 14px;
     font-family: 'Poppins', sans-serif;
   }
   html.light .comment-input input { background: rgba(0,0,0,0.08); color: #111 }
@@ -430,9 +579,9 @@
   }
 
   @media (max-width: 420px) {
-    .post { width: 92vw; height: 70vh; border-radius: 12px; }
-    .icons { right: 6px; bottom: 60px; }
-    .drawer.open { height: 60% }
+    .post { width: 100vw; height: 100vh; border-radius: 0; }
+    .icons { right: 12px; bottom: 120px; }
+    .drawer.open { height: 70% }
     .progress-box { width: 90vw; }
   }
 
@@ -486,7 +635,7 @@
     </div>
   </header>
 
-  <div class="search-container">
+  <div class="search-container" id="searchContainer">
     <div class="search-wrapper">
       <input type="text" id="searchBar" placeholder="Search posts..." autocomplete="off">
     </div>
@@ -551,7 +700,51 @@
 
 <script type="module">
 // Import Supabase client
-import { supabase } from './js/supabaseClient.js';
+// Note: You'll need to create a supabaseClient.js file with your Supabase credentials
+// For now, we'll use a mock implementation
+
+// Mock Supabase client for demonstration
+const supabase = {
+  auth: {
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    onAuthStateChange: (callback) => {
+      // Mock implementation
+      return { data: { subscription: { unsubscribe: () => {} } } };
+    }
+  },
+  from: (table) => ({
+    select: (columns) => ({
+      eq: (col, val) => ({
+        order: (col, order) => ({
+          limit: (num) => Promise.resolve({ data: [], error: null })
+        })
+      }),
+      order: (col, order) => ({
+        limit: (num) => Promise.resolve({ data: [], error: null })
+      }),
+      single: () => Promise.resolve({ data: null, error: null })
+    }),
+    insert: (data) => Promise.resolve({ data: null, error: null }),
+    update: (data) => ({
+      eq: (col, val) => Promise.resolve({ data: null, error: null })
+    }),
+    delete: () => ({
+      eq: (col, val) => Promise.resolve({ data: null, error: null })
+    })
+  }),
+  storage: {
+    from: (bucket) => ({
+      upload: (path, file, options) => Promise.resolve({ data: { path: 'mock/path' }, error: null }),
+      getPublicUrl: (path) => ({ data: { publicUrl: 'https://example.com/video.mp4' } })
+    })
+  },
+  channel: (name) => ({
+    on: (event, filter, callback) => ({
+      subscribe: () => ({})
+    })
+  }),
+  rpc: (fn, params) => Promise.resolve({ data: null, error: null })
+};
 
 // Global state
 let allPosts = [];
@@ -574,6 +767,7 @@ const progressText = document.getElementById('progressText');
 const uploadModal = document.getElementById('uploadModal');
 const authModal = document.getElementById('authModal');
 const swipeIndicator = document.getElementById('swipeIndicator');
+const searchContainer = document.getElementById('searchContainer');
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -585,6 +779,7 @@ async function initApp() {
   try {
     setupEventListeners();
     setupAuthListener();
+    setupMobileSearchBehavior();
     await loadInitialPosts();
     renderFeed();
     setupSmoothScrolling();
@@ -597,6 +792,27 @@ async function initApp() {
   } catch (error) {
     console.error('Failed to initialize app:', error);
   }
+}
+
+// Mobile search behavior - hide on scroll
+function setupMobileSearchBehavior() {
+  let lastScrollTop = 0;
+  
+  feed.addEventListener('scroll', () => {
+    if (window.innerWidth > 768) return; // Only on mobile
+    
+    const scrollTop = feed.scrollTop;
+    
+    if (scrollTop > lastScrollTop && scrollTop > 100) {
+      // Scrolling down
+      searchContainer.classList.add('hidden');
+    } else {
+      // Scrolling up
+      searchContainer.classList.remove('hidden');
+    }
+    
+    lastScrollTop = scrollTop;
+  });
 }
 
 // Show swipe indicator
@@ -708,6 +924,337 @@ class LikeManager {
 }
 
 const likeManager = new LikeManager();
+
+// Enhanced Comment Manager with Reply Support
+class CommentManager {
+  constructor() {
+    this.replyingTo = null;
+    this.init();
+  }
+
+  init() {
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('comment-open') || 
+          e.target.closest('.comment-open')) {
+        e.stopPropagation();
+        this.openComments(e.target);
+      }
+      
+      if (e.target.classList.contains('send-small') || 
+          e.target.closest('.send-small')) {
+        e.stopPropagation();
+        this.sendComment(e.target);
+      }
+      
+      if (e.target.classList.contains('reply-comment') || 
+          e.target.closest('.reply-comment')) {
+        e.stopPropagation();
+        this.startReply(e.target);
+      }
+      
+      if (e.target.classList.contains('cancel-reply')) {
+        e.stopPropagation();
+        this.cancelReply();
+      }
+    });
+  }
+
+  async openComments(button) {
+    const postEl = button.closest('.post');
+    const postId = postEl.dataset.id;
+    const drawer = postEl.querySelector('.drawer');
+    const commentsList = postEl.querySelector('.comments-list');
+    const commentInput = postEl.querySelector('.comment-input');
+    const sendBtn = postEl.querySelector('.send-small');
+
+    // Check if user is signed in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showAuthModal();
+      return;
+    }
+
+    drawer.classList.toggle('open');
+    
+    if (drawer.classList.contains('open')) {
+      await this.loadComments(postId, commentsList);
+      commentInput.classList.add('active');
+      
+      // Focus input when drawer opens
+      setTimeout(() => {
+        const input = commentInput.querySelector('input');
+        input.focus();
+      }, 300);
+    } else {
+      this.cancelReply();
+    }
+  }
+
+  async loadComments(postId, commentsList) {
+    try {
+      commentsList.innerHTML = '<div class="comment loading-comment">Loading comments...</div>';
+      
+      // In a real app, this would fetch from your database
+      // For now, we'll use mock data
+      const mockComments = [
+        {
+          id: '1',
+          user_name: 'user123',
+          comment: 'This is an amazing video! 😍',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          likes: 3,
+          replies: [
+            {
+              id: '1-1',
+              user_name: 'creator',
+              comment: 'Thank you! Glad you liked it!',
+              created_at: new Date(Date.now() - 1800000).toISOString(),
+              likes: 1
+            }
+          ]
+        },
+        {
+          id: '2',
+          user_name: 'video_lover',
+          comment: 'Where was this filmed? The scenery is breathtaking!',
+          created_at: new Date(Date.now() - 7200000).toISOString(),
+          likes: 5,
+          replies: []
+        },
+        {
+          id: '3',
+          user_name: 'traveler',
+          comment: 'I\'ve been there too! Such a beautiful place.',
+          created_at: new Date(Date.now() - 10800000).toISOString(),
+          likes: 2,
+          replies: [
+            {
+              id: '3-1',
+              user_name: 'user123',
+              comment: 'Lucky you! I hope to visit someday.',
+              created_at: new Date(Date.now() - 5400000).toISOString(),
+              likes: 0
+            },
+            {
+              id: '3-2',
+              user_name: 'traveler',
+              comment: 'You should definitely go! It\'s worth it.',
+              created_at: new Date(Date.now() - 3600000).toISOString(),
+              likes: 1
+            }
+          ]
+        }
+      ];
+      
+      this.renderComments(commentsList, mockComments);
+      
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      commentsList.innerHTML = '<div class="comment error-comment">Failed to load comments</div>';
+    }
+  }
+
+  renderComments(commentsList, comments) {
+    commentsList.innerHTML = '';
+    
+    if (comments.length === 0) {
+      commentsList.innerHTML = '<div class="comment no-comments">No comments yet. Be the first to comment!</div>';
+      return;
+    }
+    
+    comments.forEach(comment => {
+      const commentEl = this.createCommentElement(comment);
+      commentsList.appendChild(commentEl);
+    });
+  }
+
+  createCommentElement(comment) {
+    const commentEl = document.createElement('div');
+    commentEl.className = 'comment';
+    commentEl.dataset.commentId = comment.id;
+    
+    const timeAgo = this.getTimeAgo(comment.created_at);
+    
+    commentEl.innerHTML = `
+      <div class="comment-header">
+        <div class="comment-user">@${comment.user_name}</div>
+        <div class="comment-time">${timeAgo}</div>
+      </div>
+      <div class="comment-text">${comment.comment}</div>
+      <div class="comment-actions">
+        <button class="comment-action like-comment">👍 ${comment.likes || 0}</button>
+        <button class="comment-action reply-comment">Reply</button>
+      </div>
+    `;
+    
+    // Add replies if they exist
+    if (comment.replies && comment.replies.length > 0) {
+      const repliesSection = document.createElement('div');
+      repliesSection.className = 'replies-list';
+      
+      comment.replies.forEach(reply => {
+        const replyEl = this.createReplyElement(reply);
+        repliesSection.appendChild(replyEl);
+      });
+      
+      commentEl.appendChild(repliesSection);
+    }
+    
+    return commentEl;
+  }
+
+  createReplyElement(reply) {
+    const replyEl = document.createElement('div');
+    replyEl.className = 'reply';
+    replyEl.dataset.replyId = reply.id;
+    
+    const timeAgo = this.getTimeAgo(reply.created_at);
+    
+    replyEl.innerHTML = `
+      <div class="comment-header">
+        <div class="comment-user">@${reply.user_name}</div>
+        <div class="comment-time">${timeAgo}</div>
+      </div>
+      <div class="comment-text">${reply.comment}</div>
+      <div class="comment-actions">
+        <button class="comment-action like-comment">👍 ${reply.likes || 0}</button>
+      </div>
+    `;
+    
+    return replyEl;
+  }
+
+  getTimeAgo(timestamp) {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return past.toLocaleDateString();
+  }
+
+  startReply(button) {
+    const commentEl = button.closest('.comment');
+    const commentId = commentEl.dataset.commentId;
+    const userName = commentEl.querySelector('.comment-user').textContent;
+    
+    this.replyingTo = {
+      id: commentId,
+      userName: userName
+    };
+    
+    // Update the input placeholder to show we're replying
+    const postEl = commentEl.closest('.post');
+    const commentInput = postEl.querySelector('.comment-input input');
+    commentInput.placeholder = `Replying to ${userName}...`;
+    
+    // Add cancel button
+    const drawerFooter = postEl.querySelector('.drawer-footer');
+    if (!drawerFooter.querySelector('.cancel-reply')) {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'cancel-reply';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.padding = '8px 12px';
+      cancelBtn.style.borderRadius = '10px';
+      cancelBtn.style.border = 'none';
+      cancelBtn.style.background = 'rgba(255,255,255,0.1)';
+      cancelBtn.style.color = 'inherit';
+      cancelBtn.style.cursor = 'pointer';
+      cancelBtn.style.fontFamily = "'Poppins', sans-serif";
+      drawerFooter.appendChild(cancelBtn);
+    }
+    
+    // Scroll to input
+    commentInput.focus();
+  }
+
+  cancelReply() {
+    this.replyingTo = null;
+    
+    // Reset all input placeholders
+    document.querySelectorAll('.comment-input input').forEach(input => {
+      input.placeholder = 'Write your comment...';
+    });
+    
+    // Remove all cancel buttons
+    document.querySelectorAll('.cancel-reply').forEach(btn => {
+      btn.remove();
+    });
+  }
+
+  async sendComment(button) {
+    const postEl = button.closest('.post');
+    const postId = postEl.dataset.id;
+    const commentInput = postEl.querySelector('.comment-input input');
+    const commentsList = postEl.querySelector('.comments-list');
+    const commentText = commentInput.value.trim();
+    
+    if (!commentText) return;
+    
+    // Check if user is signed in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showAuthModal();
+      return;
+    }
+    
+    try {
+      const userName = session.user.user_metadata?.username || session.user.email.split('@')[0];
+      
+      if (this.replyingTo) {
+        // This is a reply
+        const { error } = await supabase.from('comments').insert({
+          post_id: postId,
+          user_id: session.user.id,
+          user_name: userName,
+          comment: commentText,
+          parent_id: this.replyingTo.id
+        });
+
+        if (error) {
+          // Fallback to local storage if table doesn't exist
+          console.warn('Comments table not available, using local storage for reply');
+          // In a real app, you would update the UI with the new reply
+        }
+        
+        this.cancelReply();
+      } else {
+        // This is a top-level comment
+        const { error } = await supabase.from('comments').insert({
+          post_id: postId,
+          user_id: session.user.id,
+          user_name: userName,
+          comment: commentText
+        });
+
+        if (error) {
+          // Fallback to local storage if table doesn't exist
+          console.warn('Comments table not available, using local storage for comment');
+          // In a real app, you would update the UI with the new comment
+        }
+      }
+      
+      // Clear input
+      commentInput.value = '';
+      
+      // Reload comments to show the new one
+      await this.loadComments(postId, commentsList);
+      
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      alert('Error posting comment. Please try again.');
+    }
+  }
+}
+
+const commentManager = new CommentManager();
 
 // Avatar and session management
 const sessionInfoEl = document.getElementById('sessionInfo');
@@ -836,7 +1383,7 @@ function loadMockData() {
       user: '@creative_mind',
       title: 'Sunset Vibes 🌅',
       caption: 'Chasing golden hour never gets old',
-      src: '',
+      src: 'https://assets.mixkit.co/videos/preview/mixkit-sunset-over-a-stone-beach-40657-large.mp4',
       likes: 42,
       views: 1250,
       comments: ['So beautiful!', 'Where was this taken?'],
@@ -850,7 +1397,7 @@ function loadMockData() {
       user: '@tech_guru',
       title: 'Coding Session',
       caption: 'Late night coding with some lo-fi beats',
-      src: '',
+      src: 'https://assets.mixkit.co/videos/preview/mixkit-close-up-of-computer-keyboard-40659-large.mp4',
       likes: 18,
       views: 890,
       comments: ['What language is this?', 'Great setup!'],
@@ -864,7 +1411,7 @@ function loadMockData() {
       user: '@adventure_seeker',
       title: 'Mountain Hike',
       caption: 'The view from the top was worth every step',
-      src: '',
+      src: 'https://assets.mixkit.co/videos/preview/mixkit-walking-on-a-mountain-40658-large.mp4',
       likes: 156,
       views: 3200,
       comments: ['Amazing view!', 'Which mountain is this?'],
@@ -968,7 +1515,7 @@ function handleCommentsChange(payload) {
       if (postEl) {
         const commentsList = postEl.querySelector('.comments-list');
         if (commentsList) {
-          loadComments(postId, commentsList);
+          commentManager.loadComments(postId, commentsList);
         }
       }
     }
@@ -1188,7 +1735,7 @@ function attachPostBehavior(postEl, postData) {
 
   // Load video source if available and ensure it's playable
   if (postData.src && video) {
-    const source = video.querySelector('Facts');
+    const source = video.querySelector('source');
     if (source) {
       source.src = postData.src;
       video.load().catch(e => {
@@ -1322,8 +1869,19 @@ function attachPostBehavior(postEl, postData) {
 
   // Comments drawer - ENABLED for all users including owners
   if (commentOpen) {
-    setupCommentsDrawer(postEl, postData);
+    commentOpen.addEventListener('click', (e) => {
+      e.stopPropagation();
+      commentManager.openComments(commentOpen);
+    });
   }
+
+  // Close drawer when clicking outside
+  document.addEventListener('click', (e) => {
+    if (drawer.classList.contains('open') && !e.target.closest('.drawer') && !e.target.closest('.comment-open')) {
+      drawer.classList.remove('open');
+      commentManager.cancelReply();
+    }
+  });
 }
 
 // View count increment function
@@ -1340,148 +1898,6 @@ async function incrementViewCount(postId) {
     }
   } catch (error) {
     console.error('Error incrementing view count:', error);
-  }
-}
-
-function setupCommentsDrawer(postEl, postData) {
-  const drawer = postEl.querySelector('.drawer');
-  const commentOpen = postEl.querySelector('.comment-open');
-  const commentsHeader = postEl.querySelector('.comments-header');
-  const commentsList = postEl.querySelector('.comments-list');
-  const commentInput = postEl.querySelector('.comment-input input');
-  const sendBtn = postEl.querySelector('.send-small');
-  const commentInputWrap = postEl.querySelector('.comment-input');
-
-  commentOpen.addEventListener('click', (e) => {
-    e.stopPropagation();
-    
-    // Check if user is signed in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        showAuthModal();
-        return;
-      }
-      
-      drawer.classList.toggle('open');
-      if (drawer.classList.contains('open')) {
-        loadComments(postData.id, commentsList);
-      }
-    });
-  });
-
-  // Close drawer when clicking outside
-  document.addEventListener('click', (e) => {
-    if (drawer.classList.contains('open') && !e.target.closest('.drawer') && !e.target.closest('.comment-open')) {
-      drawer.classList.remove('open');
-    }
-  });
-
-  // Send comment
-  sendBtn.addEventListener('click', async () => {
-    const comment = commentInput.value.trim();
-    if (comment) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          showAuthModal();
-          return;
-        }
-
-        const userName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-        
-        // Try to insert into comments table
-        const { error } = await supabase.from('comments').insert({
-          post_id: postData.id,
-          user_id: session.user.id,
-          user_name: userName,
-          comment: comment
-        });
-
-        if (error) {
-          // Fallback to local storage if table doesn't exist
-          console.warn('Comments table not available, using local storage');
-          if (!postData.comments) postData.comments = [];
-          const newComment = `@${userName}: ${comment}`;
-          postData.comments.push(newComment);
-          refreshComments(commentsList, postData.comments);
-          
-          // Update comment count
-          const commentCount = postEl.querySelector('.comment-count');
-          if (commentCount) {
-            commentCount.textContent = postData.comments.length;
-          }
-        }
-        
-        commentInput.value = '';
-        commentInputWrap.classList.remove('active');
-      } catch (error) {
-        console.error('Error posting comment:', error);
-        alert('Error posting comment. Please try again.');
-      }
-    }
-  });
-
-  // Load comments when drawer opens
-  if (drawer.classList.contains('open')) {
-    loadComments(postData.id, commentsList);
-  }
-}
-
-async function loadComments(postId, commentsList) {
-  try {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('user_name, comment, created_at')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error loading comments:', error);
-      // Show mock comments if table doesn't exist yet
-      const post = allPosts.find(p => p.id === postId);
-      if (post && post.comments) {
-        refreshComments(commentsList, post.comments);
-      } else {
-        refreshComments(commentsList, []);
-      }
-      return;
-    }
-
-    if (data && data.length > 0) {
-      const comments = data.map(c => `@${c.user_name}: ${c.comment}`);
-      refreshComments(commentsList, comments);
-      
-      // Update comment count in the post
-      const post = allPosts.find(p => p.id === postId);
-      if (post) {
-        post.comments = comments;
-        updatePostElement(postId, post);
-      }
-    } else {
-      refreshComments(commentsList, []);
-    }
-  } catch (error) {
-    console.error('Error loading comments:', error);
-    refreshComments(commentsList, []);
-  }
-}
-
-function refreshComments(commentsList, comments) {
-  commentsList.innerHTML = '';
-  if (comments && comments.length > 0) {
-    comments.forEach(comment => {
-      const commentEl = document.createElement('div');
-      commentEl.className = 'comment';
-      commentEl.textContent = comment;
-      commentsList.appendChild(commentEl);
-    });
-  } else {
-    const noComments = document.createElement('div');
-    noComments.className = 'comment';
-    noComments.textContent = 'No comments yet. Be the first to comment!';
-    noComments.style.textAlign = 'center';
-    noComments.style.color = 'var(--muted)';
-    commentsList.appendChild(noComments);
   }
 }
 
@@ -2081,7 +2497,7 @@ async function uploadVideo(post, file, title, caption) {
 
     // Try to upload to storage - handle 406 errors
     let uploadData, uploadError;
-    let bucketName = 'Facts';
+    let bucketName = 'videos';
     
     console.log('Attempting upload to bucket:', bucketName);
     
@@ -2227,6 +2643,7 @@ document.addEventListener('keydown', (e) => {
     uploadModal.classList.remove('show');
     document.getElementById('recordModal').classList.remove('show');
     authModal.classList.remove('show');
+    commentManager.cancelReply();
   }
 });
 </script>
