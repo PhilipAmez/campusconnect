@@ -160,11 +160,11 @@
         .actions-sidebar {
             position: absolute;
             right: var(--spacing-md);
-            bottom: 20%;
+            bottom: 4rem; /* Positioned above the volume button */
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: var(--spacing-lg);
+            gap: var(--spacing-md);
             z-index: 10;
         }
 
@@ -181,8 +181,8 @@
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
             border-radius: 50%;
-            width: 3rem;
-            height: 3rem;
+            width: 2.8rem;
+            height: 2.8rem;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -201,7 +201,7 @@
             font-family: Arial Black, Arial, sans-serif;
         }
 
-        #likeCount {
+        .like-count {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
@@ -359,14 +359,14 @@
             cursor: pointer;
         }
 
-        /* Delete Button (under save button) */
+        /* Delete Button */
         .delete-post {
             background: rgba(255, 0, 0, 0.7);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 3rem;
-            height: 3rem;
+            width: 2.8rem;
+            height: 2.8rem;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -428,26 +428,75 @@
             cursor: pointer;
         }
 
-        /* Login Popup */
-        .login-popup {
+        /* Upload Progress Bar */
+        .upload-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 400px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            z-index: 300;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-md);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .upload-progress.active {
+            display: flex;
+        }
+
+        .upload-title {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .upload-status {
+            font-size: 0.9rem;
+        }
+
+        /* Login Redirect Overlay */
+        .login-redirect {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
-            z-index: 300;
+            z-index: 400;
             display: none;
             justify-content: center;
             align-items: center;
         }
 
-        .login-popup.active {
+        .login-redirect.active {
             display: flex;
         }
 
-        .login-content {
+        .login-redirect-content {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
@@ -459,17 +508,17 @@
             box-shadow: var(--glass-shadow);
         }
 
-        .login-title {
+        .login-redirect-title {
             font-size: 1.5rem;
             margin-bottom: var(--spacing-md);
         }
 
-        .login-message {
+        .login-redirect-message {
             margin-bottom: var(--spacing-lg);
             line-height: 1.5;
         }
 
-        .login-button {
+        .login-redirect-button {
             background: var(--primary-color);
             color: white;
             border: none;
@@ -480,7 +529,7 @@
             transition: background 0.3s ease;
         }
 
-        .login-button:hover {
+        .login-redirect-button:hover {
             background: var(--secondary-color);
         }
 
@@ -496,7 +545,7 @@
             border-radius: 20px;
             padding: var(--spacing-sm) var(--spacing-md);
             color: var(--text-color);
-            z-index: 400;
+            z-index: 500;
             opacity: 0;
             transition: opacity 0.3s ease;
             box-shadow: var(--glass-shadow);
@@ -510,7 +559,7 @@
         @media (max-width: 768px) {
             .actions-sidebar {
                 right: var(--spacing-sm);
-                bottom: 15%;
+                bottom: 3.5rem;
             }
             
             .action-icon {
@@ -568,12 +617,21 @@
         <!-- Search results would go here -->
     </div>
 
-    <!-- Login Popup -->
-    <div class="login-popup" id="loginPopup">
-        <div class="login-content">
-            <h2 class="login-title">Sign In Required</h2>
-            <p class="login-message">You need to be signed in to create posts or interact with content.</p>
-            <button class="login-button" id="loginButton">Sign In / Register</button>
+    <!-- Upload Progress Bar -->
+    <div class="upload-progress" id="uploadProgress">
+        <div class="upload-title">Uploading Video</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="upload-status" id="uploadStatus">Uploading to Facts bucket...</div>
+    </div>
+
+    <!-- Login Redirect Overlay -->
+    <div class="login-redirect" id="loginRedirect">
+        <div class="login-redirect-content">
+            <h2 class="login-redirect-title">Sign In Required</h2>
+            <p class="login-redirect-message">You need to be signed in to interact with posts.</p>
+            <button class="login-redirect-button" id="loginRedirectButton">Go to Login</button>
         </div>
     </div>
 
@@ -655,15 +713,31 @@
         // App state
         let currentTheme = 'dark';
         let currentVideoId = null;
-        let isLoggedIn = false; // Change to true for testing logged in state
         let savedPosts = [];
+        let isLoggedIn = true; // In a real app, this would be set based on session
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in (in a real app, this would be done via API)
+            checkLoginStatus();
             initializeFeed();
             setupEventListeners();
             setupIntersectionObserver();
         });
+
+        // Check login status
+        function checkLoginStatus() {
+            // In a real app, this would make an API call to check session
+            // For now, we'll simulate checking if user is logged in
+            // isLoggedIn = true; // Set to true if user has valid session
+            
+            // If not logged in, disable interactions
+            if (!isLoggedIn) {
+                document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
+                    el.style.opacity = '0.7';
+                });
+            }
+        }
 
         // Create video feed
         function initializeFeed() {
@@ -697,7 +771,7 @@
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                 </svg>
                             </div>
-                            <div class="action-count" id="likeCount-${video.id}">${video.likes_count}</div>
+                            <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count}</div>
                         </div>
                         <div class="action-item" onclick="openComments('${video.id}')">
                             <div class="action-icon">
@@ -746,6 +820,24 @@
                 videoContainer.addEventListener('dblclick', function(e) {
                     createLikeAnimation(e);
                     toggleLike(video.id);
+                });
+                
+                // Add single tap to pause/play
+                let tapTimer;
+                videoContainer.addEventListener('click', function(e) {
+                    // Clear any existing timer
+                    clearTimeout(tapTimer);
+                    
+                    // Set a timer to distinguish between single and double tap
+                    tapTimer = setTimeout(function() {
+                        // Single tap - toggle play/pause
+                        const video = e.currentTarget.querySelector('video');
+                        if (video.paused) {
+                            video.play();
+                        } else {
+                            video.pause();
+                        }
+                    }, 300);
                 });
             });
         }
@@ -804,13 +896,9 @@
                 }
             });
             
-            // Login button
-            document.getElementById('loginButton').addEventListener('click', function() {
-                // In a real app, redirect to login page
-                alert('Redirecting to login page...');
-                document.getElementById('loginPopup').classList.remove('active');
-                // After login, set isLoggedIn to true
-                isLoggedIn = true;
+            // Login redirect button
+            document.getElementById('loginRedirectButton').addEventListener('click', function() {
+                window.location.href = 'login.html';
             });
         }
 
@@ -881,7 +969,7 @@
         // Toggle like status
         function toggleLike(videoId) {
             if (!isLoggedIn) {
-                showLoginPopup();
+                showLoginRedirect();
                 return;
             }
             
@@ -902,12 +990,12 @@
         // Share video
         function shareVideo(videoId) {
             if (!isLoggedIn) {
-                showLoginPopup();
+                showLoginRedirect();
                 return;
             }
             
             // Create a shareable link (in a real app, this would be your actual video URL)
-            const videoLink = `https://peerloom.online/video/${videoId}`;
+            const videoLink = `https://peerloom.online/skrolz/video/${videoId}`;
             
             // Check if the Web Share API is available
             if (navigator.share) {
@@ -940,7 +1028,7 @@
         // Toggle save video
         function toggleSave(videoId) {
             if (!isLoggedIn) {
-                showLoginPopup();
+                showLoginRedirect();
                 return;
             }
             
@@ -1000,7 +1088,7 @@
         // Open comments drawer
         function openComments(videoId) {
             if (!isLoggedIn) {
-                showLoginPopup();
+                showLoginRedirect();
                 return;
             }
             
@@ -1053,7 +1141,7 @@
         // Delete post (only for user's own posts)
         function deletePost(videoId) {
             if (!isLoggedIn) {
-                showLoginPopup();
+                showLoginRedirect();
                 return;
             }
             
@@ -1075,17 +1163,57 @@
         // Open add post
         function openAddPost() {
             if (!isLoggedIn) {
-                showLoginPopup();
+                showLoginRedirect();
                 return;
             }
             
-            // In a real app, this would open a post creation interface
-            alert('Post creation interface would open here. Videos limited to 60 seconds.');
+            // In a real app, this would open a file picker or camera
+            // For now, we'll simulate the upload process
+            simulateUpload();
         }
 
-        // Show login popup
-        function showLoginPopup() {
-            document.getElementById('loginPopup').classList.add('active');
+        // Simulate video upload
+        function simulateUpload() {
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const uploadStatus = document.getElementById('uploadStatus');
+            
+            // Show upload progress
+            uploadProgress.classList.add('active');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                progressFill.style.width = `${progress}%`;
+                
+                if (progress <= 30) {
+                    uploadStatus.textContent = 'Preparing video...';
+                } else if (progress <= 60) {
+                    uploadStatus.textContent = 'Uploading to Facts bucket...';
+                } else if (progress <= 90) {
+                    uploadStatus.textContent = 'Processing video...';
+                } else {
+                    uploadStatus.textContent = 'Finalizing...';
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    // Hide progress bar after a short delay
+                    setTimeout(() => {
+                        uploadProgress.classList.remove('active');
+                        showToast('Video posted successfully!');
+                        
+                        // Reset progress bar
+                        progressFill.style.width = '0%';
+                    }, 500);
+                }
+            }, 100);
+        }
+
+        // Show login redirect
+        function showLoginRedirect() {
+            document.getElementById('loginRedirect').classList.add('active');
         }
     </script>
 </body>
