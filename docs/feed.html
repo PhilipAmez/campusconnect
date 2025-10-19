@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skrolz - Video Feed</title>
-    <!-- Include Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Base Styles & Variables */
         :root {
@@ -917,13 +915,9 @@
         </div>
     </div>
 
-    <script>
-        // Supabase configuration
-        const SUPABASE_URL = 'https://your-project.supabase.co'; // Replace with your Supabase URL
-        const SUPABASE_ANON_KEY = 'your-anon-key'; // Replace with your Supabase anon key
-        
-        // Initialize Supabase client
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <script type="module">
+        // Import the Supabase client from your existing file
+        import { supabase } from './js/supabaseClient.js';
         
         // App state
         let currentTheme = 'dark';
@@ -960,7 +954,7 @@
         // Fetch posts from Supabase database
         async function fetchPostsFromDatabase() {
             try {
-                showToast('Loading posts...');
+                showToast('Loading posts from Facts bucket...');
                 
                 // Fetch posts from the 'posts' table in Supabase
                 const { data: posts, error } = await supabase
@@ -971,6 +965,8 @@
                 if (error) {
                     throw error;
                 }
+                
+                console.log('Fetched posts from database:', posts);
                 
                 // Initialize the feed with posts
                 if (posts && posts.length > 0) {
@@ -986,12 +982,12 @@
                             </button>
                         </div>
                     `;
-                    showToast('No posts found');
+                    showToast('No posts found in Facts bucket');
                 }
                 
             } catch (error) {
                 console.error('Error fetching posts:', error);
-                showToast('Error loading posts');
+                showToast('Error loading posts from database');
             }
         }
 
@@ -1056,7 +1052,7 @@
                             </div>
                             <div class="action-count">Save</div>
                         </div>
-                        ${video.is_own_post ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
+                        ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
                     </div>
                     <div class="video-info">
                         <div class="username">@${video.username || 'user'}</div>
@@ -1185,6 +1181,9 @@
             document.getElementById('loginRedirectButton').addEventListener('click', function() {
                 window.location.href = 'login.html';
             });
+            
+            // Form validation
+            document.getElementById('postTitle').addEventListener('input', checkUploadButton);
         }
 
         // Intersection Observer for video autoplay
@@ -1641,8 +1640,8 @@
                 mediaRecorder.start();
                 
                 // Update UI
-                document.getElementById('recordBtn').style.display = 'none';
-                document.getElementById('stopBtn').style.display = 'block';
+                    document.getElementById('recordBtn').style.display = 'none';
+                    document.getElementById('stopBtn').style.display = 'block';
                 
                 // Auto-stop after 120 seconds
                 setTimeout(() => {
@@ -1732,7 +1731,7 @@
             try {
                 // Show upload progress
                 uploadProgress.classList.add('active');
-                progressStatus.textContent = 'Uploading video...';
+                progressStatus.textContent = 'Uploading video to Facts bucket...';
                 
                 // Generate a unique file name
                 const fileExt = videoFile.name.split('.').pop();
@@ -1806,8 +1805,23 @@
             document.getElementById('loginRedirect').classList.add('active');
         }
 
-        // Add event listeners for form validation
-        document.getElementById('postTitle').addEventListener('input', checkUploadButton);
+        // Make functions globally available
+        window.openUploadModal = openUploadModal;
+        window.showUploadForm = showUploadForm;
+        window.hideUploadForm = hideUploadForm;
+        window.startRecording = startRecording;
+        window.stopRecording = stopRecording;
+        window.submitPost = submitPost;
+        window.toggleLike = toggleLike;
+        window.openComments = openComments;
+        window.closeComments = closeComments;
+        window.addComment = addComment;
+        window.shareVideo = shareVideo;
+        window.toggleSave = toggleSave;
+        window.deletePost = deletePost;
+        window.toggleMute = toggleMute;
+        window.checkUploadButton = checkUploadButton;
+        window.handleFileSelect = handleFileSelect;
     </script>
 </body>
 </html>
