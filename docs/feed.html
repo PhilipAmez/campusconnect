@@ -1666,7 +1666,7 @@ async function uploadVideo(post, file, title, caption) {
 
     // Get public URL - FIXED BUCKET NAME
     const { data: urlData } = supabase.storage
-      .from('Facts') // Changed from 'videos' to match upload bucket
+      .from('Facts')
       .getPublicUrl(uploadData?.path || uploadData2?.path);
     
     const publicUrl = urlData?.publicUrl || '';
