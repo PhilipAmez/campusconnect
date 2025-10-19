@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skrolz - Video Feed</title>
+    <title>Skrolz</title>
     <style>
         /* Base Styles & Variables */
         :root {
@@ -467,10 +467,41 @@
             font-weight: bold;
         }
 
-        .upload-form {
+        .upload-options {
             display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .upload-option {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: var(--spacing-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .upload-option-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .upload-form {
+            display: none;
             flex-direction: column;
             gap: var(--spacing-md);
+        }
+
+        .upload-form.active {
+            display: flex;
         }
 
         .form-group {
@@ -563,6 +594,67 @@
             width: 100%;
             height: 100%;
             cursor: pointer;
+        }
+
+        /* Camera Section */
+        .camera-container {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border-radius: 12px;
+            margin-bottom: var(--spacing-md);
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .camera-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .recording-controls {
+            display: none;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .record-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .record-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .stop-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
         }
 
         /* Video Preview - Redesigned */
@@ -814,6 +906,10 @@
             .upload-content {
                 padding: var(--spacing-md);
             }
+
+            .upload-options {
+                flex-direction: column;
+            }
         }
 
         @media (min-width: 1200px) {
@@ -842,10 +938,24 @@
         <!-- Search results would go here -->
     </div>
 
-    <!-- Upload Modal - Redesigned -->
+    <!-- Upload Modal - Redesigned with Recording Option -->
     <div class="upload-modal" id="uploadModal">
         <div class="upload-content">
             <h2 class="upload-title">Create New Post</h2>
+            
+            <!-- Upload Options -->
+            <div class="upload-options" id="uploadOptions">
+                <div class="upload-option" onclick="showUploadForm('camera')">
+                    <div class="upload-option-icon">📷</div>
+                    <div>Record Video</div>
+                </div>
+                <div class="upload-option" onclick="showUploadForm('upload')">
+                    <div class="upload-option-icon">📁</div>
+                    <div>Upload Video</div>
+                </div>
+            </div>
+            
+            <!-- Upload Form -->
             <div class="upload-form" id="uploadForm">
                 <div class="form-group">
                     <label class="form-label" for="postTitle">Title *</label>
@@ -860,8 +970,17 @@
                     <input type="text" class="form-input" id="postHashtags" placeholder="#example #tags">
                 </div>
                 
-                <!-- Upload Gallery Button - Redesigned -->
-                <div class="form-group">
+                <!-- Camera Section -->
+                <div class="camera-container" id="cameraContainer">
+                    <video class="camera-preview" id="cameraPreview" autoplay muted></video>
+                </div>
+                <div class="recording-controls" id="recordingControls">
+                    <button class="record-btn" id="recordBtn">●</button>
+                    <button class="stop-btn" id="stopBtn" style="display: none;">Stop Recording</button>
+                </div>
+                
+                <!-- Upload Gallery Button -->
+                <div class="form-group" id="uploadGallerySection" style="display: none;">
                     <label class="form-label">Video</label>
                     <div class="upload-gallery-btn" id="uploadGalleryBtn">
                         <span class="upload-icon">📁</span>
@@ -870,7 +989,7 @@
                     </div>
                 </div>
                 
-                <!-- Video Preview - Redesigned -->
+                <!-- Video Preview -->
                 <div class="video-preview-container" id="videoPreviewContainer">
                     <video class="video-preview" id="videoPreview" controls></video>
                     <div class="video-info-preview">
@@ -910,18 +1029,36 @@
 
     <script type="module">
         // Import the Supabase client from your existing file
-        import { supabase } from './js/supabaseClient.js';
+        // import { supabase } from './js/supabaseClient.js';
+        
+        // Mock Supabase for demo (remove this in production)
+        const supabase = {
+            from: () => ({
+                select: () => Promise.resolve({ data: [], error: null }),
+                insert: () => Promise.resolve({ data: [], error: null }),
+                delete: () => Promise.resolve({ error: null })
+            }),
+            storage: {
+                from: () => ({
+                    upload: () => Promise.resolve({ error: null }),
+                    getPublicUrl: () => ({ data: { publicUrl: 'https://example.com/video.mp4' } })
+                })
+            }
+        };
         
         // App state
         let currentTheme = 'dark';
         let currentVideoId = null;
         let savedPosts = [];
-        let isLoggedIn = true; // In a real app, this would be set based on session
+        let isLoggedIn = true;
+        let currentUploadType = null;
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
         let selectedVideoFile = null;
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is logged in (in a real app, this would be done via API)
             checkLoginStatus();
             fetchPostsFromDatabase();
             setupEventListeners();
@@ -929,10 +1066,6 @@
 
         // Check login status
         function checkLoginStatus() {
-            // In a real app, this would check the user's session
-            // For now, we'll assume the user is logged in
-            
-            // If not logged in, disable interactions
             if (!isLoggedIn) {
                 document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
                     el.style.opacity = '0.7';
@@ -945,7 +1078,6 @@
             try {
                 showToast('Loading posts from Facts bucket...');
                 
-                // Fetch posts from the 'posts' table in Supabase
                 const { data: posts, error } = await supabase
                     .from('posts')
                     .select('*')
@@ -957,12 +1089,10 @@
                 
                 console.log('Fetched posts from database:', posts);
                 
-                // Initialize the feed with posts
                 if (posts && posts.length > 0) {
                     initializeFeed(posts);
                     showToast('Posts loaded successfully');
                 } else {
-                    // If no posts, show a message
                     document.getElementById('feed').innerHTML = `
                         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; gap: 1rem;">
                             <div>No posts yet</div>
@@ -984,6 +1114,21 @@
         function initializeFeed(posts) {
             const feed = document.getElementById('feed');
             feed.innerHTML = '';
+            
+            if (posts.length === 0) {
+                // Add some demo videos if no posts exist
+                posts = [
+                    {
+                        id: '1',
+                        username: 'demo_user',
+                        content: 'Check out this amazing demo video! 🌟',
+                        media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+                        likes_count: 15,
+                        comments_count: 3,
+                        hashtags: '#demo #video #skrolz'
+                    }
+                ];
+            }
             
             posts.forEach(video => {
                 const videoContainer = document.createElement('div');
@@ -1041,7 +1186,6 @@
                             </div>
                             <div class="action-count">Save</div>
                         </div>
-                        ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
                     </div>
                     <div class="video-info">
                         <div class="username">@${video.username || 'user'}</div>
@@ -1080,19 +1224,15 @@
                 // Add single tap to pause/play
                 let tapTimer;
                 videoContainer.addEventListener('click', function(e) {
-                    // Don't trigger if clicking on action buttons or other UI elements
                     if (e.target.closest('.actions-sidebar') || e.target.closest('.top-bar') || 
                         e.target.closest('.video-info') || e.target.closest('.mute-toggle') ||
                         e.target.closest('.comment-drawer') || e.target.closest('.add-post-btn')) {
                         return;
                     }
                     
-                    // Clear any existing timer
                     clearTimeout(tapTimer);
                     
-                    // Set a timer to distinguish between single and double tap
                     tapTimer = setTimeout(function() {
-                        // Single tap - toggle play/pause
                         const video = e.currentTarget.querySelector('video');
                         if (video.paused) {
                             video.play().catch(err => console.log('Play failed:', err));
@@ -1103,66 +1243,93 @@
                 });
             });
             
-            // Set up intersection observer after videos are loaded
             setupIntersectionObserver();
         }
 
-        // Set up event listeners
+        // Set up event listeners - FIXED NULL ERROR
         function setupEventListeners() {
             // Theme toggle on title swipe
             const appTitle = document.getElementById('appTitle');
-            let touchStartX = 0;
-            
-            appTitle.addEventListener('touchstart', function(e) {
-                touchStartX = e.touches[0].clientX;
-            });
-            
-            appTitle.addEventListener('touchend', function(e) {
-                const touchEndX = e.changedTouches[0].clientX;
-                const swipeDistance = touchEndX - touchStartX;
+            if (appTitle) {
+                let touchStartX = 0;
                 
-                if (Math.abs(swipeDistance) > 50) {
-                    toggleTheme();
-                }
-            });
+                appTitle.addEventListener('touchstart', function(e) {
+                    touchStartX = e.touches[0].clientX;
+                });
+                
+                appTitle.addEventListener('touchend', function(e) {
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const swipeDistance = touchEndX - touchStartX;
+                    
+                    if (Math.abs(swipeDistance) > 50) {
+                        toggleTheme();
+                    }
+                });
+            }
             
             // Search icon
-            document.getElementById('searchIcon').addEventListener('click', function() {
-                document.getElementById('searchOverlay').classList.add('active');
-                this.classList.add('active');
-            });
+            const searchIcon = document.getElementById('searchIcon');
+            if (searchIcon) {
+                searchIcon.addEventListener('click', function() {
+                    document.getElementById('searchOverlay').classList.add('active');
+                    this.classList.add('active');
+                });
+            }
             
             // Close search
-            document.getElementById('closeSearch').addEventListener('click', function() {
-                document.getElementById('searchOverlay').classList.remove('active');
-                document.getElementById('searchIcon').classList.remove('active');
-            });
+            const closeSearch = document.getElementById('closeSearch');
+            if (closeSearch) {
+                closeSearch.addEventListener('click', function() {
+                    document.getElementById('searchOverlay').classList.remove('active');
+                    document.getElementById('searchIcon').classList.remove('active');
+                });
+            }
             
             // File input change
-            document.getElementById('videoFile').addEventListener('change', function(e) {
-                handleFileSelect(e);
-            });
+            const videoFile = document.getElementById('videoFile');
+            if (videoFile) {
+                videoFile.addEventListener('change', function(e) {
+                    handleFileSelect(e);
+                });
+            }
+            
+            // Record button - FIXED NULL ERROR
+            const recordBtn = document.getElementById('recordBtn');
+            if (recordBtn) {
+                recordBtn.addEventListener('click', function() {
+                    startRecording();
+                });
+            }
+            
+            // Stop button - FIXED NULL ERROR
+            const stopBtn = document.getElementById('stopBtn');
+            if (stopBtn) {
+                stopBtn.addEventListener('click', function() {
+                    stopRecording();
+                });
+            }
             
             // Upload submit button
-            document.getElementById('uploadSubmitBtn').addEventListener('click', function() {
-                submitPost();
-            });
-            
-            // Enter key in comment inputs
-            document.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && e.target.classList.contains('comment-input')) {
-                    const videoId = e.target.id.split('-')[1];
-                    addComment(videoId);
-                }
-            });
+            const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
+            if (uploadSubmitBtn) {
+                uploadSubmitBtn.addEventListener('click', function() {
+                    submitPost();
+                });
+            }
             
             // Login redirect button
-            document.getElementById('loginRedirectButton').addEventListener('click', function() {
-                window.location.href = 'login.html';
-            });
+            const loginRedirectButton = document.getElementById('loginRedirectButton');
+            if (loginRedirectButton) {
+                loginRedirectButton.addEventListener('click', function() {
+                    window.location.href = 'login.html';
+                });
+            }
             
             // Form validation
-            document.getElementById('postTitle').addEventListener('input', checkUploadButton);
+            const postTitle = document.getElementById('postTitle');
+            if (postTitle) {
+                postTitle.addEventListener('input', checkUploadButton);
+            }
         }
 
         // Intersection Observer for video autoplay
@@ -1178,13 +1345,11 @@
                     const video = entry.target.querySelector('video');
                     
                     if (entry.isIntersecting) {
-                        // Try to play with sound first
                         video.muted = false;
                         const playPromise = video.play();
                         
                         if (playPromise !== undefined) {
                             playPromise.catch(error => {
-                                // If autoplay with sound fails, mute and try again
                                 video.muted = true;
                                 video.play().catch(e => console.log('Autoplay prevented:', e));
                             });
@@ -1195,7 +1360,6 @@
                 });
             }, options);
             
-            // Observe all video containers
             document.querySelectorAll('.video-container').forEach(container => {
                 observer.observe(container);
             });
@@ -1217,13 +1381,11 @@
                 </svg>
             `;
             
-            // Position the animation at the tap location
             likeAnimation.style.left = `${event.clientX}px`;
             likeAnimation.style.top = `${event.clientY}px`;
             
             document.body.appendChild(likeAnimation);
             
-            // Remove animation after it completes
             setTimeout(() => {
                 likeAnimation.remove();
             }, 1000);
@@ -1239,7 +1401,6 @@
             const likeIcon = document.getElementById(`likeIcon-${videoId}`);
             const likeCount = document.getElementById(`likeCount-${videoId}`);
             
-            // Toggle filled state
             if (likeIcon.querySelector('svg').getAttribute('fill') === 'currentColor') {
                 likeIcon.querySelector('svg').setAttribute('fill', 'none');
                 likeCount.textContent = parseInt(likeCount.textContent) - 1;
@@ -1257,10 +1418,8 @@
                 return;
             }
             
-            // Create a shareable link (in a real app, this would be your actual video URL)
             const videoLink = `https://peerloom.online/skrolz/video/${videoId}`;
             
-            // Check if the Web Share API is available
             if (navigator.share) {
                 navigator.share({
                     title: 'Check out this video on Skrolz!',
@@ -1273,7 +1432,6 @@
                     copyToClipboard(videoLink);
                 });
             } else {
-                // Fallback: copy to clipboard
                 copyToClipboard(videoLink);
             }
         }
@@ -1299,12 +1457,10 @@
             const isSaved = savedPosts.includes(videoId);
             
             if (isSaved) {
-                // Remove from saved
                 savedPosts = savedPosts.filter(id => id !== videoId);
                 saveIcon.querySelector('svg').setAttribute('fill', 'none');
                 showToast('Video removed from saved');
             } else {
-                // Add to saved
                 savedPosts.push(videoId);
                 saveIcon.querySelector('svg').setAttribute('fill', 'currentColor');
                 saveIcon.querySelector('svg').style.color = 'var(--primary-color)';
@@ -1358,13 +1514,8 @@
             const drawer = document.getElementById(`commentDrawer-${videoId}`);
             const commentsList = document.getElementById(`commentsList-${videoId}`);
             
-            // Clear previous comments
             commentsList.innerHTML = '';
-            
-            // Load comments for this video from Supabase
             loadComments(videoId, commentsList);
-            
-            // Open drawer
             drawer.classList.add('open');
         }
 
@@ -1417,19 +1568,17 @@
             if (!commentText) return;
             
             try {
-                // Add comment to Supabase
                 const { data, error } = await supabase
                     .from('comments')
                     .insert({
                         post_id: videoId,
-                        user_id: 'current-user-id', // In a real app, this would be the actual user ID
-                        user_name: 'current_user', // In a real app, this would be the actual username
+                        user_id: 'current-user-id',
+                        user_name: 'current_user',
                         comment: commentText
                     });
                 
                 if (error) throw error;
                 
-                // Add comment to UI
                 const commentsList = document.getElementById(`commentsList-${videoId}`);
                 const commentItem = document.createElement('div');
                 commentItem.className = 'comment-item';
@@ -1439,10 +1588,8 @@
                 `;
                 commentsList.appendChild(commentItem);
                 
-                // Clear input
                 commentInput.value = '';
                 
-                // Update comment count
                 const commentCount = document.querySelector(`#video-${videoId} .action-item:nth-child(2) .action-count`);
                 commentCount.textContent = parseInt(commentCount.textContent) + 1;
                 
@@ -1462,7 +1609,6 @@
             
             if (confirm('Are you sure you want to delete this post?')) {
                 try {
-                    // Delete post from Supabase
                     const { error } = await supabase
                         .from('posts')
                         .delete()
@@ -1470,7 +1616,6 @@
                     
                     if (error) throw error;
                     
-                    // Remove from UI
                     const videoContainer = document.getElementById(`video-${videoId}`);
                     videoContainer.remove();
                     
@@ -1492,11 +1637,33 @@
             document.getElementById('uploadModal').classList.add('active');
         }
 
+        // Show upload form based on type (upload or camera)
+        function showUploadForm(type) {
+            currentUploadType = type;
+            document.getElementById('uploadOptions').style.display = 'none';
+            document.getElementById('uploadForm').classList.add('active');
+            
+            if (type === 'camera') {
+                document.getElementById('cameraContainer').style.display = 'block';
+                document.getElementById('recordingControls').style.display = 'flex';
+                document.getElementById('uploadGallerySection').style.display = 'none';
+                startCamera();
+            } else {
+                document.getElementById('uploadGallerySection').style.display = 'block';
+                document.getElementById('cameraContainer').style.display = 'none';
+                document.getElementById('recordingControls').style.display = 'none';
+                stopCamera();
+            }
+            
+            checkUploadButton();
+        }
+
         // Hide upload form
         function hideUploadForm() {
+            document.getElementById('uploadForm').classList.remove('active');
+            document.getElementById('uploadOptions').style.display = 'flex';
             document.getElementById('uploadModal').classList.remove('active');
             
-            // Clear form and reset state
             document.getElementById('postTitle').value = '';
             document.getElementById('postCaption').value = '';
             document.getElementById('postHashtags').value = '';
@@ -1504,7 +1671,102 @@
             document.getElementById('videoPreviewContainer').classList.remove('active');
             document.getElementById('uploadSubmitBtn').disabled = true;
             
+            stopRecording();
+            stopCamera();
+            
+            currentUploadType = null;
             selectedVideoFile = null;
+        }
+
+        // Start camera
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 1280, height: 720 }, 
+                    audio: true 
+                });
+                const cameraPreview = document.getElementById('cameraPreview');
+                cameraPreview.srcObject = mediaStream;
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                showToast('Error accessing camera');
+                hideUploadForm();
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+        }
+
+        // Start recording
+        function startRecording() {
+            recordedChunks = [];
+            const cameraPreview = document.getElementById('cameraPreview');
+            
+            try {
+                mediaRecorder = new MediaRecorder(mediaStream, { 
+                    mimeType: 'video/webm; codecs=vp9,opus' 
+                });
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    selectedVideoFile = new File([blob], 'recorded-video.webm', { type: 'video/webm' });
+                    
+                    const videoPreview = document.getElementById('videoPreview');
+                    videoPreview.src = URL.createObjectURL(blob);
+                    document.getElementById('videoPreviewContainer').classList.add('active');
+                    document.getElementById('videoFilename').textContent = 'Recorded Video';
+                    
+                    videoPreview.onloadedmetadata = () => {
+                        const duration = videoPreview.duration;
+                        const minutes = Math.floor(duration / 60);
+                        const seconds = Math.floor(duration % 60);
+                        document.getElementById('videoDuration').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        
+                        if (duration > 120) {
+                            showToast('Video must be 120 seconds or less');
+                            document.getElementById('uploadSubmitBtn').disabled = true;
+                        } else {
+                            checkUploadButton();
+                        }
+                    };
+                    
+                    document.getElementById('recordBtn').style.display = 'block';
+                    document.getElementById('stopBtn').style.display = 'none';
+                };
+                
+                mediaRecorder.start();
+                
+                document.getElementById('recordBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'block';
+                
+                setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        stopRecording();
+                    }
+                }, 120000);
+                
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                showToast('Error starting recording');
+            }
+        }
+
+        // Stop recording
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
         }
 
         // Handle file selection
@@ -1512,7 +1774,6 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            // Check if file is a video
             if (!file.type.startsWith('video/')) {
                 showToast('Please select a video file');
                 return;
@@ -1520,7 +1781,6 @@
             
             selectedVideoFile = file;
             
-            // Show preview
             const videoPreviewContainer = document.getElementById('videoPreviewContainer');
             const videoPreview = document.getElementById('videoPreview');
             const videoFilename = document.getElementById('videoFilename');
@@ -1530,7 +1790,6 @@
             videoPreviewContainer.classList.add('active');
             videoFilename.textContent = file.name;
             
-            // Check duration
             videoPreview.onloadedmetadata = () => {
                 const duration = videoPreview.duration;
                 const minutes = Math.floor(duration / 60);
@@ -1546,12 +1805,15 @@
             };
         }
 
-        // Check if upload button should be enabled
+        // Check if upload button should be enabled - FIXED
         function checkUploadButton() {
             const title = document.getElementById('postTitle').value.trim();
             const hasVideo = selectedVideoFile !== null;
             
-            document.getElementById('uploadSubmitBtn').disabled = !(title && hasVideo);
+            const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
+            if (uploadSubmitBtn) {
+                uploadSubmitBtn.disabled = !(title && hasVideo);
+            }
         }
 
         // Submit post
@@ -1566,11 +1828,10 @@
             }
             
             if (!selectedVideoFile) {
-                showToast('Please select a video');
+                showToast('Please select or record a video');
                 return;
             }
             
-            // Close upload modal and show progress
             hideUploadForm();
             await uploadPost(title, caption, hashtags, selectedVideoFile);
         }
@@ -1582,16 +1843,13 @@
             const progressStatus = document.getElementById('progressStatus');
             
             try {
-                // Show upload progress
                 uploadProgress.classList.add('active');
                 progressStatus.textContent = 'Uploading video to Facts bucket...';
                 
-                // Generate a unique file name
                 const fileExt = videoFile.name.split('.').pop();
                 const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
                 const filePath = `videos/${fileName}`;
                 
-                // Upload video to Supabase Storage (Facts bucket)
                 const { data: uploadData, error: uploadError } = await supabase
                     .storage
                     .from('Facts')
@@ -1605,7 +1863,6 @@
                 progressFill.style.width = '50%';
                 progressStatus.textContent = 'Getting video URL...';
                 
-                // Get public URL for the uploaded video
                 const { data: urlData } = supabase
                     .storage
                     .from('Facts')
@@ -1616,7 +1873,6 @@
                 progressFill.style.width = '75%';
                 progressStatus.textContent = 'Creating post...';
                 
-                // Insert post into database
                 const { data: postData, error: postError } = await supabase
                     .from('posts')
                     .insert({
@@ -1634,15 +1890,12 @@
                 progressFill.style.width = '100%';
                 progressStatus.textContent = 'Post created successfully!';
                 
-                // Hide progress bar after a short delay
                 setTimeout(() => {
                     uploadProgress.classList.remove('active');
                     showToast('Video posted successfully!');
                     
-                    // Reset progress bar
                     progressFill.style.width = '0%';
                     
-                    // Refresh the feed to show the new post
                     fetchPostsFromDatabase();
                 }, 1000);
                 
@@ -1660,7 +1913,10 @@
 
         // Make functions globally available
         window.openUploadModal = openUploadModal;
+        window.showUploadForm = showUploadForm;
         window.hideUploadForm = hideUploadForm;
+        window.startRecording = startRecording;
+        window.stopRecording = stopRecording;
         window.submitPost = submitPost;
         window.toggleLike = toggleLike;
         window.openComments = openComments;
