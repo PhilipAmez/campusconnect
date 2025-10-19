@@ -1057,6 +1057,7 @@
         let savedPosts = [];
         let isLoggedIn = true;
         let selectedVideoFile = null;
+        let selectedVideoDuration = null;
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
@@ -1677,6 +1678,7 @@
             stopCamera();
             
             selectedVideoFile = null;
+            selectedVideoDuration = null;
         }
 
         // Start camera
@@ -1735,12 +1737,12 @@
                     
                     // Check duration
                     videoPreview.onloadedmetadata = () => {
-                        const duration = videoPreview.duration;
-                        const minutes = Math.floor(duration / 60);
-                        const seconds = Math.floor(duration % 60);
+                        selectedVideoDuration = videoPreview.duration;
+                        const minutes = Math.floor(selectedVideoDuration / 60);
+                        const seconds = Math.floor(selectedVideoDuration % 60);
                         videoDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                         
-                        if (duration > 120) {
+                        if (selectedVideoDuration > 120) {
                             showToast('Video must be 120 seconds or less');
                             document.getElementById('uploadSubmitBtn').disabled = true;
                         } else {
@@ -1789,6 +1791,7 @@
             // Check if file is a video
             if (!file.type.startsWith('video/')) {
                 showToast('Please select a video file');
+                document.getElementById('uploadSubmitBtn').disabled = true;
                 return;
             }
             
@@ -1806,24 +1809,35 @@
             
             // Check duration
             videoPreview.onloadedmetadata = () => {
-                const duration = videoPreview.duration;
-                const minutes = Math.floor(duration / 60);
-                const seconds = Math.floor(duration % 60);
+                selectedVideoDuration = videoPreview.duration;
+                const minutes = Math.floor(selectedVideoDuration / 60);
+                const seconds = Math.floor(selectedVideoDuration % 60);
                 videoDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 
-                if (duration > 120) {
+                if (selectedVideoDuration > 120) {
                     showToast('Video must be 120 seconds or less');
                     document.getElementById('uploadSubmitBtn').disabled = true;
                 } else {
+                    // Enable upload button if video is valid
                     checkUploadButton();
                 }
             };
+            
+            videoPreview.onerror = () => {
+                showToast('Error loading video file');
+                document.getElementById('uploadSubmitBtn').disabled = true;
+            };
+            
+            // Immediately check if we have a valid file (even before metadata loads)
+            checkUploadButton();
         }
 
         // Check if upload button should be enabled
         function checkUploadButton() {
             const title = document.getElementById('postTitle').value.trim();
             const hasVideo = selectedVideoFile !== null;
+            
+            console.log('checkUploadButton called:', { title, hasVideo }); // Debug log
             
             document.getElementById('uploadSubmitBtn').disabled = !(title && hasVideo);
         }
