@@ -8,171 +8,205 @@
     <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
-    <link rel="icon" href="favicon.ico">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.08);
-            --glass-hover: rgba(255, 255, 255, 0.2);
-            --primary: #4c51bf;
-            --secondary: #2a2f8e;
-            --text-dark: #1a202c;
-            --text-light: #a0aec0;
-            --accent: #2f855a;
-            --blur: 8px;
-            --transition: all 0.3s ease-in-out;
-            --liquid-color: #7c3aed;
+            --primary: #7c3aed;
+            --primary-light: #8b5cf6;
+            --primary-dark: #6d28d9;
+            --secondary: #0ea5e9;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-light: #94a3b8;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --border: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --radius: 12px;
+        }
+
+        [data-theme="dark"] {
+            --primary: #8b5cf6;
+            --primary-light: #a78bfa;
+            --primary-dark: #7c3aed;
+            --secondary: #0ea5e9;
+            --accent: #10b981;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-light: #94a3b8;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --border: #475569;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #e6e8f0, #f0f2f5);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            padding-top: 60px;
-            transition: background var(--transition);
+            transition: var(--transition);
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
-        body.dark-mode::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #2d3748, #4a5568);
-            z-index: -1;
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
 
-        body.dark-mode::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/%3E%3C/svg%3E');
-            background-size: 10px 10px;
-            animation: fall 10s linear infinite;
-            z-index: -1;
-        }
-
-        @keyframes fall {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-
-        .navbar {
+        /* Header with swipe functionality */
+        .header {
             position: fixed;
             top: 0;
-            width: 100%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            padding: 0.75rem 1.5rem;
+            left: 0;
+            right: 0;
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            z-index: 1000;
-            transition: background var(--transition);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 100;
             touch-action: pan-x;
         }
 
-        .navbar.scrolled {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .logo img {
-            height: 30px;
-            transition: transform var(--transition);
-        }
-
-        .logo img:hover {
-            transform: scale(1.05);
-        }
-
-        .nav-links a {
-            color: var(--text-dark);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            transition: color var(--transition), background var(--transition);
-        }
-
-        .nav-links a:hover {
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 1.25rem;
             color: var(--primary);
-            background: var(--glass-hover);
+            text-decoration: none;
         }
 
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-icon:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .theme-indicator {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .header.swiping .theme-indicator {
+            opacity: 1;
+        }
+
+        /* Main content layout */
+        .main-content {
+            padding-top: 80px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding-bottom: 2rem;
+        }
+
+        /* Profile card */
         .profile-card {
-            max-width: 600px;
-            width: 90%;
-            margin: 20px auto;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border-radius: 1.5rem;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            overflow-y: auto;
-            max-height: calc(100vh - 100px);
-            transition: transform var(--transition), box-shadow var(--transition);
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
         }
 
         .profile-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow-lg);
         }
 
-        .cover-photo {
-            height: 140px;
+        .cover-section {
+            height: 160px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             position: relative;
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            padding-left: 1.5rem;
         }
 
-        .cover-photo::before {
-            content: '';
+        .cover-overlay {
             position: absolute;
-            top: -40%;
-            left: -40%;
-            width: 180%;
-            height: 180%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-            animation: ripple 6s infinite ease-in-out;
-            z-index: 0;
-        }
-
-        @keyframes ripple {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.2); opacity: 0; }
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
         }
 
         .avatar-container {
             position: relative;
             margin-top: -60px;
             margin-left: 1.5rem;
+            display: inline-block;
         }
 
         .avatar {
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.9);
+            border: 4px solid var(--bg-secondary);
             background: var(--primary);
             display: flex;
             align-items: center;
@@ -181,11 +215,13 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
-            transition: transform var(--transition);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
         }
 
         .avatar:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
         .avatar img {
@@ -200,601 +236,2401 @@
         }
 
         .profile-content {
-            padding: 2rem 1.5rem 1.5rem;
-            min-height: 100%;
+            padding: 1.5rem;
         }
 
         .profile-header {
             display: flex;
-            align-items: center;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 1.5rem;
         }
 
-        .profile-info {
-            flex-grow: 1;
-            margin-left: 1rem;
-        }
-
         .profile-info h1 {
-            font-size: 1.8rem;
-            color: var(--text-dark);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-bottom: 0.25rem;
         }
 
         .verified-badge {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             background: var(--accent);
             border-radius: 50%;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 0.7rem;
             color: white;
         }
 
         .profile-info p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
         }
 
-        .academic-details {
-            margin-top: 1.5rem;
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
             padding: 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border-radius: 0.75rem;
-            color: var(--text-light);
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
         }
 
-        .academic-details p {
-            margin: 0.25rem 0;
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
         }
 
-        .groups-list {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border-radius: 0.75rem;
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .profile-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .section {
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            color: var(--primary);
+        }
+
+        .academic-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .academic-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .academic-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .academic-value {
+            font-weight: 500;
+        }
+
+        .academic-edit {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+
+        .academic-edit:hover {
+            background: var(--bg-secondary);
+            transform: scale(1.05);
+        }
+
+        .academic-input {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .academic-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .groups-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
         }
 
         .group-item {
             display: flex;
-            justify-content: space-between;
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            transition: background var(--transition);
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            transition: var(--transition);
         }
 
         .group-item:hover {
-            background: var(--glass-hover);
+            background: var(--bg-tertiary);
+        }
+
+        .group-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .group-info {
+            flex: 1;
+        }
+
+        .group-name {
+            font-weight: 500;
+            margin-bottom: 0.125rem;
+        }
+
+        .group-members {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
         }
 
         .admin-badge {
             background: var(--accent);
             color: white;
-            padding: 0.15rem 0.5rem;
-            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
             font-size: 0.7rem;
+            font-weight: 500;
         }
 
         .bio-section {
-            margin-top: 1.5rem;
-        }
-
-        .bio-display {
-            padding: 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border-radius: 0.75rem;
-            color: var(--text-dark);
-            line-height: 1.6;
-            cursor: pointer;
-            transition: background var(--transition);
-        }
-
-        .bio-display:hover {
-            background: var(--glass-hover);
-        }
-
-        .bio-edit {
-            width: 100%;
-            padding: 1rem;
-            border: none;
-            border-radius: 0.75rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            color: var(--text-dark);
-            font-size: 1rem;
-            resize: vertical;
-            display: none;
-            transition: transform var(--transition);
-        }
-
-        .bio-edit:focus {
-            outline: none;
-            transform: scale(1.02);
-            box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
-        }
-
-        .privacy-toggle {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border-radius: 0.75rem;
-        }
-
-        .privacy-toggle div {
-            padding: 0.5rem 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: background var(--transition);
-        }
-
-        .privacy-toggle div:hover {
-            background: var(--glass-hover);
-        }
-
-        .custom-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
             position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background: linear-gradient(45deg, #7c3aed, #a78bfa);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4), inset 0 0 0 2px rgba(255, 255, 255, 0.3);
-            width: 100%;
+        }
+
+        .bio-content {
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .edit-bio-btn {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .edit-bio-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Share Profile Button */
+        .share-profile-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             margin-top: 1rem;
         }
 
-        .custom-button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
+        .share-profile-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Settings Drawer with Glassmorphism */
+        .settings-drawer {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .settings-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .drawer-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .close-drawer {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-drawer:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 1.5rem 0;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .settings-info {
+            flex: 1;
+        }
+
+        .settings-label {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .settings-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Notifications Drawer with Glassmorphism */
+        .notifications-drawer {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 380px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .notifications-drawer.open {
+            left: 0;
+        }
+
+        .notifications-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .notifications-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .close-notifications {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-notifications:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .notifications-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .notifications-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .notification-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: var(--transition);
+        }
+
+        .notification-item.unread {
+            background: rgba(124, 58, 237, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-sender {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .notification-message {
+            font-size: 0.875rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .mark-all-read-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        .mark-all-read-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Followers Drawer */
+        .followers-drawer {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .followers-drawer.open {
+            right: 0;
+        }
+
+        .followers-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .follower-item, .following-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .follower-item:hover, .following-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .follower-avatar, .following-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+
+        .follower-info, .following-info {
+            flex: 1;
+        }
+
+        .follower-name, .following-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .follower-username, .following-username {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .follow-action {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .follow-action:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .follow-action.following {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .unfollow-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .unfollow-btn:hover {
+            background: #dc2626;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
             width: 0;
             height: 0;
-            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-tertiary);
+            transition: var(--transition);
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: var(--transition);
             border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
         }
 
-        .custom-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6), inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
         }
 
-        .custom-button:hover::before {
-            width: 300px;
-            height: 300px;
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
         }
 
-        .editable-field {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border: none;
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-            width: 100%;
-        }
-
-        .editable-field:focus {
-            outline: none;
-            transform: scale(1.02);
-            box-shadow: 0 0 0 2px rgba(76, 81, 191, 0.2);
-        }
-
-        .modal {
-            display: none;
+        /* 2FA Setup Modal */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-xl);
+            transform: translateY(20px);
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-desc {
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .qrcode-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .qrcode-placeholder {
+            width: 200px;
+            height: 200px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border);
+        }
+
+        .backup-codes {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .codes-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .code-item {
+            font-family: monospace;
+            padding: 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Overlay for drawer */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
             justify-content: center;
             align-items: center;
+            padding: 2rem;
         }
 
-        .modal-content {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            max-width: 400px;
-            width: 90%;
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--glass-border);
+            border-left: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
             text-align: center;
-            color: var(--text-dark);
+            padding: 2rem;
+            color: var(--text-secondary);
         }
 
-        .modal-close {
-            margin-top: 1rem;
-            padding: 0.5rem 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border: none;
-            border-radius: 0.375rem;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: background var(--transition);
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
         }
 
-        .modal-close:hover {
-            background: var(--glass-hover);
+        /* Status indicator */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background: var(--accent);
+            color: white;
+        }
+
+        .status-offline {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
-            .profile-card {
-                width: 95%;
-                margin: 15px auto;
+            .header {
+                padding: 1rem;
             }
-            .cover-photo {
-                height: 120px;
-                padding-left: 1rem;
+            
+            .main-content {
+                padding-top: 70px;
             }
-            .avatar {
-                width: 100px;
-                height: 100px;
-                font-size: 1.7rem;
-                margin-top: -50px;
-                margin-left: 1rem;
+            
+            .profile-stats {
+                grid-template-columns: 1fr;
             }
-            .profile-content {
-                padding: 1.5rem 1rem;
+            
+            .academic-grid {
+                grid-template-columns: 1fr;
             }
-            .profile-info h1 {
-                font-size: 1.5rem;
+            
+            .settings-drawer,
+            .notifications-drawer,
+            .followers-drawer {
+                width: 100%;
+                right: -100%;
             }
-            .profile-info p {
-                font-size: 0.85rem;
-            }
-            .academic-details, .groups-list, .bio-section, .privacy-toggle {
-                padding: 0.8rem;
-                margin-top: 1rem;
-            }
-            .custom-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
+            
+            .notifications-drawer {
+                left: -100%;
             }
         }
 
         @media (max-width: 480px) {
-            .navbar {
-                padding: 0.5rem 1rem;
-            }
-            .logo img {
-                height: 25px;
-            }
-            .profile-card {
-                width: 98%;
-                margin: 10px auto;
-            }
-            .cover-photo {
-                height: 100px;
-                padding-left: 0.75rem;
-            }
             .avatar {
-                width: 80px;
-                height: 80px;
-                font-size: 1.4rem;
-                margin-top: -40px;
-                margin-left: 0.75rem;
+                width: 100px;
+                height: 100px;
+                font-size: 1.5rem;
             }
-            .profile-content {
-                padding: 1rem;
+            
+            .profile-header {
+                flex-direction: column;
+                gap: 1rem;
             }
-            .profile-info h1 {
-                font-size: 1.3rem;
+            
+            .modal {
+                padding: 1.5rem;
             }
-            .profile-info p {
-                font-size: 0.8rem;
-            }
-            .academic-details, .groups-list, .bio-section, .privacy-toggle {
-                padding: 0.6rem;
-                margin-top: 0.8rem;
-            }
-            .custom-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
+            
+            .codes-list {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
-<body>
-    <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo">
-            <img src="logo.png" alt="Peerloom Logo">
-        </a>
-        <div class="nav-links">
-            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-    </nav>
+<body data-theme="dark">
+    <div class="app-container">
+        <!-- Header with swipe functionality -->
+        <header class="header" id="header">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <span>Peerloom</span>
+            </a>
+            
+            <div class="theme-indicator" id="themeIndicator">
+                <i class="fas fa-moon"></i>
+                <span>Swipe to toggle theme</span>
+            </div>
+            
+            <div class="nav-actions">
+                <div class="nav-icon" id="followersBtn">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="nav-icon" id="notificationsBtn">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="nav-icon" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
+                </div>
+            </div>
+        </header>
 
-    <div class="profile-card">
-        <div class="cover-photo">
-            <div class="avatar-container">
-                <label for="avatarUpload" class="avatar" id="avatar"></label>
-                <input type="file" id="avatarUpload" accept="image/*" class="avatar-upload" onchange="uploadAvatar(event)">
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Profile Card -->
+            <div class="profile-card">
+                <div class="cover-section">
+                    <div class="cover-overlay"></div>
+                    <div class="avatar-container">
+                        <label for="avatarUpload" class="avatar" id="avatar">
+                            <span id="avatarInitials">...</span>
+                        </label>
+                        <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
+                    </div>
+                </div>
+                
+                <div class="profile-content">
+                    <div class="profile-header">
+                        <div class="profile-info">
+                            <h1 id="fullName">
+                                <div class="loading" id="nameLoading">
+                                    <div class="spinner"></div>
+                                </div>
+                                <span id="nameText" style="display: none;">Loading...</span>
+                                <div class="verified-badge" id="verifiedBadge" style="display: none;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            </h1>
+                            <p id="userInfo">
+                                <span id="username">Loading...</span>
+                                <span class="status-indicator" id="statusIndicator">Online</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="postsCount">0</div>
+                            <div class="stat-label">Posts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="followersCount">0</div>
+                            <div class="stat-label">Followers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="followingCount">0</div>
+                            <div class="stat-label">Following</div>
+                        </div>
+                    </div>
+                    
+                    <button class="share-profile-btn" id="shareProfileBtn">
+                        <i class="fas fa-share-alt"></i>
+                        Share Profile
+                    </button>
+                    
+                    <div class="profile-sections">
+                        <div class="section">
+                            <div class="section-header">
+                                <h2 class="section-title">
+                                    <i class="fas fa-graduation-cap section-icon"></i>
+                                    Academic Details
+                                </h2>
+                                <button class="academic-edit" id="editAcademicBtn">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </div>
+                            <div class="academic-grid" id="academicGrid">
+                                <div class="academic-item">
+                                    <span class="academic-label">Campus</span>
+                                    <span class="academic-value" id="campusValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="campusInput" style="display: none;">
+                                </div>
+                                <div class="academic-item">
+                                    <span class="academic-label">Level</span>
+                                    <span class="academic-value" id="levelValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="levelInput" style="display: none;">
+                                </div>
+                                <div class="academic-item">
+                                    <span class="academic-label">Department</span>
+                                    <span class="academic-value" id="departmentValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="departmentInput" style="display: none;">
+                                </div>
+                                <div class="academic-item">
+                                    <span class="academic-label">Contact</span>
+                                    <span class="academic-value" id="contactValue">Loading...</span>
+                                    <input type="text" class="academic-input" id="contactInput" style="display: none;">
+                                </div>
+                            </div>
+                            <div class="modal-actions" id="academicActions" style="display: none; margin-top: 1rem;">
+                                <button class="btn btn-secondary" id="cancelAcademicEdit">Cancel</button>
+                                <button class="btn btn-primary" id="saveAcademicEdit">Save Changes</button>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header">
+                                <h2 class="section-title">
+                                    <i class="fas fa-users section-icon"></i>
+                                    Groups
+                                </h2>
+                            </div>
+                            <div class="groups-grid" id="groupsGrid">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section bio-section">
+                            <div class="section-header">
+                                <h2 class="section-title">
+                                    <i class="fas fa-user-edit section-icon"></i>
+                                    Bio
+                                </h2>
+                            </div>
+                            <button class="edit-bio-btn" id="editBioBtn">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <div class="bio-content" id="bioContent">
+                                Loading...
+                            </div>
+                            <textarea class="academic-input" id="bioInput" style="display: none; width: 100%; min-height: 120px; margin-top: 1rem;"></textarea>
+                            <div class="modal-actions" id="bioActions" style="display: none; margin-top: 1rem;">
+                                <button class="btn btn-secondary" id="cancelBioEdit">Cancel</button>
+                                <button class="btn btn-primary" id="saveBioEdit">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </main>
+    </div>
+
+    <!-- Settings Drawer with Glassmorphism -->
+    <div class="settings-drawer" id="settingsDrawer">
+        <div class="drawer-header">
+            <h2 class="drawer-title">Settings</h2>
+            <button class="close-drawer" id="closeDrawer">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <div class="profile-content">
-            <div class="profile-header">
-                <div class="profile-info">
-                    <h1 id="fullName"></h1>
+        
+        <div class="drawer-content">
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-user-cog section-icon"></i>
+                    Profile Settings
+                </h3>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Full Name</div>
+                        <div class="settings-desc">Display your full name on profile</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showFullNameToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
-                <div id="verifiedBadge" class="verified-badge hidden"></div>
-            </div>
-            <div class="academic-details" id="academicDetails">
-                <p><strong>Campus:</strong> <span id="campus"></span></p>
-                <p><strong>Level:</strong> <span id="level"></span></p>
-                <p><strong>Department:</strong> <span id="department"></span></p>
-            </div>
-            <div class="groups-list" id="groupsList">
-                <h3 class="text-lg font-medium text-text-dark">Groups <span id="groupCount">(0)</span></h3>
-                <ul class="mt-2 space-y-1">
-                    <li class="group-item">Group 1</li>
-                    <li class="group-item">Group 2</li>
-                    <li class="group-item">Group 3</li>
-                </ul>
-            </div>
-            <div class="bio-section">
-                <div class="bio-display" id="bioDisplay"></div>
-                <textarea class="bio-edit" id="bioEdit" placeholder="Share a bit about yourself..."></textarea>
-            </div>
-            <div class="privacy-toggle">
-                <div class="flex justify-between items-center">
-                    <span>Hide Academic Details</span>
-                    <input type="checkbox" id="hideAcademicToggle">
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Academic Info</div>
+                        <div class="settings-desc">Display academic information</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showAcademicInfoToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
-                <div class="flex justify-between items-center mt-2">
-                    <span>Hide Groups</span>
-                    <input type="checkbox" id="hideGroupsToggle">
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Groups Count</div>
+                        <div class="settings-desc">Display number of groups joined</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showGroupsCountToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
             </div>
-            <button id="profileBtn" class="custom-button">Edit Profile</button>
+            
+            <div class="section-divider"></div>
+            
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-bell section-icon"></i>
+                    Notifications
+                </h3>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Email Notifications</div>
+                        <div class="settings-desc">Receive updates via email</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="emailNotificationsToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Push Notifications</div>
+                        <div class="settings-desc">Receive push notifications</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="pushNotificationsToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-shield-alt section-icon"></i>
+                    Security
+                </h3>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Two-Factor Authentication</div>
+                        <div class="settings-desc">Add an extra layer of security</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="twoFactorToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-palette section-icon"></i>
+                    Appearance
+                </h3>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Dark Mode</div>
+                        <div class="settings-desc">Switch between light and dark themes</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="errorModal" class="modal">
-        <div class="modal-content">
-            <p id="modalMessage">An error occurred. Please try again.</p>
-            <button id="closeModal" class="modal-close">Close</button>
+    <!-- Notifications Drawer with Glassmorphism -->
+    <div class="notifications-drawer" id="notificationsDrawer">
+        <div class="notifications-header">
+            <h2 class="notifications-title">Notifications</h2>
+            <button class="close-notifications" id="closeNotifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="notifications-content">
+            <div class="notifications-list" id="notificationsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <button class="mark-all-read-btn" id="markAllReadBtn">
+                <i class="fas fa-check-double"></i>
+                Mark All as Read
+            </button>
         </div>
     </div>
 
-    <script type="module" src="js/supabaseClient.js"></script>
+    <!-- Followers Drawer -->
+    <div class="followers-drawer" id="followersDrawer">
+        <div class="drawer-header">
+            <h2 class="drawer-title">Followers & Following</h2>
+            <button class="close-drawer" id="closeFollowersDrawer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="drawer-content">
+            <div class="followers-tabs">
+                <button class="tab-button active" data-tab="followers">Followers</button>
+                <button class="tab-button" data-tab="following">Following</button>
+            </div>
+            
+            <div class="followers-list" id="followersList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <div class="following-list" id="followingList" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2FA Setup Modal -->
+    <div class="modal-overlay" id="twoFactorModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Set Up Two-Factor Authentication</h2>
+                <p class="modal-desc">Scan the QR code with your authenticator app</p>
+            </div>
+            
+            <div class="modal-body">
+                <div class="qrcode-container">
+                    <div class="qrcode-placeholder">
+                        QR Code would appear here
+                    </div>
+                </div>
+                
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+                    Or enter this code manually: <strong>JBSWY3DPEHPK3PXP</strong>
+                </p>
+                
+                <div class="backup-codes">
+                    <p style="font-weight: 500; margin-bottom: 0.5rem;">Backup Codes</p>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        Save these codes in a secure place. Each code can be used once.
+                    </p>
+                    <div class="codes-list">
+                        <div class="code-item">7C3D 9F2A</div>
+                        <div class="code-item">B8E1 4C6F</div>
+                        <div class="code-item">2A9D 5E7B</div>
+                        <div class="code-item">F4C8 1D6A</div>
+                        <div class="code-item">9E5B 3A7D</div>
+                        <div class="code-item">6C2F 8E4A</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancel2FA">Cancel</button>
+                <button class="btn btn-primary" id="confirm2FA">Confirm & Enable</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay for drawer -->
+    <div class="overlay" id="overlay"></div>
+
     <script type="module">
+        // Import Supabase client
         import { supabase } from './js/supabaseClient.js';
 
-        window.addEventListener('scroll', () => {
-            const navbar = document.getElementById('navbar');
-            if (window.scrollY > 50) navbar.classList.add('scrolled');
-            else navbar.classList.remove('scrolled');
-        });
+        // DOM Elements
+        const header = document.getElementById('header');
+        const themeIndicator = document.getElementById('themeIndicator');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsDrawer = document.getElementById('settingsDrawer');
+        const closeDrawer = document.getElementById('closeDrawer');
+        const notificationsBtn = document.getElementById('notificationsBtn');
+        const notificationsDrawer = document.getElementById('notificationsDrawer');
+        const closeNotifications = document.getElementById('closeNotifications');
+        const notificationsList = document.getElementById('notificationsList');
+        const markAllReadBtn = document.getElementById('markAllReadBtn');
+        const followersBtn = document.getElementById('followersBtn');
+        const followersDrawer = document.getElementById('followersDrawer');
+        const closeFollowersDrawer = document.getElementById('closeFollowersDrawer');
+        const followersList = document.getElementById('followersList');
+        const followingList = document.getElementById('followingList');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const overlay = document.getElementById('overlay');
+        const twoFactorToggle = document.getElementById('twoFactorToggle');
+        const twoFactorModal = document.getElementById('twoFactorModal');
+        const cancel2FA = document.getElementById('cancel2FA');
+        const confirm2FA = document.getElementById('confirm2FA');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
+        const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
+        const body = document.body;
+        const editAcademicBtn = document.getElementById('editAcademicBtn');
+        const academicGrid = document.getElementById('academicGrid');
+        const academicActions = document.getElementById('academicActions');
+        const cancelAcademicEdit = document.getElementById('cancelAcademicEdit');
+        const saveAcademicEdit = document.getElementById('saveAcademicEdit');
+        const editBioBtn = document.getElementById('editBioBtn');
+        const bioContent = document.getElementById('bioContent');
+        const bioInput = document.getElementById('bioInput');
+        const bioActions = document.getElementById('bioActions');
+        const cancelBioEdit = document.getElementById('cancelBioEdit');
+        const saveBioEdit = document.getElementById('saveBioEdit');
+        const shareProfileBtn = document.getElementById('shareProfileBtn');
+        const showFullNameToggle = document.getElementById('showFullNameToggle');
+        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
+        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
 
-        async function loadProfile() {
+        // Current user and data
+        let currentUser = null;
+        let userProfile = null;
+        let userGroups = [];
+        let userNotifications = [];
+        let followers = [];
+        let following = [];
+        let userPostsCount = 0;
+
+        // Initialize the page
+        async function initializePage() {
             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError || !user) {
-                    console.error('Auth error:', authError?.message || 'No user logged in');
-                    document.getElementById('fullName').textContent = 'Please log in';
-                    document.getElementById('academicDetails').innerHTML = '<p>No data available. Log in to view profile.</p>';
-                    document.getElementById('groupsList').innerHTML = '<p>No groups available.</p>';
-                    document.getElementById('bioDisplay').textContent = 'No bio available.';
+                // Get current user
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+                
+                if (!user) {
+                    window.location.href = 'login.html';
                     return;
                 }
-
-                const { firstName, lastName, campus, level, department } = user.user_metadata || {};
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('full_name, level, campus, department, bio, verified')
-                    .eq('id', user.id)
-                    .single();
-
-                if (profileError) {
-                    console.error('Profile fetch error:', profileError.message);
-                    throw profileError;
-                }
-
-                const { data: groups, error: groupsError } = await supabase
-                    .from('group_members')
-                    .select('groups (name)')
-                    .eq('user_id', user.id);
-
-                if (groupsError) {
-                    console.error('Groups fetch error:', groupsError.message);
-                    throw groupsError;
-                }
-
-                const displayName = `${firstName || ''} ${lastName || ''}`.trim() || profile.full_name || 'User';
-                document.getElementById('fullName').textContent = displayName;
-                document.getElementById('bioDisplay').textContent = profile.bio || 'No bio yet...';
-                document.getElementById('bioEdit').value = profile.bio || '';
-                document.getElementById('campus').textContent = profile.campus || 'N/A';
-                document.getElementById('level').textContent = profile.level || 'N/A';
-                document.getElementById('department').textContent = profile.department || 'N/A';
-                if (profile.verified) document.getElementById('verifiedBadge').classList.remove('hidden');
-
-                const avatar = document.getElementById('avatar');
-                avatar.textContent = `${(firstName || 'U')[0]}${(lastName || 'S')[0]}`.toUpperCase();
-
-                const groupsList = document.getElementById('groupsList').querySelector('ul');
-                groupsList.innerHTML = '';
-                groups.forEach(gm => {
-                    const li = document.createElement('li');
-                    li.className = 'group-item';
-                    li.textContent = gm.groups?.name || 'Unnamed group';
-                    groupsList.appendChild(li);
-                });
-                document.getElementById('groupCount').textContent = `(${groups.length})`;
-
-                const privacy = profile.privacy || {};
-                document.getElementById('hideAcademicToggle').checked = privacy.hideAcademic || false;
-                document.getElementById('hideGroupsToggle').checked = privacy.hideGroups || false;
-                document.getElementById('academicDetails').style.display = privacy.hideAcademic ? 'none' : 'block';
-                document.getElementById('groupsList').style.display = privacy.hideGroups ? 'none' : 'block';
+                
+                currentUser = user;
+                
+                // Load user profile
+                await loadUserProfile();
+                
+                // Load user groups
+                await loadUserGroups();
+                
+                // Initialize followers system
+                await initializeFollowers();
+                
+                // Load user notifications
+                await loadUserNotifications();
+                
+                // Set up real-time subscriptions
+                setupNotificationsSubscription();
+                setupFollowersRealtime();
+                setupPostsRealtime();
+                
             } catch (error) {
-                console.error('Load error:', error.message);
-                document.getElementById('fullName').textContent = 'Error loading profile';
-                document.getElementById('academicDetails').innerHTML = '<p>Failed to load academic details.</p>';
-                document.getElementById('groupsList').innerHTML = '<p>Failed to load groups.</p>';
-                document.getElementById('bioDisplay').textContent = 'Failed to load bio.';
+                console.error('Error initializing page:', error);
+                showError('Error loading profile data. Please try again.');
             }
         }
 
-        async function uploadAvatar(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // Load user profile from Supabase
+        async function loadUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                    
+                if (error) {
+                    // If profile doesn't exist, create one
+                    if (error.code === 'PGRST116') {
+                        await createUserProfile();
+                        return;
+                    }
+                    throw error;
+                }
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showError('Error loading profile data');
+            }
+        }
 
-            const { data, error } = await supabase.storage
-                .from('avatars')
-                .upload(`public/${supabase.auth.getUser().data.user.id}/${Date.now()}_${file.name}`, file, { upsert: true });
-            if (error) {
-                console.error('Upload error:', error.message);
-                showModal('Error uploading avatar.');
+        // Create a new user profile if it doesn't exist
+        async function createUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .insert([
+                        {
+                            id: currentUser.id,
+                            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+                            status: 'Online',
+                            verified: false,
+                            theme_preference: 'dark',
+                            show_full_name: true,
+                            show_academic_info: true,
+                            show_groups_count: true
+                        }
+                    ])
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error creating profile:', error);
+                showError('Error creating profile');
+            }
+        }
+
+        // Update the UI with profile data
+        function updateProfileUI() {
+            if (!userProfile) return;
+            
+            // Hide loading spinner and show name
+            document.getElementById('nameLoading').style.display = 'none';
+            document.getElementById('nameText').style.display = 'inline';
+            
+            // Set user name and info
+            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
+            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
+            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
+            
+            // Set status
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.textContent = userProfile.status || 'Online';
+            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            
+            // Show verified badge if user is verified
+            if (userProfile.verified) {
+                document.getElementById('verifiedBadge').style.display = 'flex';
+            }
+            
+            // Set academic details - use custom fields if available
+            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
+            const level = userProfile.custom_level || userProfile.level || 'Not set';
+            
+            document.getElementById('campusValue').textContent = campus;
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelValue').textContent = level;
+            document.getElementById('levelInput').value = level;
+            document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
+            document.getElementById('contactInput').value = userProfile.contact || '';
+            
+            // Set bio
+            document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
+            document.getElementById('bioInput').value = userProfile.bio || '';
+            
+            // Set join date
+            if (userProfile.join_date) {
+                const joinDate = new Date(userProfile.join_date);
+                document.getElementById('joinDate').textContent = joinDate.toLocaleDateString();
             } else {
-                const url = supabase.storage.from('avatars').getPublicUrl(`public/${supabase.auth.getUser().data.user.id}/${Date.now()}_${file.name}`).data.publicUrl;
-                document.getElementById('avatar').innerHTML = `<img src="${url}" alt="Avatar">`;
+                document.getElementById('joinDate').textContent = 'Recently';
+            }
+            
+            // Set privacy toggles
+            showFullNameToggle.checked = userProfile.show_full_name !== false;
+            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
+            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
+            
+            // Apply theme from database
+            if (userProfile.theme_preference) {
+                applyTheme(userProfile.theme_preference);
             }
         }
 
-        document.getElementById('bioDisplay').addEventListener('click', () => {
-            document.getElementById('bioDisplay').style.display = 'none';
-            document.getElementById('bioEdit').style.display = 'block';
-            document.getElementById('bioEdit').focus();
-        });
+        // Load user groups from Supabase
+        async function loadUserGroups() {
+            try {
+                const { data: groups, error } = await supabase
+                    .from('group_members')
+                    .select(`
+                        groups (
+                            id,
+                            name,
+                            member_count
+                        ),
+                        is_admin
+                    `)
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userGroups = groups || [];
+                updateGroupsUI();
+                
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                showError('Error loading groups');
+            }
+        }
 
-        document.getElementById('bioEdit').addEventListener('blur', () => {
-            document.getElementById('bioDisplay').style.display = 'block';
-            document.getElementById('bioEdit').style.display = 'none';
-        });
-
-        document.getElementById('profileBtn').addEventListener('click', async () => {
-            const button = document.getElementById('profileBtn');
-            const academicDetails = document.getElementById('academicDetails');
-            const campusSpan = document.getElementById('campus');
-            const levelSpan = document.getElementById('level');
-            const departmentSpan = document.getElementById('department');
-
-            if (button.textContent === 'Edit Profile') {
-                academicDetails.innerHTML = `
-                    <p><strong>Campus:</strong> <input class="editable-field" value="${campusSpan.textContent || ''}"></p>
-                    <p><strong>Level:</strong> <input class="editable-field" value="${levelSpan.textContent || ''}"></p>
-                    <p><strong>Department:</strong> <input class="editable-field" value="${departmentSpan.textContent || ''}"></p>
+        // Update the UI with groups data
+        function updateGroupsUI() {
+            const groupsGrid = document.getElementById('groupsGrid');
+            groupsGrid.innerHTML = '';
+            
+            if (userGroups.length === 0) {
+                groupsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>You haven't joined any groups yet</p>
+                    </div>
                 `;
-                academicDetails.style.display = 'block';
-                button.textContent = 'Save Changes';
-            } else {
-                const { data: { user } } = await supabase.auth.getUser();
-                const bio = document.getElementById('bioEdit').value.trim();
-                const campusInput = document.querySelector('.academic-details input:nth-child(2)');
-                const levelInput = document.querySelector('.academic-details input:nth-child(4)');
-                const departmentInput = document.querySelector('.academic-details input:nth-child(6)');
-                const campus = campusInput ? campusInput.value.trim() : 'N/A';
-                const level = levelInput ? levelInput.value.trim() : 'N/A';
-                const department = departmentInput ? departmentInput.value.trim() : 'N/A';
-                const hideAcademic = document.getElementById('hideAcademicToggle').checked;
-                const hideGroups = document.getElementById('hideGroupsToggle').checked;
+                return;
+            }
+            
+            userGroups.forEach(groupData => {
+                const group = groupData.groups;
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-item';
+                
+                groupItem.innerHTML = `
+                    <div class="group-avatar">${group.name.substring(0, 2)}</div>
+                    <div class="group-info">
+                        <div class="group-name">${group.name}</div>
+                        <div class="group-members">${group.member_count || 0} members</div>
+                    </div>
+                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
+                `;
+                
+                groupsGrid.appendChild(groupItem);
+            });
+        }
 
+        // Initialize followers functionality
+        async function initializeFollowers() {
+            await loadFollowersData();
+            await loadPostsCount();
+        }
+
+        // Load followers and following data
+        async function loadFollowersData() {
+            try {
+                // Load followers (people who follow the current user)
+                const { data: followersData, error: followersError } = await supabase
+                    .from('followers')
+                    .select(`
+                        follower:profiles!follower_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('following_id', currentUser.id);
+                    
+                if (followersError) throw followersError;
+                
+                followers = followersData.map(item => item.follower);
+                
+                // Load following (people the current user follows)
+                const { data: followingData, error: followingError } = await supabase
+                    .from('followers')
+                    .select(`
+                        following:profiles!following_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('follower_id', currentUser.id);
+                    
+                if (followingError) throw followingError;
+                
+                following = followingData.map(item => item.following);
+                
+                updateFollowersUI();
+                
+            } catch (error) {
+                console.error('Error loading followers data:', error);
+                showError('Error loading followers data');
+            }
+        }
+
+        // Load user's posts count
+        async function loadPostsCount() {
+            try {
+                const { data, count, error } = await supabase
+                    .from('posts')
+                    .select('id', { count: 'exact' })
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userPostsCount = count || 0;
+                document.getElementById('postsCount').textContent = userPostsCount;
+                
+            } catch (error) {
+                console.error('Error loading posts count:', error);
+            }
+        }
+
+        // Update followers UI
+        function updateFollowersUI() {
+            // Update counts
+            document.getElementById('followersCount').textContent = followers.length;
+            document.getElementById('followingCount').textContent = following.length;
+            
+            // Update followers list
+            updateFollowersList();
+            updateFollowingList();
+        }
+
+        // Update followers list
+        function updateFollowersList() {
+            followersList.innerHTML = '';
+            
+            if (followers.length === 0) {
+                followersList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No followers yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            followers.forEach(follower => {
+                const followerItem = document.createElement('div');
+                followerItem.className = 'follower-item';
+                followerItem.innerHTML = `
+                    <div class="follower-avatar">
+                        ${follower.profile_photo ? 
+                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(follower.full_name)
+                        }
+                    </div>
+                    <div class="follower-info">
+                        <div class="follower-name">${follower.full_name}</div>
+                        <div class="follower-username">@${follower.username}</div>
+                    </div>
+                    <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}" 
+                            onclick="toggleFollow('${follower.id}')"
+                            data-user-id="${follower.id}">
+                        ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
+                    </button>
+                `;
+                followersList.appendChild(followerItem);
+            });
+        }
+
+        // Update following list
+        function updateFollowingList() {
+            followingList.innerHTML = '';
+            
+            if (following.length === 0) {
+                followingList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-plus"></i>
+                        <p>Not following anyone yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            following.forEach(followedUser => {
+                const followingItem = document.createElement('div');
+                followingItem.className = 'following-item';
+                followingItem.innerHTML = `
+                    <div class="following-avatar">
+                        ${followedUser.profile_photo ? 
+                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(followedUser.full_name)
+                        }
+                    </div>
+                    <div class="following-info">
+                        <div class="following-name">${followedUser.full_name}</div>
+                        <div class="following-username">@${followedUser.username}</div>
+                    </div>
+                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
+                        Unfollow
+                    </button>
+                `;
+                followingList.appendChild(followingItem);
+            });
+        }
+
+        // Check if current user is following a specific user
+        function isFollowing(userId) {
+            return following.some(user => user.id === userId);
+        }
+
+        // Toggle follow/unfollow
+        async function toggleFollow(userId) {
+            try {
+                if (isFollowing(userId)) {
+                    await unfollowUser(userId);
+                } else {
+                    await followUser(userId);
+                }
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                showError('Error updating follow status');
+            }
+        }
+
+        // Follow a user
+        async function followUser(userId) {
+            try {
+                const { error } = await supabase
+                    .from('followers')
+                    .insert([
+                        {
+                            follower_id: currentUser.id,
+                            following_id: userId
+                        }
+                    ]);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
+                showError('User followed successfully!');
+                
+            } catch (error) {
+                console.error('Error following user:', error);
+                throw error;
+            }
+        }
+
+        // Unfollow a user
+        async function unfollowUser(userId) {
+            try {
+                const { error } = await supabase
+                    .from('followers')
+                    .delete()
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', userId);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
+                showError('User unfollowed');
+                
+            } catch (error) {
+                console.error('Error unfollowing user:', error);
+                throw error;
+            }
+        }
+
+        // Load user notifications from Supabase
+        async function loadUserNotifications() {
+            try {
+                const { data: notifications, error } = await supabase
+                    .from('notifications')
+                    .select(`
+                        *,
+                        sender:profiles!sender_id(full_name, username),
+                        post:posts(id, content)
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                    
+                if (error) throw error;
+                
+                userNotifications = notifications || [];
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                showError('Error loading notifications');
+            }
+        }
+
+        // Update the UI with notifications data
+        function updateNotificationsUI() {
+            notificationsList.innerHTML = '';
+            
+            if (userNotifications.length === 0) {
+                notificationsList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>No notifications yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            userNotifications.forEach(notification => {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                
+                // Format time
+                const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                let message = '';
+                if (notification.type === 'new_post') {
+                    const postPreview = notification.post?.content?.substring(0, 50) + (notification.post?.content?.length > 50 ? '...' : '');
+                    message = `New post: "${postPreview}"`;
+                } else if (notification.type === 'new_follower') {
+                    message = 'Started following you';
+                } else {
+                    message = notification.content;
+                }
+                
+                notificationItem.innerHTML = `
+                    <div class="notification-header">
+                        <div class="notification-sender">${notification.sender?.full_name || 'System'}</div>
+                        <div class="notification-time">${time}</div>
+                    </div>
+                    <div class="notification-message">${message}</div>
+                `;
+                
+                notificationsList.appendChild(notificationItem);
+            });
+        }
+
+        // Set up real-time notifications subscription
+        function setupNotificationsSubscription() {
+            const channel = supabase
+                .channel(`notifications-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        // Add new notification to the beginning of the list
+                        userNotifications.unshift(payload.new);
+                        updateNotificationsUI();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for followers
+        function setupFollowersRealtime() {
+            // Subscribe to followers changes
+            const followersChannel = supabase
+                .channel(`followers-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `following_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `follower_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for posts
+        function setupPostsRealtime() {
+            // Subscribe to posts count changes
+            const postsChannel = supabase
+                .channel(`posts-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'posts',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadPostsCount();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Get initials from full name
+        function getInitials(fullName) {
+            if (!fullName) return 'U';
+            return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
+        }
+
+        // Show error message
+        function showError(message) {
+            // You could implement a toast notification system here
+            console.error(message);
+            alert(message);
+        }
+
+        // Theme toggle with swipe
+        let startX;
+        header.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            header.style.transition = 'none';
+            header.classList.add('swiping');
+        });
+
+        header.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) {
+                const dx = e.clientX - startX;
+                if (dx < -50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
+                } else if (dx > 50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
+                }
+            }
+        });
+
+        header.addEventListener('mouseup', (e) => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            
+            if (startX) {
+                const dx = e.clientX - startX;
+                if (dx < -50) {
+                    applyTheme('light');
+                } else if (dx > 50) {
+                    applyTheme('dark');
+                }
+                startX = null;
+            }
+        });
+
+        header.addEventListener('mouseleave', () => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            startX = null;
+        });
+
+        // Touch events for mobile
+        header.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            header.style.transition = 'none';
+            header.classList.add('swiping');
+        });
+
+        header.addEventListener('touchmove', (e) => {
+            if (startX) {
+                const dx = e.touches[0].clientX - startX;
+                if (dx < -50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
+                } else if (dx > 50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
+                }
+            }
+        });
+
+        header.addEventListener('touchend', (e) => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            
+            if (startX) {
+                const dx = e.changedTouches[0].clientX - startX;
+                if (dx < -50) {
+                    applyTheme('light');
+                } else if (dx > 50) {
+                    applyTheme('dark');
+                }
+                startX = null;
+            }
+        });
+
+        // Apply theme function
+        function applyTheme(theme) {
+            body.setAttribute('data-theme', theme);
+            localStorage.setItem('peerloom-theme', theme);
+            darkModeToggle.checked = theme === 'dark';
+            
+            // Save theme preference to database
+            if (userProfile) {
+                saveThemePreference(theme);
+            }
+        }
+
+        // Save theme preference to database
+        async function saveThemePreference(theme) {
+            try {
                 const { error } = await supabase
                     .from('profiles')
-                    .update({ bio, campus, level, department, privacy: { hideAcademic, hideGroups } })
-                    .eq('id', user.id);
-
-                if (error) {
-                    console.error('Save error:', error.message);
-                    showModal(`Error saving changes: ${error.message}`);
-                } else {
-                    document.getElementById('bioDisplay').textContent = bio || 'No bio yet...';
-                    document.getElementById('campus').textContent = campus;
-                    document.getElementById('level').textContent = level;
-                    document.getElementById('department').textContent = department;
-                    document.getElementById('academicDetails').innerHTML = `
-                        <p><strong>Campus:</strong> <span id="campus">${campus}</span></p>
-                        <p><strong>Level:</strong> <span id="level">${level}</span></p>
-                        <p><strong>Department:</strong> <span id="department">${department}</span></p>
-                    `;
-                    document.getElementById('academicDetails').style.display = hideAcademic ? 'none' : 'block';
-                    document.getElementById('groupsList').style.display = hideGroups ? 'none' : 'block';
-                    button.textContent = 'Edit Profile';
-                }
+                    .update({ theme_preference: theme })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+            } catch (error) {
+                console.error('Error saving theme preference:', error);
             }
-        });
-
-        let startX;
-        const navbar = document.getElementById('navbar');
-        navbar.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            navbar.style.transition = 'none';
-        }, { passive: true });
-        navbar.addEventListener('touchmove', (e) => {
-            const dx = e.touches[0].clientX - startX;
-            if (dx < 0) navbar.classList.add('active');
-        }, { passive: true });
-        navbar.addEventListener('touchend', () => {
-            navbar.style.transition = 'transform 0.3s ease';
-            if (navbar.classList.contains('active')) {
-                const body = document.body;
-                const isDark = body.classList.contains('dark-mode');
-                const textDark = isDark ? '#e6e8f0' : '#1a202c';
-                const textLight = isDark ? '#a0aec0' : '#718096';
-                if (isDark) {
-                    body.classList.remove('dark-mode');
-                    document.documentElement.style.setProperty('--text-dark', '#1a202c');
-                    document.documentElement.style.setProperty('--text-light', '#a0aec0');
-                    body.style.background = 'linear-gradient(135deg, #e6e8f0, #f0f2f5)';
-                } else {
-                    body.classList.add('dark-mode');
-                    document.documentElement.style.setProperty('--text-dark', '#e6e8f0');
-                    document.documentElement.style.setProperty('--text-light', '#a0aec0');
-                    body.style.background = 'linear-gradient(135deg, #2d3748, #4a5568)';
-                }
-            }
-            navbar.classList.remove('active');
-        }, { passive: true });
-
-        function showModal(message) {
-            const modal = document.getElementById('errorModal');
-            const modalMessage = document.getElementById('modalMessage');
-            modalMessage.textContent = message;
-            modal.style.display = 'flex';
         }
 
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('errorModal').style.display = 'none';
+        // Initialize theme
+        const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
+        applyTheme(savedTheme);
+
+        // Settings drawer functionality
+        settingsBtn.addEventListener('click', () => {
+            settingsDrawer.classList.add('open');
+            overlay.classList.add('active');
         });
 
-        loadProfile();
+        closeDrawer.addEventListener('click', () => {
+            settingsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Notifications drawer functionality
+        notificationsBtn.addEventListener('click', () => {
+            notificationsDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
+
+        closeNotifications.addEventListener('click', () => {
+            notificationsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Followers drawer functionality
+        followersBtn.addEventListener('click', () => {
+            followersDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
+
+        closeFollowersDrawer.addEventListener('click', () => {
+            followersDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Tab switching for followers/following
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.getAttribute('data-tab');
+                
+                // Update active tab
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Show appropriate content
+                if (tab === 'followers') {
+                    followersList.style.display = 'block';
+                    followingList.style.display = 'none';
+                } else {
+                    followersList.style.display = 'none';
+                    followingList.style.display = 'block';
+                }
+            });
+        });
+
+        overlay.addEventListener('click', () => {
+            settingsDrawer.classList.remove('open');
+            notificationsDrawer.classList.remove('open');
+            followersDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+            twoFactorModal.classList.remove('active');
+        });
+
+        // Mark all notifications as read
+        markAllReadBtn.addEventListener('click', async () => {
+            try {
+                const unreadNotifications = userNotifications.filter(n => !n.read);
+                if (unreadNotifications.length === 0) return;
+                
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ read: true })
+                    .eq('user_id', currentUser.id)
+                    .eq('read', false);
+                    
+                if (error) throw error;
+                
+                // Update local state
+                userNotifications.forEach(n => {
+                    n.read = true;
+                });
+                
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+                showError('Error marking notifications as read');
+            }
+        });
+
+        // 2FA functionality
+        twoFactorToggle.addEventListener('change', () => {
+            if (twoFactorToggle.checked) {
+                twoFactorModal.classList.add('active');
+                overlay.classList.add('active');
+            }
+        });
+
+        cancel2FA.addEventListener('click', () => {
+            twoFactorModal.classList.remove('active');
+            overlay.classList.remove('active');
+            twoFactorToggle.checked = false;
+        });
+
+        confirm2FA.addEventListener('click', () => {
+            twoFactorModal.classList.remove('active');
+            overlay.classList.remove('active');
+            // In a real app, you would enable 2FA here
+            showError('Two-factor authentication has been enabled!');
+        });
+
+        // Dark mode toggle in settings
+        darkModeToggle.addEventListener('change', () => {
+            applyTheme(darkModeToggle.checked ? 'dark' : 'light');
+        });
+
+        // Notification toggles
+        emailNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
+        });
+
+        pushNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
+        });
+
+        // Privacy toggles
+        showFullNameToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_full_name', showFullNameToggle.checked);
+        });
+
+        showAcademicInfoToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked);
+        });
+
+        showGroupsCountToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked);
+        });
+
+        // Save privacy setting to database
+        async function savePrivacySetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
+
+        // Save notification setting to database
+        async function saveNotificationSetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
+
+        // Avatar upload
+        const avatarUpload = document.getElementById('avatarUpload');
+        const avatar = document.getElementById('avatars');
+        
+        avatarUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                // Upload avatar to Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                // Update profile with avatar URL
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ profile_photo: publicUrl })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+
+                // Update UI
+                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar">`;
+                
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                showError('Error uploading avatar');
+            }
+        });
+
+        // Edit academic details functionality
+        editAcademicBtn.addEventListener('click', () => {
+            // Hide values, show inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
+            academicActions.style.display = 'flex';
+            editAcademicBtn.style.display = 'none';
+        });
+
+        cancelAcademicEdit.addEventListener('click', () => {
+            // Show values, hide inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+            academicActions.style.display = 'none';
+            editAcademicBtn.style.display = 'block';
+            
+            // Reset input values to current user data
+            const campus = userProfile.custom_campus || userProfile.campus || '';
+            const level = userProfile.custom_level || userProfile.level || '';
+            
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelInput').value = level;
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('contactInput').value = userProfile.contact || '';
+        });
+
+        saveAcademicEdit.addEventListener('click', async () => {
+            try {
+                // Update user data in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        campus: document.getElementById('campusInput').value,
+                        custom_campus: document.getElementById('campusInput').value,
+                        level: document.getElementById('levelInput').value,
+                        custom_level: document.getElementById('levelInput').value,
+                        department: document.getElementById('departmentInput').value,
+                        contact: document.getElementById('contactInput').value
+                    })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.campus = document.getElementById('campusInput').value;
+                userProfile.custom_campus = document.getElementById('campusInput').value;
+                userProfile.level = document.getElementById('levelInput').value;
+                userProfile.custom_level = document.getElementById('levelInput').value;
+                userProfile.department = document.getElementById('departmentInput').value;
+                userProfile.contact = document.getElementById('contactInput').value;
+                
+                // Update displayed values
+                document.getElementById('campusValue').textContent = userProfile.custom_campus || userProfile.campus || 'Not set';
+                document.getElementById('levelValue').textContent = userProfile.custom_level || userProfile.level || 'Not set';
+                document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+                document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
+                
+                // Show values, hide inputs
+                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+                academicActions.style.display = 'none';
+                editAcademicBtn.style.display = 'block';
+                
+                showError('Academic details updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating academic details:', error);
+                showError('Error updating academic details');
+            }
+        });
+
+        // Edit bio functionality
+        editBioBtn.addEventListener('click', () => {
+            bioContent.style.display = 'none';
+            bioInput.style.display = 'block';
+            bioActions.style.display = 'flex';
+            editBioBtn.style.display = 'none';
+        });
+
+        cancelBioEdit.addEventListener('click', () => {
+            bioContent.style.display = 'block';
+            bioInput.style.display = 'none';
+            bioActions.style.display = 'none';
+            editBioBtn.style.display = 'block';
+            
+            // Reset bio input to current value
+            bioInput.value = userProfile.bio || '';
+        });
+
+        saveBioEdit.addEventListener('click', async () => {
+            try {
+                const newBio = bioInput.value;
+                
+                // Update bio in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ bio: newBio })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.bio = newBio;
+                bioContent.textContent = userProfile.bio || 'No bio yet...';
+                
+                bioContent.style.display = 'block';
+                bioInput.style.display = 'none';
+                bioActions.style.display = 'none';
+                editBioBtn.style.display = 'block';
+                
+                showError('Bio updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating bio:', error);
+                showError('Error updating bio');
+            }
+        });
+
+        // Share profile functionality
+        shareProfileBtn.addEventListener('click', async () => {
+            try {
+                // Create a shareable link
+                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `${userProfile.full_name}'s Profile`,
+                        text: `Check out ${userProfile.full_name}'s profile on Peerloom`,
+                        url: profileUrl
+                    });
+                } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(profileUrl);
+                    showError('Profile link copied to clipboard!');
+                }
+            } catch (error) {
+                console.error('Error sharing profile:', error);
+                
+                // Fallback: copy to clipboard
+                try {
+                    const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                    await navigator.clipboard.writeText(profileUrl);
+                    showError('Profile link copied to clipboard!');
+                } catch (clipboardError) {
+                    console.error('Error copying to clipboard:', clipboardError);
+                    showError('Error sharing profile');
+                }
+            }
+        });
+
+        // Make functions available globally for onclick handlers
+        window.toggleFollow = toggleFollow;
+        window.unfollowUser = unfollowUser;
+
+        // Initialize the page
+        initializePage();
     </script>
 </body>
 </html>

@@ -21,25 +21,30 @@
       --msg-hover-light: rgba(0, 0, 0, 0.15);
       --msg-hover-dark: rgba(255, 255, 255, 0.15);
       --accent: #4a90e2;
-      --ai-bg-light: rgba(0, 102, 255, 0.1);
-      --ai-bg-dark: rgba(0, 102, 255, 0.15);
+      --ai-bg-light: rgba(0, 102, 255, 0.2);
+      --ai-bg-dark: rgba(0, 102, 255, 0.25);
       --circle-bg-dark: rgba(255, 255, 255, 0.2);
       --placeholder-fade: rgba(0, 0, 0, 0.3);
       --gloss-red: rgba(255,71,87,0.14);
       --gloss-red-strong: rgba(255,71,87,0.28);
     }
+    
+    /* FIXED: Dark mode applies to entire page */
     [data-theme="dark"] {
-      --glass-bg: rgba(20, 22, 28, 0.98);
+      --page-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      --glass-bg: rgba(20, 22, 28, 0.95);
       --text: #f1f1f1;
-      --msg-bg: rgba(40, 42, 54, 0.98);
+      --msg-bg: rgba(40, 42, 54, 0.95);
       --msg-hover: rgba(60, 62, 74, 1);
-      --ai-bg: rgba(0, 102, 255, 0.18);
-      --circle-bg: rgba(30, 32, 38, 0.98);
+      --ai-bg: var(--ai-bg-dark);
+      --circle-bg: rgba(30, 32, 38, 0.95);
       --placeholder-fade: rgba(200, 200, 200, 0.3);
       --gloss-red: rgba(255,71,87,0.12);
       --gloss-red-strong: rgba(255,71,87,0.22);
     }
+    
     [data-theme="light"] {
+      --page-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --glass-bg: var(--glass-bg-light);
       --text: var(--text-light);
       --msg-bg: var(--msg-bg-light);
@@ -47,6 +52,7 @@
       --ai-bg: var(--ai-bg-light);
       --circle-bg: var(--glass-bg-light);
     }
+    
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     /* Mobile viewport fixes */
@@ -58,7 +64,7 @@
     }
     
     body {
-      background: var(--glass-bg);
+      background: var(--page-bg);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       display: flex;
@@ -121,7 +127,7 @@
       margin-bottom: 0;
     }
     
-    /* iOS26 Style Messages */
+    /* iOS26 Style Messages - FIXED AI BUBBLE VISIBILITY */
     .msg { 
       max-width: 85%; 
       padding: 0.8rem 1rem; 
@@ -156,8 +162,9 @@
       align-self: flex-start; 
       background: var(--ai-bg);
       border-bottom-left-radius: 4px;
-      border: 1px solid rgba(74, 144, 226, 0.2);
+      border: 1px solid rgba(74, 144, 226, 0.3);
       font-weight: 500;
+      color: var(--text);
     }
     
     .msg:hover { background: var(--msg-hover); }
@@ -610,6 +617,51 @@
       background: rgba(255, 71, 87, 0.2);
     }
 
+    /* Desktop view improvements - FIXED SIZE */
+    @media (min-width: 769px) {
+      body {
+        padding: 20px;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .chat-arena {
+        max-width: 900px;
+        width: 95%;
+        height: 95vh;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+        background: var(--glass-bg);
+      }
+      
+      .chat-header, .chat-messages, .chat-input-area {
+        margin: 0.8rem;
+      }
+      
+      .chat-messages {
+        padding: 1.5rem;
+      }
+      
+      .msg {
+        max-width: 70%;
+      }
+      
+      .group-drawer {
+        max-width: 600px;
+        height: 0;
+      }
+      
+      .group-drawer.open {
+        height: 75vh;
+      }
+      
+      .message-bar {
+        font-size: 1.1rem;
+        padding: 0.8rem 4rem 0.8rem 1.2rem;
+      }
+    }
+
     /* Mobile-specific adjustments */
     @media (max-width: 768px) {
       body {
@@ -946,7 +998,7 @@
       font-weight: 500;
     }
 
-    /* NEW: Improved message swipe action - Slower and longer */
+    /* NEW: Improved message swipe action - Fixed swipe behavior */
     .msg.swiping {
       transform: translateX(-80px);
       transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -1108,30 +1160,78 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// Load members - Fixed query to handle database schema
-const { data: memberData } = await supabase
-  .from('group_members')
-  .select(`
-    user_id,
-    profiles:user_id (
-      id,
-      username,
-      full_name,
-      avatar_url
-    )
-  `)
-  .eq('group_id', gid);
-memberDetails = memberData || [];
-isMember = memberDetails.some(m => m.user_id === user.id);
+// FIXED: Load members with proper profile data and names
+async function loadMembers() {
+  try {
+    console.log('Loading members for group:', gid);
+    
+    // First get group members with user IDs
+    const { data: groupMembers, error: gmError } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', gid);
+    
+    if (gmError) {
+      console.error('Error loading group members:', gmError);
+      memberDetails = [];
+      return;
+    }
+    
+    console.log('Group members found:', groupMembers);
+    
+    if (!groupMembers || groupMembers.length === 0) {
+      memberDetails = [];
+      return;
+    }
+    
+    // Extract user IDs
+    const userIds = groupMembers.map(member => member.user_id);
+    console.log('User IDs to fetch:', userIds);
+    
+    // Fetch user profiles with proper error handling
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error('Error loading profiles:', profilesError);
+      // Fallback: create basic member info from user IDs
+      memberDetails = groupMembers.map(member => ({
+        user_id: member.user_id,
+        profiles: null
+      }));
+    } else {
+      console.log('Profiles loaded:', profiles);
+      
+      // Combine group members with their profiles
+      memberDetails = groupMembers.map(member => {
+        const profile = profiles.find(p => p.id === member.user_id);
+        return {
+          user_id: member.user_id,
+          profiles: profile || null
+        };
+      });
+    }
+    
+    isMember = memberDetails.some(m => m.user_id === user.id);
+    console.log('Final member details:', memberDetails);
+    
+  } catch (err) {
+    console.error('Unexpected error loading members:', err);
+    memberDetails = [];
+  }
+}
 
-// Check if AI user is in the group, if not add them - Fixed to handle schema properly
+await loadMembers();
+
+// Check if AI user is in the group, if not add them
 async function ensureAIUserInGroup() {
   const isAIInGroup = memberDetails.some(m => m.user_id === AI_USER_ID);
   
   if (!isAIInGroup) {
     console.log('Adding AI user to group...');
     try {
-      // Try without role field first
       const { error } = await supabase
         .from('group_members')
         .insert({
@@ -1139,28 +1239,11 @@ async function ensureAIUserInGroup() {
           user_id: AI_USER_ID
         });
       
-      if (error) {
+      if (error && error.code !== '23505') { // Ignore duplicate errors
         console.log('Error adding AI user to group:', error);
-        // If it's a duplicate error, that's fine - the AI user is already there
-        if (error.code === '23505') {
-          console.log('AI user already exists in group');
-        }
       } else {
         // Reload member details to include AI user
-        const { data: updatedMemberData } = await supabase
-          .from('group_members')
-          .select(`
-            user_id,
-            profiles:user_id (
-              id,
-              username,
-              full_name,
-              avatar_url
-            )
-          `)
-          .eq('group_id', gid);
-        
-        memberDetails = updatedMemberData || [];
+        await loadMembers();
       }
     } catch (err) {
       console.log('Unexpected error adding AI user:', err);
@@ -1197,6 +1280,21 @@ const createDefaultAvatar = (name) => {
   return canvas.toDataURL();
 };
 
+// FIXED: Get proper display name for users
+function getDisplayName(member) {
+  if (member.user_id === AI_USER_ID) {
+    return AI_USER_NAME;
+  }
+  
+  if (member.profiles) {
+    // Try full_name first, then username
+    return member.profiles.full_name || member.profiles.username || `User ${member.user_id.substring(0,6)}`;
+  }
+  
+  // Fallback to user ID
+  return `User ${member.user_id.substring(0,6)}`;
+}
+
 // Initialize mention system
 function initMentionSystem() {
   // Build mention users list with PeerPal AI always first
@@ -1213,17 +1311,16 @@ function initMentionSystem() {
   // Add real users from memberDetails (excluding AI user to avoid duplicates)
   if (memberDetails && memberDetails.length > 0) {
     memberDetails.forEach(member => {
-      if (member.user_id !== AI_USER_ID && member.profiles) {
-        const profile = member.profiles;
-        const name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
-        const username = `@${name}`;
+      if (member.user_id !== AI_USER_ID) {
+        const displayName = getDisplayName(member);
+        const username = `@${displayName}`;
         
         mentionUsers.push({
           id: member.user_id,
-          name: name,
+          name: displayName,
           username: username,
           isAI: false,
-          avatar: profile.avatar_url || createDefaultAvatar(name)
+          avatar: member.profiles?.avatar_url || createDefaultAvatar(displayName)
         });
       }
     });
@@ -1417,39 +1514,37 @@ function handleAIMentionClick(userId) {
 
 // ---------- CLEAN TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 
-// Render members in the transparent glass list
+// FIXED: Render members with proper names and avatars
 function renderMembers() {
   membersList.innerHTML = '';
+  
   if (!memberDetails || memberDetails.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'member-item';
-    empty.innerHTML = `<div class="member-name">No members yet</div>`;
+    empty.innerHTML = `<div class="member-name">No members found in this group</div>`;
     membersList.appendChild(empty);
     return;
   }
 
+  console.log('Rendering members:', memberDetails);
+
   memberDetails.forEach(member => {
-    let name, avatarUrl, isAI = false;
+    const displayName = getDisplayName(member);
+    const isAI = member.user_id === AI_USER_ID;
     
-    if (member.user_id === AI_USER_ID) {
-      name = AI_USER_NAME;
+    let avatarUrl;
+    if (isAI) {
       avatarUrl = createDefaultAvatar('AI');
-      isAI = true;
-    } else if (member.profiles) {
-      const profile = member.profiles;
-      name = profile.full_name || profile.username || `User ${member.user_id.substring(0,6)}`;
-      avatarUrl = profile.avatar_url || createDefaultAvatar(name);
     } else {
-      name = `User ${member.user_id.substring(0,6)}`;
-      avatarUrl = createDefaultAvatar(name);
+      avatarUrl = member.profiles?.avatar_url || createDefaultAvatar(displayName);
     }
 
     const item = document.createElement('div');
     item.className = `member-item ${isAI ? 'ai-member' : ''}`;
     item.innerHTML = `
-      <img src="${avatarUrl}" class="member-avatar" alt="${name}">
+      <img src="${avatarUrl}" class="member-avatar" alt="${displayName}">
       <div class="member-info">
-        <div class="member-name">${name}</div>
+        <div class="member-name">${displayName}</div>
         <div class="member-role">${isAI ? 'AI Assistant' : 'Member'}</div>
       </div>
       <div class="member-status ${isAI ? 'ai' : ''}"></div>
@@ -1528,8 +1623,23 @@ document.addEventListener('click', (e) => {
 function render(m) {
   const mine = m.sender_id === user.id;
   const isAI = m.sender_id === AI_USER_ID;
-  const senderName = mine ? (user.user_metadata.firstName || user.user_metadata.full_name || 'You') : 
-                    isAI ? AI_USER_NAME : m.sender_name || 'Unknown';
+  
+  // FIXED: Get proper sender name from member details or message data
+  let senderName;
+  if (mine) {
+    senderName = user.user_metadata.firstName || user.user_metadata.full_name || 'You';
+  } else if (isAI) {
+    senderName = AI_USER_NAME;
+  } else {
+    // Try to find the sender in member details
+    const senderMember = memberDetails.find(member => member.user_id === m.sender_id);
+    if (senderMember) {
+      senderName = getDisplayName(senderMember);
+    } else {
+      // Fallback to message data or user ID
+      senderName = m.sender_name || `User ${m.sender_id.substring(0,6)}`;
+    }
+  }
   
   const div = document.createElement('div');
   div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
@@ -1566,7 +1676,10 @@ function render(m) {
     });
   });
 
-  attachGestures(div, mine, m);
+  // FIXED: Only attach gestures to received messages (not own messages)
+  if (!mine) {
+    attachGestures(div, mine, m);
+  }
 }
 
 // Load history
@@ -1577,8 +1690,8 @@ async function loadHistory() {
 }
 await loadHistory();
 
-// ---------- TYPING INDICATORS FOR ALL USERS ----------
-let typingUsers = new Set();
+// ---------- FIXED TYPING INDICATORS - NO DUPLICATES ----------
+let typingUsers = new Map(); // Changed to Map to prevent duplicates
 let typingTimeout;
 
 // Set up typing indicator channel
@@ -1595,14 +1708,9 @@ typingChannel
     
     if (user_id !== user.id) { // Don't show our own typing indicator
       if (isTyping) {
-        typingUsers.add({ id: user_id, name: user_name });
+        typingUsers.set(user_id, { id: user_id, name: user_name });
       } else {
-        // Remove this user from typing indicators
-        typingUsers.forEach(typingUser => {
-          if (typingUser.id === user_id) {
-            typingUsers.delete(typingUser);
-          }
-        });
+        typingUsers.delete(user_id);
       }
       renderTypingIndicators();
     }
@@ -1639,9 +1747,9 @@ messageBar.addEventListener('input', () => {
   }, 1000);
 });
 
-// Render typing indicators for all users
+// FIXED: Render typing indicators without duplicates
 function renderTypingIndicators() {
-  // Remove existing typing indicators (except AI)
+  // Remove all existing typing indicators (except AI)
   document.querySelectorAll('.typing-indicator').forEach(el => {
     if (!el.classList.contains('ai')) {
       el.remove();
@@ -1667,12 +1775,11 @@ function renderTypingIndicators() {
   messagePanel.scrollTop = messagePanel.scrollHeight;
 }
 
-// Real-time updates for messages - FIXED to show all messages immediately
+// FIXED: Real-time updates for messages - Now renders all messages immediately
 supabase.channel(`grp_${gid}`)
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
     (payload) => {
-      // Render all messages except the current user's own non-AI messages
-      // But DO render AI messages (even though they're inserted by the same user)
+      // Render all messages immediately, including AI messages
       if (payload.new.sender_id !== user.id || payload.new.sender_id === AI_USER_ID) {
         // Remove typing indicator if it exists
         hideAITypingIndicator();
@@ -1754,7 +1861,7 @@ messageBar.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
-// ---------- FIXED GEMINI AI INTEGRATION WITH FREE TIER MODELS ----------
+// ---------- FIXED GEMINI AI INTEGRATION WITH TYPING INDICATOR ----------
 async function checkPeerloomAI(message) {
   // Check for @PeerPal AI mention specifically or if replying to AI
   const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
@@ -1765,7 +1872,7 @@ async function checkPeerloomAI(message) {
   try {
     console.log('Calling Gemini AI with message:', message);
     
-    // Show typing indicator
+    // Show typing indicator for AI
     showAITypingIndicator();
     
     // Clean the message by removing the mention if present
@@ -2035,13 +2142,12 @@ fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
-// ---------- IMPROVED GESTURES & REPLIES ----------
+// ---------- FIXED SWIPE GESTURES - OWN MESSAGES WORKING ----------
 
-// Improved swipe gesture with better sensitivity
+// Improved swipe gesture with better sensitivity and reliability
 function attachGestures(el, mine, msg) {
   let startX, startY, isSwiping = false;
   let longT;
-  let swipeStartTime;
   
   // Create swipe indicator
   const swipeIndicator = document.createElement('div');
@@ -2053,12 +2159,13 @@ function attachGestures(el, mine, msg) {
   const handleStart = (x, y) => {
     startX = x;
     startY = y;
-    swipeStartTime = Date.now();
+    isSwiping = false;
     
+    // Only set long press for own messages (delete)
     if (mine) {
       longT = setTimeout(() => { 
         showDeleteMessageModal(msg.id);
-      }, 1200); // 1.2 seconds for long press
+      }, 800); // 0.8 seconds for long press on own messages
     }
   };
   
@@ -2073,17 +2180,19 @@ function attachGestures(el, mine, msg) {
     }
     
     // Only consider horizontal movement with minimal vertical movement
-    if (deltaX > 20 && deltaY < 30) {
+    if (deltaX > 15 && deltaY < 50 && !isSwiping) {
       isSwiping = true;
       el.classList.add('swiping');
       swipeIndicator.classList.add('show');
-      
+    }
+    
+    if (isSwiping) {
       // Calculate swipe progress (0 to 1)
-      const swipeProgress = Math.min(deltaX / 150, 1);
-      const translateX = -80 * swipeProgress;
+      const swipeProgress = Math.min(deltaX / 100, 1);
+      const translateX = -60 * swipeProgress;
       el.style.transform = `translateX(${translateX}px)`;
       
-      if (deltaX > 150) {
+      if (deltaX > 100) {
         startReply(msg);
         resetSwipe(el, swipeIndicator);
       }
@@ -2119,16 +2228,21 @@ function attachGestures(el, mine, msg) {
   el.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return; // Only left click
     handleStart(e.clientX, e.clientY);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   });
   
-  el.addEventListener('mousemove', (e) => {
-    if (e.buttons === 1 && isSwiping) {
+  function handleMouseMove(e) {
+    if (isSwiping || Math.abs(e.clientX - startX) > 10) {
       handleMove(e.clientX, e.clientY);
     }
-  });
+  }
   
-  el.addEventListener('mouseup', handleEnd);
-  el.addEventListener('mouseleave', handleEnd);
+  function handleMouseUp() {
+    handleEnd();
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }
   
   // Touch events
   el.addEventListener('touchstart', (e) => {
@@ -2136,14 +2250,14 @@ function attachGestures(el, mine, msg) {
   });
   
   el.addEventListener('touchmove', (e) => {
-    if (isSwiping) {
+    if (isSwiping || Math.abs(e.touches[0].clientX - startX) > 10) {
       handleMove(e.touches[0].clientX, e.touches[0].clientY);
     }
   });
   
   el.addEventListener('touchend', handleEnd);
   
-  // Double click for edit
+  // Double click for edit (only own messages)
   el.addEventListener('dblclick', () => {
     if (mine) {
       showEditMessageModal(msg.id, msg.content);

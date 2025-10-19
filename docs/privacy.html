@@ -3,63 +3,343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Privacy Policy | PeerLoom - Protecting Your Data</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; line-height: 1.6; background: #f3e8ff; }
-        header { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; padding: 20px; text-align: center; position: relative; overflow: hidden; }
-        header::before { content: ''; position: absolute; top: -20%; left: -20%; width: 140%; height: 140%; background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%); z-index: -1; opacity: 0.3; }
-        main { padding: 20px; max-width: 900px; margin: auto; }
-        h1, h2 { color: #4a2c6d; }
-        ul { list-style-type: disc; margin-left: 20px; color: #6b7280; }
-        p { color: #4a2c6d; }
-        a { color: #7c3aed; text-decoration: none; }
-        a:hover { color: #6b21a8; }
-        footer { text-align: center; padding: 20px; font-size: 14px; background: rgba(124, 58, 237, 0.9); border-top: 1px solid #d1d5db; margin-top: 40px; color: #fff; }
-        @media (max-width: 600px) {
-            main { padding: 10px; }
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6b21a8;
+            --primary-light: #f3e8ff;
+            --secondary: #4f46e5;
+            --text-dark: #4a2c6d;
+            --text-medium: #6b7280;
+            --text-light: #9ca3af;
+            --white: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: var(--primary-light);
+            color: var(--text-dark);
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
+            padding: 2rem 1rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            z-index: 0;
+            opacity: 0.3;
+        }
+        
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .header-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        .breadcrumb a {
+            color: var(--white);
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            opacity: 1;
+        }
+        
+        .breadcrumb .separator {
+            opacity: 0.6;
+        }
+        
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .content-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+        
+        .effective-date {
+            background: var(--primary-light);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        h2 {
+            color: var(--text-dark);
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            position: relative;
+        }
+        
+        h2::before {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-medium);
+        }
+        
+        ul {
+            list-style-type: none;
+            margin: 1rem 0;
+        }
+        
+        li {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-medium);
+        }
+        
+        li::before {
+            content: '•';
+            color: var(--primary);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+        
+        a:hover {
+            color: var(--primary-dark);
+        }
+        
+        .contact-info {
+            background: var(--primary-light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+        
+        footer {
+            background: var(--primary);
+            color: var(--white);
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 3rem;
+        }
+        
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .footer-links a {
+            color: var(--white);
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+        
+        .footer-links a:hover {
+            opacity: 1;
+        }
+        
+        .copyright {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .content-card {
+                padding: 1.5rem;
+            }
+            
+            .footer-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.75rem;
+            }
+            
+            .content-card {
+                padding: 1rem;
+            }
+            
+            header {
+                padding: 1.5rem 1rem;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Privacy Policy</h1>
+        <div class="header-content">
+            <h1>Privacy Policy</h1>
+            <p class="header-subtitle">How we protect and handle your information at PeerLoom</p>
+            <div class="breadcrumb">
+                <a href="/index.html"><i class="fas fa-home"></i> Home</a>
+                <span class="separator">/</span>
+                <span>Privacy Policy</span>
+            </div>
+        </div>
     </header>
 
     <main>
-        <p><strong>Effective Date:</strong> 30th August 2025</p>
-        <p>PeerLoom (“we,” “our,” or “us”) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our website (peerloom.online) and platform.</p>
+        <div class="content-card">
+            <div class="effective-date">
+                <p><strong>Effective Date:</strong> 30th August 2025</p>
+                <p><strong>Last Updated:</strong> 30th August 2025</p>
+            </div>
+            
+            <p>PeerLoom ("we," "our," or "us") is committed to protecting your privacy and ensuring transparency about how we handle your information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website (peerloom.online) and platform.</p>
+            <p>By accessing or using PeerLoom, you agree to the terms of this Privacy Policy. If you do not agree with our policies and practices, please do not use our services.</p>
 
-        <h2>1. Information We Collect</h2>
-        <ul>
-            <li>Personal information (name, email, password when you sign up)</li>
-            <li>Usage data (how you interact with PeerLoom)</li>
-            <li>Device/browser information for security</li>
-        </ul>
+            <h2>1. Information We Collect</h2>
+            <p>We collect several types of information to provide and improve our services:</p>
+            <ul>
+                <li><strong>Personal Information:</strong> Name, email address, and password when you create an account</li>
+                <li><strong>Usage Data:</strong> Information about how you interact with PeerLoom, including features you use and time spent</li>
+                <li><strong>Device Information:</strong> Browser type, IP address, device type, and operating system for security and optimization</li>
+            </ul>
 
-        <h2>2. How We Use Information</h2>
-        <ul>
-            <li>To provide and improve PeerLoom</li>
-            <li>To personalize your experience</li>
-            <li>To secure accounts and prevent fraud</li>
-            <li>To communicate updates and support</li>
-        </ul>
+            <h2>2. How We Use Information</h2>
+            <p>We use the information we collect for various purposes:</p>
+            <ul>
+                <li>To provide, maintain, and improve the PeerLoom platform</li>
+                <li>To personalize your experience and content recommendations</li>
+                <li>To secure user accounts and prevent fraudulent activities</li>
+                <li>To communicate important updates, security alerts, and support messages</li>
+                <li>To analyze usage patterns and optimize our services</li>
+            </ul>
 
-        <h2>3. Sharing Information</h2>
-        <p>We do not sell your data. We may share limited information with service providers (hosting, security, analytics) or legal authorities if required by law.</p>
+            <h2>3. Information Sharing and Disclosure</h2>
+            <p>We respect your privacy and do not sell your personal information to third parties. We may share limited information with:</p>
+            <ul>
+                <li><strong>Service Providers:</strong> Trusted partners who assist with hosting, security, analytics, and customer support</li>
+                <li><strong>Legal Requirements:</strong> When required by law, regulation, or legal process</li>
+                <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
+            </ul>
+            <p>All third-party providers are contractually obligated to protect your information and use it only for the services they provide to us.</p>
 
-        <h2>4. Security</h2>
-        <p>We use SSL encryption and industry-standard measures to protect your data.</p>
+            <h2>4. Data Security</h2>
+            <p>We implement industry-standard security measures to protect your information:</p>
+            <ul>
+                <li>SSL encryption for all data transmissions</li>
+                <li>Regular security assessments and updates</li>
+                <li>Access controls and authentication protocols</li>
+                <li>Secure data storage with limited access</li>
+            </ul>
+            <p>While we strive to use commercially acceptable means to protect your information, no method of transmission over the Internet or electronic storage is 100% secure.</p>
 
-        <h2>5. Your Rights</h2>
-        <p>You can request deletion of your account or data anytime by contacting us.</p>
+            <h2>5. Your Rights and Choices</h2>
+            <p>You have control over your personal information:</p>
+            <ul>
+                <li>Access and review the personal information we hold about you</li>
+                <li>Request correction of inaccurate or incomplete information</li>
+                <li>Request deletion of your account and associated data</li>
+                <li>Opt-out of marketing communications at any time</li>
+            </ul>
+            <p>To exercise these rights, please contact us using the information below.</p>
 
-        <h2>6. Contact</h2>
-        <p>For questions, email us at: <a href="mailto:peerloomonline@gmail.com">support@peerloom.online</a></p>
+            <h2>6. Contact Us</h2>
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
+            <div class="contact-info">
+                <p><strong>Email:</strong> <a href="mailto:peerloomonline@gmail.com">support@peerloom.online</a></p>
+                <p><strong>Response Time:</strong> We typically respond to privacy-related inquiries within 2 business days.</p>
+            </div>
+            
+            <h2>7. Policy Updates</h2>
+            <p>We may update this Privacy Policy periodically to reflect changes in our practices or legal requirements. We will notify you of any material changes by posting the updated policy on our website with a new effective date.</p>
+            <p>We encourage you to review this Privacy Policy regularly to stay informed about how we are protecting your information.</p>
+        </div>
     </main>
 
     <footer>
-        <p>© 2025 PeerLoom. All rights reserved. | <a href="/index.html">Home</a></p>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="terms.html">Terms of Service</a>
+                <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
+            </div>
+            <p class="copyright">© 2025 PeerLoom. All rights reserved.</p>
+        </div>
     </footer>
 </body>
 </html>

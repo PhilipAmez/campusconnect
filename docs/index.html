@@ -43,6 +43,195 @@
             font-family: 'Segoe UI', sans-serif;
         }
 
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.8rem;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            max-width: 90%;
+            width: auto;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .notification.show {
+            opacity: 1;
+            visibility: visible;
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification.hide {
+            opacity: 0;
+            visibility: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        .notification.success {
+            color: #059669;
+            border-left: 4px solid #059669;
+        }
+
+        .notification.warning {
+            color: #d97706;
+            border-left: 4px solid #d97706;
+        }
+
+        .notification.error {
+            color: #dc2626;
+            border-left: 4px solid #dc2626;
+        }
+
+        .notification.info {
+            color: #2563eb;
+            border-left: 4px solid #2563eb;
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: currentColor;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s;
+            margin-left: auto;
+        }
+
+        .notification-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+        }
+
+        /* Splash Screen Styles */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            overflow: hidden;
+        }
+
+        .splash-content {
+            text-align: center;
+            color: white;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .letter {
+            font-size: 4rem;
+            font-weight: 800;
+            opacity: 0;
+            transform: translateY(20px);
+            display: inline-block;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 768px) {
+            .letter {
+                font-size: 3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .letter {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Animation Keyframes */
+        @keyframes letterAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes letterShake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-3px) rotate(-2deg);
+            }
+            75% {
+                transform: translateX(3px) rotate(2deg);
+            }
+        }
+
+        @keyframes letterExplode {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Main Content Styles */
         .navbar {
             position: fixed;
             width: 100%;
@@ -143,6 +332,11 @@
             .nav-toggle {
                 display: block;
             }
+            .notification {
+                top: 70px;
+                padding: 0.8rem 1.2rem;
+                font-size: 0.9rem;
+            }
         }
         @media (max-width: 480px) {
             .navbar {
@@ -150,6 +344,11 @@
             }
             .logo img {
                 height: 28px;
+            }
+            .notification {
+                top: 60px;
+                padding: 0.7rem 1rem;
+                font-size: 0.85rem;
             }
         }
 
@@ -345,106 +544,259 @@
     </style>
 </head>
 <body>
-    <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo">
-            <img src="logo.png" alt="Peerloom">
-        </a>
-        <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
-            <i class="fas fa-bars"></i>
+    <!-- Notification Container -->
+    <div id="notification" class="notification">
+        <i class="notification-icon"></i>
+        <span class="notification-message"></span>
+        <button class="notification-close">
+            <i class="fas fa-times"></i>
         </button>
-        <div class="nav-links" id="navLinks">
-            <a href="login.html" class="nav-link">Login</a>
-            <a href="support.html" class="nav-link">Support</a>
-        </div>
-        <div class="nav-links mobile" id="navLinksMobile">
-            <a href="login.html" class="nav-link">Login</a>
-            <a href="signup.html" class="nav-link">Sign Up</a>
-            <a href="about.html" class="nav-link">About</a>
-            <a href="support.html" class="nav-link">Support</a>
-        </div>
-    </nav>
+    </div>
 
-    <section class="hero">
-        <div class="hero-content">
-            <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
-            <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
-            <a href="signup.html" class="cta-button water-glass">
-                <span>Get Started</span>
-                <i class="fas fa-glass-water"></i>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="logo-container">
+                <span class="letter" id="letter-P">P</span>
+                <span class="letter" id="letter-e">e</span>
+                <span class="letter" id="letter-e2">e</span>
+                <span class="letter" id="letter-r">r</span>
+                <span class="letter" id="letter-L">L</span>
+                <span class="letter" id="letter-o">o</span>
+                <span class="letter" id="letter-o2">o</span>
+                <span class="letter" id="letter-m">m</span>
+            </div>
+            <p class="text-xl">Connecting students, learning together</p>
+        </div>
+    </div>
+
+    <!-- Main Content (initially hidden) -->
+    <div id="main-content" style="display: none;">
+        <nav class="navbar" id="navbar">
+            <a href="index.html" class="logo">
+                <img src="logo.png" alt="Peerloom">
             </a>
-        </div>
-    </section>
+            <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="navLinks">
+                <a href="login.html" class="nav-link">Login</a>
+                <a href="support.html" class="nav-link">Support</a>
+            </div>
+            <div class="nav-links mobile" id="navLinksMobile">
+                <a href="login.html" class="nav-link">Login</a>
+                <a href="signup.html" class="nav-link">Sign Up</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="support.html" class="nav-link">Support</a>
+            </div>
+        </nav>
 
-    <section class="features" id="features">
-        <div class="features-grid">
-            <div class="feature-card">
-                <i class="fas fa-brain fa-3x feature-icon"></i>
-                <h3 class="text-xl font-semibold text-gray-800 mb-2">Smart Matching</h3>
-                <p class="text-gray-600">AI-powered study partner matching</p>
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
+                <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
+                <a href="signup.html" class="cta-button water-glass">
+                    <span>Get Started</span>
+                    <i class="fas fa-glass-water"></i>
+                </a>
             </div>
-            <div class="feature-card">
-                <i class="fas fa-comments fa-3x feature-icon"></i>
-                <h3 class="text-xl font-semibold text-gray-800 mb-2">Group Chat</h3>
-                <p class="text-gray-600">Real-time collaboration tools</p>
-            </div>
-            <div class="feature-card">
-                <i class="fas fa-chart-line fa-3x feature-icon"></i>
-                <h3 class="text-xl font-semibold text-gray-800 mb-2">Progress Tracking</h3>
-                <p class="text-gray-600">Monitor your academic journey</p>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <footer>
-        <p>© 2025 PeerLoom. All rights reserved.</p>
-        <p>
-            <a href="/about.html">About</a> | 
-            <a href="/privacy.html">Privacy Policy</a> | 
-            <a href="/terms.html">Terms of Service</a> | 
-            <a href="mailto:peerloomonline@gmail.com">Contact</a>
-        </p>
-    </footer>
+        <section class="features" id="features">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fas fa-brain fa-3x feature-icon"></i>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Smart Matching</h3>
+                    <p class="text-gray-600">AI-powered study partner matching</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-comments fa-3x feature-icon"></i>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Group Chat</h3>
+                    <p class="text-gray-600">Real-time collaboration tools</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-chart-line fa-3x feature-icon"></i>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Progress Tracking</h3>
+                    <p class="text-gray-600">Monitor your academic journey</p>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>© 2025 PeerLoom. All rights reserved.</p>
+            <p>
+                <a href="/about.html">About</a> | 
+                <a href="/privacy.html">Privacy Policy</a> | 
+                <a href="/terms.html">Terms of Service</a> | 
+                <a href="mailto:peerloomonline@gmail.com">Contact</a>
+            </p>
+        </footer>
+    </div>
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        // No gatekeeping here—keep index.html public
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Loaded index.html as public page");
-        });
-
-        // Mobile nav toggle
-        const navToggle = document.getElementById('navToggle');
-        const navLinksMobile = document.getElementById('navLinksMobile');
-        if (navToggle && navLinksMobile) {
-            navToggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navLinksMobile.classList.toggle('show');
-            });
-
-            // Hide mobile nav when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-                    navLinksMobile.classList.remove('show');
-                }
-            });
-
-            // Close menu when a link is clicked
-            navLinksMobile.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    navLinksMobile.classList.remove('show');
-                });
-            });
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationIcon = notification.querySelector('.notification-icon');
+            const notificationMessage = notification.querySelector('.notification-message');
+            
+            // Set notification content and type
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type}`;
+            
+            // Set appropriate icon based on type
+            switch(type) {
+                case 'success':
+                    notificationIcon.className = 'notification-icon fas fa-check-circle';
+                    break;
+                case 'warning':
+                    notificationIcon.className = 'notification-icon fas fa-exclamation-triangle';
+                    break;
+                case 'error':
+                    notificationIcon.className = 'notification-icon fas fa-times-circle';
+                    break;
+                case 'info':
+                default:
+                    notificationIcon.className = 'notification-icon fas fa-info-circle';
+                    break;
+            }
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
         }
 
-        // Add scroll effect to navbar
-        window.addEventListener('scroll', () => {
-            const navbar = document.getElementById('navbar');
-            if (navbar) {
-                navbar.classList.toggle('scrolled', window.scrollY > 50);
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.remove('show');
+            notification.classList.add('hide');
+            
+            // Remove hide class after animation completes
+            setTimeout(() => {
+                notification.classList.remove('hide');
+            }, 300);
+        }
+
+        // Close notification when close button is clicked
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeButton = document.querySelector('.notification-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', hideNotification);
             }
         });
+
+        // Check for URL parameters and show appropriate messages
+        function checkUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+
+            if (message === 'session_timeout') {
+                showNotification('Your session has expired due to inactivity. Please log in again.', 'warning');
+                // Clean URL (remove parameters)
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'logout_success') {
+                showNotification('You have been successfully logged out.', 'success');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'session_expired') {
+                showNotification('Your session has expired. Please log in again.', 'warning');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // Splash screen animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const splashScreen = document.getElementById('splash-screen');
+            const mainContent = document.getElementById('main-content');
+            const letters = document.querySelectorAll('.letter');
+            
+            // Function to generate random values for explosion
+            function getRandomExplosionValues() {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 100 + Math.random() * 150;
+                return {
+                    tx: Math.cos(angle) * distance + 'px',
+                    ty: Math.sin(angle) * distance + 'px'
+                };
+            }
+            
+            // Animate each letter with delays
+            letters.forEach((letter, index) => {
+                // Set initial animation for appearance
+                setTimeout(() => {
+                    letter.style.animation = 'letterAppear 0.5s forwards';
+                    
+                    // Add shake animation after appearance
+                    setTimeout(() => {
+                        letter.style.animation = 'letterShake 0.5s forwards';
+                        
+                        // Add explosion animation after shaking
+                        setTimeout(() => {
+                            const explosionValues = getRandomExplosionValues();
+                            letter.style.setProperty('--tx', explosionValues.tx);
+                            letter.style.setProperty('--ty', explosionValues.ty);
+                            letter.style.animation = 'letterExplode 0.8s forwards';
+                        }, 500);
+                    }, 500);
+                }, index * 200);
+            });
+            
+            // Hide splash screen and show main content after animation completes
+            setTimeout(() => {
+                splashScreen.style.animation = 'fadeOut 0.5s forwards';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    
+                    // Initialize main page functionality
+                    initMainPage();
+                    
+                    // Check for URL parameters after page loads
+                    checkUrlParameters();
+                }, 500);
+            }, 3500);
+        });
+
+        // Initialize main page functionality
+        function initMainPage() {
+            // Mobile nav toggle
+            const navToggle = document.getElementById('navToggle');
+            const navLinksMobile = document.getElementById('navLinksMobile');
+            if (navToggle && navLinksMobile) {
+                navToggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navLinksMobile.classList.toggle('show');
+                });
+
+                // Hide mobile nav when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
+                        navLinksMobile.classList.remove('show');
+                    }
+                });
+
+                // Close menu when a link is clicked
+                navLinksMobile.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        navLinksMobile.classList.remove('show');
+                    });
+                });
+            }
+
+            // Add scroll effect to navbar
+            window.addEventListener('scroll', () => {
+                const navbar = document.getElementById('navbar');
+                if (navbar) {
+                    navbar.classList.toggle('scrolled', window.scrollY > 50);
+                }
+            });
+        }
     </script>
 </body>
 </html>
