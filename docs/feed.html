@@ -1065,7 +1065,7 @@
         let recordedChunks = [];
         let isRecording = false;
         
-        // In-memory storage for videos (replaces Supabase for demo)
+        // In-memory storage for videos
         let posts = [
             {
                 id: '1',
@@ -1774,7 +1774,13 @@
                     const videoDuration = document.getElementById('videoDuration');
                     
                     if (videoPreview) {
-                        videoPreview.src = URL.createObjectURL(blob);
+                        try {
+                            videoPreview.src = URL.createObjectURL(blob);
+                        } catch (error) {
+                            console.error('Error creating object URL:', error);
+                            showToast('Error processing recorded video');
+                            return;
+                        }
                     }
                     if (videoPreviewContainer) {
                         videoPreviewContainer.classList.add('active');
@@ -1862,7 +1868,14 @@
             const videoDuration = document.getElementById('videoDuration');
             
             if (videoPreview) {
-                videoPreview.src = URL.createObjectURL(file);
+                try {
+                    videoPreview.src = URL.createObjectURL(file);
+                } catch (error) {
+                    console.error('Error creating object URL:', error);
+                    showToast('Error loading video file');
+                    document.getElementById('uploadSubmitBtn').disabled = true;
+                    return;
+                }
             }
             if (videoPreviewContainer) {
                 videoPreviewContainer.classList.add('active');
@@ -1964,10 +1977,22 @@
                         clearInterval(progressInterval);
                         
                         // Create a new post object
+                        let media_url;
+                        try {
+                            media_url = URL.createObjectURL(videoFile);
+                        } catch (error) {
+                            console.error('Error creating object URL:', error);
+                            showToast('Error processing video file');
+                            if (uploadProgress) {
+                                uploadProgress.classList.remove('active');
+                            }
+                            return;
+                        }
+                        
                         const newPost = {
                             id: Date.now().toString(),
                             content: caption || title,
-                            media_url: URL.createObjectURL(videoFile), // Using object URL for demo
+                            media_url: media_url,
                             hashtags: hashtags,
                             username: 'current_user',
                             likes_count: 0,
