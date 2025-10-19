@@ -936,17 +936,24 @@ function attachPostBehavior(postEl, postData) {
     const source = video.querySelector('source');
     if (source) {
       source.src = postData.src;
-      video.load().then(() => {
-        // Ensure video can play after load
-        if (!postData.paused) {
-          video.play().catch(e => {
-            console.log('Video play failed:', e);
-            postEl.classList.add('paused');
-          });
+      try {
+        video.load();
+        const tryPlay = () => {
+          if (!postData.paused) {
+            video.play().catch(e => {
+              console.log('Video play failed:', e);
+              postEl.classList.add('paused');
+            });
+          }
+        };
+        if (video.readyState >= 2) {
+          tryPlay();
+        } else {
+          video.addEventListener('loadedmetadata', tryPlay, { once: true });
         }
-      }).catch(e => {
+      } catch (e) {
         console.error('Video load error:', e);
-      });
+      }
     }
   }
 
@@ -1449,14 +1456,16 @@ function setupThemeSwipe() {
 // Upload functionality - COMPLETELY REWRITTEN
 function openUploadModal() {
   uploadModal.classList.add('show');
-  
-  document.getElementById('closeUpload').addEventListener('click', () => {
-    uploadModal.classList.remove('show');
-  });
 
-  document.getElementById('recordBtn').addEventListener('click', openRecordModal);
-  
-  document.getElementById('filePicker').addEventListener('change', handleFileUpload);
+  const closeBtn = document.getElementById('closeUpload');
+  const recordBtn = document.getElementById('recordBtn');
+  const filePicker = document.getElementById('filePicker');
+
+  closeBtn.onclick = () => {
+    uploadModal.classList.remove('show');
+  };
+  recordBtn.onclick = openRecordModal;
+  filePicker.onchange = handleFileUpload;
 }
 
 function openRecordModal() {
@@ -1499,16 +1508,28 @@ function openRecordModal() {
           
           mediaRecorder.onstop = async () => {
             clearInterval(recordingTimer);
+            if (!recordedChunks || recordedChunks.length === 0) {
+              console.error('No recorded data available');
+              alert('No recording captured. Please try again.');
+              stream.getTracks().forEach(track => track.stop());
+              recordModal.classList.remove('show');
+              return;
+            }
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            
-            // Skip duration check for now to fix the upload issue
+            let objectUrl = '';
+            try {
+              objectUrl = URL.createObjectURL(blob);
+            } catch (err) {
+              console.error('Error creating object URL for recording:', err);
+              alert('Error preparing preview for the recording.');
+            }
             const id = 'p' + Math.random().toString(36).slice(2, 9);
             const newPost = { 
               id, 
               user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
               title, 
               caption, 
-              src: URL.createObjectURL(blob), 
+              src: objectUrl, 
               likes: 0, 
               comments: [], 
               liked: false, 
@@ -1585,12 +1606,20 @@ async function handleFileUpload(e) {
     // Skip duration check for now to fix upload issues
     uploadModal.classList.remove('show');
     const id = 'p' + Math.random().toString(36).slice(2, 9);
+    let objUrl = '';
+    try {
+      objUrl = URL.createObjectURL(file);
+    } catch (err) {
+      console.error('Error creating object URL:', err);
+      alert('Could not load selected file.');
+      return;
+    }
     const newPost = { 
       id, 
       user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
       title, 
       caption, 
-      src: URL.createObjectURL(file), 
+      src: objUrl, 
       likes: 0, 
       comments: [], 
       liked: false, 
@@ -1628,7 +1657,10 @@ async function uploadVideo(post, file, title, caption) {
     
     const userId = session.user.id;
     const authorName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-    const ext = file.name.split('.').pop() || 'mp4';
+    const extFromName = (file && typeof file.name === 'string' && file.name.includes('.')) ? file.name.split('.').pop() : '';
+    const mime = file && file.type ? file.type : '';
+    const defaultExt = mime.includes('webm') ? 'webm' : mime.includes('mp4') ? 'mp4' : 'mp4';
+    const ext = extFromName || defaultExt;
     const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const path = `posts/${userId}/${filename}`;
 
@@ -1641,33 +1673,30 @@ async function uploadVideo(post, file, title, caption) {
       }
     }, 200);
 
-    // Upload to Supabase storage - FIXED BUCKET NAME
+    // Upload to Supabase storage
+    let uploadPath = '';
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Facts') // Changed from 'Facts' to 'videos'
+      .from('Facts')
       .upload(path, file);
-
-    clearInterval(progressInterval);
 
     if (uploadError) {
       console.error('Upload error', uploadError);
-      // Try with 'Facts' bucket if 'videos' doesn't work
-      const { data: uploadData2, error: uploadError2 } = await supabase.storage
-        .from('Facts')
-        .upload(path, file);
-
-      if (uploadError2) {
-        alert('Upload failed: ' + uploadError2.message);
-        post.uploading = false;
-        updateProgress(100);
-        setTimeout(() => progressModal.classList.remove('show'), 1000);
-        return;
-      }
+      clearInterval(progressInterval);
+      alert('Upload failed: ' + uploadError.message);
+      post.uploading = false;
+      updateProgress(100);
+      setTimeout(() => progressModal.classList.remove('show'), 1000);
+      return;
+    } else {
+      uploadPath = uploadData.path;
     }
 
-    // Get public URL - FIXED BUCKET NAME
+    clearInterval(progressInterval);
+
+    // Get public URL
     const { data: urlData } = supabase.storage
       .from('Facts')
-      .getPublicUrl(uploadData?.path || uploadData2?.path);
+      .getPublicUrl(uploadPath);
     
     const publicUrl = urlData?.publicUrl || '';
 
