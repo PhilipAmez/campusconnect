@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skrolz - Video Feed</title>
     <style>
-        /* Base Styles & Variables */
         :root {
-            --primary-color: #6A5ACD; /* Purple-bluish */
+            --primary-color: #6A5ACD;
             --secondary-color: #8A2BE2;
             --text-color: #FFFFFF;
             --background-dark: #121212;
-            --background-light: #F5F5F5;
             --glass-bg: rgba(255, 255, 255, 0.1);
             --glass-border: rgba(255, 255, 255, 0.2);
             --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
@@ -20,39 +18,21 @@
             --spacing-md: 1rem;
             --spacing-lg: 1.5rem;
         }
-
         [data-theme="light"] {
             --text-color: #000000;
             --background-dark: #F5F5F5;
             --glass-bg: rgba(0, 0, 0, 0.1);
             --glass-border: rgba(0, 0, 0, 0.2);
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background-color: var(--background-dark);
             color: var(--text-color);
             overflow: hidden;
-            transition: background-color 0.3s ease;
         }
-
-        /* Hide scrollbar */
-        .feed-container::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .feed-container {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        /* Main Feed Container */
+        .feed-container::-webkit-scrollbar { display: none; }
+        .feed-container { -ms-overflow-style: none; scrollbar-width: none; }
         .feed-container {
             height: 100vh;
             overflow-y: scroll;
@@ -60,8 +40,6 @@
             scroll-behavior: smooth;
             position: relative;
         }
-
-        /* Video Container */
         .video-container {
             height: 100vh;
             scroll-snap-align: start;
@@ -71,904 +49,72 @@
             justify-content: center;
             align-items: center;
         }
-
-        /* Video Element */
-        .video-player {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        /* Top Bar */
+        .video-player { width: 100%; height: 100%; object-fit: cover; }
         .top-bar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: var(--spacing-md);
-            z-index: 10;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
-        }
-
-        .app-title {
-            font-weight: bold;
-            font-size: 1.2rem;
-            transition: color 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-        }
-
-        .app-title:hover {
-            background: var(--glass-bg);
-        }
-
-        .search-icon {
-            position: absolute;
-            right: var(--spacing-md);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 50%;
-            width: 2.5rem;
-            height: 2.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            box-shadow: var(--glass-shadow);
-            transition: all 0.3s ease;
-        }
-
-        .search-icon.active {
-            box-shadow: 0 0 15px var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        /* Add Post Button */
-        .add-post-btn {
-            position: absolute;
-            top: var(--spacing-md);
-            left: var(--spacing-md);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 50%;
-            width: 2.5rem;
-            height: 2.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: var(--glass-shadow);
-            transition: transform 0.2s ease;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .add-post-btn:hover {
-            transform: scale(1.1);
-        }
-
-        /* Right Sidebar Actions */
-        .actions-sidebar {
-            position: absolute;
-            right: var(--spacing-md);
-            bottom: 4rem; /* Positioned above the volume button */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--spacing-md);
-            z-index: 10;
-        }
-
-        .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-            cursor: pointer;
-        }
-
-        .action-icon {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 50%;
-            width: 2.8rem;
-            height: 2.8rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: var(--icon-size);
-            box-shadow: var(--glass-shadow);
-            transition: transform 0.2s ease;
-        }
-
-        .action-icon:hover {
-            transform: scale(1.1);
-        }
-
-        .action-count {
-            font-size: 0.75rem;
-            font-weight: bold;
-            font-family: Arial Black, Arial, sans-serif;
-        }
-
-        .like-count {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        /* Like Animation */
-        .like-animation {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 5rem;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 20;
-            color: var(--primary-color);
-            animation: like-pop 1s ease-out forwards;
-        }
-
-        @keyframes like-pop {
-            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-        }
-
-        /* Bottom Info */
-        .video-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: var(--spacing-md);
-            z-index: 10;
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-        }
-
-        .username {
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
-
-        .caption {
-            margin-bottom: 0.5rem;
-            line-height: 1.4;
-        }
-
-        .hashtags {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        /* Mute Toggle */
-        .mute-toggle {
-            position: absolute;
-            bottom: var(--spacing-md);
-            right: var(--spacing-md);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 50%;
-            width: 2.5rem;
-            height: 2.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: var(--glass-shadow);
-        }
-
-        /* Comment Drawer */
-        .comment-drawer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--glass-border);
-            border-radius: 20px 20px 0 0;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: 100;
-            height: 60vh; /* Only part of the screen, not full */
-            display: flex;
-            flex-direction: column;
-            box-shadow: var(--glass-shadow);
-        }
-
-        .comment-drawer.open {
-            transform: translateY(0);
-        }
-
-        .comment-header {
-            padding: var(--spacing-md);
-            border-bottom: 1px solid var(--glass-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .comment-title {
-            font-weight: bold;
-        }
-
-        .close-comments {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        .comments-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: var(--spacing-md);
-        }
-
-        .comment-item {
-            padding: var(--spacing-sm) 0;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .comment-user {
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
-
-        .comment-text {
-            line-height: 1.4;
-        }
-
-        .comment-input-container {
-            padding: var(--spacing-md);
-            border-top: 1px solid var(--glass-border);
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-
-        .comment-input {
-            flex: 1;
-            padding: var(--spacing-sm);
-            border-radius: 20px;
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            color: var(--text-color);
-            outline: none;
-        }
-
-        .comment-submit {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 0 var(--spacing-md);
-            cursor: pointer;
-        }
-
-        /* Delete Button */
-        .delete-post {
-            background: rgba(255, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 2.8rem;
-            height: 2.8rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: var(--icon-size);
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: var(--glass-shadow);
-            transition: transform 0.2s ease;
-            font-weight: bold;
-        }
-
-        .delete-post:hover {
-            transform: scale(1.1);
-        }
-
-        /* Search Overlay */
-        .search-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-            padding: var(--spacing-md);
-        }
-
-        .search-overlay.active {
-            display: flex;
-        }
-
-        .search-header {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .search-input {
-            flex: 1;
-            padding: var(--spacing-sm);
-            border-radius: 20px;
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            color: var(--text-color);
-            outline: none;
-            font-size: 1rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .close-search {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        /* Upload Modal - Redesigned */
-        .upload-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            z-index: 300;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: var(--spacing-md);
-        }
-
-        .upload-modal.active {
-            display: flex;
-        }
-
-        .upload-content {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: var(--spacing-lg);
-            width: 100%;
-            max-width: 480px;
-            box-shadow: var(--glass-shadow);
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .upload-title {
-            font-size: 1.5rem;
-            margin-bottom: var(--spacing-md);
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .upload-options {
-            display: flex;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .upload-option {
-            flex: 1;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: var(--spacing-md);
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .upload-option:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-        }
-
-        .upload-option-icon {
-            font-size: 2rem;
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .upload-form {
-            display: none;
-            flex-direction: column;
-            gap: var(--spacing-md);
-        }
-
-        .upload-form.active {
-            display: flex;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-sm);
-        }
-
-        .form-label {
-            font-weight: bold;
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .form-input, .form-textarea {
-            padding: var(--spacing-sm) var(--spacing-md);
-            border-radius: 16px;
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            color: var(--text-color);
-            outline: none;
-            font-family: inherit;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus, .form-textarea:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(106, 90, 205, 0.2);
-        }
-
-        .form-textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        /* Upload Button - Redesigned */
-        .upload-gallery-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-md);
-            border-radius: 16px;
-            border: 1px solid transparent;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            margin-top: var(--spacing-sm);
-        }
-
-        .upload-gallery-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(106, 90, 205, 0.4);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .upload-gallery-btn:active {
-            transform: translateY(0);
-        }
-
-        .upload-gallery-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .upload-gallery-btn:hover::before {
-            left: 100%;
-        }
-
-        .upload-icon {
-            font-size: 1.2rem;
-        }
-
-        .file-input {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        /* Video Preview - Redesigned */
-        .video-preview-container {
-            display: none;
-            flex-direction: column;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-md);
-        }
-
-        .video-preview-container.active {
-            display: flex;
-        }
-
-        .video-preview {
-            width: 100%;
-            max-height: 180px;
-            border-radius: 12px;
-            object-fit: cover;
-            background: #000;
-        }
-
-        .video-info-preview {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--spacing-sm);
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-
-        .video-filename {
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .video-duration {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-
-        .checkmark {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-
-        /* Camera Recording Section */
-        .camera-container {
-            width: 100%;
-            height: 200px;
-            background: #000;
-            border-radius: 12px;
-            margin-bottom: var(--spacing-md);
-            display: none;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .camera-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 12px;
-        }
-
-        .recording-controls {
-            display: none;
-            justify-content: center;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-md);
-        }
-
-        .record-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-        }
-
-        .record-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .record-btn.recording {
-            background: var(--primary-color);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        .stop-btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: var(--spacing-sm) var(--spacing-md);
-            cursor: pointer;
-        }
-
-        .upload-actions {
-            display: flex;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-lg);
-        }
-
-        .upload-btn {
-            flex: 1;
-            padding: var(--spacing-md);
-            border: none;
-            border-radius: 16px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .upload-btn.primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            box-shadow: 0 4px 15px rgba(106, 90, 205, 0.3);
-        }
-
-        .upload-btn.primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(106, 90, 205, 0.4);
-        }
-
-        .upload-btn.secondary {
-            background: var(--glass-bg);
-            color: var(--text-color);
-            border: 1px solid var(--glass-border);
-        }
-
-        .upload-btn.secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .upload-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        /* Upload Progress Bar */
-        .upload-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            max-width: 400px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: var(--spacing-lg);
-            z-index: 400;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--spacing-md);
-            box-shadow: var(--glass-shadow);
-        }
-
-        .upload-progress.active {
-            display: flex;
-        }
-
-        .progress-title {
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 4px;
-        }
-
-        .progress-status {
-            font-size: 0.9rem;
-        }
-
-        /* Login Redirect Overlay */
-        .login-redirect {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 500;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-redirect.active {
-            display: flex;
-        }
-
-        .login-redirect-content {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: var(--spacing-lg);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: var(--glass-shadow);
-        }
-
-        .login-redirect-title {
-            font-size: 1.5rem;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .login-redirect-message {
-            margin-bottom: var(--spacing-lg);
-            line-height: 1.5;
-        }
-
-        .login-redirect-button {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: var(--spacing-sm) var(--spacing-lg);
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .login-redirect-button:hover {
-            background: var(--secondary-color);
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: var(--spacing-sm) var(--spacing-md);
-            color: var(--text-color);
-            z-index: 600;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            box-shadow: var(--glass-shadow);
-        }
-
-        .toast.show {
-            opacity: 1;
-        }
-
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .actions-sidebar {
-                right: var(--spacing-sm);
-                bottom: 3.5rem;
-            }
-            
-            .action-icon {
-                width: 2.5rem;
-                height: 2.5rem;
-            }
-            
-            .video-info {
-                padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
-            }
-            
-            .mute-toggle {
-                bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
-            }
-
-            .comment-drawer {
-                height: 70vh; /* Slightly taller on mobile */
-            }
-
-            .upload-content {
-                padding: var(--spacing-md);
-                max-height: 85vh;
-            }
-
-            .upload-options {
-                flex-direction: column;
-            }
-            
-            .camera-container {
-                height: 180px;
-            }
-            
-            .upload-gallery-btn {
-                padding: var(--spacing-sm);
-            }
-            
-            .video-preview {
-                max-height: 150px;
-            }
-        }
-
-        @media (min-width: 1200px) {
-            .feed-container {
-                max-width: 500px;
-                margin: 0 auto;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-            }
-        }
-        
-        /* Fix for iOS Safari */
-        @supports (-webkit-touch-callout: none) {
-            .feed-container {
-                height: -webkit-fill-available;
-            }
-            
-            .video-container {
-                height: -webkit-fill-available;
-            }
-        }
+            position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: center; align-items: center;
+            padding: var(--spacing-md); z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+        }
+        .app-title { font-weight: bold; font-size: 1.2rem; padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; }
+        .search-icon { position: absolute; right: var(--spacing-md); background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 50%; width: 2.5rem; height: 2.5rem; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: var(--glass-shadow); }
+        .add-post-btn { position: absolute; left: var(--spacing-md); background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 50%; width: 2.5rem; height: 2.5rem; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 10; box-shadow: var(--glass-shadow); font-size: 1.2rem; font-weight: bold; }
+        .actions-sidebar { position: absolute; right: var(--spacing-md); bottom: 4rem; display: flex; flex-direction: column; align-items: center; gap: var(--spacing-md); z-index: 10; }
+        .action-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; cursor: pointer; }
+        .action-icon { background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 50%; width: 2.8rem; height: 2.8rem; display: flex; justify-content: center; align-items: center; font-size: var(--icon-size); box-shadow: var(--glass-shadow); }
+        .action-count { font-size: 0.75rem; font-weight: bold; }
+        .video-info { position: absolute; bottom: 0; left: 0; right: 0; padding: var(--spacing-md); z-index: 10; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); }
+        .mute-toggle { position: absolute; bottom: var(--spacing-md); right: var(--spacing-md); background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 2.5rem; height: 2.5rem; display: flex; justify-content: center; align-items: center; box-shadow: var(--glass-shadow); cursor: pointer; }
+        .comment-drawer { position: absolute; bottom: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform 0.3s ease; z-index: 100; height: 60vh; display: flex; flex-direction: column; }
+        .comment-drawer.open { transform: translateY(0); }
+        .comment-header { padding: var(--spacing-md); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+        .comments-list { flex: 1; overflow-y: auto; padding: var(--spacing-md); }
+        .comment-input-container { padding: var(--spacing-md); border-top: 1px solid var(--glass-border); display: flex; gap: var(--spacing-sm); }
+        .comment-input { flex: 1; padding: var(--spacing-sm); border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); }
+        .comment-submit { background: var(--primary-color); color: white; border: none; border-radius: 20px; padding: 0 var(--spacing-md); cursor: pointer; }
+        .search-overlay { position: fixed; inset: 0; background: var(--glass-bg); backdrop-filter: blur(20px); z-index: 200; display: none; flex-direction: column; padding: var(--spacing-md); }
+        .search-overlay.active { display: flex; }
+        .search-header { display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        .search-input { flex: 1; padding: var(--spacing-sm); border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); outline: none; font-size: 1rem; }
+        .close-search { background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer; }
+        .upload-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; justify-content: center; align-items: center; padding: var(--spacing-md); }
+        .upload-modal.active { display: flex; }
+        .upload-content { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 24px; padding: var(--spacing-lg); width: 100%; max-width: 480px; box-shadow: var(--glass-shadow); position: relative; max-height: 90vh; overflow-y: auto; }
+        .upload-title { font-size: 1.5rem; margin-bottom: var(--spacing-md); text-align: center; font-weight: bold; }
+        .upload-options { display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-lg); }
+        .upload-option { flex: 1; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: var(--spacing-md); text-align: center; cursor: pointer; }
+        .upload-form { display: none; flex-direction: column; gap: var(--spacing-md); }
+        .upload-form.active { display: flex; }
+        .form-input, .form-textarea { padding: var(--spacing-sm) var(--spacing-md); border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); }
+        .upload-gallery-btn { display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: 16px; border: 1px solid transparent; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; font-weight: bold; position: relative; overflow: hidden; }
+        .file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .video-preview-container { display: none; flex-direction: column; gap: var(--spacing-sm); margin-top: var(--spacing-md); }
+        .video-preview-container.active { display: flex; }
+        .video-preview { width: 100%; max-height: 180px; border-radius: 12px; object-fit: cover; background: #000; }
+        .upload-actions { display: flex; gap: var(--spacing-md); margin-top: var(--spacing-lg); }
+        .upload-btn { flex: 1; padding: var(--spacing-md); border: none; border-radius: 16px; font-weight: bold; }
+        .upload-btn.primary { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; }
+        .upload-btn.secondary { background: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); }
+        .upload-progress { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 400px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: var(--spacing-lg); z-index: 400; display: none; flex-direction: column; align-items: center; gap: var(--spacing-md); box-shadow: var(--glass-shadow); }
+        .upload-progress.active { display: flex; }
+        .toast { position: fixed; bottom: 20%; left: 50%; transform: translateX(-50%); background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: var(--spacing-sm) var(--spacing-md); color: var(--text-color); z-index: 600; opacity: 0; transition: opacity 0.3s ease; box-shadow: var(--glass-shadow); }
+        .toast.show { opacity: 1; }
+        .login-redirect { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 500; display: none; justify-content: center; align-items: center; }
+        .login-redirect.active { display: flex; }
+        .login-redirect-content { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: var(--spacing-lg); width: 90%; max-width: 400px; text-align: center; box-shadow: var(--glass-shadow); }
+        @media (min-width: 1200px) { .feed-container { max-width: 500px; margin: 0 auto; box-shadow: 0 0 20px rgba(0,0,0,0.3); } }
+        @supports (-webkit-touch-callout: none) { .feed-container { height: -webkit-fill-available; } .video-container { height: -webkit-fill-available; } }
     </style>
 </head>
 <body>
-    <div class="feed-container" id="feed">
-        <!-- Videos will be dynamically inserted here -->
-    </div>
-
-    <!-- Toast Notification -->
+    <div class="feed-container" id="feed"></div>
     <div class="toast" id="toast"></div>
 
-    <!-- Search Overlay -->
     <div class="search-overlay" id="searchOverlay">
         <div class="search-header">
             <input type="text" class="search-input" id="searchInput" placeholder="Search...">
             <button class="close-search" id="closeSearch">×</button>
         </div>
-        <!-- Search results would go here -->
     </div>
 
-    <!-- Upload Modal - Redesigned -->
     <div class="upload-modal" id="uploadModal">
         <div class="upload-content">
             <h2 class="upload-title">Create New Post</h2>
@@ -991,41 +137,21 @@
                     <label class="form-label" for="postCaption">Caption</label>
                     <textarea class="form-textarea" id="postCaption" placeholder="Enter post caption (optional)"></textarea>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="postHashtags">Hashtags</label>
-                    <input type="text" class="form-input" id="postHashtags" placeholder="#example #tags">
-                </div>
-                
-                <!-- Upload Gallery Button - Redesigned -->
-                <div class="form-group" id="uploadGallerySection" style="display: none;">
+                <div class="form-group" id="uploadGallerySection" style="display:none">
                     <label class="form-label">Video</label>
                     <div class="upload-gallery-btn" id="uploadGalleryBtn">
                         <span class="upload-icon">📁</span>
                         <span>Upload from Gallery</span>
-                        <input type="file" class="file-input" id="videoFile" accept="video/mp4,video/webm,video/ogg,video/quicktime">
+                        <input type="file" class="file-input" id="videoFile" accept="video/*">
                     </div>
                 </div>
-                
-                <!-- Camera Recording Section -->
-                <div class="camera-container" id="cameraContainer">
-                    <video class="camera-preview" id="cameraPreview" autoplay muted playsinline></video>
-                </div>
-                <div class="recording-controls" id="recordingControls">
-                    <button class="record-btn" id="recordBtn">●</button>
-                </div>
-                
-                <!-- Video Preview - Redesigned -->
                 <div class="video-preview-container" id="videoPreviewContainer">
                     <video class="video-preview" id="videoPreview" controls playsinline></video>
                     <div class="video-info-preview">
-                        <div class="video-filename">
-                            <span class="checkmark">✓</span>
-                            <span id="videoFilename">Video Selected</span>
-                        </div>
+                        <div class="video-filename"><span class="checkmark">✓</span> <span id="videoFilename">Video Selected</span></div>
                         <div class="video-duration" id="videoDuration">0:00</div>
                     </div>
                 </div>
-                
                 <div class="upload-actions">
                     <button class="upload-btn secondary" onclick="hideUploadForm()">Cancel</button>
                     <button class="upload-btn primary" id="uploadSubmitBtn" disabled>Upload Post</button>
@@ -1034,1655 +160,233 @@
         </div>
     </div>
 
-    <!-- Upload Progress Bar -->
     <div class="upload-progress" id="uploadProgress">
         <div class="progress-title">Uploading Video</div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="height:8px;background:linear-gradient(90deg,var(--primary-color),var(--secondary-color));width:0%;border-radius:4px;"></div></div>
         <div class="progress-status" id="progressStatus">Processing your video...</div>
     </div>
 
-<<<<<<< HEAD
-  // Load video source if available and ensure it's playable
-  if (postData.src && video) {
-    const source = video.querySelector('source');
-    if (source) {
-      source.src = postData.src;
-      try {
-        video.load();
-        const tryPlay = () => {
-          if (!postData.paused) {
-            video.play().catch(e => {
-              console.log('Video play failed:', e);
-              postEl.classList.add('paused');
-            });
-          }
-        };
-        if (video.readyState >= 2) {
-          tryPlay();
-        } else {
-          video.addEventListener('loadedmetadata', tryPlay, { once: true });
-        }
-      } catch (e) {
-        console.error('Video load error:', e);
-      }
-    }
-  }
-=======
-    <!-- Login Redirect Overlay -->
     <div class="login-redirect" id="loginRedirect">
         <div class="login-redirect-content">
             <h2 class="login-redirect-title">Sign In Required</h2>
             <p class="login-redirect-message">You need to be signed in to interact with posts.</p>
-            <button class="login-redirect-button" id="loginRedirectButton">Go to Login</button>
+            <button class="login-redirect-button" id="loginRedirectButton" style="background:var(--primary-color);color:#fff;border:none;border-radius:20px;padding:0.5rem 1rem;cursor:pointer;">Go to Login</button>
         </div>
     </div>
->>>>>>> f53cf2f2e08de6ae2d8d1699b978d35af6fd10b6
 
     <script>
-        // App state
-        let currentTheme = 'dark';
-        let currentVideoId = null;
-        let savedPosts = [];
-        let isLoggedIn = true;
-        let selectedVideoFile = null;
-        let selectedVideoDuration = null;
-        let mediaStream = null;
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        let isRecording = false;
-        
-        // In-memory storage for videos
-        let posts = [
-            {
-                id: '1',
-                content: 'Welcome to Skrolz!',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-                hashtags: '#welcome #skrolz',
-                username: 'skrolz_admin',
-                likes_count: 42,
-                comments_count: 5,
-                created_at: new Date().toISOString()
-            },
-            {
-                id: '2',
-                content: 'Amazing nature views',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-                hashtags: '#nature #views',
-                username: 'nature_lover',
-                likes_count: 128,
-                comments_count: 12,
-                created_at: new Date(Date.now() - 86400000).toISOString()
-            }
-        ];
+    let currentTheme = 'dark';
+    let savedPosts = [];
+    let isLoggedIn = true; // toggle to test login gate
 
-<<<<<<< HEAD
-        if (error) throw error;
+    const posts = [
+        { id: '1', content: 'Welcome to Skrolz!', media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', hashtags: '#welcome #skrolz', username: 'skrolz_admin', likes_count: 42, comments_count: 5 },
+        { id: '2', content: 'Amazing nature views', media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', hashtags: '#nature #views', username: 'nature_lover', likes_count: 128, comments_count: 12 }
+    ];
 
-        if (!postData.comments) postData.comments = [];
-        postData.comments.push(newComment);
-        refreshComments(commentsList, postData.comments);
-        commentInput.value = '';
-      } catch (error) {
-        console.error('Error posting comment:', error);
-        alert('Error posting comment');
-      }
-    }
-  });
-
-  // Load comments from Supabase
-  loadComments(postData.id, commentsList);
-}
-
-async function loadComments(postId, commentsList) {
-  try {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('user_name, comment, created_at')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    const comments = data.map(c => `@${c.user_name}: ${c.comment}`);
-    refreshComments(commentsList, comments);
-  } catch (error) {
-    console.error('Error loading comments:', error);
-  }
-}
-
-function refreshComments(commentsList, comments) {
-  commentsList.innerHTML = '';
-  comments.forEach(comment => {
-    const commentEl = document.createElement('div');
-    commentEl.className = 'comment';
-    commentEl.textContent = comment;
-    commentsList.appendChild(commentEl);
-  });
-}
-
-function updatePostElement(postId, postData) {
-  const postEl = document.querySelector(`[data-id="${postId}"]`);
-  if (!postEl) return;
-  
-  const likeBtn = postEl.querySelector('.like-btn');
-  const likeCountEl = postEl.querySelector('.like-count');
-  const overlay = postEl.querySelector('.overlay h3');
-  const caption = postEl.querySelector('.overlay p:last-child');
-  
-  if (likeBtn) likeBtn.classList.toggle('liked', postData.liked);
-  if (likeCountEl) likeCountEl.textContent = postData.likes;
-  if (overlay) overlay.textContent = postData.user;
-  if (caption) caption.textContent = postData.title;
-}
-
-function showBlueHeart(postEl) {
-  const blueHeart = postEl.querySelector('.blue-heart');
-  blueHeart.classList.remove('animate');
-  void blueHeart.offsetWidth; // Trigger reflow
-  blueHeart.classList.add('animate');
-}
-
-// Video playback management
-function setupVideoPlayback() {
-  const videos = document.querySelectorAll('.post video');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const video = entry.target;
-      const postEl = video.closest('.post');
-      
-      if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-        if (!postEl.classList.contains('paused')) {
-          video.play().catch(console.error);
-        }
-      } else {
-        video.pause();
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeFeed(posts);
+        setupEventListeners();
     });
-  }, { threshold: [0.7], rootMargin: '50px' });
 
-  videos.forEach(video => observer.observe(video));
-}
-
-// Vertical swipe between videos
-function setupVerticalSwipe() {
-  let startY = 0;
-  let currentTranslate = 0;
-  let currentIndex = 0;
-
-  feed.addEventListener('touchstart', (e) => {
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  feed.addEventListener('touchmove', (e) => {
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
-    
-    // Only allow swipe if at the top or bottom of scroll
-    if (feed.scrollTop === 0 && deltaY > 0) {
-      e.preventDefault();
-    } else if (feed.scrollHeight - feed.scrollTop === feed.clientHeight && deltaY < 0) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  feed.addEventListener('touchend', (e) => {
-    const endY = e.changedTouches[0].clientY;
-    const deltaY = endY - startY;
-    const swipeThreshold = 50;
-
-    if (Math.abs(deltaY) > swipeThreshold) {
-      if (deltaY < 0 && currentIndex < posts.length - 1) {
-        // Swipe up - next video
-        currentIndex++;
-        scrollToVideo(currentIndex);
-      } else if (deltaY > 0 && currentIndex > 0) {
-        // Swipe down - previous video
-        currentIndex--;
-        scrollToVideo(currentIndex);
-      }
-    }
-  }, { passive: true });
-}
-
-function scrollToVideo(index) {
-  const postEl = document.querySelector(`[data-index="${index}"]`);
-  if (postEl) {
-    postEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
-    // Pause all other videos
-    document.querySelectorAll('.post video').forEach((video, i) => {
-      if (i !== index) {
-        video.pause();
-      }
-    });
-  }
-}
-
-// Improved Pull to refresh
-function setupPullToRefresh() {
-  let startY = 0;
-  let pulling = false;
-  let translateY = 0;
-  const refreshThreshold = 100;
-
-  if (!feedContent) return;
-
-  feed.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch' || feed.scrollTop !== 0 || isRefreshing) return;
-    startY = e.clientY;
-    pulling = true;
-    feedContent.style.transition = 'none';
-  });
-
-  feed.addEventListener('pointermove', (e) => {
-    if (!pulling || isRefreshing) return;
-    const deltaY = e.clientY - startY;
-    if (deltaY <= 0) return;
-    e.preventDefault();
-    translateY = deltaY * 0.5;
-    translateY = Math.min(translateY, 200);
-    feedContent.style.transform = `translateY(${translateY}px)`;
-    updateRefreshIndicator(translateY);
-  });
-
-  feed.addEventListener('pointerup', () => {
-    if (!pulling || isRefreshing) return;
-    pulling = false;
-    if (translateY >= refreshThreshold) {
-      refreshContent();
-    } else {
-      resetPull();
-    }
-  });
-
-  function updateRefreshIndicator(dist) {
-    const indicator = document.getElementById('pullIndicator');
-    const icon = document.getElementById('pullIcon');
-    const text = document.getElementById('pullText');
-
-    if (dist < 10) {
-      indicator.style.opacity = '0';
-      indicator.style.transform = 'translateX(-50%) translateY(-100%)';
-      return;
-    }
-
-    indicator.style.opacity = '1';
-    indicator.style.transform = 'translateX(-50%) translateY(0px)';
-
-    if (dist > refreshThreshold) {
-      icon.textContent = '○';
-      text.textContent = 'Release to refresh';
-    } else {
-      icon.textContent = '⬇';
-      text.textContent = 'Pull to refresh';
-    }
-  }
-
-  function resetPull() {
-    feedContent.style.transition = 'transform 0.3s ease';
-    feedContent.style.transform = 'translateY(0px)';
-    updateRefreshIndicator(0);
-  }
-
-  async function refreshContent() {
-    isRefreshing = true;
-    const indicator = document.getElementById('pullIndicator');
-    const icon = document.getElementById('pullIcon');
-    const text = document.getElementById('pullText');
-
-    icon.textContent = '🔄';
-    icon.classList.add('refreshing');
-    text.textContent = 'Refreshing...';
-
-    try {
-      await loadInitialPosts();
-      renderFeed();
-      icon.textContent = '✅';
-      text.textContent = 'Updated!';
-    } catch (error) {
-      console.error('Refresh error:', error);
-      icon.textContent = '❌';
-      text.textContent = 'Refresh failed';
-    } finally {
-      setTimeout(() => {
-        indicator.style.opacity = '0';
-        resetPull();
-        isRefreshing = false;
-        icon.classList.remove('refreshing');
-      }, 1000);
-    }
-  }
-}
-
-// Infinite scroll
-function setupInfiniteScroll() {
-  let loading = false;
-
-  feed.addEventListener('scroll', debounce(() => {
-    if (loading || searchQuery || isRefreshing) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = feed;
-    if (scrollTop + clientHeight >= scrollHeight - 100) {
-      loading = true;
-      loadMorePosts().finally(() => {
-        loading = false;
-      });
-    }
-  }, 100));
-}
-
-async function loadMorePosts() {
-  try {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id, author_id, author_name, video_url, created_at, title, caption')
-      .order('created_at', { ascending: false })
-      .range(allPosts.length, allPosts.length + 4);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id || null;
-
-      const newPosts = await Promise.all(data.map(async (post) => {
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('user_id')
-          .eq('post_id', post.id);
-        
-        const userLiked = currentUserId ? 
-          likesData?.some(like => like.user_id === currentUserId) || false : false;
-
-        return {
-          id: post.id,
-          user: post.author_name ? `@${post.author_name}` : `@user_${post.author_id?.slice(0, 8)}`,
-          title: post.title || 'Untitled',
-          caption: post.caption || '',
-          src: post.video_url,
-          likes: likesData?.length || 0,
-          comments: [],
-          liked: userLiked,
-          uploading: false,
-          owner: currentUserId && post.author_id === currentUserId,
-          paused: false,
-        };
-      }));
-
-      allPosts.push(...newPosts);
-      posts = [...allPosts];
-      renderFeed();
-    }
-  } catch (error) {
-    console.error('Error loading more posts:', error);
-  }
-}
-
-// Theme swipe functionality
-function setupThemeSwipe() {
-  const header = document.getElementById('header');
-  let pDown = false, pStartX = 0;
-  
-  header.addEventListener('pointerdown', (e) => {
-    pDown = true;
-    pStartX = e.clientX;
-  });
-  
-  header.addEventListener('pointermove', (e) => {
-    if (!pDown) return;
-    const dx = e.clientX - pStartX;
-    header.style.transform = `translateX(${dx * 0.08}px)`;
-  });
-  
-  header.addEventListener('pointerup', (e) => {
-    header.style.transform = '';
-    if (!pDown) return;
-    pDown = false;
-    const dx = e.clientX - pStartX;
-    const threshold = 80;
-    if (dx <= -threshold || dx >= threshold) {
-      document.documentElement.classList.toggle('light');
-    }
-  });
-}
-
-// Upload functionality - COMPLETELY REWRITTEN
-function openUploadModal() {
-  uploadModal.classList.add('show');
-
-  const closeBtn = document.getElementById('closeUpload');
-  const recordBtn = document.getElementById('recordBtn');
-  const filePicker = document.getElementById('filePicker');
-
-  closeBtn.onclick = () => {
-    uploadModal.classList.remove('show');
-  };
-  recordBtn.onclick = openRecordModal;
-  filePicker.onchange = handleFileUpload;
-}
-
-function openRecordModal() {
-  const title = document.getElementById('uploadTitle').value.trim();
-  const caption = document.getElementById('uploadCaption').value.trim();
-  
-  if (!title) {
-    alert('Please enter a title for your video');
-    return;
-  }
-
-  uploadModal.classList.remove('show');
-  
-  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    .then(stream => {
-      const videoPreview = document.getElementById('videoPreview');
-      videoPreview.srcObject = stream;
-
-      const recordModal = document.getElementById('recordModal');
-      recordModal.classList.add('show');
-
-      let mediaRecorder;
-      let recordedChunks = [];
-      let recordingTimer;
-      let recordingTime = 0;
-      const recordBtnModal = document.getElementById('recordBtnModal');
-
-      recordBtnModal.addEventListener('click', () => {
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-          // Start recording
-          mediaRecorder = new MediaRecorder(stream, { 
-            mimeType: 'video/webm;codecs=vp9,opus',
-            videoBitsPerSecond: 2500000
-          });
-          
-          recordedChunks = [];
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-          };
-          
-          mediaRecorder.onstop = async () => {
-            clearInterval(recordingTimer);
-            if (!recordedChunks || recordedChunks.length === 0) {
-              console.error('No recorded data available');
-              alert('No recording captured. Please try again.');
-              stream.getTracks().forEach(track => track.stop());
-              recordModal.classList.remove('show');
-              return;
-            }
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            let objectUrl = '';
-            try {
-              objectUrl = URL.createObjectURL(blob);
-            } catch (err) {
-              console.error('Error creating object URL for recording:', err);
-              alert('Error preparing preview for the recording.');
-            }
-            const id = 'p' + Math.random().toString(36).slice(2, 9);
-            const newPost = { 
-              id, 
-              user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-              title, 
-              caption, 
-              src: objectUrl, 
-              likes: 0, 
-              comments: [], 
-              liked: false, 
-              uploading: true, 
-              owner: true, 
-              uploadProgress: 0, 
-              paused: false 
-=======
-        // Helper function to validate file before creating object URL
-        function validateFileForObjectURL(file) {
-            if (!file) {
-                return { valid: false, error: 'No file provided' };
-            }
-            
-            if (!(file instanceof File) && !(file instanceof Blob)) {
-                return { valid: false, error: 'Invalid file type' };
-            }
-            
-            if (file.size === 0) {
-                return { valid: false, error: 'File is empty' };
-            }
-            
-            // Check for common video MIME types
-            const videoMimeTypes = [
-                'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
-                'video/x-msvideo', 'video/3gpp', 'video/3gpp2'
-            ];
-            
-            if (file.type && !videoMimeTypes.some(mime => file.type.startsWith('video/'))) {
-                return { valid: false, error: 'Invalid video format' };
-            }
-            
-            return { valid: true };
-        }
-
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-            fetchPostsFromDatabase();
-            setupEventListeners();
-        });
-
-        // Check login status
-        function checkLoginStatus() {
-            if (!isLoggedIn) {
-                document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
-                    el.style.opacity = '0.7';
-                });
-            }
-        }
-
-        // Fetch posts from database
-        async function fetchPostsFromDatabase() {
-            try {
-                // In a real app, this would be an API call to Supabase
-                // For demo, we're using the in-memory posts array
-                
-                if (posts && posts.length > 0) {
-                    initializeFeed(posts);
-                } else {
-                    // If no posts, show empty state
-                    document.getElementById('feed').innerHTML = `
-                        <div class="video-container" style="display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 1rem;">
-                            <div style="font-size: 1.2rem;">No posts yet</div>
-                            <button onclick="openUploadModal()" style="background: var(--primary-color); color: white; border: none; border-radius: 10px; padding: 0.5rem 1rem; cursor: pointer;">
-                                Create First Post
-                            </button>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                console.error('Error fetching posts:', error);
-                showToast('Error loading posts');
-            }
-        }
-
-        // Create video feed
-        function initializeFeed(posts) {
-            const feed = document.getElementById('feed');
-            feed.innerHTML = '';
-            
-            posts.forEach(video => {
-                const videoContainer = document.createElement('div');
-                videoContainer.className = 'video-container';
-                videoContainer.id = `video-${video.id}`;
-                
-                videoContainer.innerHTML = `
-                    <video class="video-player" loop muted playsinline preload="metadata">
-                        <source src="${video.media_url}" type="video/mp4">
-                    </video>
-                    <div class="top-bar">
-                        <div class="add-post-btn" onclick="openUploadModal()">
-                            +
-                        </div>
-                        <div class="app-title" id="appTitle">Skrolz</div>
-                        <div class="search-icon" id="searchIcon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                        </div>
+    function initializeFeed(items) {
+        const feed = document.getElementById('feed');
+        feed.innerHTML = '';
+        items.forEach(video => {
+            const container = document.createElement('div');
+            container.className = 'video-container';
+            container.id = `video-${video.id}`;
+            container.innerHTML = `
+                <video class="video-player" loop muted playsinline preload="metadata">
+                    <source src="${video.media_url}" type="video/mp4">
+                </video>
+                <div class="top-bar">
+                    <div class="add-post-btn" onclick="openUploadModal()">+</div>
+                    <div class="app-title" id="appTitle">Skrolz</div>
+                    <div class="search-icon" id="searchIcon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </div>
-                    <div class="actions-sidebar">
-                        <div class="action-item" onclick="toggleLike('${video.id}')">
-                            <div class="action-icon" id="likeIcon-${video.id}">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                </svg>
-                            </div>
-                            <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count || 0}</div>
+                </div>
+                <div class="actions-sidebar">
+                    <div class="action-item" onclick="toggleLike('${video.id}')">
+                        <div class="action-icon" id="likeIcon-${video.id}">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                         </div>
-                        <div class="action-item" onclick="openComments('${video.id}')">
-                            <div class="action-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                                </svg>
-                            </div>
-                            <div class="action-count">${video.comments_count || 0}</div>
-                        </div>
-                        <div class="action-item" onclick="shareVideo('${video.id}')">
-                            <div class="action-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                                    <polyline points="16 6 12 2 8 6"></polyline>
-                                    <line x1="12" y1="2" x2="12" y2="15"></line>
-                                </svg>
-                            </div>
-                            <div class="action-count">Share</div>
-                        </div>
-                        <div class="action-item" onclick="toggleSave('${video.id}')">
-                            <div class="action-icon" id="saveIcon-${video.id}">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                            </div>
-                            <div class="action-count">Save</div>
-                        </div>
-                        ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
+                        <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count || 0}</div>
                     </div>
-                    <div class="video-info">
-                        <div class="username">@${video.username || 'user'}</div>
-                        <div class="caption">${video.content || ''}</div>
-                        <div class="hashtags">${video.hashtags || ''}</div>
-                    </div>
-                    <div class="mute-toggle" onclick="toggleMute(this)">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
-                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                        </svg>
-                    </div>
-                    <div class="comment-drawer" id="commentDrawer-${video.id}">
-                        <div class="comment-header">
-                            <div class="comment-title">Comments</div>
-                            <button class="close-comments" onclick="closeComments('${video.id}')">×</button>
+                    <div class="action-item" onclick="openComments('${video.id}')">
+                        <div class="action-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                         </div>
-                        <div class="comments-list" id="commentsList-${video.id}">
-                            <!-- Comments will be dynamically inserted here -->
-                        </div>
-                        <div class="comment-input-container">
-                            <input type="text" class="comment-input" id="commentInput-${video.id}" placeholder="Add a comment...">
-                            <button class="comment-submit" onclick="addComment('${video.id}')">Post</button>
-                        </div>
+                        <div class="action-count">${video.comments_count || 0}</div>
                     </div>
-                `;
-                
-                feed.appendChild(videoContainer);
-                
-                // Add double tap like functionality
-                videoContainer.addEventListener('dblclick', function(e) {
-                    createLikeAnimation(e);
-                    toggleLike(video.id);
-                });
-                
-                // Add single tap to pause/play
-                let tapTimer;
-                videoContainer.addEventListener('click', function(e) {
-                    // Don't trigger if clicking on action buttons or other UI elements
-                    if (e.target.closest('.actions-sidebar') || e.target.closest('.top-bar') || 
-                        e.target.closest('.video-info') || e.target.closest('.mute-toggle') ||
-                        e.target.closest('.comment-drawer') || e.target.closest('.add-post-btn')) {
-                        return;
-                    }
-                    
-                    // Clear any existing timer
-                    clearTimeout(tapTimer);
-                    
-                    // Set a timer to distinguish between single and double tap
-                    tapTimer = setTimeout(function() {
-                        // Single tap - toggle play/pause
-                        const video = e.currentTarget.querySelector('video');
-                        if (video.paused) {
-                            video.play().catch(err => console.log('Play failed:', err));
-                        } else {
-                            video.pause();
-                        }
-                    }, 300);
-                });
-            });
-            
-            // Set up intersection observer after videos are loaded
-            setupIntersectionObserver();
-        }
-
-        // Set up event listeners
-        function setupEventListeners() {
-            // Theme toggle on title swipe
-            const appTitle = document.getElementById('appTitle');
-            let touchStartX = 0;
-            
-            if (appTitle) {
-                appTitle.addEventListener('touchstart', function(e) {
-                    touchStartX = e.touches[0].clientX;
-                });
-                
-                appTitle.addEventListener('touchend', function(e) {
-                    const touchEndX = e.changedTouches[0].clientX;
-                    const swipeDistance = touchEndX - touchStartX;
-                    
-                    if (Math.abs(swipeDistance) > 50) {
-                        toggleTheme();
-                    }
-                });
-            }
-            
-            // Search icon
-            const searchIcon = document.getElementById('searchIcon');
-            if (searchIcon) {
-                searchIcon.addEventListener('click', function() {
-                    document.getElementById('searchOverlay').classList.add('active');
-                    this.classList.add('active');
-                });
-            }
-            
-            // Close search
-            const closeSearch = document.getElementById('closeSearch');
-            if (closeSearch) {
-                closeSearch.addEventListener('click', function() {
-                    document.getElementById('searchOverlay').classList.remove('active');
-                    document.getElementById('searchIcon').classList.remove('active');
-                });
-            }
-            
-            // File input change
-            const videoFile = document.getElementById('videoFile');
-            if (videoFile) {
-                videoFile.addEventListener('change', function(e) {
-                    handleFileSelect(e);
-                });
-            }
-            
-            // Record button
-            const recordBtn = document.getElementById('recordBtn');
-            if (recordBtn) {
-                recordBtn.addEventListener('click', function() {
-                    if (isRecording) {
-                        stopRecording();
-                    } else {
-                        startRecording();
-                    }
-                });
-            }
-            
-            // Upload submit button
-            const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
-            if (uploadSubmitBtn) {
-                uploadSubmitBtn.addEventListener('click', function() {
-                    submitPost();
-                });
-            }
-            
-            // Enter key in comment inputs
-            document.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && e.target.classList.contains('comment-input')) {
-                    const videoId = e.target.id.split('-')[1];
-                    addComment(videoId);
-                }
-            });
-            
-            // Login redirect button
-            const loginRedirectButton = document.getElementById('loginRedirectButton');
-            if (loginRedirectButton) {
-                loginRedirectButton.addEventListener('click', function() {
-                    window.location.href = 'login.html';
-                });
-            }
-            
-            // Form validation
-            const postTitle = document.getElementById('postTitle');
-            if (postTitle) {
-                postTitle.addEventListener('input', checkUploadButton);
-            }
-        }
-
-        // Intersection Observer for video autoplay
-        function setupIntersectionObserver() {
-            const options = {
-                root: document.getElementById('feed'),
-                rootMargin: '0px',
-                threshold: 0.8
->>>>>>> f53cf2f2e08de6ae2d8d1699b978d35af6fd10b6
-            };
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    
-                    if (entry.isIntersecting) {
-                        // Try to play with sound first
-                        video.muted = false;
-                        const playPromise = video.play();
-                        
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                // If autoplay with sound fails, mute and try again
-                                video.muted = true;
-                                video.play().catch(e => console.log('Autoplay prevented:', e));
-                            });
-                        }
-                    } else {
-                        video.pause();
-                    }
-                });
-            }, options);
-            
-            // Observe all video containers
-            document.querySelectorAll('.video-container').forEach(container => {
-                observer.observe(container);
-            });
-        }
-
-        // Toggle theme between dark and light
-        function toggleTheme() {
-            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-        }
-
-        // Create like animation on double tap
-        function createLikeAnimation(event) {
-            const likeAnimation = document.createElement('div');
-            likeAnimation.className = 'like-animation';
-            likeAnimation.innerHTML = `
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
+                    <div class="action-item" onclick="shareVideo('${video.id}')">
+                        <div class="action-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                        </div>
+                        <div class="action-count">Share</div>
+                    </div>
+                </div>
+                <div class="video-info">
+                    <div class="username">@${video.username || 'user'}</div>
+                    <div class="caption">${video.content || ''}</div>
+                    <div class="hashtags">${video.hashtags || ''}</div>
+                </div>
+                <div class="mute-toggle" onclick="toggleMute(this)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                </div>
+                <div class="comment-drawer" id="commentDrawer-${video.id}">
+                    <div class="comment-header"><div class="comment-title">Comments</div><button class="close-comments" onclick="closeComments('${video.id}')">×</button></div>
+                    <div class="comments-list" id="commentsList-${video.id}"></div>
+                    <div class="comment-input-container"><input type="text" class="comment-input" id="commentInput-${video.id}" placeholder="Add a comment..."><button class="comment-submit" onclick="addComment('${video.id}')">Post</button></div>
+                </div>
             `;
-            
-            // Position the animation at the tap location
-            likeAnimation.style.left = `${event.clientX}px`;
-            likeAnimation.style.top = `${event.clientY}px`;
-            
-            document.body.appendChild(likeAnimation);
-            
-            // Remove animation after it completes
-            setTimeout(() => {
-                likeAnimation.remove();
-            }, 1000);
-        }
+            feed.appendChild(container);
 
-        // Toggle like status
-        function toggleLike(videoId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            const likeIcon = document.getElementById(`likeIcon-${videoId}`);
-            const likeCount = document.getElementById(`likeCount-${videoId}`);
-            
-            // Toggle filled state
-            if (likeIcon.querySelector('svg').getAttribute('fill') === 'currentColor') {
-                likeIcon.querySelector('svg').setAttribute('fill', 'none');
-                likeCount.textContent = parseInt(likeCount.textContent) - 1;
-            } else {
-                likeIcon.querySelector('svg').setAttribute('fill', 'currentColor');
-                likeIcon.querySelector('svg').style.color = 'var(--primary-color)';
-                likeCount.textContent = parseInt(likeCount.textContent) + 1;
-            }
-        }
-
-        // Share video
-        function shareVideo(videoId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            // Create a shareable link (in a real app, this would be your actual video URL)
-            const videoLink = `https://peerloom.online/skrolz/video/${videoId}`;
-            
-            // Check if the Web Share API is available
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Check out this video on Skrolz!',
-                    text: 'I found this amazing video on Skrolz',
-                    url: videoLink,
-                })
-                .then(() => console.log('Successful share'))
-                .catch((error) => {
-                    console.log('Error sharing:', error);
-                    copyToClipboard(videoLink);
-                });
-            } else {
-                // Fallback: copy to clipboard
-                copyToClipboard(videoLink);
-            }
-        }
-
-        // Copy text to clipboard
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Link copied to clipboard!');
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                showToast('Failed to copy link');
+            container.addEventListener('dblclick', (e) => { createLikeAnimation(e); toggleLike(video.id); });
+            let tapTimer; container.addEventListener('click', (e) => {
+                if (e.target.closest('.actions-sidebar') || e.target.closest('.top-bar') || e.target.closest('.video-info') || e.target.closest('.mute-toggle') || e.target.closest('.comment-drawer') || e.target.closest('.add-post-btn')) return;
+                clearTimeout(tapTimer);
+                tapTimer = setTimeout(() => { const v = e.currentTarget.querySelector('video'); v.paused ? v.play().catch(()=>{}) : v.pause(); }, 250);
             });
-        }
-
-<<<<<<< HEAD
-  try {
-    // Skip duration check for now to fix upload issues
-    uploadModal.classList.remove('show');
-    const id = 'p' + Math.random().toString(36).slice(2, 9);
-    let objUrl = '';
-    try {
-      objUrl = URL.createObjectURL(file);
-    } catch (err) {
-      console.error('Error creating object URL:', err);
-      alert('Could not load selected file.');
-      return;
-    }
-    const newPost = { 
-      id, 
-      user: `@${sessionInfoEl.textContent.split('@')[1] || 'you'}`, 
-      title, 
-      caption, 
-      src: objUrl, 
-      likes: 0, 
-      comments: [], 
-      liked: false, 
-      uploading: true, 
-      owner: true, 
-      uploadProgress: 0, 
-      paused: false 
-    };
-    
-    allPosts.unshift(newPost);
-    filterPosts();
-    renderFeed();
-    uploadVideo(newPost, file, title, caption);
-    
-  } catch (error) {
-    console.error('Error processing video file:', error);
-    alert('Error processing video file. Please try another file.');
-  }
-}
-
-// FIXED uploadVideo function
-async function uploadVideo(post, file, title, caption) {
-  progressModal.classList.add('show');
-  updateProgress(0);
-  
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert('You must be signed in to upload.');
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
-    }
-    
-    const userId = session.user.id;
-    const authorName = session.user.user_metadata?.username || session.user.email.split('@')[0];
-    const extFromName = (file && typeof file.name === 'string' && file.name.includes('.')) ? file.name.split('.').pop() : '';
-    const mime = file && file.type ? file.type : '';
-    const defaultExt = mime.includes('webm') ? 'webm' : mime.includes('mp4') ? 'mp4' : 'mp4';
-    const ext = extFromName || defaultExt;
-    const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const path = `posts/${userId}/${filename}`;
-=======
-        // Toggle save video
-        function toggleSave(videoId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            const saveIcon = document.getElementById(`saveIcon-${videoId}`);
-            const isSaved = savedPosts.includes(videoId);
-            
-            if (isSaved) {
-                // Remove from saved
-                savedPosts = savedPosts.filter(id => id !== videoId);
-                saveIcon.querySelector('svg').setAttribute('fill', 'none');
-                showToast('Video removed from saved');
-            } else {
-                // Add to saved
-                savedPosts.push(videoId);
-                saveIcon.querySelector('svg').setAttribute('fill', 'currentColor');
-                saveIcon.querySelector('svg').style.color = 'var(--primary-color)';
-                showToast('Video saved');
-            }
-        }
-
-        // Show toast notification
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
->>>>>>> f53cf2f2e08de6ae2d8d1699b978d35af6fd10b6
-
-        // Toggle mute
-        function toggleMute(button) {
-            const videoContainer = button.closest('.video-container');
-            const video = videoContainer.querySelector('video');
-            
-            if (video.muted) {
-                video.muted = false;
-                button.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                    </svg>
-                `;
-            } else {
-                video.muted = true;
-                button.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                        <line x1="23" y1="9" x2="17" y2="15"></line>
-                        <line x1="17" y1="9" x2="23" y2="15"></line>
-                    </svg>
-                `;
-            }
-        }
-
-<<<<<<< HEAD
-    // Upload to Supabase storage
-    let uploadPath = '';
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Facts')
-      .upload(path, file);
-
-    if (uploadError) {
-      console.error('Upload error', uploadError);
-      clearInterval(progressInterval);
-      alert('Upload failed: ' + uploadError.message);
-      post.uploading = false;
-      updateProgress(100);
-      setTimeout(() => progressModal.classList.remove('show'), 1000);
-      return;
-    } else {
-      uploadPath = uploadData.path;
+        });
+        setupIntersectionObserver();
     }
 
-    clearInterval(progressInterval);
+    function setupIntersectionObserver() {
+        const options = { root: document.getElementById('feed'), threshold: 0.8 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target.querySelector('video');
+                if (!video) return;
+                if (entry.isIntersecting) {
+                    video.muted = true; // ensure autoplay
+                    const p = video.play(); if (p && p.catch) p.catch(()=>{});
+                } else { video.pause(); }
+            });
+        }, options);
+        document.querySelectorAll('.video-container').forEach(c => observer.observe(c));
+    }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('Facts')
-      .getPublicUrl(uploadPath);
-    
-    const publicUrl = urlData?.publicUrl || '';
-=======
-        // Open comments drawer
-        function openComments(videoId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            const drawer = document.getElementById(`commentDrawer-${videoId}`);
-            const commentsList = document.getElementById(`commentsList-${videoId}`);
-            
-            // Clear previous comments
-            commentsList.innerHTML = '';
-            
-            // Load comments for this video
-            loadComments(videoId, commentsList);
-            
-            // Open drawer
-            drawer.classList.add('open');
+    function setupEventListeners() {
+        const appTitle = document.getElementById('appTitle');
+        if (appTitle) {
+            let sx = 0; appTitle.addEventListener('touchstart', e => sx = e.touches[0].clientX);
+            appTitle.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) toggleTheme(); });
         }
+        const searchIcon = document.getElementById('searchIcon'); if (searchIcon) searchIcon.addEventListener('click', () => { document.getElementById('searchOverlay').classList.add('active'); });
+        const closeSearch = document.getElementById('closeSearch'); if (closeSearch) closeSearch.addEventListener('click', () => { document.getElementById('searchOverlay').classList.remove('active'); });
+        const loginRedirectButton = document.getElementById('loginRedirectButton'); if (loginRedirectButton) loginRedirectButton.addEventListener('click', () => location.href = 'login.html');
+        const postTitle = document.getElementById('postTitle'); if (postTitle) postTitle.addEventListener('input', checkUploadButton);
+        const videoFile = document.getElementById('videoFile'); if (videoFile) videoFile.addEventListener('change', handleFileSelect);
+    }
 
-        // Load comments
-        async function loadComments(videoId, commentsList) {
-            try {
-                // In a real app, this would be an API call
-                // For demo, we're using mock data
-                const mockComments = [
-                    { user_name: 'user1', comment: 'Great video!' },
-                    { user_name: 'user2', comment: 'Love this content!' }
-                ];
-                
-                if (mockComments && mockComments.length > 0) {
-                    mockComments.forEach(comment => {
-                        const commentItem = document.createElement('div');
-                        commentItem.className = 'comment-item';
-                        commentItem.innerHTML = `
-                            <div class="comment-user">@${comment.user_name}</div>
-                            <div class="comment-text">${comment.comment}</div>
-                        `;
-                        commentsList.appendChild(commentItem);
-                    });
-                } else {
-                    commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">No comments yet</div>';
-                }
-            } catch (error) {
-                console.error('Error loading comments:', error);
-                commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">Error loading comments</div>';
-            }
-        }
+    function toggleTheme() { currentTheme = currentTheme === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', currentTheme); }
 
-        // Close comments drawer
-        function closeComments(videoId) {
-            const drawer = document.getElementById(`commentDrawer-${videoId}`);
-            drawer.classList.remove('open');
-        }
+    function createLikeAnimation(event) {
+        const likeAnimation = document.createElement('div');
+        likeAnimation.className = 'like-animation';
+        likeAnimation.style.position = 'fixed';
+        likeAnimation.style.left = event.clientX + 'px';
+        likeAnimation.style.top = event.clientY + 'px';
+        likeAnimation.style.fontSize = '5rem';
+        likeAnimation.style.opacity = '0.9';
+        likeAnimation.style.color = 'var(--primary-color)';
+        likeAnimation.innerHTML = '<svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
+        document.body.appendChild(likeAnimation);
+        setTimeout(() => likeAnimation.remove(), 800);
+    }
 
-        // Add a new comment
-        async function addComment(videoId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            const commentInput = document.getElementById(`commentInput-${videoId}`);
-            const commentText = commentInput.value.trim();
-            
-            if (!commentText) return;
-            
-            try {
-                // Add comment to UI
-                const commentsList = document.getElementById(`commentsList-${videoId}`);
-                const commentItem = document.createElement('div');
-                commentItem.className = 'comment-item';
-                commentItem.innerHTML = `
-                    <div class="comment-user">@current_user</div>
-                    <div class="comment-text">${commentText}</div>
-                `;
-                commentsList.appendChild(commentItem);
-                
-                // Clear input
-                commentInput.value = '';
-                
-                // Update comment count
-                const commentCount = document.querySelector(`#video-${videoId} .action-item:nth-child(2) .action-count`);
-                commentCount.textContent = parseInt(commentCount.textContent) + 1;
-                
-                showToast('Comment added');
-            } catch (error) {
-                console.error('Error adding comment:', error);
-                showToast('Error adding comment');
-            }
-        }
+    function toggleLike(videoId) {
+        if (!isLoggedIn) { showLoginRedirect(); return; }
+        const icon = document.getElementById(`likeIcon-${videoId}`);
+        const count = document.getElementById(`likeCount-${videoId}`);
+        const svg = icon.querySelector('svg');
+        const filled = svg.getAttribute('fill') === 'currentColor';
+        svg.setAttribute('fill', filled ? 'none' : 'currentColor');
+        if (!filled) svg.style.color = 'var(--primary-color)';
+        const n = parseInt(count.textContent) || 0; count.textContent = filled ? n - 1 : n + 1;
+    }
 
-        // Delete post (only for user's own posts)
-        async function deletePost(videoId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            if (confirm('Are you sure you want to delete this post?')) {
-                try {
-                    // Remove from UI
-                    const videoContainer = document.getElementById(`video-${videoId}`);
-                    videoContainer.remove();
-                    
-                    showToast('Post deleted');
-                } catch (error) {
-                    console.error('Error deleting post:', error);
-                    showToast('Error deleting post');
-                }
-            }
-        }
->>>>>>> f53cf2f2e08de6ae2d8d1699b978d35af6fd10b6
+    function openComments(videoId) {
+        if (!isLoggedIn) { showLoginRedirect(); return; }
+        const drawer = document.getElementById(`commentDrawer-${videoId}`);
+        const list = document.getElementById(`commentsList-${videoId}`);
+        list.innerHTML = '';
+        const mock = [ {user_name: 'user1', comment: 'Great video!'}, {user_name: 'user2', comment: 'Love this content!'} ];
+        mock.forEach(c => { const item = document.createElement('div'); item.className = 'comment-item'; item.innerHTML = `<div class="comment-user">@${c.user_name}</div><div class="comment-text">${c.comment}</div>`; list.appendChild(item); });
+        drawer.classList.add('open');
+    }
+    function closeComments(videoId) { const d = document.getElementById(`commentDrawer-${videoId}`); d.classList.remove('open'); }
+    function addComment(videoId) {
+        if (!isLoggedIn) { showLoginRedirect(); return; }
+        const input = document.getElementById(`commentInput-${videoId}`);
+        const text = input.value.trim(); if (!text) return;
+        const list = document.getElementById(`commentsList-${videoId}`);
+        const item = document.createElement('div'); item.className = 'comment-item'; item.innerHTML = `<div class="comment-user">@current_user</div><div class="comment-text">${text}</div>`; list.appendChild(item);
+        input.value = '';
+        const cnt = document.querySelector(`#video-${videoId} .action-item:nth-child(2) .action-count`); if (cnt) cnt.textContent = (parseInt(cnt.textContent)||0) + 1;
+        showToast('Comment added');
+    }
 
-        // Open upload modal
-        function openUploadModal() {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-            
-            document.getElementById('uploadModal').classList.add('active');
-        }
+    function shareVideo(videoId) {
+        if (!isLoggedIn) { showLoginRedirect(); return; }
+        const link = `${location.origin}/skrolz/video/${videoId}`;
+        if (navigator.share) {
+            navigator.share({ title: 'Check out this video on Skrolz!', text: 'I found this amazing video on Skrolz', url: link }).catch(() => copyToClipboard(link));
+        } else { copyToClipboard(link); }
+    }
+    function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => showToast('Link copied to clipboard!')).catch(() => showToast('Failed to copy link')); }
 
-        // Show upload form based on type (upload or camera)
-        function showUploadForm(type) {
-            document.getElementById('uploadOptions').style.display = 'none';
-            document.getElementById('uploadForm').classList.add('active');
-            
-            if (type === 'camera') {
-                // Show camera interface
-                document.getElementById('cameraContainer').style.display = 'block';
-                document.getElementById('recordingControls').style.display = 'flex';
-                document.getElementById('uploadGallerySection').style.display = 'none';
-                startCamera();
-            } else {
-                // Show file upload interface
-                document.getElementById('uploadGallerySection').style.display = 'block';
-                document.getElementById('cameraContainer').style.display = 'none';
-                document.getElementById('recordingControls').style.display = 'none';
-                stopCamera();
-            }
-            
-            // Enable upload button if title is filled
+    function toggleMute(button) {
+        const video = button.closest('.video-container').querySelector('video');
+        if (!video) return;
+        video.muted = !video.muted;
+        button.innerHTML = video.muted ? `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+        ` : `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        `;
+    }
+
+    function openUploadModal() { if (!isLoggedIn) { showLoginRedirect(); return; } document.getElementById('uploadModal').classList.add('active'); }
+    function showUploadForm(type) {
+        document.getElementById('uploadOptions').style.display = 'none';
+        document.getElementById('uploadForm').classList.add('active');
+        if (type === 'upload') { document.getElementById('uploadGallerySection').style.display = 'block'; }
+        checkUploadButton();
+    }
+    function hideUploadForm() {
+        document.getElementById('uploadForm').classList.remove('active');
+        document.getElementById('uploadOptions').style.display = 'flex';
+        document.getElementById('uploadModal').classList.remove('active');
+        document.getElementById('postTitle').value = '';
+        document.getElementById('postCaption').value = '';
+        const vf = document.getElementById('videoFile'); if (vf) vf.value = '';
+        document.getElementById('videoPreviewContainer').classList.remove('active');
+        document.getElementById('uploadSubmitBtn').disabled = true;
+    }
+    function checkUploadButton() {
+        const title = document.getElementById('postTitle').value.trim();
+        const hasFile = document.getElementById('videoPreview').src && document.getElementById('videoPreview').src.length > 0;
+        document.getElementById('uploadSubmitBtn').disabled = !(title && hasFile);
+    }
+    function handleFileSelect(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            const url = URL.createObjectURL(file);
+            const vp = document.getElementById('videoPreview'); vp.src = url; vp.onloadedmetadata = () => {
+                const d = Math.floor(vp.duration || 0), m = Math.floor(d/60), s = d%60; document.getElementById('videoDuration').textContent = `${m}:${String(s).padStart(2,'0')}`;
+            };
+            document.getElementById('videoFilename').textContent = file.name || 'Video Selected';
+            document.getElementById('videoPreviewContainer').classList.add('active');
             checkUploadButton();
-        }
+        } catch (err) { console.error('Preview error', err); showToast('Could not preview selected file'); }
+    }
 
-        // Hide upload form
-        function hideUploadForm() {
-            document.getElementById('uploadForm').classList.remove('active');
-            document.getElementById('uploadOptions').style.display = 'flex';
-            document.getElementById('uploadModal').classList.remove('active');
-            
-            // Clear form and reset state
-            document.getElementById('postTitle').value = '';
-            document.getElementById('postCaption').value = '';
-            document.getElementById('postHashtags').value = '';
-            document.getElementById('videoFile').value = '';
-            document.getElementById('videoPreviewContainer').classList.remove('active');
-            document.getElementById('uploadSubmitBtn').disabled = true;
-            
-            // Stop camera and recording
-            stopRecording();
-            stopCamera();
-            
-            selectedVideoFile = null;
-            selectedVideoDuration = null;
-        }
-
-        // Start camera
-        async function startCamera() {
-            try {
-                // Try to get user media with different constraints for better compatibility
-                const constraints = {
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: 'user'
-                    },
-                    audio: true
-                };
-                
-                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-                const cameraPreview = document.getElementById('cameraPreview');
-                if (cameraPreview) {
-                    cameraPreview.srcObject = mediaStream;
-                }
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                showToast('Error accessing camera. Please check permissions.');
-                // Fallback to upload form if camera fails
-                showUploadForm('upload');
-            }
-        }
-
-        // Stop camera
-        function stopCamera() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-        }
-
-        // Start recording
-        function startRecording() {
-            if (!mediaStream) {
-                showToast('Camera not available');
-                return;
-            }
-            
-            recordedChunks = [];
-            
-            try {
-                // Try different MIME types for better compatibility
-                const options = { mimeType: 'video/webm; codecs=vp9,opus' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options.mimeType = 'video/webm; codecs=vp8,opus';
-                }
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options.mimeType = 'video/webm';
-                }
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options.mimeType = 'video/mp4';
-                }
-                
-                mediaRecorder = new MediaRecorder(mediaStream, options);
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
-                
-                mediaRecorder.onstop = () => {
-                    if (recordedChunks.length === 0) {
-                        showToast('No video data recorded');
-                        return;
-                    }
-                    
-                    const blob = new Blob(recordedChunks, { type: recordedChunks[0].type });
-                    
-                    // Validate the blob before creating object URL
-                    if (!blob || blob.size === 0) {
-                        showToast('Recorded video is empty or invalid');
-                        return;
-                    }
-                    
-                    selectedVideoFile = new File([blob], 'recorded-video.webm', { type: blob.type });
-                    
-                    // Show preview
-                    const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-                    const videoPreview = document.getElementById('videoPreview');
-                    const videoFilename = document.getElementById('videoFilename');
-                    const videoDuration = document.getElementById('videoDuration');
-                    
-                    if (videoPreview) {
-                        try {
-                            const validation = validateFileForObjectURL(blob);
-                            if (!validation.valid) {
-                                showToast(validation.error || 'Invalid video file');
-                                return;
-                            }
-                            
-                            const objectUrl = URL.createObjectURL(blob);
-                            videoPreview.src = objectUrl;
-                            
-                            // Clean up on error
-                            videoPreview.onerror = function() {
-                                URL.revokeObjectURL(objectUrl);
-                                showToast('Error processing recorded video');
-                            };
-                        } catch (error) {
-                            console.error('Error creating object URL for recording:', error);
-                            showToast('Error processing recorded video');
-                            return;
-                        }
-                    }
-                    
-                    if (videoPreviewContainer) {
-                        videoPreviewContainer.classList.add('active');
-                    }
-                    if (videoFilename) {
-                        videoFilename.textContent = 'Recorded Video';
-                    }
-                    
-                    // Check duration
-                    if (videoPreview) {
-                        videoPreview.onloadedmetadata = () => {
-                            selectedVideoDuration = videoPreview.duration;
-                            const minutes = Math.floor(selectedVideoDuration / 60);
-                            const seconds = Math.floor(selectedVideoDuration % 60);
-                            if (videoDuration) {
-                                videoDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                            }
-                            
-                            if (selectedVideoDuration > 120) {
-                                showToast('Video must be 120 seconds or less');
-                                document.getElementById('uploadSubmitBtn').disabled = true;
-                            } else {
-                                checkUploadButton();
-                            }
-                        };
-                    }
-                    
-                    // Update UI
-                    const recordBtn = document.getElementById('recordBtn');
-                    if (recordBtn) {
-                        recordBtn.classList.remove('recording');
-                        recordBtn.textContent = '●';
-                    }
-                    isRecording = false;
-                };
-                
-                mediaRecorder.start();
-                isRecording = true;
-                
-                // Update UI
-                const recordBtn = document.getElementById('recordBtn');
-                if (recordBtn) {
-                    recordBtn.classList.add('recording');
-                    recordBtn.textContent = '■';
-                }
-                
-                // Auto-stop after 120 seconds
-                setTimeout(() => {
-                    if (mediaRecorder && mediaRecorder.state === 'recording') {
-                        stopRecording();
-                    }
-                }, 120000);
-                
-            } catch (error) {
-                console.error('Error starting recording:', error);
-                showToast('Error starting recording');
-            }
-        }
-
-        // Stop recording
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-            }
-        }
-
-        // Handle file selection
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            // Check if file is a video
-            if (!file.type.startsWith('video/')) {
-                showToast('Please select a video file');
-                document.getElementById('uploadSubmitBtn').disabled = true;
-                return;
-            }
-            
-            // File size validation (100MB limit)
-            if (file.size > 100 * 1024 * 1024) {
-                showToast('Video file must be less than 100MB');
-                document.getElementById('uploadSubmitBtn').disabled = true;
-                return;
-            }
-            
-            // Validate file before processing
-            const validation = validateFileForObjectURL(file);
-            if (!validation.valid) {
-                showToast(validation.error || 'Invalid video file');
-                document.getElementById('uploadSubmitBtn').disabled = true;
-                return;
-            }
-            
-            selectedVideoFile = file;
-            
-            // Show preview
-            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-            const videoPreview = document.getElementById('videoPreview');
-            const videoFilename = document.getElementById('videoFilename');
-            const videoDuration = document.getElementById('videoDuration');
-            
-            if (videoPreview) {
-                try {
-                    const objectUrl = URL.createObjectURL(file);
-                    videoPreview.src = objectUrl;
-                    
-                    // Clean up the object URL when video loads or on error
-                    videoPreview.onload = function() {
-                        // Don't revoke immediately if we need to keep it for preview
-                        // URL.revokeObjectURL(objectUrl);
-                    };
-                    
-                    videoPreview.onerror = function() {
-                        URL.revokeObjectURL(objectUrl);
-                        showToast('Error loading video file');
-                        document.getElementById('uploadSubmitBtn').disabled = true;
-                    };
-                } catch (error) {
-                    console.error('Error creating object URL:', error);
-                    showToast('Error loading video file');
-                    document.getElementById('uploadSubmitBtn').disabled = true;
-                    return;
-                }
-            }
-            
-            if (videoPreviewContainer) {
-                videoPreviewContainer.classList.add('active');
-            }
-            if (videoFilename) {
-                videoFilename.textContent = file.name;
-            }
-            
-            // Check duration
-            if (videoPreview) {
-                videoPreview.onloadedmetadata = function() {
-                    selectedVideoDuration = videoPreview.duration;
-                    const minutes = Math.floor(selectedVideoDuration / 60);
-                    const seconds = Math.floor(selectedVideoDuration % 60);
-                    if (videoDuration) {
-                        videoDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    }
-                    
-                    if (selectedVideoDuration > 120) {
-                        showToast('Video must be 120 seconds or less');
-                        document.getElementById('uploadSubmitBtn').disabled = true;
-                    } else {
-                        // Enable upload button if video is valid
-                        checkUploadButton();
-                    }
-                };
-                
-                videoPreview.onerror = function() {
-                    showToast('Error loading video file');
-                    document.getElementById('uploadSubmitBtn').disabled = true;
-                };
-            }
-            
-            // Immediately check if we have a valid file (even before metadata loads)
-            checkUploadButton();
-        }
-
-        // Check if upload button should be enabled
-        function checkUploadButton() {
-            const titleInput = document.getElementById('postTitle');
-            const title = titleInput ? titleInput.value.trim() : '';
-            const hasVideo = selectedVideoFile !== null;
-            
-            const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
-            if (uploadSubmitBtn) {
-                uploadSubmitBtn.disabled = !(title && hasVideo);
-            }
-        }
-
-        // Submit post
-        async function submitPost() {
-            const titleInput = document.getElementById('postTitle');
-            const captionInput = document.getElementById('postCaption');
-            const hashtagsInput = document.getElementById('postHashtags');
-            
-            const title = titleInput ? titleInput.value.trim() : '';
-            const caption = captionInput ? captionInput.value.trim() : '';
-            const hashtags = hashtagsInput ? hashtagsInput.value.trim() : '';
-            
-            if (!title) {
-                showToast('Title is required');
-                return;
-            }
-            
-            if (!selectedVideoFile) {
-                showToast('Please select or record a video');
-                return;
-            }
-            
-            // Close upload modal and show progress
-            hideUploadForm();
-            await uploadPost(title, caption, hashtags, selectedVideoFile);
-        }
-
-        // Upload post
-        async function uploadPost(title, caption, hashtags, videoFile) {
-            const uploadProgress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
-            const progressStatus = document.getElementById('progressStatus');
-            
-            try {
-                // Show upload progress
-                if (uploadProgress) {
-                    uploadProgress.classList.add('active');
-                }
-                if (progressStatus) {
-                    progressStatus.textContent = 'Processing your video...';
-                }
-                
-                // Simulate upload progress
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    progress += 5;
-                    if (progressFill) {
-                        progressFill.style.width = `${progress}%`;
-                    }
-                    
-                    if (progress >= 100) {
-                        clearInterval(progressInterval);
-                        
-                        // Create a new post object
-                        let media_url;
-                        try {
-                            // Validate the file before creating object URL
-                            const validation = validateFileForObjectURL(videoFile);
-                            if (!validation.valid) {
-                                throw new Error(validation.error || 'Invalid video file');
-                            }
-                            
-                            media_url = URL.createObjectURL(videoFile);
-                        } catch (error) {
-                            console.error('Error creating object URL:', error);
-                            showToast('Error processing video file');
-                            if (uploadProgress) {
-                                uploadProgress.classList.remove('active');
-                            }
-                            return;
-                        }
-                        
-                        const newPost = {
-                            id: Date.now().toString(),
-                            content: caption || title,
-                            media_url: media_url,
-                            hashtags: hashtags,
-                            username: 'current_user',
-                            likes_count: 0,
-                            comments_count: 0,
-                            created_at: new Date().toISOString()
-                        };
-                        
-                        // Add to posts array
-                        posts.unshift(newPost); // Add to beginning for newest first
-                        
-                        // Update UI
-                        if (progressStatus) {
-                            progressStatus.textContent = 'Post created successfully!';
-                        }
-                        
-                        // Hide progress bar after a short delay
-                        setTimeout(() => {
-                            if (uploadProgress) {
-                                uploadProgress.classList.remove('active');
-                            }
-                            showToast('Video posted successfully!');
-                            
-                            // Reset progress bar
-                            if (progressFill) {
-                                progressFill.style.width = '0%';
-                            }
-                            
-                            // Refresh the feed to show the new post
-                            fetchPostsFromDatabase();
-                        }, 1000);
-                    }
-                }, 200);
-                
-            } catch (error) {
-                console.error('Error uploading post:', error);
-                if (uploadProgress) {
-                    uploadProgress.classList.remove('active');
-                }
-                showToast('Error uploading post');
-            }
-        }
-
-        // Show login redirect
-        function showLoginRedirect() {
-            document.getElementById('loginRedirect').classList.add('active');
-        }
-
-        // Make functions globally available
-        window.openUploadModal = openUploadModal;
-        window.showUploadForm = showUploadForm;
-        window.hideUploadForm = hideUploadForm;
-        window.startRecording = startRecording;
-        window.stopRecording = stopRecording;
-        window.submitPost = submitPost;
-        window.toggleLike = toggleLike;
-        window.openComments = openComments;
-        window.closeComments = closeComments;
-        window.addComment = addComment;
-        window.shareVideo = shareVideo;
-        window.toggleSave = toggleSave;
-        window.deletePost = deletePost;
-        window.toggleMute = toggleMute;
-        window.checkUploadButton = checkUploadButton;
-        window.handleFileSelect = handleFileSelect;
+    function showToast(message) { const t = document.getElementById('toast'); t.textContent = message; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2500); }
+    function showLoginRedirect() { const l = document.getElementById('loginRedirect'); l.classList.add('active'); setTimeout(()=> l.classList.remove('active'), 2500); }
     </script>
 </body>
 </html>
