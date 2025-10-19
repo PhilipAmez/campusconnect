@@ -1002,7 +1002,7 @@
                     <div class="upload-gallery-btn" id="uploadGalleryBtn">
                         <span class="upload-icon">📁</span>
                         <span>Upload from Gallery</span>
-                        <input type="file" class="file-input" id="videoFile" accept="video/*">
+                        <input type="file" class="file-input" id="videoFile" accept="video/mp4,video/webm,video/ogg,video/quicktime">
                     </div>
                 </div>
                 
@@ -1088,6 +1088,33 @@
                 created_at: new Date(Date.now() - 86400000).toISOString()
             }
         ];
+
+        // Helper function to validate file before creating object URL
+        function validateFileForObjectURL(file) {
+            if (!file) {
+                return { valid: false, error: 'No file provided' };
+            }
+            
+            if (!(file instanceof File) && !(file instanceof Blob)) {
+                return { valid: false, error: 'Invalid file type' };
+            }
+            
+            if (file.size === 0) {
+                return { valid: false, error: 'File is empty' };
+            }
+            
+            // Check for common video MIME types
+            const videoMimeTypes = [
+                'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
+                'video/x-msvideo', 'video/3gpp', 'video/3gpp2'
+            ];
+            
+            if (file.type && !videoMimeTypes.some(mime => file.type.startsWith('video/'))) {
+                return { valid: false, error: 'Invalid video format' };
+            }
+            
+            return { valid: true };
+        }
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
@@ -1764,7 +1791,19 @@
                 };
                 
                 mediaRecorder.onstop = () => {
+                    if (recordedChunks.length === 0) {
+                        showToast('No video data recorded');
+                        return;
+                    }
+                    
                     const blob = new Blob(recordedChunks, { type: recordedChunks[0].type });
+                    
+                    // Validate the blob before creating object URL
+                    if (!blob || blob.size === 0) {
+                        showToast('Recorded video is empty or invalid');
+                        return;
+                    }
+                    
                     selectedVideoFile = new File([blob], 'recorded-video.webm', { type: blob.type });
                     
                     // Show preview
@@ -1775,13 +1814,27 @@
                     
                     if (videoPreview) {
                         try {
-                            videoPreview.src = URL.createObjectURL(blob);
+                            const validation = validateFileForObjectURL(blob);
+                            if (!validation.valid) {
+                                showToast(validation.error || 'Invalid video file');
+                                return;
+                            }
+                            
+                            const objectUrl = URL.createObjectURL(blob);
+                            videoPreview.src = objectUrl;
+                            
+                            // Clean up on error
+                            videoPreview.onerror = function() {
+                                URL.revokeObjectURL(objectUrl);
+                                showToast('Error processing recorded video');
+                            };
                         } catch (error) {
-                            console.error('Error creating object URL:', error);
+                            console.error('Error creating object URL for recording:', error);
                             showToast('Error processing recorded video');
                             return;
                         }
                     }
+                    
                     if (videoPreviewContainer) {
                         videoPreviewContainer.classList.add('active');
                     }
@@ -1859,6 +1912,21 @@
                 return;
             }
             
+            // File size validation (100MB limit)
+            if (file.size > 100 * 1024 * 1024) {
+                showToast('Video file must be less than 100MB');
+                document.getElementById('uploadSubmitBtn').disabled = true;
+                return;
+            }
+            
+            // Validate file before processing
+            const validation = validateFileForObjectURL(file);
+            if (!validation.valid) {
+                showToast(validation.error || 'Invalid video file');
+                document.getElementById('uploadSubmitBtn').disabled = true;
+                return;
+            }
+            
             selectedVideoFile = file;
             
             // Show preview
@@ -1869,7 +1937,20 @@
             
             if (videoPreview) {
                 try {
-                    videoPreview.src = URL.createObjectURL(file);
+                    const objectUrl = URL.createObjectURL(file);
+                    videoPreview.src = objectUrl;
+                    
+                    // Clean up the object URL when video loads or on error
+                    videoPreview.onload = function() {
+                        // Don't revoke immediately if we need to keep it for preview
+                        // URL.revokeObjectURL(objectUrl);
+                    };
+                    
+                    videoPreview.onerror = function() {
+                        URL.revokeObjectURL(objectUrl);
+                        showToast('Error loading video file');
+                        document.getElementById('uploadSubmitBtn').disabled = true;
+                    };
                 } catch (error) {
                     console.error('Error creating object URL:', error);
                     showToast('Error loading video file');
@@ -1877,6 +1958,7 @@
                     return;
                 }
             }
+            
             if (videoPreviewContainer) {
                 videoPreviewContainer.classList.add('active');
             }
@@ -1886,7 +1968,7 @@
             
             // Check duration
             if (videoPreview) {
-                videoPreview.onloadedmetadata = () => {
+                videoPreview.onloadedmetadata = function() {
                     selectedVideoDuration = videoPreview.duration;
                     const minutes = Math.floor(selectedVideoDuration / 60);
                     const seconds = Math.floor(selectedVideoDuration % 60);
@@ -1903,7 +1985,7 @@
                     }
                 };
                 
-                videoPreview.onerror = () => {
+                videoPreview.onerror = function() {
                     showToast('Error loading video file');
                     document.getElementById('uploadSubmitBtn').disabled = true;
                 };
@@ -1979,6 +2061,12 @@
                         // Create a new post object
                         let media_url;
                         try {
+                            // Validate the file before creating object URL
+                            const validation = validateFileForObjectURL(videoFile);
+                            if (!validation.valid) {
+                                throw new Error(validation.error || 'Invalid video file');
+                            }
+                            
                             media_url = URL.createObjectURL(videoFile);
                         } catch (error) {
                             console.error('Error creating object URL:', error);
