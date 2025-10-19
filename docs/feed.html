@@ -272,7 +272,7 @@
 
         /* Comment Drawer */
         .comment-drawer {
-            position: fixed;
+            position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
@@ -283,7 +283,7 @@
             transform: translateY(100%);
             transition: transform 0.3s ease;
             z-index: 100;
-            height: 70vh;
+            height: 60vh; /* Only part of the screen, not full */
             display: flex;
             flex-direction: column;
             box-shadow: var(--glass-shadow);
@@ -428,6 +428,135 @@
             cursor: pointer;
         }
 
+        /* Upload Modal */
+        .upload-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 300;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-modal.active {
+            display: flex;
+        }
+
+        .upload-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .upload-title {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-md);
+            text-align: center;
+        }
+
+        .upload-options {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .upload-option {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: var(--spacing-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .upload-option-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .upload-form {
+            display: none;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .upload-form.active {
+            display: flex;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .form-label {
+            font-weight: bold;
+        }
+
+        .form-input, .form-textarea {
+            padding: var(--spacing-sm);
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            color: var(--text-color);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .upload-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .upload-btn {
+            flex: 1;
+            padding: var(--spacing-sm);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .upload-btn.secondary {
+            background: var(--glass-bg);
+            color: var(--text-color);
+            border: 1px solid var(--glass-border);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
         /* Upload Progress Bar */
         .upload-progress {
             position: fixed;
@@ -441,7 +570,7 @@
             border: 1px solid var(--glass-border);
             border-radius: 20px;
             padding: var(--spacing-lg);
-            z-index: 300;
+            z-index: 400;
             display: none;
             flex-direction: column;
             align-items: center;
@@ -453,7 +582,7 @@
             display: flex;
         }
 
-        .upload-title {
+        .progress-title {
             font-weight: bold;
             font-size: 1.2rem;
         }
@@ -473,7 +602,7 @@
             transition: width 0.3s ease;
         }
 
-        .upload-status {
+        .progress-status {
             font-size: 0.9rem;
         }
 
@@ -486,7 +615,7 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
-            z-index: 400;
+            z-index: 500;
             display: none;
             justify-content: center;
             align-items: center;
@@ -545,7 +674,7 @@
             border-radius: 20px;
             padding: var(--spacing-sm) var(--spacing-md);
             color: var(--text-color);
-            z-index: 500;
+            z-index: 600;
             opacity: 0;
             transition: opacity 0.3s ease;
             box-shadow: var(--glass-shadow);
@@ -574,6 +703,14 @@
             .mute-toggle {
                 bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
             }
+
+            .comment-drawer {
+                height: 70vh; /* Slightly taller on mobile */
+            }
+
+            .upload-options {
+                flex-direction: column;
+            }
         }
 
         @media (min-width: 1200px) {
@@ -593,21 +730,6 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
-    <!-- Comment Drawer -->
-    <div class="comment-drawer" id="commentDrawer">
-        <div class="comment-header">
-            <div class="comment-title">Comments</div>
-            <button class="close-comments" id="closeComments">×</button>
-        </div>
-        <div class="comments-list" id="commentsList">
-            <!-- Comments will be dynamically inserted here -->
-        </div>
-        <div class="comment-input-container">
-            <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
-            <button class="comment-submit" id="commentSubmit">Post</button>
-        </div>
-    </div>
-
     <!-- Search Overlay -->
     <div class="search-overlay" id="searchOverlay">
         <div class="search-header">
@@ -617,13 +739,48 @@
         <!-- Search results would go here -->
     </div>
 
+    <!-- Upload Modal -->
+    <div class="upload-modal" id="uploadModal">
+        <div class="upload-content">
+            <h2 class="upload-title">Create New Post</h2>
+            <div class="upload-options" id="uploadOptions">
+                <div class="upload-option" onclick="showUploadForm('camera')">
+                    <div class="upload-option-icon">📷</div>
+                    <div>Use Camera</div>
+                </div>
+                <div class="upload-option" onclick="showUploadForm('upload')">
+                    <div class="upload-option-icon">📁</div>
+                    <div>Upload Video</div>
+                </div>
+            </div>
+            <div class="upload-form" id="uploadForm">
+                <div class="form-group">
+                    <label class="form-label" for="postTitle">Title *</label>
+                    <input type="text" class="form-input" id="postTitle" placeholder="Enter post title" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="postCaption">Caption</label>
+                    <textarea class="form-textarea" id="postCaption" placeholder="Enter post caption (optional)"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="postHashtags">Hashtags</label>
+                    <input type="text" class="form-input" id="postHashtags" placeholder="#example #tags">
+                </div>
+                <div class="upload-actions">
+                    <button class="upload-btn secondary" onclick="hideUploadForm()">Cancel</button>
+                    <button class="upload-btn primary" id="uploadSubmitBtn">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Upload Progress Bar -->
     <div class="upload-progress" id="uploadProgress">
-        <div class="upload-title">Uploading Video</div>
+        <div class="progress-title">Uploading Video</div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
-        <div class="upload-status" id="uploadStatus">Uploading to Facts bucket...</div>
+        <div class="progress-status" id="progressStatus">Uploading to Facts bucket...</div>
     </div>
 
     <!-- Login Redirect Overlay -->
@@ -636,61 +793,123 @@
     </div>
 
     <script>
-        // Sample video data - in a real app, this would come from your API
-        const videos = [
-            {
-                id: '1',
-                username: 'user1',
-                caption: 'Check out this amazing sunset! 🌅',
-                hashtags: '#sunset #nature #beautiful',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-                likes_count: 245,
-                comments_count: 32,
-                is_own_post: true
-            },
-            {
-                id: '2',
-                username: 'traveler_jane',
-                caption: 'Exploring the mountains today! 🏔️',
-                hashtags: '#mountains #adventure #travel',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-                likes_count: 512,
-                comments_count: 47,
-                is_own_post: false
-            },
-            {
-                id: '3',
-                username: 'tech_guru',
-                caption: 'New tech unboxing! So excited! 📱',
-                hashtags: '#tech #unboxing #gadgets',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-                likes_count: 189,
-                comments_count: 21,
-                is_own_post: false
-            },
-            {
-                id: '4',
-                username: 'fitness_freak',
-                caption: 'Morning workout routine! 💪',
-                hashtags: '#fitness #workout #health',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-                likes_count: 324,
-                comments_count: 18,
-                is_own_post: true
-            },
-            {
-                id: '5',
-                username: 'foodie_heaven',
-                caption: 'Delicious homemade pizza! 🍕',
-                hashtags: '#food #pizza #homemade',
-                media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-                likes_count: 431,
-                comments_count: 29,
-                is_own_post: false
-            }
-        ];
+        // App state
+        let currentTheme = 'dark';
+        let currentVideoId = null;
+        let savedPosts = [];
+        let isLoggedIn = true; // In a real app, this would be set based on session
 
-        // Sample comments data
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in (in a real app, this would be done via API)
+            checkLoginStatus();
+            fetchPostsFromDatabase();
+            setupEventListeners();
+        });
+
+        // Check login status
+        function checkLoginStatus() {
+            // In a real app, this would make an API call to check session
+            // For now, we'll simulate checking if user is logged in
+            
+            // If not logged in, disable interactions
+            if (!isLoggedIn) {
+                document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
+                    el.style.opacity = '0.7';
+                });
+            }
+        }
+
+        // Fetch posts from database (Facts bucket)
+        async function fetchPostsFromDatabase() {
+            try {
+                // In a real app, this would be an API call to your backend
+                // For now, we'll simulate fetching from the database
+                showToast('Loading posts from Facts bucket...');
+                
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // This would be the actual API call in a real implementation:
+                // const response = await fetch('/api/posts');
+                // const posts = await response.json();
+                
+                // For demo purposes, we'll use sample data that represents posts from your database
+                const posts = await getPostsFromFactsBucket();
+                
+                // Initialize the feed with posts
+                initializeFeed(posts);
+                showToast('Posts loaded successfully');
+                
+            } catch (error) {
+                console.error('Error fetching posts:', error);
+                showToast('Error loading posts');
+            }
+        }
+
+        // Simulate getting posts from Facts bucket
+        async function getPostsFromFactsBucket() {
+            // This simulates the data structure from your database
+            return [
+                {
+                    id: '1',
+                    username: 'user1',
+                    caption: 'Check out this amazing sunset! 🌅',
+                    hashtags: '#sunset #nature #beautiful',
+                    media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+                    likes_count: 245,
+                    comments_count: 32,
+                    is_own_post: true,
+                    created_at: '2023-10-15T14:30:00Z'
+                },
+                {
+                    id: '2',
+                    username: 'traveler_jane',
+                    caption: 'Exploring the mountains today! 🏔️',
+                    hashtags: '#mountains #adventure #travel',
+                    media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+                    likes_count: 512,
+                    comments_count: 47,
+                    is_own_post: false,
+                    created_at: '2023-10-14T09:15:00Z'
+                },
+                {
+                    id: '3',
+                    username: 'tech_guru',
+                    caption: 'New tech unboxing! So excited! 📱',
+                    hashtags: '#tech #unboxing #gadgets',
+                    media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                    likes_count: 189,
+                    comments_count: 21,
+                    is_own_post: false,
+                    created_at: '2023-10-13T16:45:00Z'
+                },
+                {
+                    id: '4',
+                    username: 'fitness_freak',
+                    caption: 'Morning workout routine! 💪',
+                    hashtags: '#fitness #workout #health',
+                    media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+                    likes_count: 324,
+                    comments_count: 18,
+                    is_own_post: true,
+                    created_at: '2023-10-12T07:20:00Z'
+                },
+                {
+                    id: '5',
+                    username: 'foodie_heaven',
+                    caption: 'Delicious homemade pizza! 🍕',
+                    hashtags: '#food #pizza #homemade',
+                    media_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+                    likes_count: 431,
+                    comments_count: 29,
+                    is_own_post: false,
+                    created_at: '2023-10-11T18:30:00Z'
+                }
+            ];
+        }
+
+        // Sample comments data (in a real app, this would come from your database)
         const comments = {
             '1': [
                 { user_name: 'commenter1', comment: 'Wow, this is amazing!' },
@@ -710,40 +929,12 @@
             ]
         };
 
-        // App state
-        let currentTheme = 'dark';
-        let currentVideoId = null;
-        let savedPosts = [];
-        let isLoggedIn = true; // In a real app, this would be set based on session
-
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is logged in (in a real app, this would be done via API)
-            checkLoginStatus();
-            initializeFeed();
-            setupEventListeners();
-            setupIntersectionObserver();
-        });
-
-        // Check login status
-        function checkLoginStatus() {
-            // In a real app, this would make an API call to check session
-            // For now, we'll simulate checking if user is logged in
-            // isLoggedIn = true; // Set to true if user has valid session
-            
-            // If not logged in, disable interactions
-            if (!isLoggedIn) {
-                document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
-                    el.style.opacity = '0.7';
-                });
-            }
-        }
-
         // Create video feed
-        function initializeFeed() {
+        function initializeFeed(posts) {
             const feed = document.getElementById('feed');
+            feed.innerHTML = '';
             
-            videos.forEach(video => {
+            posts.forEach(video => {
                 const videoContainer = document.createElement('div');
                 videoContainer.className = 'video-container';
                 videoContainer.id = `video-${video.id}`;
@@ -753,7 +944,7 @@
                         <source src="${video.media_url}" type="video/mp4">
                     </video>
                     <div class="top-bar">
-                        <div class="add-post-btn" onclick="openAddPost()">
+                        <div class="add-post-btn" onclick="openUploadModal()">
                             +
                         </div>
                         <div class="app-title" id="appTitle">Skrolz</div>
@@ -812,6 +1003,19 @@
                             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                         </svg>
                     </div>
+                    <div class="comment-drawer" id="commentDrawer-${video.id}">
+                        <div class="comment-header">
+                            <div class="comment-title">Comments</div>
+                            <button class="close-comments" onclick="closeComments('${video.id}')">×</button>
+                        </div>
+                        <div class="comments-list" id="commentsList-${video.id}">
+                            <!-- Comments will be dynamically inserted here -->
+                        </div>
+                        <div class="comment-input-container">
+                            <input type="text" class="comment-input" id="commentInput-${video.id}" placeholder="Add a comment...">
+                            <button class="comment-submit" onclick="addComment('${video.id}')">Post</button>
+                        </div>
+                    </div>
                 `;
                 
                 feed.appendChild(videoContainer);
@@ -825,6 +1029,13 @@
                 // Add single tap to pause/play
                 let tapTimer;
                 videoContainer.addEventListener('click', function(e) {
+                    // Don't trigger if clicking on action buttons
+                    if (e.target.closest('.actions-sidebar') || e.target.closest('.top-bar') || 
+                        e.target.closest('.video-info') || e.target.closest('.mute-toggle') ||
+                        e.target.closest('.comment-drawer')) {
+                        return;
+                    }
+                    
                     // Clear any existing timer
                     clearTimeout(tapTimer);
                     
@@ -840,6 +1051,9 @@
                     }, 300);
                 });
             });
+            
+            // Set up intersection observer after videos are loaded
+            setupIntersectionObserver();
         }
 
         // Set up event listeners
@@ -873,26 +1087,16 @@
                 document.getElementById('searchIcon').classList.remove('active');
             });
             
-            // Close comments
-            document.getElementById('closeComments').addEventListener('click', function() {
-                document.getElementById('commentDrawer').classList.remove('open');
+            // Upload submit button
+            document.getElementById('uploadSubmitBtn').addEventListener('click', function() {
+                submitPost();
             });
             
-            // Submit comment
-            document.getElementById('commentSubmit').addEventListener('click', function() {
-                const commentInput = document.getElementById('commentInput');
-                const commentText = commentInput.value.trim();
-                
-                if (commentText && currentVideoId) {
-                    addComment(currentVideoId, 'current_user', commentText);
-                    commentInput.value = '';
-                }
-            });
-            
-            // Enter key to submit comment
-            document.getElementById('commentInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    document.getElementById('commentSubmit').click();
+            // Enter key in comment inputs
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && e.target.classList.contains('comment-input')) {
+                    const videoId = e.target.id.split('-')[1];
+                    addComment(videoId);
                 }
             });
             
@@ -980,10 +1184,16 @@
             if (likeIcon.querySelector('svg').getAttribute('fill') === 'currentColor') {
                 likeIcon.querySelector('svg').setAttribute('fill', 'none');
                 likeCount.textContent = parseInt(likeCount.textContent) - 1;
+                
+                // In a real app, you would make an API call to remove like
+                // await fetch(`/api/posts/${videoId}/unlike`, { method: 'POST' });
             } else {
                 likeIcon.querySelector('svg').setAttribute('fill', 'currentColor');
                 likeIcon.querySelector('svg').style.color = 'var(--primary-color)';
                 likeCount.textContent = parseInt(likeCount.textContent) + 1;
+                
+                // In a real app, you would make an API call to add like
+                // await fetch(`/api/posts/${videoId}/like`, { method: 'POST' });
             }
         }
 
@@ -1040,12 +1250,18 @@
                 savedPosts = savedPosts.filter(id => id !== videoId);
                 saveIcon.querySelector('svg').setAttribute('fill', 'none');
                 showToast('Video removed from saved');
+                
+                // In a real app, you would make an API call to remove from saved
+                // await fetch(`/api/posts/${videoId}/unsave`, { method: 'POST' });
             } else {
                 // Add to saved
                 savedPosts.push(videoId);
                 saveIcon.querySelector('svg').setAttribute('fill', 'currentColor');
                 saveIcon.querySelector('svg').style.color = 'var(--primary-color)';
                 showToast('Video saved');
+                
+                // In a real app, you would make an API call to add to saved
+                // await fetch(`/api/posts/${videoId}/save`, { method: 'POST' });
             }
         }
 
@@ -1092,9 +1308,8 @@
                 return;
             }
             
-            currentVideoId = videoId;
-            const drawer = document.getElementById('commentDrawer');
-            const commentsList = document.getElementById('commentsList');
+            const drawer = document.getElementById(`commentDrawer-${videoId}`);
+            const commentsList = document.getElementById(`commentsList-${videoId}`);
             
             // Clear previous comments
             commentsList.innerHTML = '';
@@ -1116,26 +1331,49 @@
             drawer.classList.add('open');
         }
 
+        // Close comments drawer
+        function closeComments(videoId) {
+            const drawer = document.getElementById(`commentDrawer-${videoId}`);
+            drawer.classList.remove('open');
+        }
+
         // Add a new comment
-        function addComment(videoId, userName, commentText) {
-            if (!comments[videoId]) {
-                comments[videoId] = [];
+        function addComment(videoId) {
+            if (!isLoggedIn) {
+                showLoginRedirect();
+                return;
             }
             
-            comments[videoId].push({
-                user_name: userName,
-                comment: commentText
-            });
+            const commentInput = document.getElementById(`commentInput-${videoId}`);
+            const commentText = commentInput.value.trim();
             
-            // Update UI
-            openComments(videoId);
+            if (!commentText) return;
+            
+            // Add comment to UI
+            const commentsList = document.getElementById(`commentsList-${videoId}`);
+            const commentItem = document.createElement('div');
+            commentItem.className = 'comment-item';
+            commentItem.innerHTML = `
+                <div class="comment-user">@current_user</div>
+                <div class="comment-text">${commentText}</div>
+            `;
+            commentsList.appendChild(commentItem);
+            
+            // Clear input
+            commentInput.value = '';
             
             // Update comment count
-            const videoIndex = videos.findIndex(v => v.id === videoId);
-            if (videoIndex !== -1) {
-                videos[videoIndex].comments_count += 1;
-                // In a real app, you would update the UI here
-            }
+            const commentCount = document.querySelector(`#video-${videoId} .action-item:nth-child(2) .action-count`);
+            commentCount.textContent = parseInt(commentCount.textContent) + 1;
+            
+            // In a real app, you would make an API call to add comment
+            // await fetch(`/api/posts/${videoId}/comments`, {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ comment: commentText })
+            // });
+            
+            showToast('Comment added');
         }
 
         // Delete post (only for user's own posts)
@@ -1147,36 +1385,75 @@
             
             if (confirm('Are you sure you want to delete this post?')) {
                 // In a real app, you would make an API call to delete the post
+                // await fetch(`/api/posts/${videoId}`, { method: 'DELETE' });
+                
                 const videoContainer = document.getElementById(`video-${videoId}`);
                 videoContainer.remove();
                 
-                // Remove from videos array
-                const videoIndex = videos.findIndex(v => v.id === videoId);
-                if (videoIndex !== -1) {
-                    videos.splice(videoIndex, 1);
-                }
-                
-                console.log(`Post ${videoId} deleted`);
+                showToast('Post deleted');
             }
         }
 
-        // Open add post
-        function openAddPost() {
+        // Open upload modal
+        function openUploadModal() {
             if (!isLoggedIn) {
                 showLoginRedirect();
                 return;
             }
             
-            // In a real app, this would open a file picker or camera
-            // For now, we'll simulate the upload process
-            simulateUpload();
+            document.getElementById('uploadModal').classList.add('active');
+        }
+
+        // Show upload form
+        function showUploadForm(type) {
+            document.getElementById('uploadOptions').style.display = 'none';
+            document.getElementById('uploadForm').classList.add('active');
+            
+            // In a real app, you would initialize camera or file upload based on type
+            if (type === 'camera') {
+                // Initialize camera
+                showToast('Camera would open here');
+            } else {
+                // Initialize file upload
+                showToast('File picker would open here');
+            }
+        }
+
+        // Hide upload form
+        function hideUploadForm() {
+            document.getElementById('uploadForm').classList.remove('active');
+            document.getElementById('uploadOptions').style.display = 'flex';
+            document.getElementById('uploadModal').classList.remove('active');
+            
+            // Clear form
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postCaption').value = '';
+            document.getElementById('postHashtags').value = '';
+        }
+
+        // Submit post
+        function submitPost() {
+            const title = document.getElementById('postTitle').value.trim();
+            const caption = document.getElementById('postCaption').value.trim();
+            const hashtags = document.getElementById('postHashtags').value.trim();
+            
+            if (!title) {
+                showToast('Title is required');
+                return;
+            }
+            
+            // Close upload modal
+            hideUploadForm();
+            
+            // Show upload progress
+            simulateUpload(title, caption, hashtags);
         }
 
         // Simulate video upload
-        function simulateUpload() {
+        function simulateUpload(title, caption, hashtags) {
             const uploadProgress = document.getElementById('uploadProgress');
             const progressFill = document.getElementById('progressFill');
-            const uploadStatus = document.getElementById('uploadStatus');
+            const progressStatus = document.getElementById('progressStatus');
             
             // Show upload progress
             uploadProgress.classList.add('active');
@@ -1187,13 +1464,13 @@
                 progressFill.style.width = `${progress}%`;
                 
                 if (progress <= 30) {
-                    uploadStatus.textContent = 'Preparing video...';
+                    progressStatus.textContent = 'Preparing video...';
                 } else if (progress <= 60) {
-                    uploadStatus.textContent = 'Uploading to Facts bucket...';
+                    progressStatus.textContent = 'Uploading to Facts bucket...';
                 } else if (progress <= 90) {
-                    uploadStatus.textContent = 'Processing video...';
+                    progressStatus.textContent = 'Processing video...';
                 } else {
-                    uploadStatus.textContent = 'Finalizing...';
+                    progressStatus.textContent = 'Finalizing...';
                 }
                 
                 if (progress >= 100) {
@@ -1206,6 +1483,10 @@
                         
                         // Reset progress bar
                         progressFill.style.width = '0%';
+                        
+                        // In a real app, you would refresh the feed or add the new post
+                        // For now, we'll just refetch posts
+                        fetchPostsFromDatabase();
                     }, 500);
                 }
             }, 100);
