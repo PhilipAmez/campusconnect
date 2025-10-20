@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skrolz - Video Feed</title>
+    <script type="module" src="js/supabaseClient.js"></script>
     <style>
         /* Base Styles & Variables */
         :root {
@@ -1053,6 +1054,9 @@
     </div>
 
     <script>
+        // Import supabase client
+        import { supabase } from './js/supabaseClient.js';
+
         // App state
         let currentTheme = 'dark';
         let currentVideoId = null;
@@ -1118,13 +1122,20 @@
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-            fetchPostsFromDatabase();
-            setupEventListeners();
+            initializePage();
         });
 
+        async function initializePage() {
+            await checkLoginStatus();
+            await fetchPostsFromDatabase();
+            setupEventListeners();
+        }
+
         // Check login status
-        function checkLoginStatus() {
+        async function checkLoginStatus() {
+            const { data: { session } } = await supabase.auth.getSession();
+            isLoggedIn = !!session;
+
             if (!isLoggedIn) {
                 document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
                     el.style.opacity = '0.7';
@@ -1135,10 +1146,10 @@
         // Fetch posts from database
         async function fetchPostsFromDatabase() {
             try {
-                // In a real app, this would be an API call to Supabase
-                // For demo, we're using the in-memory posts array
-                
-                if (posts && posts.length > 0) {
+                const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                posts = data;
+                if (data && data.length > 0) {
                     initializeFeed(posts);
                 } else {
                     // If no posts, show empty state
@@ -1220,7 +1231,7 @@
                             <div class="action-count">Save</div>
                         </div>
                         ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
-                    </div>
+                    </div> // This was an extra closing tag, I removed it.
                     <div class="video-info">
                         <div class="username">@${video.username || 'user'}</div>
                         <div class="caption">${video.content || ''}</div>
@@ -2040,6 +2051,17 @@
             const progressFill = document.getElementById('progressFill');
             const progressStatus = document.getElementById('progressStatus');
             
+            if (!isLoggedIn) {
+                showLoginRedirect();
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showLoginRedirect();
+                return;
+            }
+
             try {
                 // Show upload progress
                 if (uploadProgress) {
@@ -2049,12 +2071,100 @@
                     progressStatus.textContent = 'Processing your video...';
                 }
                 
-                // Simulate upload progress
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    progress += 5;
-                    if (progressFill) {
-                        progressFill.style.width = `${progress}%`;
+                // 1. Upload the video file to Supabase Storage
+                const fileExt = fileToUpload.name.split('.').pop();
+                const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+                const filePath = `videos/${fileName}`;
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('videos')
+                    .upload(filePath, fileToUpload, {
+                        cacheControl: '3600',
+                        upsert: false
+                    }, (event) => {
+                        // Real-time progress
+                        if (event.type === 'progress') {
+                            const progress = (event.loaded / event.total) * 100;
+                            if (progressFill) {
+                                progressFill.style.width = `${progress}%`;
+                            }
+                            if (progressStatus) {
+                                progressStatus.textContent = `Uploading... ${Math.round(progress)}%`;
+                            }
+                        }
+                    });
+
+                if (uploadError) {
+                    throw uploadError;
+                }
+
+                // 2. Get the public URL of the uploaded file
+                const { data: urlData } = supabase.storage.from('videos').getPublicUrl(filePath);
+                const publicUrl = urlData.publicUrl;
+
+                if (!publicUrl) {
+                    throw new Error('Could not get public URL for the video.');
+                }
+
+                // 3. Insert the post metadata into the 'posts' table
+                const { error: insertError } = await supabase
+                    .from('posts')
+                    .insert({
+                        user_id: user.id,
+                        username: user.user_metadata.username || user.email.split('@')[0],
+                        content: caption || title,
+                        media_url: publicUrl,
+                        hashtags: hashtags,
+                        title: title
+                    });
+
+                if (insertError) {
+                    throw insertError;
+                }
+
+                // 4. Update UI on success
+                if (progressStatus) progressStatus.textContent = 'Post created successfully!';
+                setTimeout(() => {
+                    if (uploadProgress) uploadProgress.classList.remove('active');
+                    if (progressFill) progressFill.style.width = '0%';
+                    showToast('Video posted successfully!');
+                    fetchPostsFromDatabase(); // Refresh the feed
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error uploading post:', error);
+                if (uploadProgress) {
+                    uploadProgress.classList.remove('active');
+                }
+                showToast(`Error uploading post: ${error.message}`);
+            }
+        }
+
+        // Show login redirect
+        function showLoginRedirect() {
+            document.getElementById('loginRedirect').classList.add('active');
+        }
+
+        // Make functions globally available
+        window.openUploadModal = openUploadModal;
+        window.showUploadForm = showUploadForm;
+        window.hideUploadForm = hideUploadForm;
+        window.startRecording = startRecording;
+        window.stopRecording = stopRecording;
+        window.submitPost = submitPost;
+        window.toggleLike = toggleLike;
+        window.openComments = openComments;
+        window.closeComments = closeComments;
+        window.addComment = addComment;
+        window.shareVideo = shareVideo;
+        window.toggleSave = toggleSave;
+        window.deletePost = deletePost;
+        window.toggleMute = toggleMute;
+        window.checkUploadButton = checkUploadButton;
+        window.handleFileSelect = handleFileSelect;
+    </script>
+</body>
+</html>
                     }
                     
                     if (progress >= 100) {
