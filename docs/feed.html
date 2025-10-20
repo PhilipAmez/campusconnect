@@ -2027,13 +2027,15 @@
                 return;
             }
             
+            const fileToUpload = selectedVideoFile;
+
             // Close upload modal and show progress
             hideUploadForm();
-            await uploadPost(title, caption, hashtags, selectedVideoFile);
+            await uploadPost(title, caption, hashtags, fileToUpload);
         }
 
         // Upload post
-        async function uploadPost(title, caption, hashtags, videoFile) {
+        async function uploadPost(title, caption, hashtags, fileToUpload) {
             const uploadProgress = document.getElementById('uploadProgress');
             const progressFill = document.getElementById('progressFill');
             const progressStatus = document.getElementById('progressStatus');
@@ -2062,12 +2064,12 @@
                         let media_url;
                         try {
                             // Validate the file before creating object URL
-                            const validation = validateFileForObjectURL(videoFile);
+                            const validation = validateFileForObjectURL(fileToUpload);
                             if (!validation.valid) {
                                 throw new Error(validation.error || 'Invalid video file');
                             }
                             
-                            media_url = URL.createObjectURL(videoFile);
+                            media_url = URL.createObjectURL(fileToUpload);
                         } catch (error) {
                             console.error('Error creating object URL:', error);
                             showToast('Error processing video file');
