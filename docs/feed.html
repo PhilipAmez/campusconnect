@@ -798,9 +798,22 @@
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background-size: 200% 200%;
             width: 0%;
-            transition: width 0.3s ease;
             border-radius: 4px;
+            animation: progress-animation 2s ease infinite;
+        }
+
+        @keyframes progress-animation {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         .progress-status {
