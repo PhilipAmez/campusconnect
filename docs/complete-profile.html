@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Profile - Peerloom</title>
+    <!-- Same styling as above -->
+</head>
+<body>
+    <nav class="navbar">
+        <!-- Same navbar -->
+    </nav>
+
+    <div class="card">
+        <h2 class="auth-title text-xl"><i class="fas fa-user-edit"></i> Complete Your Profile</h2>
+        <p class="text-center text-gray-600 mb-4">Please complete your profile information to continue</p>
+        
+        <form id="completeProfileForm">
+            <input type="text" id="firstName" class="input-field" placeholder="First name" required>
+            <input type="text" id="lastName" class="input-field" placeholder="Last name" required>
+            <input type="text" id="username" class="input-field" placeholder="Username (e.g., @charles_fx)" required>
+            <input type="tel" id="contact" class="input-field" placeholder="Contact - phone or WhatsApp" required>
+            
+            <!-- Department Field (Mandatory) -->
+            <select id="department" class="input-field" required>
+                <option value="" disabled selected>Select your department *</option>
+                <!-- Same department options -->
+            </select>
+            <input type="text" id="customDepartment" class="input-field" placeholder="Type your department" style="display:none; margin-bottom: 1rem;">
+            
+            <!-- Same campus and level fields -->
+            
+            <button type="submit" class="btn">Complete Profile</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js'
+
+        // Check if user is authenticated
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+
+        // Populate form with Google profile data if available
+        if (user.user_metadata) {
+            document.getElementById('firstName').value = user.user_metadata.firstName || user.user_metadata.full_name?.split(' ')[0] || '';
+            document.getElementById('lastName').value = user.user_metadata.lastName || user.user_metadata.full_name?.split(' ').slice(1).join(' ') || '';
+        }
+
+        document.getElementById('completeProfileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Collect form data and update user profile
+            // Similar to the signup form but using update instead of insert
+        });
+    </script>
+</body>
+</html>
