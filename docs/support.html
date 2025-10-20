@@ -8,19 +8,20 @@
   <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#7c3aed">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --secondary: #64748b;
-      --accent: #0ea5e9;
-      --text-dark: #1e293b;
-      --text-light: #64748b;
-      --bg-light: #f8fafc;
+      --primary: #7c3aed;
+      --primary-dark: #6d28d9;
+      --primary-light: #8b5cf6;
+      --secondary: #4f46e5;
+      --accent: #a78bfa;
+      --text-dark: #1f2937;
+      --text-light: #6b7280;
+      --bg-light: #faf5ff;
       --transition: all 0.3s cubic-bezier(.4,0,.2,1);
     }
 
@@ -32,7 +33,7 @@
     }
 
     body {
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
       min-height: 100vh;
       color: var(--text-dark);
     }
@@ -107,14 +108,26 @@
       background: white;
       border-radius: 1rem;
       padding: 2.5rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.1);
       border: 1px solid rgba(226, 232, 240, 0.8);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .support-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
     }
 
     .support-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 15px 35px rgba(124, 58, 237, 0.15);
     }
 
     .form-title {
@@ -159,7 +172,7 @@
     .textarea-field:focus {
       border-color: var(--primary);
       outline: none;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
     }
 
     .textarea-field {
@@ -170,14 +183,14 @@
     .submit-button {
       width: 100%;
       padding: 0.875rem 1.5rem;
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       border: none;
       border-radius: 0.5rem;
       font-weight: 600;
       font-size: 1rem;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.2s;
+      transition: all 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -185,8 +198,9 @@
     }
 
     .submit-button:hover {
-      background: var(--primary-dark);
+      background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
       transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
     }
 
     .submit-button:active {
@@ -194,9 +208,10 @@
     }
 
     .submit-button:disabled {
-      background: var(--secondary);
+      background: var(--text-light);
       cursor: not-allowed;
       transform: none;
+      box-shadow: none;
     }
 
     .contact-info {
@@ -218,7 +233,7 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: rgba(37, 99, 235, 0.1);
+      background: rgba(124, 58, 237, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -250,14 +265,17 @@
       opacity: 0;
       transition: transform 0.3s, opacity 0.3s;
       z-index: 1001;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
 
     .toast.success {
-      background: #10b981;
+      background: linear-gradient(135deg, #10b981, #059669);
     }
 
     .toast.error {
-      background: #ef4444;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
     }
 
     .toast.show {
@@ -278,14 +296,21 @@
       .contact-info {
         grid-template-columns: 1fr;
       }
+      
+      .navbar {
+        padding: 0.75rem 1rem;
+      }
+      
+      .nav-links {
+        gap: 1.25rem;
+      }
     }
   </style>
 </head>
 <body>
   <nav class="navbar" id="navbar">
     <a href="index.html" class="logo">
-      < <img src="logo.png" alt="Peerloom">
-
+      <img src="logo.png" alt="Peerloom">
     </a>
     <div class="nav-links">
       <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
@@ -386,6 +411,13 @@
         return;
       }
       
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+      }
+      
       // Change button to loading state
       submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
       submitButton.disabled = true;
@@ -418,7 +450,7 @@
     
     function showToast(message, type) {
       const toast = document.getElementById('toast');
-      toast.textContent = message;
+      toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${message}`;
       toast.className = `toast ${type} show`;
       
       setTimeout(() => {
