@@ -75,7 +75,7 @@
             padding: 0 1rem;
         }
 
-        /* Header with swipe functionality */
+        /* Clean Header with swipe functionality */
         .header {
             position: fixed;
             top: 0;
@@ -103,9 +103,13 @@
             user-select: none;
             position: relative;
             touch-action: pan-x;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: var(--transition);
         }
 
         .logo.swiping {
+            background: var(--bg-secondary);
             transform: scale(1.05);
         }
 
@@ -123,7 +127,7 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
         }
 
         .nav-icon {
@@ -137,6 +141,7 @@
             color: var(--text-primary);
             cursor: pointer;
             transition: var(--transition);
+            border: none;
         }
 
         .nav-icon:hover {
@@ -191,16 +196,6 @@
             height: 160px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             position: relative;
-            overflow: hidden;
-        }
-
-        .cover-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
         }
 
         .avatar-container {
@@ -496,23 +491,20 @@
             transform: translateY(-2px);
         }
 
-        /* Settings Drawer with Glassmorphism */
+        /* Settings Drawer */
         .settings-drawer {
             position: fixed;
             top: 0;
             right: -400px;
             width: 380px;
             height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border);
+            box-shadow: var(--shadow-xl);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .settings-drawer.open {
@@ -521,11 +513,10 @@
 
         .drawer-header {
             padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.05);
         }
 
         .drawer-title {
@@ -559,7 +550,7 @@
 
         .section-divider {
             height: 1px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--border);
             margin: 1.5rem 0;
         }
 
@@ -584,23 +575,20 @@
             color: var(--text-secondary);
         }
 
-        /* Notifications Drawer with Glassmorphism */
+        /* Notifications Drawer */
         .notifications-drawer {
             position: fixed;
             top: 0;
             left: -400px;
             width: 380px;
             height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            box-shadow: var(--shadow-xl);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .notifications-drawer.open {
@@ -609,11 +597,10 @@
 
         .notifications-header {
             padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.05);
         }
 
         .notifications-title {
@@ -648,7 +635,7 @@
         }
 
         .notification-item {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-secondary);
             border-radius: 8px;
             padding: 1rem;
             transition: var(--transition);
@@ -688,7 +675,7 @@
         .notification-post-preview {
             margin-top: 0.5rem;
             padding: 0.75rem;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-tertiary);
             border-radius: 6px;
             font-size: 0.8rem;
             color: var(--text-secondary);
@@ -696,8 +683,8 @@
         }
 
         .mark-all-read-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--text-primary);
+            background: var(--primary);
+            color: white;
             border: none;
             border-radius: 8px;
             padding: 0.75rem 1.5rem;
@@ -710,11 +697,10 @@
             gap: 0.5rem;
             margin-top: 1rem;
             width: 100%;
-            backdrop-filter: blur(10px);
         }
 
         .mark-all-read-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: var(--primary-dark);
             transform: translateY(-2px);
         }
 
@@ -725,16 +711,13 @@
             right: -400px;
             width: 380px;
             height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border);
+            box-shadow: var(--shadow-xl);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .followers-drawer.open {
@@ -743,7 +726,7 @@
 
         .followers-tabs {
             display: flex;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border);
             margin-bottom: 1rem;
         }
 
@@ -764,7 +747,7 @@
         }
 
         .tab-button:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-secondary);
         }
 
         .follower-item, .following-item {
@@ -773,13 +756,13 @@
             gap: 0.75rem;
             padding: 1rem;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-secondary);
             margin-bottom: 0.5rem;
             transition: var(--transition);
         }
 
         .follower-item:hover, .following-item:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-tertiary);
             transform: translateX(5px);
         }
 
@@ -895,137 +878,6 @@
             transform: translateX(24px);
         }
 
-        /* 2FA Setup Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1100;
-            opacity: 0;
-            visibility: hidden;
-            transition: var(--transition);
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal {
-            background: var(--bg-primary);
-            border-radius: var(--radius);
-            padding: 2rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: var(--shadow-xl);
-            transform: translateY(20px);
-            transition: var(--transition);
-        }
-
-        .modal-overlay.active .modal {
-            transform: translateY(0);
-        }
-
-        .modal-header {
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .modal-desc {
-            color: var(--text-secondary);
-        }
-
-        .modal-body {
-            margin-bottom: 1.5rem;
-        }
-
-        .qrcode-container {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .qrcode-placeholder {
-            width: 200px;
-            height: 200px;
-            background: #f8fafc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            border: 1px dashed var(--border);
-        }
-
-        .backup-codes {
-            background: var(--bg-secondary);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .codes-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .code-item {
-            font-family: monospace;
-            padding: 0.5rem;
-            background: var(--bg-primary);
-            border-radius: 4px;
-            text-align: center;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: flex-end;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-tertiary);
-        }
-
         /* Overlay for drawer */
         .overlay {
             position: fixed;
@@ -1056,7 +908,7 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid var(--glass-border);
+            border: 4px solid var(--border);
             border-left: 4px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -1101,13 +953,7 @@
             color: white;
         }
 
-        /* Responsive Design - Enhanced Mobile View */
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
+        /* Responsive Design */
         @media (max-width: 768px) {
             .header {
                 padding: 0.75rem 1rem;
@@ -1156,29 +1002,6 @@
                 padding: 1rem;
             }
             
-            .section-title {
-                font-size: 1.1rem;
-            }
-            
-            .group-item {
-                padding: 0.5rem;
-            }
-            
-            .drawer-header, .notifications-header {
-                padding: 1rem;
-            }
-            
-            .drawer-content, .notifications-content {
-                padding: 1rem;
-            }
-            
-            .modal {
-                padding: 1.5rem;
-                margin: 1rem;
-            }
-        }
-
-        @media (max-width: 480px) {
             .avatar {
                 width: 100px;
                 height: 100px;
@@ -1203,99 +1026,19 @@
                 font-size: 1.5rem;
                 justify-content: center;
             }
-            
-            .profile-info p {
-                font-size: 0.9rem;
-            }
-            
-            .codes-list {
-                grid-template-columns: 1fr;
-            }
-            
-            .cover-section {
-                height: 120px;
-            }
-            
-            .stat-card {
-                padding: 0.75rem;
-            }
-            
-            .stat-value {
-                font-size: 1.25rem;
-            }
-            
-            .share-profile-btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-
-        /* Mobile-specific improvements */
-        @media (max-width: 768px) and (orientation: portrait) {
-            .app-container {
-                padding: 0 0.5rem;
-            }
-            
-            .profile-sections {
-                gap: 1rem;
-            }
-            
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-            
-            .academic-edit, .edit-bio-btn {
-                position: static;
-                align-self: flex-end;
-            }
-            
-            .bio-actions, .academic-actions {
-                flex-direction: column;
-                width: 100%;
-            }
-            
-            .bio-actions .btn, .academic-actions .btn {
-                width: 100%;
-            }
-        }
-
-        @media (max-width: 768px) and (orientation: landscape) {
-            .main-content {
-                padding-top: 60px;
-            }
-            
-            .header {
-                padding: 0.5rem 1rem;
-            }
-            
-            .cover-section {
-                height: 100px;
-            }
-            
-            .avatar {
-                width: 80px;
-                height: 80px;
-                font-size: 1.25rem;
-            }
-            
-            .avatar-container {
-                margin-top: -40px;
-            }
         }
     </style>
 </head>
 <body data-theme="dark">
     <div class="app-container">
-        <!-- Header with swipe functionality on Peerloom text only -->
-        <header class="header" id="header">
+        <!-- Clean Header with swipe functionality on Peerloom text -->
+        <header class="header">
             <div class="logo" id="logo">
                 <div class="logo-icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <span>Peerloom</span>
-            </a>
+            </div>
             
             <div class="theme-indicator" id="themeIndicator">
                 <i class="fas fa-moon"></i>
@@ -1303,15 +1046,15 @@
             </div>
             
             <div class="nav-actions">
-                <div class="nav-icon" id="followersBtn">
+                <button class="nav-icon" id="followersBtn">
                     <i class="fas fa-users"></i>
-                </div>
-                <div class="nav-icon" id="notificationsBtn">
+                </button>
+                <button class="nav-icon" id="notificationsBtn">
                     <i class="fas fa-bell"></i>
-                </div>
-                <div class="nav-icon" id="settingsBtn">
+                </button>
+                <button class="nav-icon" id="settingsBtn">
                     <i class="fas fa-cog"></i>
-                </div>
+                </button>
             </div>
         </header>
 
@@ -1319,31 +1062,20 @@
         <main class="main-content">
             <!-- Profile Card -->
             <div class="profile-card">
-                <div class="cover-section">
-                    <div class="cover-overlay"></div>
-                    <div class="avatar-container">
-                        <label for="avatarUpload" class="avatar" id="avatar">
-                            <span id="avatarInitials">...</span>
-                        </label>
-                        <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
-                    </div>
-                </div>
+                <div class="cover-section"></div>
                 
                 <div class="profile-content">
                     <div class="profile-header">
                         <div class="profile-info">
                             <h1 id="fullName">
-                                <div class="loading" id="nameLoading">
-                                    <div class="spinner"></div>
-                                </div>
-                                <span id="nameText" style="display: none;">Loading...</span>
+                                <span id="nameText">Loading...</span>
                                 <div class="verified-badge" id="verifiedBadge" style="display: none;">
                                     <i class="fas fa-check"></i>
                                 </div>
                             </h1>
                             <p id="userInfo">
-                                <span id="username">Loading...</span>
-                                <span class="status-indicator" id="statusIndicator">Online</span>
+                                <span id="username">@loading</span>
+                                <span class="status-indicator status-online" id="statusIndicator">Online</span>
                             </p>
                         </div>
                     </div>
@@ -1446,7 +1178,7 @@
         </main>
     </div>
 
-    <!-- Settings Drawer with Glassmorphism -->
+    <!-- Settings Drawer -->
     <div class="settings-drawer" id="settingsDrawer">
         <div class="drawer-header">
             <h2 class="drawer-title">Settings</h2>
@@ -1483,17 +1215,6 @@
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Show Groups Count</div>
-                        <div class="settings-desc">Display number of groups joined</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="showGroupsCountToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
             </div>
             
             <div class="section-divider"></div>
@@ -1506,42 +1227,11 @@
                 
                 <div class="settings-item">
                     <div class="settings-info">
-                        <div class="settings-label">Email Notifications</div>
-                        <div class="settings-desc">Receive updates via email</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="emailNotificationsToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
                         <div class="settings-label">Push Notifications</div>
                         <div class="settings-desc">Receive push notifications</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="pushNotificationsToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="section-divider"></div>
-            
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-shield-alt section-icon"></i>
-                    Security
-                </h3>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Two-Factor Authentication</div>
-                        <div class="settings-desc">Add an extra layer of security</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="twoFactorToggle">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1569,7 +1259,7 @@
         </div>
     </div>
 
-    <!-- Notifications Drawer with Glassmorphism -->
+    <!-- Notifications Drawer -->
     <div class="notifications-drawer" id="notificationsDrawer">
         <div class="notifications-header">
             <h2 class="notifications-title">Notifications</h2>
@@ -1621,53 +1311,11 @@
         </div>
     </div>
 
-    <!-- 2FA Setup Modal -->
-    <div class="modal-overlay" id="twoFactorModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title">Set Up Two-Factor Authentication</h2>
-                <p class="modal-desc">Scan the QR code with your authenticator app</p>
-            </div>
-            
-            <div class="modal-body">
-                <div class="qrcode-container">
-                    <div class="qrcode-placeholder">
-                        QR Code would appear here
-                    </div>
-                </div>
-                
-                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
-                    Or enter this code manually: <strong>JBSWY3DPEHPK3PXP</strong>
-                </p>
-                
-                <div class="backup-codes">
-                    <p style="font-weight: 500; margin-bottom: 0.5rem;">Backup Codes</p>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        Save these codes in a secure place. Each code can be used once.
-                    </p>
-                    <div class="codes-list">
-                        <div class="code-item">7C3D 9F2A</div>
-                        <div class="code-item">B8E1 4C6F</div>
-                        <div class="code-item">2A9D 5E7B</div>
-                        <div class="code-item">F4C8 1D6A</div>
-                        <div class="code-item">9E5B 3A7D</div>
-                        <div class="code-item">6C2F 8E4A</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-secondary" id="cancel2FA">Cancel</button>
-                <button class="btn btn-primary" id="confirm2FA">Confirm & Enable</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
 
     <script type="module">
-        // Import Supabase client
+        // Import Supabase client (uncomment when you have the actual Supabase client)
         // import { supabase } from './js/supabaseClient.js';
 
         // Mock Supabase client for demonstration
@@ -1684,21 +1332,21 @@
                         single: () => Promise.resolve({
                             data: {
                                 id: '1',
-                                full_name: 'John Doe',
-                                username: 'johndoe',
+                                full_name: 'Alex Johnson',
+                                username: 'alexj',
                                 status: 'Online',
-                                verified: false,
+                                verified: true,
                                 theme_preference: 'dark',
-                                show_full_name: true,
-                                show_academic_info: true,
-                                show_groups_count: true,
                                 campus: 'Main Campus',
                                 level: 'Undergraduate',
                                 department: 'Computer Science',
-                                contact: 'john.doe@example.com',
-                                bio: 'This is my bio. I love using Peerloom!',
+                                contact: 'alex.j@example.com',
+                                bio: 'Computer Science student passionate about web development and AI.',
                                 profile_photo: null,
-                                join_date: new Date().toISOString()
+                                join_date: new Date('2023-01-15').toISOString(),
+                                post_count: 15,
+                                follower_count: 1250,
+                                following_count: 34
                             },
                             error: null
                         })
@@ -1706,18 +1354,6 @@
                 }),
                 update: () => ({
                     eq: () => Promise.resolve({ error: null })
-                }),
-                insert: () => ({
-                    select: () => ({
-                        single: () => Promise.resolve({
-                            data: {
-                                id: '1',
-                                full_name: 'John Doe',
-                                username: 'johndoe'
-                            },
-                            error: null
-                        })
-                    })
                 })
             }),
             channel: () => ({
@@ -1745,40 +1381,13 @@
         const followingList = document.getElementById('followingList');
         const tabButtons = document.querySelectorAll('.tab-button');
         const overlay = document.getElementById('overlay');
-        const twoFactorToggle = document.getElementById('twoFactorToggle');
-        const twoFactorModal = document.getElementById('twoFactorModal');
-        const cancel2FA = document.getElementById('cancel2FA');
-        const confirm2FA = document.getElementById('confirm2FA');
         const darkModeToggle = document.getElementById('darkModeToggle');
-        const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
-        const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
         const body = document.body;
-        const editAcademicBtn = document.getElementById('editAcademicBtn');
-        const academicGrid = document.getElementById('academicGrid');
-        const academicActions = document.getElementById('academicActions');
-        const cancelAcademicEdit = document.getElementById('cancelAcademicEdit');
-        const saveAcademicEdit = document.getElementById('saveAcademicEdit');
-        const editBioBtn = document.getElementById('editBioBtn');
-        const bioContent = document.getElementById('bioContent');
-        const bioInput = document.getElementById('bioInput');
-        const bioActions = document.getElementById('bioActions');
-        const cancelBioEdit = document.getElementById('cancelBioEdit');
-        const saveBioEdit = document.getElementById('saveBioEdit');
-        const shareProfileBtn = document.getElementById('shareProfileBtn');
-        const showFullNameToggle = document.getElementById('showFullNameToggle');
-        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
-        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
         const verifiedBadge = document.getElementById('verifiedBadge');
 
         // Current user and data
         let currentUser = null;
         let userProfile = null;
-        let userGroups = [];
-        let userNotifications = [];
-        let followers = [];
-        let following = [];
-        let userPostsCount = 15; // Mock data - user has 15 posts
-        let userFollowersCount = 1200; // Mock data - user has 1200 followers
 
         // Initialize the page
         async function initializePage() {
@@ -1800,14 +1409,11 @@
                 // Load user groups
                 await loadUserGroups();
                 
-                // Initialize followers system
-                await initializeFollowers();
-                
                 // Load user notifications
                 await loadUserNotifications();
                 
-                // Check for verified badge eligibility
-                checkVerifiedBadgeEligibility();
+                // Load followers data
+                await loadFollowersData();
                 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -1824,14 +1430,7 @@
                     .eq('id', currentUser.id)
                     .single();
                     
-                if (error) {
-                    // If profile doesn't exist, create one
-                    if (error.code === 'PGRST116') {
-                        await createUserProfile();
-                        return;
-                    }
-                    throw error;
-                }
+                if (error) throw error;
                 
                 userProfile = profile;
                 updateProfileUI();
@@ -1842,64 +1441,30 @@
             }
         }
 
-        // Create a new user profile if it doesn't exist
-        async function createUserProfile() {
-            try {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: currentUser.id,
-                            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
-                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
-                            status: 'Online',
-                            verified: false,
-                            theme_preference: 'dark',
-                            show_full_name: true,
-                            show_academic_info: true,
-                            show_groups_count: true
-                        }
-                    ])
-                    .select()
-                    .single();
-                    
-                if (error) throw error;
-                
-                userProfile = profile;
-                updateProfileUI();
-                
-            } catch (error) {
-                console.error('Error creating profile:', error);
-                showError('Error creating profile');
-            }
-        }
-
         // Update the UI with profile data
         function updateProfileUI() {
             if (!userProfile) return;
             
-            // Hide loading spinner and show name
-            document.getElementById('nameLoading').style.display = 'none';
-            document.getElementById('nameText').style.display = 'inline';
-            
             // Set user name and info
-            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
-            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
-            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
+            document.getElementById('fullName').textContent = userProfile.full_name;
+            document.getElementById('username').textContent = `@${userProfile.username}`;
+            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name);
             
-            // Set status
-            const statusIndicator = document.getElementById('statusIndicator');
-            statusIndicator.textContent = userProfile.status || 'Online';
-            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            // Set verified badge
+            if (userProfile.verified) {
+                verifiedBadge.style.display = 'flex';
+            }
             
-            // Set academic details - use custom fields if available
-            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
-            const level = userProfile.custom_level || userProfile.level || 'Not set';
+            // Set stats
+            document.getElementById('postsCount').textContent = userProfile.post_count || 0;
+            document.getElementById('followersCount').textContent = userProfile.follower_count || 0;
+            document.getElementById('followingCount').textContent = userProfile.following_count || 0;
             
-            document.getElementById('campusValue').textContent = campus;
-            document.getElementById('campusInput').value = campus;
-            document.getElementById('levelValue').textContent = level;
-            document.getElementById('levelInput').value = level;
+            // Set academic details
+            document.getElementById('campusValue').textContent = userProfile.campus || 'Not set';
+            document.getElementById('campusInput').value = userProfile.campus || '';
+            document.getElementById('levelValue').textContent = userProfile.level || 'Not set';
+            document.getElementById('levelInput').value = userProfile.level || '';
             document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
             document.getElementById('departmentInput').value = userProfile.department || '';
             document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
@@ -1908,19 +1473,6 @@
             // Set bio
             document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
             document.getElementById('bioInput').value = userProfile.bio || '';
-            
-            // Set join date
-            if (userProfile.join_date) {
-                const joinDate = new Date(userProfile.join_date);
-                document.getElementById('joinDate').textContent = joinDate.toLocaleDateString();
-            } else {
-                document.getElementById('joinDate').textContent = 'Recently';
-            }
-            
-            // Set privacy toggles
-            showFullNameToggle.checked = userProfile.show_full_name !== false;
-            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
-            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
             
             // Apply theme from database
             if (userProfile.theme_preference) {
@@ -1931,35 +1483,14 @@
         // Load user groups from Supabase
         async function loadUserGroups() {
             try {
-                // Mock data for groups
-                userGroups = [
-                    {
-                        groups: {
-                            id: '1',
-                            name: 'Computer Science Club',
-                            member_count: 45
-                        },
-                        is_admin: true
-                    },
-                    {
-                        groups: {
-                            id: '2',
-                            name: 'Web Development',
-                            member_count: 120
-                        },
-                        is_admin: false
-                    },
-                    {
-                        groups: {
-                            id: '3',
-                            name: 'UI/UX Designers',
-                            member_count: 78
-                        },
-                        is_admin: false
-                    }
+                // This would be your actual Supabase query for groups
+                const groupsData = [
+                    { id: 1, name: 'Computer Science Club', member_count: 45, is_admin: true },
+                    { id: 2, name: 'Web Developers', member_count: 120, is_admin: false },
+                    { id: 3, name: 'AI Enthusiasts', member_count: 78, is_admin: false }
                 ];
                 
-                updateGroupsUI();
+                updateGroupsUI(groupsData);
                 
             } catch (error) {
                 console.error('Error loading groups:', error);
@@ -1968,11 +1499,11 @@
         }
 
         // Update the UI with groups data
-        function updateGroupsUI() {
+        function updateGroupsUI(groups) {
             const groupsGrid = document.getElementById('groupsGrid');
             groupsGrid.innerHTML = '';
             
-            if (userGroups.length === 0) {
+            if (groups.length === 0) {
                 groupsGrid.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-users"></i>
@@ -1982,8 +1513,7 @@
                 return;
             }
             
-            userGroups.forEach(groupData => {
-                const group = groupData.groups;
+            groups.forEach(group => {
                 const groupItem = document.createElement('div');
                 groupItem.className = 'group-item';
                 
@@ -1991,75 +1521,31 @@
                     <div class="group-avatar">${group.name.substring(0, 2)}</div>
                     <div class="group-info">
                         <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.member_count || 0} members</div>
+                        <div class="group-members">${group.member_count} members</div>
                     </div>
-                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
+                    ${group.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
                 `;
                 
                 groupsGrid.appendChild(groupItem);
             });
         }
 
-        // Initialize followers functionality
-        async function initializeFollowers() {
-            await loadFollowersData();
-            updateFollowersUI();
-        }
-
-        // Load followers and following data
+        // Load followers data from Supabase
         async function loadFollowersData() {
             try {
-                // Mock data for followers and following
-                followers = [
-                    {
-                        id: '2',
-                        full_name: 'Alice Smith',
-                        username: 'alicesmith',
-                        profile_photo: null,
-                        posts: 8,
-                        followers: 450,
-                        verified: false
-                    },
-                    {
-                        id: '3',
-                        full_name: 'Bob Johnson',
-                        username: 'bobjohnson',
-                        profile_photo: null,
-                        posts: 12,
-                        followers: 1100,
-                        verified: true
-                    },
-                    {
-                        id: '4',
-                        full_name: 'Carol Williams',
-                        username: 'carolw',
-                        profile_photo: null,
-                        posts: 5,
-                        followers: 320,
-                        verified: false
-                    }
+                // This would be your actual Supabase query for followers/following
+                const followersData = [
+                    { id: 2, full_name: 'Sarah Wilson', username: 'sarahw', verified: true },
+                    { id: 3, full_name: 'Mike Chen', username: 'mikec', verified: false },
+                    { id: 4, full_name: 'Emma Davis', username: 'emmad', verified: true }
                 ];
                 
-                following = [
-                    {
-                        id: '2',
-                        full_name: 'Alice Smith',
-                        username: 'alicesmith',
-                        profile_photo: null,
-                        posts: 8,
-                        followers: 450,
-                        verified: false
-                    },
-                    {
-                        id: '5',
-                        full_name: 'David Brown',
-                        username: 'davidb',
-                        profile_photo: null,
-                        posts: 22,
-                        followers: 2100,
-                        verified: true
-                    }
+                const followingData = [
+                    { id: 2, full_name: 'Sarah Wilson', username: 'sarahw', verified: true },
+                    { id: 5, full_name: 'James Brown', username: 'jamesb', verified: false }
                 ];
+                
+                updateFollowersUI(followersData, followingData);
                 
             } catch (error) {
                 console.error('Error loading followers data:', error);
@@ -2068,19 +1554,16 @@
         }
 
         // Update followers UI
-        function updateFollowersUI() {
-            // Update counts
-            document.getElementById('postsCount').textContent = userPostsCount;
-            document.getElementById('followersCount').textContent = userFollowersCount;
-            document.getElementById('followingCount').textContent = following.length;
-            
+        function updateFollowersUI(followers, following) {
             // Update followers list
-            updateFollowersList();
-            updateFollowingList();
+            updateFollowersList(followers);
+            
+            // Update following list
+            updateFollowingList(following);
         }
 
         // Update followers list
-        function updateFollowersList() {
+        function updateFollowersList(followers) {
             followersList.innerHTML = '';
             
             if (followers.length === 0) {
@@ -2098,22 +1581,17 @@
                 followerItem.className = 'follower-item';
                 followerItem.innerHTML = `
                     <div class="follower-avatar">
-                        ${follower.profile_photo ? 
-                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                            getInitials(follower.full_name)
-                        }
+                        ${getInitials(follower.full_name)}
                     </div>
                     <div class="follower-info">
                         <div class="follower-name">
                             ${follower.full_name}
-                            ${follower.verified ? '<div class="verified-badge"><i class="fas fa-check"></i></div>' : ''}
+                            ${follower.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.6rem;"><i class="fas fa-check"></i></div>' : ''}
                         </div>
                         <div class="follower-username">@${follower.username}</div>
                     </div>
-                    <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}" 
-                            onclick="toggleFollow('${follower.id}')"
-                            data-user-id="${follower.id}">
-                        ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
+                    <button class="follow-action following" onclick="toggleFollow('${follower.id}')">
+                        Following
                     </button>
                 `;
                 followersList.appendChild(followerItem);
@@ -2121,7 +1599,7 @@
         }
 
         // Update following list
-        function updateFollowingList() {
+        function updateFollowingList(following) {
             followingList.innerHTML = '';
             
             if (following.length === 0) {
@@ -2134,24 +1612,21 @@
                 return;
             }
             
-            following.forEach(followedUser => {
+            following.forEach(user => {
                 const followingItem = document.createElement('div');
                 followingItem.className = 'following-item';
                 followingItem.innerHTML = `
                     <div class="following-avatar">
-                        ${followedUser.profile_photo ? 
-                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                            getInitials(followedUser.full_name)
-                        }
+                        ${getInitials(user.full_name)}
                     </div>
                     <div class="following-info">
                         <div class="following-name">
-                            ${followedUser.full_name}
-                            ${followedUser.verified ? '<div class="verified-badge"><i class="fas fa-check"></i></div>' : ''}
+                            ${user.full_name}
+                            ${user.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.6rem;"><i class="fas fa-check"></i></div>' : ''}
                         </div>
-                        <div class="following-username">@${followedUser.username}</div>
+                        <div class="following-username">@${user.username}</div>
                     </div>
-                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
+                    <button class="unfollow-btn" onclick="unfollowUser('${user.id}')">
                         Unfollow
                     </button>
                 `;
@@ -2162,45 +1637,28 @@
         // Load user notifications from Supabase
         async function loadUserNotifications() {
             try {
-                // Mock data for notifications including followers and posts from followed users
-                userNotifications = [
+                // This would be your actual Supabase query for notifications
+                const notificationsData = [
                     {
-                        id: '1',
+                        id: 1,
                         type: 'new_follower',
-                        sender: { full_name: 'Alice Smith', username: 'alicesmith' },
+                        sender: { full_name: 'Sarah Wilson', username: 'sarahw', verified: true },
                         content: 'started following you',
-                        created_at: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+                        created_at: new Date(Date.now() - 300000).toISOString(),
                         read: false
                     },
                     {
-                        id: '2',
+                        id: 2,
                         type: 'new_post',
-                        sender: { full_name: 'Bob Johnson', username: 'bobjohnson' },
-                        post: { id: '1', content: 'Just published a new article about web development trends for 2024!' },
+                        sender: { full_name: 'Mike Chen', username: 'mikec', verified: false },
+                        post: { content: 'Just published a new article about web development!' },
                         content: 'made a new post',
-                        created_at: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+                        created_at: new Date(Date.now() - 1800000).toISOString(),
                         read: false
-                    },
-                    {
-                        id: '3',
-                        type: 'new_follower',
-                        sender: { full_name: 'Carol Williams', username: 'carolw' },
-                        content: 'started following you',
-                        created_at: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-                        read: true
-                    },
-                    {
-                        id: '4',
-                        type: 'new_post',
-                        sender: { full_name: 'David Brown', username: 'davidb' },
-                        post: { id: '2', content: 'Check out my new portfolio website! Built with React and Node.js.' },
-                        content: 'made a new post',
-                        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-                        read: true
                     }
                 ];
                 
-                updateNotificationsUI();
+                updateNotificationsUI(notificationsData);
                 
             } catch (error) {
                 console.error('Error loading notifications:', error);
@@ -2209,10 +1667,10 @@
         }
 
         // Update the UI with notifications data
-        function updateNotificationsUI() {
+        function updateNotificationsUI(notifications) {
             notificationsList.innerHTML = '';
             
-            if (userNotifications.length === 0) {
+            if (notifications.length === 0) {
                 notificationsList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-bell-slash"></i>
@@ -2222,12 +1680,13 @@
                 return;
             }
             
-            userNotifications.forEach(notification => {
+            notifications.forEach(notification => {
                 const notificationItem = document.createElement('div');
                 notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
                 
-                // Format time
-                const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const time = new Date(notification.created_at).toLocaleTimeString([], { 
+                    hour: '2-digit', minute: '2-digit' 
+                });
                 
                 let message = '';
                 let postPreview = '';
@@ -2242,15 +1701,13 @@
                             ${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}
                         </div>
                     `;
-                } else {
-                    message = notification.content;
                 }
                 
                 notificationItem.innerHTML = `
                     <div class="notification-header">
                         <div class="notification-sender">
-                            ${notification.sender?.full_name || 'System'}
-                            ${notification.sender?.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.5rem;"><i class="fas fa-check"></i></div>' : ''}
+                            ${notification.sender.full_name}
+                            ${notification.sender.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.6rem;"><i class="fas fa-check"></i></div>' : ''}
                         </div>
                         <div class="notification-time">${time}</div>
                     </div>
@@ -2262,69 +1719,6 @@
             });
         }
 
-        // Check if current user is following a specific user
-        function isFollowing(userId) {
-            return following.some(user => user.id === userId);
-        }
-
-        // Toggle follow/unfollow
-        async function toggleFollow(userId) {
-            try {
-                if (isFollowing(userId)) {
-                    await unfollowUser(userId);
-                } else {
-                    await followUser(userId);
-                }
-            } catch (error) {
-                console.error('Error toggling follow:', error);
-                showError('Error updating follow status');
-            }
-        }
-
-        // Follow a user
-        async function followUser(userId) {
-            try {
-                // In a real app, this would call Supabase
-                const userToFollow = followers.find(f => f.id === userId) || { id: userId, full_name: 'User', username: 'user' };
-                following.push(userToFollow);
-                
-                updateFollowersUI();
-                showError('User followed successfully!');
-                
-            } catch (error) {
-                console.error('Error following user:', error);
-                throw error;
-            }
-        }
-
-        // Unfollow a user
-        async function unfollowUser(userId) {
-            try {
-                // In a real app, this would call Supabase
-                following = following.filter(user => user.id !== userId);
-                
-                updateFollowersUI();
-                showError('User unfollowed');
-                
-            } catch (error) {
-                console.error('Error unfollowing user:', error);
-                throw error;
-            }
-        }
-
-        // Check verified badge eligibility
-        function checkVerifiedBadgeEligibility() {
-            if (userPostsCount >= 10 && userFollowersCount >= 1000) {
-                verifiedBadge.style.display = 'flex';
-                // Update user profile to be verified
-                if (userProfile) {
-                    userProfile.verified = true;
-                }
-            } else {
-                verifiedBadge.style.display = 'none';
-            }
-        }
-
         // Get initials from full name
         function getInitials(fullName) {
             if (!fullName) return 'U';
@@ -2333,10 +1727,8 @@
 
         // Show error message
         function showError(message) {
-            // You could implement a toast notification system here
+            // In a real app, use a proper notification system
             console.log(message);
-            // For demo purposes, we'll use alert
-            alert(message);
         }
 
         // Theme toggle with swipe on Peerloom text only
@@ -2354,9 +1746,9 @@
             if (isSwiping && e.buttons === 1) {
                 const dx = e.clientX - startX;
                 if (dx < -50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-sun"></i><span>Switch to Light Mode</span>';
                 } else if (dx > 50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-moon"></i><span>Switch to Dark Mode</span>';
                 }
             }
         });
@@ -2373,18 +1765,8 @@
                     } else if (dx > 50) {
                         applyTheme('dark');
                     }
-                    startX = null;
                 }
                 isSwiping = false;
-            }
-        });
-
-        logo.addEventListener('mouseleave', () => {
-            if (isSwiping) {
-                logo.classList.remove('swiping');
-                themeIndicator.classList.remove('show');
-                isSwiping = false;
-                startX = null;
             }
         });
 
@@ -2394,18 +1776,16 @@
             isSwiping = true;
             logo.classList.add('swiping');
             themeIndicator.classList.add('show');
-            e.preventDefault();
         });
 
         logo.addEventListener('touchmove', (e) => {
-            if (isSwiping && startX) {
+            if (isSwiping) {
                 const dx = e.touches[0].clientX - startX;
                 if (dx < -50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-sun"></i><span>Switch to Light Mode</span>';
                 } else if (dx > 50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-moon"></i><span>Switch to Dark Mode</span>';
                 }
-                e.preventDefault();
             }
         });
 
@@ -2421,7 +1801,6 @@
                     } else if (dx > 50) {
                         applyTheme('dark');
                     }
-                    startX = null;
                 }
                 isSwiping = false;
             }
@@ -2432,33 +1811,13 @@
             body.setAttribute('data-theme', theme);
             localStorage.setItem('peerloom-theme', theme);
             darkModeToggle.checked = theme === 'dark';
-            
-            // Save theme preference to database
-            if (userProfile) {
-                saveThemePreference(theme);
-            }
-        }
-
-        // Save theme preference to database
-        async function saveThemePreference(theme) {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ theme_preference: theme })
-                    .eq('id', currentUser.id);
-                    
-                if (error) throw error;
-                
-            } catch (error) {
-                console.error('Error saving theme preference:', error);
-            }
         }
 
         // Initialize theme
-        const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
+        const savedTheme = localStorage.getItem('peerloom-theme') || 'dark';
         applyTheme(savedTheme);
 
-        // Settings drawer functionality
+        // Drawer functionality
         settingsBtn.addEventListener('click', () => {
             settingsDrawer.classList.add('open');
             overlay.classList.add('active');
@@ -2469,7 +1828,6 @@
             overlay.classList.remove('active');
         });
 
-        // Notifications drawer functionality
         notificationsBtn.addEventListener('click', () => {
             notificationsDrawer.classList.add('open');
             overlay.classList.add('active');
@@ -2480,7 +1838,6 @@
             overlay.classList.remove('active');
         });
 
-        // Followers drawer functionality
         followersBtn.addEventListener('click', () => {
             followersDrawer.classList.add('open');
             overlay.classList.add('active');
@@ -2491,16 +1848,14 @@
             overlay.classList.remove('active');
         });
 
-        // Tab switching for followers/following
+        // Tab switching
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const tab = button.getAttribute('data-tab');
                 
-                // Update active tab
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 
-                // Show appropriate content
                 if (tab === 'followers') {
                     followersList.style.display = 'block';
                     followingList.style.display = 'none';
@@ -2516,182 +1871,21 @@
             notificationsDrawer.classList.remove('open');
             followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
-            twoFactorModal.classList.remove('active');
         });
 
-        // Mark all notifications as read
-        markAllReadBtn.addEventListener('click', async () => {
-            try {
-                // In a real app, this would update in Supabase
-                userNotifications.forEach(n => {
-                    n.read = true;
-                });
-                
-                updateNotificationsUI();
-                showError('All notifications marked as read');
-                
-            } catch (error) {
-                console.error('Error marking notifications as read:', error);
-                showError('Error marking notifications as read');
-            }
-        });
-
-        // 2FA functionality
-        twoFactorToggle.addEventListener('change', () => {
-            if (twoFactorToggle.checked) {
-                twoFactorModal.classList.add('active');
-                overlay.classList.add('active');
-            }
-        });
-
-        cancel2FA.addEventListener('click', () => {
-            twoFactorModal.classList.remove('active');
-            overlay.classList.remove('active');
-            twoFactorToggle.checked = false;
-        });
-
-        confirm2FA.addEventListener('click', () => {
-            twoFactorModal.classList.remove('active');
-            overlay.classList.remove('active');
-            showError('Two-factor authentication has been enabled!');
-        });
-
-        // Dark mode toggle in settings
+        // Dark mode toggle
         darkModeToggle.addEventListener('change', () => {
             applyTheme(darkModeToggle.checked ? 'dark' : 'light');
         });
 
-        // Edit academic details functionality
-        editAcademicBtn.addEventListener('click', () => {
-            // Hide values, show inputs
-            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
-            academicActions.style.display = 'flex';
-            editAcademicBtn.style.display = 'none';
-        });
+        // Global functions
+        window.toggleFollow = (userId) => {
+            showError('Follow functionality would be implemented here');
+        };
 
-        cancelAcademicEdit.addEventListener('click', () => {
-            // Show values, hide inputs
-            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-            academicActions.style.display = 'none';
-            editAcademicBtn.style.display = 'block';
-            
-            // Reset input values to current user data
-            const campus = userProfile.custom_campus || userProfile.campus || '';
-            const level = userProfile.custom_level || userProfile.level || '';
-            
-            document.getElementById('campusInput').value = campus;
-            document.getElementById('levelInput').value = level;
-            document.getElementById('departmentInput').value = userProfile.department || '';
-            document.getElementById('contactInput').value = userProfile.contact || '';
-        });
-
-        saveAcademicEdit.addEventListener('click', async () => {
-            try {
-                // Update user data
-                userProfile.campus = document.getElementById('campusInput').value;
-                userProfile.custom_campus = document.getElementById('campusInput').value;
-                userProfile.level = document.getElementById('levelInput').value;
-                userProfile.custom_level = document.getElementById('levelInput').value;
-                userProfile.department = document.getElementById('departmentInput').value;
-                userProfile.contact = document.getElementById('contactInput').value;
-                
-                // Update displayed values
-                document.getElementById('campusValue').textContent = userProfile.custom_campus || userProfile.campus || 'Not set';
-                document.getElementById('levelValue').textContent = userProfile.custom_level || userProfile.level || 'Not set';
-                document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
-                document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
-                
-                // Show values, hide inputs
-                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-                academicActions.style.display = 'none';
-                editAcademicBtn.style.display = 'block';
-                
-                showError('Academic details updated successfully!');
-                
-            } catch (error) {
-                console.error('Error updating academic details:', error);
-                showError('Error updating academic details');
-            }
-        });
-
-        // Edit bio functionality
-        editBioBtn.addEventListener('click', () => {
-            bioContent.style.display = 'none';
-            bioInput.style.display = 'block';
-            bioActions.style.display = 'flex';
-            editBioBtn.style.display = 'none';
-        });
-
-        cancelBioEdit.addEventListener('click', () => {
-            bioContent.style.display = 'block';
-            bioInput.style.display = 'none';
-            bioActions.style.display = 'none';
-            editBioBtn.style.display = 'block';
-            
-            // Reset bio input to current value
-            bioInput.value = userProfile.bio || '';
-        });
-
-        saveBioEdit.addEventListener('click', async () => {
-            try {
-                const newBio = bioInput.value;
-                
-                // Update bio
-                userProfile.bio = newBio;
-                bioContent.textContent = userProfile.bio || 'No bio yet...';
-                
-                bioContent.style.display = 'block';
-                bioInput.style.display = 'none';
-                bioActions.style.display = 'none';
-                editBioBtn.style.display = 'block';
-                
-                showError('Bio updated successfully!');
-                
-            } catch (error) {
-                console.error('Error updating bio:', error);
-                showError('Error updating bio');
-            }
-        });
-
-        // Share profile functionality
-        shareProfileBtn.addEventListener('click', async () => {
-            try {
-                // Create a shareable link
-                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
-                
-                // Check if Web Share API is available
-                if (navigator.share) {
-                    await navigator.share({
-                        title: `${userProfile.full_name}'s Profile`,
-                        text: `Check out ${userProfile.full_name}'s profile on Peerloom`,
-                        url: profileUrl
-                    });
-                } else {
-                    // Fallback: copy to clipboard
-                    await navigator.clipboard.writeText(profileUrl);
-                    showError('Profile link copied to clipboard!');
-                }
-            } catch (error) {
-                console.error('Error sharing profile:', error);
-                
-                // Fallback: copy to clipboard
-                try {
-                    const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
-                    await navigator.clipboard.writeText(profileUrl);
-                    showError('Profile link copied to clipboard!');
-                } catch (clipboardError) {
-                    console.error('Error copying to clipboard:', clipboardError);
-                    showError('Error sharing profile');
-                }
-            }
-        });
-
-        // Make functions available globally for onclick handlers
-        window.toggleFollow = toggleFollow;
-        window.unfollowUser = unfollowUser;
+        window.unfollowUser = (userId) => {
+            showError('Unfollow functionality would be implemented here');
+        };
 
         // Initialize the page
         initializePage();
