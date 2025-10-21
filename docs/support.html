@@ -11,7 +11,6 @@
   <meta name="theme-color" content="#7c3aed">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <style>
     :root {
       --primary: #7c3aed;
@@ -327,26 +326,31 @@
         Our dedicated support team is ready to assist you. Fill out the form below, and we'll respond within 24 hours.
       </p>
 
-      <form id="support-form">
+      <form id="support-form" action="https://formspree.io/f/mvgwnvob" method="POST">
         <div class="form-group">
           <label for="name" class="form-label">Full Name</label>
-          <input type="text" id="name" class="input-field" placeholder="Enter your full name" required />
+          <input type="text" id="name" name="name" class="input-field" placeholder="Enter your full name" required />
         </div>
 
         <div class="form-group">
           <label for="email" class="form-label">Email Address</label>
-          <input type="email" id="email" class="input-field" placeholder="Enter your email address" required />
+          <input type="email" id="email" name="email" class="input-field" placeholder="Enter your email address" required />
         </div>
 
         <div class="form-group">
           <label for="subject" class="form-label">Subject</label>
-          <input type="text" id="subject" class="input-field" placeholder="Brief description of your issue" required />
+          <input type="text" id="subject" name="subject" class="input-field" placeholder="Brief description of your issue" required />
         </div>
 
         <div class="form-group">
           <label for="message" class="form-label">Message</label>
-          <textarea id="message" class="textarea-field" rows="5" placeholder="Please describe your issue or question in detail" required></textarea>
+          <textarea id="message" name="message" class="textarea-field" rows="5" placeholder="Please describe your issue or question in detail" required></textarea>
         </div>
+
+        <!-- Formspree hidden fields for better functionality -->
+        <input type="hidden" name="_subject" value="New Support Request - Peerloom">
+        <input type="hidden" name="_replyto" value="">
+        <input type="text" name="_gotcha" style="display:none">
 
         <button type="submit" class="submit-button" id="submit-button">
           <i class="fas fa-paper-plane"></i> Send Message
@@ -388,16 +392,12 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    // Initialize EmailJS with your public key
-    (function() {
-      emailjs.init("q74TIzXsyQzV_J1b0");
-    })();
-
-    document.getElementById('support-form').addEventListener('submit', function(e) {
+    document.getElementById('support-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const submitButton = document.getElementById('submit-button');
       const originalText = submitButton.innerHTML;
+      const form = e.target;
       
       // Get form values
       const name = document.getElementById('name').value.trim();
@@ -422,30 +422,43 @@
       submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
       submitButton.disabled = true;
       
-      // Prepare email parameters
-      const templateParams = {
-        from_name: name,
-        from_email: email,
-        subject: subject,
-        message: message,
-        to_email: 'Peerloomonline@gmail.com'
-      };
-      
-      // Send email using EmailJS
-      emailjs.send('service_b7h040r', 'template_9l7085c', templateParams)
-        .then(function(response) {
-          console.log('SUCCESS!', response.status, response.text);
-          showToast('Message sent successfully! We\'ll respond soon.', 'success');
-          document.getElementById('support-form').reset();
-        }, function(error) {
-          console.log('FAILED...', error);
-          showToast('Failed to send message. Please try again.', 'error');
-        })
-        .finally(function() {
-          // Reset button state
-          submitButton.innerHTML = originalText;
-          submitButton.disabled = false;
+      try {
+        // Prepare form data
+        const formData = new FormData(form);
+        
+        // Update the _replyto field with the current email
+        formData.set('_replyto', email);
+        
+        // Send to Formspree
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
         });
+        
+        if (response.ok) {
+          showToast('Message sent successfully! We\'ll respond soon.', 'success');
+          form.reset();
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to send message');
+        }
+      } catch (error) {
+        console.error('Form submission error:', error);
+        let errorMessage = 'Failed to send message. Please try again.';
+        
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        }
+        
+        showToast(errorMessage, 'error');
+      } finally {
+        // Reset button state
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+      }
     });
     
     function showToast(message, type) {
@@ -455,8 +468,13 @@
       
       setTimeout(() => {
         toast.classList.remove('show');
-      }, 4000);
+      }, 5000);
     }
+
+    // Set up _replyto field dynamically
+    document.getElementById('email').addEventListener('input', function() {
+      document.querySelector('input[name="_replyto"]').value = this.value;
+    });
   </script>
 </body>
 </html>
