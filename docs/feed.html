@@ -1158,9 +1158,25 @@
         // Fetch posts from database
         async function fetchPostsFromDatabase() {
             try {
-                const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+                const { data: { user } } = await supabase.auth.getUser();
+
+                // Fetch posts and join with likes to see if the current user has liked it
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select(`
+                        *,
+                        likes ( user_id )
+                    `)
+                    .order('created_at', { ascending: false });
+
                 if (error) throw error;
-                posts = data;
+
+                // Process posts to add a simple 'is_liked' boolean
+                posts = data.map(post => ({
+                    ...post,
+                    is_liked: user ? post.likes.some(like => like.user_id === user.id) : false
+                }));
+
                 if (data && data.length > 0) {
                     initializeFeed(posts);
                 } else {
@@ -1208,13 +1224,13 @@
                         </div>
                     </div>
                     <div class="actions-sidebar">
-                        <div class="action-item" onclick="toggleLike('${video.id}')">
-                            <div class="action-icon" id="likeIcon-${video.id}">
+                        <div class="action-item" onclick="toggleLike(this, '${video.id}')">
+                            <div class="action-icon" id="likeIcon-${video.id}" style="color: ${video.is_liked ? 'var(--primary-color)' : 'currentColor'};">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                 </svg>
                             </div>
-                            <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count || 0}</div>
+                            <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count ?? 0}</div>
                         </div>
                         <div class="action-item" onclick="openComments('${video.id}')">
                             <div class="action-icon">
@@ -1222,7 +1238,7 @@
                                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                                 </svg>
                             </div>
-                            <div class="action-count">${video.comments_count || 0}</div>
+                            <div class="action-count" id="commentCount-${video.id}">${video.comments_count ?? 0}</div>
                         </div>
                         <div class="action-item" onclick="shareVideo('${video.id}')">
                             <div class="action-icon">
@@ -1242,7 +1258,7 @@
                             </div>
                             <div class="action-count">Save</div>
                         </div>
-                        ${video.user_id === 'current-user-id' ? `<div class="action-item" onclick="deletePost('${video.id}')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>` : ''}
+                        ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
                     </div>
                     <div class="video-info">
                         <div class="username">@${video.username || 'user'}</div>
@@ -1274,8 +1290,9 @@
                 
                 // Add double tap like functionality
                 videoContainer.addEventListener('dblclick', function(e) {
+                    const likeButton = this.querySelector(`#likeIcon-${video.id}`).parentElement;
                     createLikeAnimation(e);
-                    toggleLike(video.id);
+                    toggleLike(likeButton, video.id);
                 });
                 
                 // Add single tap to pause/play
@@ -1463,23 +1480,42 @@
         }
 
         // Toggle like status
-        function toggleLike(videoId) {
+        async function toggleLike(element, videoId) {
             if (!isLoggedIn) {
                 showLoginRedirect();
                 return;
             }
-            
+
+            // Optimistically update the UI
             const likeIcon = document.getElementById(`likeIcon-${videoId}`);
             const likeCount = document.getElementById(`likeCount-${videoId}`);
-            
-            // Toggle filled state
-            if (likeIcon.querySelector('svg').getAttribute('fill') === 'currentColor') {
-                likeIcon.querySelector('svg').setAttribute('fill', 'none');
-                likeCount.textContent = parseInt(likeCount.textContent) - 1;
-            } else {
-                likeIcon.querySelector('svg').setAttribute('fill', 'currentColor');
-                likeIcon.querySelector('svg').style.color = 'var(--primary-color)';
-                likeCount.textContent = parseInt(likeCount.textContent) + 1;
+            const svg = likeIcon.querySelector('svg');
+            const isCurrentlyLiked = svg.getAttribute('fill') === 'currentColor';
+
+            svg.setAttribute('fill', isCurrentlyLiked ? 'none' : 'currentColor');
+            likeIcon.style.color = isCurrentlyLiked ? 'currentColor' : 'var(--primary-color)';
+            likeCount.textContent = parseInt(likeCount.textContent) + (isCurrentlyLiked ? -1 : 1);
+
+            try {
+                const { data, error } = await supabase.rpc('toggle_like', { post_id_to_toggle: videoId });
+
+                if (error) throw error;
+
+                // Re-sync UI with the actual state from the database
+                likeCount.textContent = data.likes_count;
+                if (data.liked) {
+                    svg.setAttribute('fill', 'currentColor');
+                    likeIcon.style.color = 'var(--primary-color)';
+                } else {
+                    svg.setAttribute('fill', 'none');
+                    likeIcon.style.color = 'currentColor';
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                showToast('Error updating like');
+                // Revert UI on error by refreshing the feed
+                // This is a simple way to handle errors, you could also revert the optimistic update manually
+                await fetchPostsFromDatabase();
             }
         }
 
@@ -1603,21 +1639,24 @@
 
         // Load comments
         async function loadComments(videoId, commentsList) {
+            commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">Loading...</div>';
             try {
-                // In a real app, this would be an API call
-                // For demo, we're using mock data
-                const mockComments = [
-                    { user_name: 'user1', comment: 'Great video!' },
-                    { user_name: 'user2', comment: 'Love this content!' }
-                ];
-                
-                if (mockComments && mockComments.length > 0) {
-                    mockComments.forEach(comment => {
+                const { data: comments, error } = await supabase
+                    .from('comments')
+                    .select('*, profiles(username)')
+                    .eq('post_id', videoId)
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+                commentsList.innerHTML = '';
+                if (comments && comments.length > 0) {
+                    comments.forEach(comment => {
                         const commentItem = document.createElement('div');
                         commentItem.className = 'comment-item';
                         commentItem.innerHTML = `
-                            <div class="comment-user">@${comment.user_name}</div>
-                            <div class="comment-text">${comment.comment}</div>
+                            <div class="comment-user">@${comments.profiles.username || 'user'}</div>
+                            <div class="comment-time">${new Date(comments.created_at).toLocaleTimeString()}</div>
+                            <div class="comment-xt">${comments.comment}</div>
                         `;
                         commentsList.appendChild(commentItem);
                     });
@@ -1649,21 +1688,31 @@
             if (!commentText) return;
             
             try {
-                // Add comment to UI
-                const commentsList = document.getElementById(`commentsList-${videoId}`);
-                const commentItem = document.createElement('div');
-                commentItem.className = 'comment-item';
-                commentItem.innerHTML = `
-                    <div class="comment-user">@current_user</div>
-                    <div class="comment-text">${commentText}</div>
-                `;
-                commentsList.appendChild(commentItem);
-                
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('User not found');
+
+                 const { error: insertError } = await supabase
+                    .from('comments')
+                    .insert({ post_id: videoId, user_id: user.id, content: commentText });
+
+                if (insertError) throw insertError;
+
+                // Increment the comment count on the post
+                const { error: rpcError } = await supabase.rpc('increment_comment_count', { post_id_to_update: videoId });
+
+                if (rpcError) {
+                    console.error('Error incrementing comment count:', rpcError);
+                }
+
                 // Clear input
                 commentInput.value = '';
                 
-                // Update comment count
-                const commentCount = document.querySelector(`#video-${videoId} .action-item:nth-child(2) .action-count`);
+                // Refresh comments list
+                const commentsList = document.getElementById(`commentsList-${videoId}`);
+                await loadComments(videoId, commentsList);
+
+                // Increment comment count on UI
+                const commentCount = document.getElementById(`commentCount-${videoId}`);
                 commentCount.textContent = parseInt(commentCount.textContent) + 1;
                 
                 showToast('Comment added');
@@ -2086,10 +2135,11 @@
                 // 1. Upload the video file to Supabase Storage
                 const fileExt = fileToUpload.name.split('.').pop();
                 const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-                const filePath = `posts/${fileName}`;
+                const filePath = `videos/${fileName}`;
 
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('Facts')
+                   
                     .upload(filePath, fileToUpload, {
                         cacheControl: '3600',
                         upsert: false
@@ -2104,11 +2154,14 @@
                                 progressStatus.textContent = `Uploading... ${Math.round(progress)}%`;
                             }
                         }
+                       
                     });
 
                 if (uploadError) {
                     throw uploadError;
                 }
+
+                console.log('File uploaded successfully:', uploadData);
 
                 // 2. Get the public URL of the uploaded file
                 const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(filePath);
@@ -2118,8 +2171,8 @@
                     throw new Error('Could not get public URL for the video.');
                 }
 
-                // 3. Insert the post metadata into the 'posts' table
-                const { error: insertError } = await supabase
+                 // 3. Insert the post metadata into the 'posts' table
+                const { data: newPost, error: insertError } = await supabase
                     .from('posts')
                     .insert({
                         user_id: user.id,
@@ -2128,7 +2181,7 @@
                         media_url: publicUrl,
                         hashtags: hashtags,
                         title: title
-                    });
+                    }).select().single();
 
                 if (insertError) {
                     throw insertError;
