@@ -3,21 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Support - Peerloom</title>
+  <title>Contact Support - Peerloom</title>
   <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
   <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#7c3aed">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-  <script type="module" src="js/supabaseClient.js"></script>
   <style>
     :root {
       --primary: #7c3aed;
+      --primary-dark: #6d28d9;
+      --primary-light: #8b5cf6;
       --secondary: #4f46e5;
+      --accent: #a78bfa;
       --text-dark: #1f2937;
-      --text-light: #64748b;
+      --text-light: #6b7280;
+      --bg-light: #faf5ff;
       --transition: all 0.3s cubic-bezier(.4,0,.2,1);
     }
 
@@ -25,12 +28,13 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
     }
 
     body {
-      background: linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%);
+      background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
       min-height: 100vh;
+      color: var(--text-dark);
     }
 
     .navbar {
@@ -38,53 +42,44 @@
       width: 100%;
       top: 0;
       left: 0;
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(79, 70, 229, 0.9));
-      backdrop-filter: blur(5px);
-      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 0.75rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 1000;
-      color: white;
-      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    .navbar::before {
-      content: '';
-      position: absolute;
-      top: -20%;
-      left: -20%;
-      width: 140%;
-      height: 140%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-      z-index: -1;
-      opacity: 0.3;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
     }
 
     .logo img {
-      height: 28px;
+      height: 32px;
       transition: transform var(--transition);
     }
 
     .logo img:hover {
-      transform: scale(1.1);
+      transform: scale(1.05);
     }
 
     .nav-links {
       display: flex;
-      gap: 1.5rem;
+      gap: 2rem;
     }
 
     .nav-link {
-      color: white;
+      color: var(--text-dark);
       text-decoration: none;
       font-weight: 500;
       position: relative;
       transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .nav-link:hover {
-      color: #ffffff;
+      color: var(--primary);
     }
 
     .nav-link::after {
@@ -94,7 +89,7 @@
       height: 2px;
       bottom: -4px;
       left: 0;
-      background: #ffffff;
+      background: var(--primary);
       transition: width 0.2s;
     }
 
@@ -103,52 +98,73 @@
     }
 
     .support-container {
-      max-width: 600px;
+      max-width: 700px;
       margin: 100px auto 2rem;
       padding: 2rem;
     }
 
     .support-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 1.5rem;
+      background: white;
+      border-radius: 1rem;
       padding: 2.5rem;
+      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.1);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       position: relative;
-      transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+
+    .support-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
     }
 
     .support-card:hover {
       transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(124, 58, 237, 0.15);
     }
 
-    .contact-button {
-      font-style: italic;
-      font-weight: 400;
+    .form-title {
+      font-size: 1.75rem;
+      font-weight: 700;
       color: var(--text-dark);
-      padding: 0.75rem 1.5rem;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: transform 0.2s, background 0.2s;
-      width: 100%;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
 
-    .contact-button:hover {
-      transform: translateY(-2px);
-      background: rgba(255, 255, 255, 0.3);
+    .form-subtitle {
+      color: var(--text-light);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-dark);
     }
 
     .input-field,
     .textarea-field {
       width: 100%;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      border: 2px solid transparent;
+      padding: 0.875rem 1rem;
+      border: 1px solid #d1d5db;
       border-radius: 0.5rem;
-      background: rgba(243, 244, 246, 0.8);
+      background: white;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .input-field:focus,
@@ -156,30 +172,144 @@
       border-color: var(--primary);
       outline: none;
       box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-      transform: scale(1.02);
     }
 
-    .glass-title {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 50px;
-      padding: 0.5rem 1.5rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-dark);
-      font-weight: 600;
-      margin-bottom: 1.25rem;
-      text-align: center;
+    .textarea-field {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .submit-button {
       width: 100%;
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .submit-button:hover {
+      background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+    }
+
+    .submit-button:active {
+      transform: translateY(0);
+    }
+
+    .submit-button:disabled {
+      background: var(--text-light);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .contact-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .contact-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(124, 58, 237, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .contact-details h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .contact-details p {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .toast.success {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .toast.error {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+      .support-container {
+        margin: 80px auto 2rem;
+        padding: 1rem;
+      }
+      
+      .support-card {
+        padding: 2rem 1.5rem;
+      }
+      
+      .contact-info {
+        grid-template-columns: 1fr;
+      }
+      
+      .navbar {
+        padding: 0.75rem 1rem;
+      }
+      
+      .nav-links {
+        gap: 1.25rem;
+      }
     }
   </style>
 </head>
 <body>
   <nav class="navbar" id="navbar">
     <a href="index.html" class="logo">
-      <img src="logo.png" alt="Peerloop" />
+      <img src="logo.png" alt="Peerloom">
     </a>
     <div class="nav-links">
       <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
@@ -189,42 +319,162 @@
 
   <div class="support-container">
     <div class="support-card">
-      <h2 class="glass-title text-2xl mb-6">
-        <i class="fas fa-headset"></i> Customer Support
+      <h2 class="form-title">
+        <i class="fas fa-headset"></i> Contact Support
       </h2>
-
-      <p class="text-gray-600 mb-6">
-        Our team is here to assist you with any issues or questions. Please fill out the form below, and we'll get back to you as soon as possible.
+      <p class="form-subtitle">
+        Our dedicated support team is ready to assist you. Fill out the form below, and we'll respond within 24 hours.
       </p>
 
-      <div>
-        <input type="text" id="name" class="input-field" placeholder="Your Name" />
-        <input type="email" id="email" class="input-field" placeholder="Your Email" />
-        <textarea id="message" class="textarea-field" rows="5" placeholder="Describe your issue or question"></textarea>
-        <button class="contact-button" onclick="sendMessage()">Send Message</button>
+      <form id="support-form" action="https://formspree.io/f/mvgwnvob" method="POST">
+        <div class="form-group">
+          <label for="name" class="form-label">Full Name</label>
+          <input type="text" id="name" name="name" class="input-field" placeholder="Enter your full name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" name="email" class="input-field" placeholder="Enter your email address" required />
+        </div>
+
+        <div class="form-group">
+          <label for="subject" class="form-label">Subject</label>
+          <input type="text" id="subject" name="subject" class="input-field" placeholder="Brief description of your issue" required />
+        </div>
+
+        <div class="form-group">
+          <label for="message" class="form-label">Message</label>
+          <textarea id="message" name="message" class="textarea-field" rows="5" placeholder="Please describe your issue or question in detail" required></textarea>
+        </div>
+
+        <!-- Formspree hidden fields for better functionality -->
+        <input type="hidden" name="_subject" value="New Support Request - Peerloom">
+        <input type="hidden" name="_replyto" value="">
+        <input type="text" name="_gotcha" style="display:none">
+
+        <button type="submit" class="submit-button" id="submit-button">
+          <i class="fas fa-paper-plane"></i> Send Message
+        </button>
+      </form>
+
+      <div class="contact-info">
+        <div class="contact-item">
+          <div class="contact-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div class="contact-details">
+            <h3>Email Us</h3>
+            <p>Peerloomonline@gmail.com</p>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="contact-details">
+            <h3>Response Time</h3>
+            <p>Within 24 hours</p>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">
+            <i class="fas fa-globe"></i>
+          </div>
+          <div class="contact-details">
+            <h3>Support Hours</h3>
+            <p>Mon - Fri, 9AM - 6PM EST</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <script type="module">
-    import './js/toast.js';
-    // Placeholder function for form submission
-    window.sendMessage = function sendMessage() {
+  <div id="toast" class="toast"></div>
+
+  <script>
+    document.getElementById('support-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitButton = document.getElementById('submit-button');
+      const originalText = submitButton.innerHTML;
+      const form = e.target;
+      
+      // Get form values
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
+      const subject = document.getElementById('subject').value.trim();
       const message = document.getElementById('message').value.trim();
-
-      if (!name || !email || !message) {
-        alert('Please fill out all fields.');
+      
+      // Validate form
+      if (!name || !email || !subject || !message) {
+        showToast('Please fill out all fields', 'error');
         return;
       }
-
-      // Placeholder for backend submission
-      alert('Message sent successfully! Our team will respond soon.');
-      document.getElementById('name').value = '';
-      document.getElementById('email').value = '';
-      document.getElementById('message').value = '';
+      
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+      }
+      
+      // Change button to loading state
+      submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+      submitButton.disabled = true;
+      
+      try {
+        // Prepare form data
+        const formData = new FormData(form);
+        
+        // Update the _replyto field with the current email
+        formData.set('_replyto', email);
+        
+        // Send to Formspree
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          showToast('Message sent successfully! We\'ll respond soon.', 'success');
+          form.reset();
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to send message');
+        }
+      } catch (error) {
+        console.error('Form submission error:', error);
+        let errorMessage = 'Failed to send message. Please try again.';
+        
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        }
+        
+        showToast(errorMessage, 'error');
+      } finally {
+        // Reset button state
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+      }
+    });
+    
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${message}`;
+      toast.className = `toast ${type} show`;
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 5000);
     }
+
+    // Set up _replyto field dynamically
+    document.getElementById('email').addEventListener('input', function() {
+      document.querySelector('input[name="_replyto"]').value = this.value;
+    });
   </script>
 </body>
 </html>

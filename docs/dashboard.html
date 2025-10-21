@@ -115,7 +115,7 @@
             display: none;
             flex-direction: column;
             gap: 0.5rem;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             position: fixed;
@@ -142,12 +142,22 @@
             align-items: center;
             gap: 0.7rem;
             min-width: 0;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(124, 58, 237, 0.05);
             backdrop-filter: blur(5px);
+            border: 1px solid rgba(124, 58, 237, 0.1);
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
         .nav-links.mobile a:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(124, 58, 237, 0.1);
             color: var(--primary);
+            transform: translateX(5px);
+            border-color: rgba(124, 58, 237, 0.3);
+        }
+        .nav-links.mobile a i {
+            color: var(--primary);
+            width: 20px;
+            text-align: center;
         }
         .dashboard {
             display: flex;
@@ -388,6 +398,20 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        /* Mobile view improvements */
+        @media (max-width: 768px) {
+            .auth-title {
+                font-size: 1.1rem;
+                padding: 0.4rem 0.8rem;
+                margin-bottom: 0.8rem;
+            }
+            .sidebar, .main-content, .connections {
+                padding: 1rem;
+            }
+            .card {
+                padding: 0.8rem;
+            }
+        }
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -420,10 +444,19 @@
             .nav-links.mobile {
                 top: 50px;
                 padding: 1rem;
+                background: rgba(255, 255, 255, 0.98);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
             }
             .nav-links.mobile a {
                 font-size: 1rem;
-                padding: 0.7rem;
+                padding: 0.9rem 1rem;
+                margin-bottom: 0.3rem;
+                background: rgba(255, 255, 255, 0.7);
+                border: 1px solid rgba(124, 58, 237, 0.15);
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+            .nav-links.mobile a:last-child {
+                margin-bottom: 0;
             }
             .dashboard {
                 margin-top: 0;
@@ -464,10 +497,11 @@
             .nav-links.mobile {
                 top: 40px;
                 padding: 0.8rem;
+                background: rgba(255, 255, 255, 0.98);
             }
             .nav-links.mobile a {
                 font-size: 0.95rem;
-                padding: 0.6rem;
+                padding: 0.8rem;
             }
             .dashboard {
                 padding: 0.2rem;
@@ -568,31 +602,8 @@
                 <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
                 <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
                 <textarea id="groupDescription" class="textarea-field" placeholder="Group Description"></textarea>
-                <select id="groupCourse" class="input-field">
-                    <option value="">Select Course</option>
-                    <option value="engl101">ENGL 101 - College Writing</option>
-                    <option value="math115">MATH 115 - Calculus I</option>
-                    <option value="chem101">CHEM 101 - Intro to Chemistry</option>
-                    <option value="cs201">CS 201 - Data Structures</option>
-                    <option value="cs101">CS 101 - Intro to Computer Science</option>
-                    <option value="it102">IT 102 - Info Tech Basics</option>
-                    <option value="cyber201">CYBER 201 - Cybersecurity</option>
-                    <option value="ai301">AI 301 - Artificial Intelligence</option>
-                    <option value="ux310">UX 310 - UI/UX Design</option>
-                    <option value="phys202">PHYS 202 - Physics II</option>
-                    <option value="phil110">PHIL 110 - Intro to Philosophy</option>
-                    <option value="econ102">ECON 102 - Microeconomics</option>
-                    <option value="hist105">HIST 105 - World Civilizations</option>
-                    <option value="bio111">BIO 111 - General Biology</option>
-                    <option value="coremath">Core Maths</option>
-                    <option value="intscience">Integrated Science</option>
-                    <option value="social">Social Studies</option>
-                    <option value="biology">Biology</option>
-                    <option value="govt">Government</option>
-                    <option value="lit">English Literature</option>
-                    <option value="econshs">Economics</option>
-                    <option value="chemshs">SHS Chemistry</option>
-                </select>
+                <!-- Changed from dropdown to text input -->
+                <input type="text" id="groupCourse" class="input-field" placeholder="Enter Course / subject" />
                 <button class="btn" onclick="createGroup()">Create Group</button>
             </div>
             <div class="card">
@@ -952,7 +963,7 @@
             
             const groupName = document.getElementById('groupName').value.trim();
             const groupDescription = document.getElementById('groupDescription').value.trim();
-            const course = document.getElementById('groupCourse').value;
+            const course = document.getElementById('groupCourse').value.trim();
             const { data: { user } } = await supabase.auth.getUser();
             
             if (!user) {
@@ -1075,7 +1086,7 @@
                             e.preventDefault();
                             resetLogoutTimer(); // Reset timer on user action
                             const userId = btn.dataset.userid;
-                            await followUser(btn, userId);
+                            await toggleFollowUser(btn, userId);
                         });
                     });
 
@@ -1116,13 +1127,13 @@
                 document.querySelectorAll('.follow-btn').forEach(btn => {
                     const userId = btn.dataset.userid;
                     if (followingIds.includes(userId)) {
-                        btn.textContent = 'Following';
-                        btn.disabled = true;
-                        btn.style.background = '#d1d5db';
+                        btn.textContent = 'Unfollow';
+                        btn.style.background = 'rgba(239, 68, 68, 0.2)';
+                        btn.style.color = '#ef4444';
                     } else {
                         btn.textContent = 'Follow';
-                        btn.disabled = false;
                         btn.style.background = '';
+                        btn.style.color = '';
                     }
                 });
             } catch (error) {
@@ -1197,7 +1208,7 @@
                             e.preventDefault();
                             resetLogoutTimer(); // Reset timer on user action
                             const userId = btn.dataset.userid;
-                            await followUser(btn, userId);
+                            await toggleFollowUser(btn, userId);
                         });
                     });
 
@@ -1258,8 +1269,8 @@
             }
         }
 
-        // Follow user function using the followers table
-        async function followUser(button, userId) {
+        // Toggle follow/unfollow user function using the followers table
+        async function toggleFollowUser(button, userId) {
             resetLogoutTimer(); // Reset timer on user action
             
             const { data: { user } } = await supabase.auth.getUser();
@@ -1278,29 +1289,43 @@
                     .single();
 
                 if (existingFollow) {
-                    showNotification('You are already following this user.');
-                    return;
-                }
-
-                // Insert follow relationship
-                const { error } = await supabase
-                    .from('followers')
-                    .insert({ 
-                        follower_id: user.id,
-                        following_id: userId
-                    });
-                    
-                if (error) {
-                    console.error('Error following user:', error);
-                    showNotification('Failed to follow user. Please try again.');
+                    // Unfollow: Delete the follow relationship
+                    const { error } = await supabase
+                        .from('followers')
+                        .delete()
+                        .eq('follower_id', user.id)
+                        .eq('following_id', userId);
+                        
+                    if (error) {
+                        console.error('Error unfollowing user:', error);
+                        showNotification('Failed to unfollow user. Please try again.');
+                    } else {
+                        button.textContent = 'Follow';
+                        button.style.background = '';
+                        button.style.color = '';
+                        showNotification('You have unfollowed this user');
+                    }
                 } else {
-                    button.textContent = 'Following';
-                    button.disabled = true;
-                    button.style.background = '#d1d5db';
-                    showNotification('You are now following this user');
+                    // Follow: Insert follow relationship
+                    const { error } = await supabase
+                        .from('followers')
+                        .insert({ 
+                            follower_id: user.id,
+                            following_id: userId
+                        });
+                        
+                    if (error) {
+                        console.error('Error following user:', error);
+                        showNotification('Failed to follow user. Please try again.');
+                    } else {
+                        button.textContent = 'Unfollow';
+                        button.style.background = 'rgba(239, 68, 68, 0.2)';
+                        button.style.color = '#ef4444';
+                        showNotification('You are now following this user');
+                    }
                 }
             } catch (error) {
-                console.error('Unexpected error following user:', error);
+                console.error('Unexpected error toggling follow user:', error);
                 showNotification('An unexpected error occurred while following the user.');
             }
         }
@@ -1346,7 +1371,7 @@
         // Make functions globally available
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
-        window.followUser = followUser;
+        window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
     </script>
 </body>

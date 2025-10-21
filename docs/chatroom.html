@@ -1775,18 +1775,81 @@ function renderTypingIndicators() {
   messagePanel.scrollTop = messagePanel.scrollHeight;
 }
 
-// FIXED: Real-time updates for messages - Now renders all messages immediately
-supabase.channel(`grp_${gid}`)
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${gid}` },
-    (payload) => {
-      // Render all messages immediately, including AI messages
-      if (payload.new.sender_id !== user.id || payload.new.sender_id === AI_USER_ID) {
-        // Remove typing indicator if it exists
-        hideAITypingIndicator();
-        render(payload.new);
+// FIXED: Real-time updates for ALL messages - PREVENTS DUPLICATES
+const messageChannel = supabase.channel(`grp_${gid}`)
+  .on('postgres_changes', { 
+    event: 'INSERT', 
+    schema: 'public', 
+    table: 'group_messages', 
+    filter: `group_id=eq.${gid}` 
+  }, (payload) => {
+    console.log('New message received:', payload.new);
+    
+    // IMPORTANT: Only render messages that aren't from the current user
+    // (since we already render current user's messages immediately)
+    if (payload.new.sender_id !== user.id) {
+      hideAITypingIndicator();
+      render(payload.new);
+      
+      // Check if this message should trigger AI response
+      // Only respond if it's not from AI itself and not from current user
+      if (payload.new.sender_id !== AI_USER_ID && payload.new.sender_id !== user.id) {
+        checkForAIResponse(payload.new);
       }
-    })
+    }
+  })
   .subscribe();
+
+// NEW: Improved AI response detection
+async function checkForAIResponse(message) {
+  const messageText = message.content.toLowerCase();
+  const isReplyingToAI = message.reply_to && await isAIMessage(message.reply_to);
+  
+  console.log('Checking AI response for message:', {
+    text: messageText,
+    isReplyingToAI: isReplyingToAI,
+    hasAIMention: messageText.includes('@peerpal ai'),
+    hasAIKeywords: hasAIKeywords(messageText)
+  });
+  
+  // Trigger AI if:
+  // 1. Message mentions @PeerPal AI specifically
+  // 2. Message is a reply to an AI message (even without @)
+  // 3. Message contains AI-related keywords (more flexible approach)
+  if (messageText.includes('@peerpal ai') || isReplyingToAI || hasAIKeywords(messageText)) {
+    console.log('Triggering AI response');
+    await checkPeerloomAI(message.content);
+  }
+}
+
+// NEW: Check if a message is from AI
+async function isAIMessage(messageId) {
+  try {
+    const { data, error } = await supabase
+      .from('group_messages')
+      .select('sender_id')
+      .eq('id', messageId)
+      .single();
+    
+    return data && data.sender_id === AI_USER_ID;
+  } catch (err) {
+    console.log('Error checking if message is from AI:', err);
+    return false;
+  }
+}
+
+// NEW: Check for AI-related keywords (more flexible than just @mentions)
+function hasAIKeywords(text) {
+  const aiKeywords = [
+    'peerpal', 'ai', 'assistant', 'bot', 'help', 'question',
+    'how to', 'what is', 'can you', 'could you', 'please help',
+    'explain', 'tell me', 'show me', 'advice', 'suggestion'
+  ];
+  
+  return aiKeywords.some(keyword => 
+    text.toLowerCase().includes(keyword.toLowerCase())
+  );
+}
 
 // Emoji and mention handling
 emojiButton.onclick = (e) => {
@@ -1810,7 +1873,7 @@ emojiPickerBox.onclick = (e) => {
 // Initialize mention system after member data is loaded
 initMentionSystem();
 
-// Send message
+// Send message - FIXED: Now renders immediately
 async function sendMsg() {
   const txt = messageBar.value.trim();
   if (!txt) return;
@@ -1841,18 +1904,20 @@ async function sendMsg() {
     return;
   }
 
+  // FIXED: Render the message immediately instead of waiting for subscription
   render(data);
+  
   messageBar.value = '';
   replyingMsg = null;
   replyContextBox.style.display = 'none';
   mentionListBox.style.display = 'none';
 
-  // Check if the message is replying to AI or mentions AI
+  // Check if the current user's message should trigger AI response
   const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
   const hasAIMention = txt.toLowerCase().includes('@peerpal ai');
+  const hasAIKeywordsFlag = hasAIKeywords(txt);
   
-  // Auto-detect when replying to AI - even without explicit mention
-  if (isReplyingToAI || hasAIMention) {
+  if (isReplyingToAI || hasAIMention || hasAIKeywordsFlag) {
     await checkPeerloomAI(txt);
   }
 }
@@ -1863,12 +1928,6 @@ messageBar.addEventListener('keydown', (e) => {
 
 // ---------- FIXED GEMINI AI INTEGRATION WITH TYPING INDICATOR ----------
 async function checkPeerloomAI(message) {
-  // Check for @PeerPal AI mention specifically or if replying to AI
-  const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
-  const hasAIMention = message.toLowerCase().includes('@peerpal ai');
-  
-  if (!hasAIMention && !isReplyingToAI) return;
-  
   try {
     console.log('Calling Gemini AI with message:', message);
     

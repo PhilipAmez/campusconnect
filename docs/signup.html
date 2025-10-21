@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Peerloom</title>
- <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
-  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
     <style>
         :root {
             --primary: #7c3aed;
@@ -139,10 +138,37 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 0.5rem;
         }
         .btn:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
+        }
+        .btn-google {
+            background: white;
+            color: #4285F4;
+            border: 1px solid #dadce0;
+            margin-bottom: 1rem;
+        }
+        .btn-google:hover {
+            background: #f8f9fa;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .divider span {
+            padding: 0 1rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
         }
         .support-button {
             position: fixed;
@@ -166,6 +192,22 @@
         .support-button:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
+        }
+        .error-message, .success-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .success-message {
+            background: #d1fae5;
+            color: #16a34a;
         }
         @media (max-width: 480px) {
             .card {
@@ -200,6 +242,16 @@
 
     <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
+        
+        <!-- Google OAuth Button -->
+        <button id="googleSignUp" class="btn btn-google">
+            <i class="fab fa-google"></i> Sign up with Google
+        </button>
+        
+        <div class="divider">
+            <span>or continue with email</span>
+        </div>
+        
         <form id="signupForm">
             <div class="profile-photo-upload" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
                 <label for="profilePhoto" style="cursor:pointer;">
@@ -212,6 +264,24 @@
             <input type="text" id="lastName" class="input-field" placeholder="Last name" required>
             <input type="text" id="username" class="input-field" placeholder="Username (e.g., @charles_fx)" pattern="^@?\w{3,}$" title="Start with @ or a letter, at least 3 characters, only letters, numbers, and underscores." required>
             <input type="tel" id="contact" class="input-field" placeholder="Contact - phone or WhatsApp" required>
+            
+            <!-- Department Field (Mandatory) -->
+            <select id="department" class="input-field" required>
+                <option value="" disabled selected>Select your department *</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Business Administration">Business Administration</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Law">Law</option>
+                <option value="Arts and Humanities">Arts and Humanities</option>
+                <option value="Science">Science</option>
+                <option value="Social Sciences">Social Sciences</option>
+                <option value="Education">Education</option>
+                <option value="Other">Other (Please specify)</option>
+            </select>
+            <input type="text" id="customDepartment" class="input-field" placeholder="Type your department" style="display:none; margin-bottom: 1rem;">
+            
             <select id="campus" class="input-field" required>
                 <option value="" disabled selected>Select your campus</option>
                 <option value="University of Ghana">University of Ghana</option>
@@ -258,6 +328,10 @@
             <input type="password" id="confirmPassword" class="input-field" placeholder="Confirm Password" required>
             <button type="submit" class="btn">Sign Up</button>
         </form>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
         <p class="text-center mt-4">Already have an account? <a href="login.html" class="text-purple-600">Login</a></p>
     </div>
 
@@ -269,7 +343,6 @@
     <script type="module" src="js/supabaseClient.js"></script>
     <script type="module">
         import { supabase } from './js/supabaseClient.js'
-        import './js/toast.js';
 
         // Preview selected profile photo
         const profilePhotoInput = document.getElementById('profilePhoto');
@@ -288,11 +361,30 @@
         // Auto-generate initials avatar if no photo is uploaded
         function generateInitialsAvatar(firstName, lastName) {
             const initials = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase();
-            // Use ui-avatars.com for a circular avatar with initials
             return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random&rounded=true`;
         }
 
+        // Google OAuth Sign Up
+        document.getElementById('googleSignUp').addEventListener('click', async () => {
+            try {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: `${window.location.origin}/complete-profile.html`
+                    }
+                });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error('Google OAuth error:', error);
+                document.getElementById('errorMessage').textContent = 'Failed to sign up with Google: ' + error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+
         const form = document.getElementById('signupForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -304,15 +396,37 @@
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Department handling
+            const departmentSelect = document.getElementById('department');
+            const customDepartmentInput = document.getElementById('customDepartment');
+            const department = departmentSelect.value === 'Other' ? customDepartmentInput.value.trim() : departmentSelect.value;
+            
+            // Campus handling
             const campusSelect = document.getElementById('campus');
             const customCampusInput = document.getElementById('customCampus');
             const campus = campusSelect.value === 'Other' ? customCampusInput.value.trim() : campusSelect.value;
+            
+            // Level handling
             const levelSelect = document.getElementById('level');
             const customLevelInput = document.getElementById('customLevel');
             const level = levelSelect.value === 'Other' ? customLevelInput.value.trim() : levelSelect.value;
 
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            // Validation
             if (password !== confirmPassword) {
-                return alert('Passwords do not match.');
+                errorMessage.textContent = 'Passwords do not match.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (!department) {
+                errorMessage.textContent = 'Please select or enter your department.';
+                errorMessage.style.display = 'block';
+                return;
             }
 
             // 1. Upload profile photo to Supabase Storage (if selected)
@@ -325,7 +439,8 @@
                     .from('avatars')
                     .upload(filePath, file, { cacheControl: '3600', upsert: false });
                 if (uploadError) {
-                    alert('Profile photo upload failed: ' + uploadError.message);
+                    errorMessage.textContent = 'Profile photo upload failed: ' + uploadError.message;
+                    errorMessage.style.display = 'block';
                     return;
                 }
                 // Get public URL
@@ -336,7 +451,7 @@
                 profilePhotoUrl = generateInitialsAvatar(firstName, lastName);
             }
 
-            // 2. Add profilePhotoUrl to both signUp and profile insert
+            // 2. Sign up with Supabase Auth
             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -347,27 +462,32 @@
                         username,
                         contact,
                         profilePhoto: profilePhotoUrl,
+                        department,
                         campus,
                         level
-                    }
+                    },
+                    emailRedirectTo: `${window.location.origin}/email-verified.html`
                 }
             });
 
             if (signUpError) {
                 console.error('Sign up error:', signUpError);
-                return alert('Sign up failed: ' + signUpError.message);
+                errorMessage.textContent = 'Sign up failed: ' + signUpError.message;
+                errorMessage.style.display = 'block';
+                return;
             }
 
             const newUser = signUpData.user;
 
             if (!newUser) {
-                alert('Sign-up initiated! Check your inbox to verify your email. You will be able to log in after verification.');
-                window.location = 'login.html';
+                errorMessage.textContent = 'Failed to create user account.';
+                errorMessage.style.display = 'block';
                 return;
             }
 
             const fullName = `${firstName} ${lastName}`.trim();
 
+            // 3. Create user profile in database
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .insert({
@@ -377,19 +497,42 @@
                     contact: contact,
                     email: newUser.email,
                     profile_photo: profilePhotoUrl,
+                    department,
                     campus,
                     level
                 });
 
             if (profileError) {
                 console.error('Profile insertion error:', profileError);
-                alert('Sign-up successful, but there was an error saving your profile details: ' + profileError.message);
-                window.location = 'login.html';
+                errorMessage.textContent = 'Sign-up successful, but there was an error saving your profile details: ' + profileError.message;
+                errorMessage.style.display = 'block';
                 return;
             }
 
-            alert('Sign-up successful! Check your inbox to verify your email, then log in.');
-            window.location = 'login.html';
+            successMessage.textContent = 'Sign-up successful! Check your inbox to verify your email, then log in.';
+            successMessage.style.display = 'block';
+            
+            // Reset form
+            form.reset();
+            profilePhotoPreview.src = 'https://ui-avatars.com/api/?name=User&background=random&rounded=true';
+            
+            // Redirect to login after 3 seconds
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 3000);
+        });
+
+        // Show/hide custom department input
+        const departmentSelect = document.getElementById('department');
+        const customDepartmentInput = document.getElementById('customDepartment');
+        departmentSelect.addEventListener('change', function() {
+            if (this.value === 'Other') {
+                customDepartmentInput.style.display = '';
+                customDepartmentInput.required = true;
+            } else {
+                customDepartmentInput.style.display = 'none';
+                customDepartmentInput.required = false;
+            }
         });
 
         // Show/hide custom campus input
