@@ -1775,7 +1775,7 @@ function renderTypingIndicators() {
   messagePanel.scrollTop = messagePanel.scrollHeight;
 }
 
-// FIXED: Real-time updates for ALL messages - CRITICAL FIX
+// FIXED: Real-time updates for ALL messages - PREVENTS DUPLICATES
 const messageChannel = supabase.channel(`grp_${gid}`)
   .on('postgres_changes', { 
     event: 'INSERT', 
@@ -1785,15 +1785,17 @@ const messageChannel = supabase.channel(`grp_${gid}`)
   }, (payload) => {
     console.log('New message received:', payload.new);
     
-    // IMPORTANT: Render ALL new messages immediately, regardless of sender
-    // This includes user messages, AI messages, and the current user's own messages
-    hideAITypingIndicator();
-    render(payload.new);
-    
-    // Check if this message should trigger AI response
-    // Only respond if it's not from AI itself and not from current user
-    if (payload.new.sender_id !== AI_USER_ID && payload.new.sender_id !== user.id) {
-      checkForAIResponse(payload.new);
+    // IMPORTANT: Only render messages that aren't from the current user
+    // (since we already render current user's messages immediately)
+    if (payload.new.sender_id !== user.id) {
+      hideAITypingIndicator();
+      render(payload.new);
+      
+      // Check if this message should trigger AI response
+      // Only respond if it's not from AI itself and not from current user
+      if (payload.new.sender_id !== AI_USER_ID && payload.new.sender_id !== user.id) {
+        checkForAIResponse(payload.new);
+      }
     }
   })
   .subscribe();
@@ -1871,7 +1873,7 @@ emojiPickerBox.onclick = (e) => {
 // Initialize mention system after member data is loaded
 initMentionSystem();
 
-// Send message
+// Send message - FIXED: Now renders immediately
 async function sendMsg() {
   const txt = messageBar.value.trim();
   if (!txt) return;
@@ -1902,7 +1904,9 @@ async function sendMsg() {
     return;
   }
 
-  // Message will be rendered by the real-time subscription
+  // FIXED: Render the message immediately instead of waiting for subscription
+  render(data);
+  
   messageBar.value = '';
   replyingMsg = null;
   replyContextBox.style.display = 'none';
