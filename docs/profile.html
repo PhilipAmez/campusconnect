@@ -1140,7 +1140,7 @@
         <!-- Header with swipe functionality -->
         <header class="header" id="header">
             <a href="index.html" class="logo">
-                  <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')
+                <div class="logo-icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <span>Peerloom</span>
@@ -1684,8 +1684,10 @@
             statusIndicator.textContent = userProfile.status || 'Online';
             statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
             
-            // Check and update verified badge status
-            checkAndUpdateVerifiedBadge();
+            // Show verified badge if user is verified
+            if (userProfile.verified) {
+                document.getElementById('verifiedBadge').style.display = 'flex';
+            }
             
             // Set academic details - use custom fields if available
             const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
@@ -1720,44 +1722,6 @@
             // Apply theme from database
             if (userProfile.theme_preference) {
                 applyTheme(userProfile.theme_preference);
-            }
-        }
-
-        // Check and update verified badge based on followers and posts count
-        function checkAndUpdateVerifiedBadge() {
-            const verifiedBadge = document.getElementById('verifiedBadge');
-            const hasEnoughFollowers = followers.length >= 1000;
-            const hasEnoughPosts = userPostsCount >= 10;
-            
-            if (hasEnoughFollowers && hasEnoughPosts) {
-                verifiedBadge.style.display = 'flex';
-                // Update the profile in the database if not already verified
-                if (!userProfile.verified) {
-                    updateProfileVerification(true);
-                }
-            } else {
-                verifiedBadge.style.display = 'none';
-                // Update the profile in the database if currently verified but no longer meets criteria
-                if (userProfile.verified) {
-                    updateProfileVerification(false);
-                }
-            }
-        }
-
-        // Update profile verification status in the database
-        async function updateProfileVerification(isVerified) {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ verified: isVerified })
-                    .eq('id', currentUser.id);
-                    
-                if (error) throw error;
-                
-                userProfile.verified = isVerified;
-                
-            } catch (error) {
-                console.error('Error updating verification status:', error);
             }
         }
 
@@ -1884,9 +1848,6 @@
                 userPostsCount = count || 0;
                 document.getElementById('postsCount').textContent = userPostsCount;
                 
-                // Check verified badge after loading posts count
-                checkAndUpdateVerifiedBadge();
-                
             } catch (error) {
                 console.error('Error loading posts count:', error);
             }
@@ -1897,9 +1858,6 @@
             // Update counts
             document.getElementById('followersCount').textContent = followers.length;
             document.getElementById('followingCount').textContent = following.length;
-            
-            // Check verified badge after updating followers count
-            checkAndUpdateVerifiedBadge();
             
             // Update followers list
             updateFollowersList();
@@ -2476,7 +2434,7 @@
 
         // Avatar upload
         const avatarUpload = document.getElementById('avatarUpload');
-        const avatar = document.getElementById('avatar');
+        const avatar = document.getElementById('avatars');
         
         avatarUpload.addEventListener('change', async (e) => {
             const file = e.target.files[0];
