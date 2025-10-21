@@ -75,7 +75,7 @@
             padding: 0 1rem;
         }
 
-        /* Clean Header with swipe functionality */
+        /* Header with swipe functionality */
         .header {
             position: fixed;
             top: 0;
@@ -89,6 +89,7 @@
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--glass-border);
             z-index: 100;
+            touch-action: pan-x;
         }
 
         .logo {
@@ -99,18 +100,6 @@
             font-size: 1.25rem;
             color: var(--primary);
             text-decoration: none;
-            cursor: pointer;
-            user-select: none;
-            position: relative;
-            touch-action: pan-x;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: var(--transition);
-        }
-
-        .logo.swiping {
-            background: var(--bg-secondary);
-            transform: scale(1.05);
         }
 
         .logo-icon {
@@ -127,7 +116,7 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
         }
 
         .nav-icon {
@@ -141,7 +130,6 @@
             color: var(--text-primary);
             cursor: pointer;
             transition: var(--transition);
-            border: none;
         }
 
         .nav-icon:hover {
@@ -163,10 +151,9 @@
             font-size: 0.875rem;
             opacity: 0;
             transition: var(--transition);
-            pointer-events: none;
         }
 
-        .theme-indicator.show {
+        .header.swiping .theme-indicator {
             opacity: 1;
         }
 
@@ -196,6 +183,16 @@
             height: 160px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             position: relative;
+            overflow: hidden;
+        }
+
+        .cover-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
         }
 
         .avatar-container {
@@ -491,20 +488,23 @@
             transform: translateY(-2px);
         }
 
-        /* Settings Drawer */
+        /* Settings Drawer with Glassmorphism */
         .settings-drawer {
             position: fixed;
             top: 0;
             right: -400px;
             width: 380px;
             height: 100vh;
-            background: var(--bg-primary);
-            border-left: 1px solid var(--border);
-            box-shadow: var(--shadow-xl);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .settings-drawer.open {
@@ -513,10 +513,11 @@
 
         .drawer-header {
             padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .drawer-title {
@@ -550,7 +551,7 @@
 
         .section-divider {
             height: 1px;
-            background: var(--border);
+            background: rgba(255, 255, 255, 0.1);
             margin: 1.5rem 0;
         }
 
@@ -575,20 +576,23 @@
             color: var(--text-secondary);
         }
 
-        /* Notifications Drawer */
+        /* Notifications Drawer with Glassmorphism */
         .notifications-drawer {
             position: fixed;
             top: 0;
             left: -400px;
             width: 380px;
             height: 100vh;
-            background: var(--bg-primary);
-            border-right: 1px solid var(--border);
-            box-shadow: var(--shadow-xl);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .notifications-drawer.open {
@@ -597,10 +601,11 @@
 
         .notifications-header {
             padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .notifications-title {
@@ -635,7 +640,7 @@
         }
 
         .notification-item {
-            background: var(--bg-secondary);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 1rem;
             transition: var(--transition);
@@ -656,9 +661,6 @@
         .notification-sender {
             font-weight: 600;
             color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
         }
 
         .notification-time {
@@ -672,19 +674,9 @@
             color: var(--text-primary);
         }
 
-        .notification-post-preview {
-            margin-top: 0.5rem;
-            padding: 0.75rem;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            border-left: 2px solid var(--primary-light);
-        }
-
         .mark-all-read-btn {
-            background: var(--primary);
-            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
             border: none;
             border-radius: 8px;
             padding: 0.75rem 1.5rem;
@@ -697,10 +689,11 @@
             gap: 0.5rem;
             margin-top: 1rem;
             width: 100%;
+            backdrop-filter: blur(10px);
         }
 
         .mark-all-read-btn:hover {
-            background: var(--primary-dark);
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
         }
 
@@ -711,13 +704,16 @@
             right: -400px;
             width: 380px;
             height: 100vh;
-            background: var(--bg-primary);
-            border-left: 1px solid var(--border);
-            box-shadow: var(--shadow-xl);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .followers-drawer.open {
@@ -726,7 +722,7 @@
 
         .followers-tabs {
             display: flex;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 1rem;
         }
 
@@ -747,7 +743,7 @@
         }
 
         .tab-button:hover {
-            background: var(--bg-secondary);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .follower-item, .following-item {
@@ -756,13 +752,13 @@
             gap: 0.75rem;
             padding: 1rem;
             border-radius: 8px;
-            background: var(--bg-secondary);
+            background: rgba(255, 255, 255, 0.05);
             margin-bottom: 0.5rem;
             transition: var(--transition);
         }
 
         .follower-item:hover, .following-item:hover {
-            background: var(--bg-tertiary);
+            background: rgba(255, 255, 255, 0.1);
             transform: translateX(5px);
         }
 
@@ -786,9 +782,6 @@
         .follower-name, .following-name {
             font-weight: 500;
             margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
         }
 
         .follower-username, .following-username {
@@ -878,6 +871,137 @@
             transform: translateX(24px);
         }
 
+        /* 2FA Setup Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-xl);
+            transform: translateY(20px);
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-desc {
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .qrcode-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .qrcode-placeholder {
+            width: 200px;
+            height: 200px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border);
+        }
+
+        .backup-codes {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .codes-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .code-item {
+            font-family: monospace;
+            padding: 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
         /* Overlay for drawer */
         .overlay {
             position: fixed;
@@ -908,7 +1032,7 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid var(--border);
+            border: 4px solid var(--glass-border);
             border-left: 4px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -954,29 +1078,23 @@
         }
 
         /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 768px) {
             .header {
-                padding: 0.75rem 1rem;
-            }
-            
-            .logo {
-                font-size: 1.1rem;
-            }
-            
-            .nav-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 0.9rem;
+                padding: 1rem;
             }
             
             .main-content {
                 padding-top: 70px;
-                gap: 1rem;
             }
             
             .profile-stats {
                 grid-template-columns: 1fr;
-                gap: 0.75rem;
             }
             
             .academic-grid {
@@ -993,52 +1111,40 @@
             .notifications-drawer {
                 left: -100%;
             }
-            
-            .profile-content {
-                padding: 1rem;
-            }
-            
-            .section {
-                padding: 1rem;
-            }
-            
+        }
+
+        @media (max-width: 480px) {
             .avatar {
                 width: 100px;
                 height: 100px;
                 font-size: 1.5rem;
             }
             
-            .avatar-container {
-                margin-left: auto;
-                margin-right: auto;
-                display: block;
-                text-align: center;
-                width: 100%;
-            }
-            
             .profile-header {
                 flex-direction: column;
                 gap: 1rem;
-                text-align: center;
             }
             
-            .profile-info h1 {
-                font-size: 1.5rem;
-                justify-content: center;
+            .modal {
+                padding: 1.5rem;
+            }
+            
+            .codes-list {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body data-theme="dark">
     <div class="app-container">
-        <!-- Clean Header with swipe functionality on Peerloom text -->
-        <header class="header">
-            <div class="logo" id="logo">
+        <!-- Header with swipe functionality -->
+        <header class="header" id="header">
+            <a href="index.html" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <span>Peerloom</span>
-            </div>
+            </a>
             
             <div class="theme-indicator" id="themeIndicator">
                 <i class="fas fa-moon"></i>
@@ -1046,15 +1152,15 @@
             </div>
             
             <div class="nav-actions">
-                <button class="nav-icon" id="followersBtn">
+                <div class="nav-icon" id="followersBtn">
                     <i class="fas fa-users"></i>
-                </button>
-                <button class="nav-icon" id="notificationsBtn">
+                </div>
+                <div class="nav-icon" id="notificationsBtn">
                     <i class="fas fa-bell"></i>
-                </button>
-                <button class="nav-icon" id="settingsBtn">
+                </div>
+                <div class="nav-icon" id="settingsBtn">
                     <i class="fas fa-cog"></i>
-                </button>
+                </div>
             </div>
         </header>
 
@@ -1062,20 +1168,31 @@
         <main class="main-content">
             <!-- Profile Card -->
             <div class="profile-card">
-                <div class="cover-section"></div>
+                <div class="cover-section">
+                    <div class="cover-overlay"></div>
+                    <div class="avatar-container">
+                        <label for="avatarUpload" class="avatar" id="avatar">
+                            <span id="avatarInitials">...</span>
+                        </label>
+                        <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
+                    </div>
+                </div>
                 
                 <div class="profile-content">
                     <div class="profile-header">
                         <div class="profile-info">
                             <h1 id="fullName">
-                                <span id="nameText">Loading...</span>
+                                <div class="loading" id="nameLoading">
+                                    <div class="spinner"></div>
+                                </div>
+                                <span id="nameText" style="display: none;">Loading...</span>
                                 <div class="verified-badge" id="verifiedBadge" style="display: none;">
                                     <i class="fas fa-check"></i>
                                 </div>
                             </h1>
                             <p id="userInfo">
-                                <span id="username">@loading</span>
-                                <span class="status-indicator status-online" id="statusIndicator">Online</span>
+                                <span id="username">Loading...</span>
+                                <span class="status-indicator" id="statusIndicator">Online</span>
                             </p>
                         </div>
                     </div>
@@ -1159,10 +1276,10 @@
                                     <i class="fas fa-user-edit section-icon"></i>
                                     Bio
                                 </h2>
-                                <button class="edit-bio-btn" id="editBioBtn">
-                                    <i class="fas fa-edit"></i>
-                                </button>
                             </div>
+                            <button class="edit-bio-btn" id="editBioBtn">
+                                <i class="fas fa-edit"></i>
+                            </button>
                             <div class="bio-content" id="bioContent">
                                 Loading...
                             </div>
@@ -1178,7 +1295,7 @@
         </main>
     </div>
 
-    <!-- Settings Drawer -->
+    <!-- Settings Drawer with Glassmorphism -->
     <div class="settings-drawer" id="settingsDrawer">
         <div class="drawer-header">
             <h2 class="drawer-title">Settings</h2>
@@ -1215,6 +1332,17 @@
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Show Groups Count</div>
+                        <div class="settings-desc">Display number of groups joined</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showGroupsCountToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
             
             <div class="section-divider"></div>
@@ -1227,11 +1355,42 @@
                 
                 <div class="settings-item">
                     <div class="settings-info">
+                        <div class="settings-label">Email Notifications</div>
+                        <div class="settings-desc">Receive updates via email</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="emailNotificationsToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
                         <div class="settings-label">Push Notifications</div>
                         <div class="settings-desc">Receive push notifications</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="pushNotificationsToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="settings-section">
+                <h3 class="section-title">
+                    <i class="fas fa-shield-alt section-icon"></i>
+                    Security
+                </h3>
+                
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <div class="settings-label">Two-Factor Authentication</div>
+                        <div class="settings-desc">Add an extra layer of security</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="twoFactorToggle">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1259,7 +1418,7 @@
         </div>
     </div>
 
-    <!-- Notifications Drawer -->
+    <!-- Notifications Drawer with Glassmorphism -->
     <div class="notifications-drawer" id="notificationsDrawer">
         <div class="notifications-header">
             <h2 class="notifications-title">Notifications</h2>
@@ -1311,60 +1470,57 @@
         </div>
     </div>
 
+    <!-- 2FA Setup Modal -->
+    <div class="modal-overlay" id="twoFactorModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Set Up Two-Factor Authentication</h2>
+                <p class="modal-desc">Scan the QR code with your authenticator app</p>
+            </div>
+            
+            <div class="modal-body">
+                <div class="qrcode-container">
+                    <div class="qrcode-placeholder">
+                        QR Code would appear here
+                    </div>
+                </div>
+                
+                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+                    Or enter this code manually: <strong>JBSWY3DPEHPK3PXP</strong>
+                </p>
+                
+                <div class="backup-codes">
+                    <p style="font-weight: 500; margin-bottom: 0.5rem;">Backup Codes</p>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        Save these codes in a secure place. Each code can be used once.
+                    </p>
+                    <div class="codes-list">
+                        <div class="code-item">7C3D 9F2A</div>
+                        <div class="code-item">B8E1 4C6F</div>
+                        <div class="code-item">2A9D 5E7B</div>
+                        <div class="code-item">F4C8 1D6A</div>
+                        <div class="code-item">9E5B 3A7D</div>
+                        <div class="code-item">6C2F 8E4A</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancel2FA">Cancel</button>
+                <button class="btn btn-primary" id="confirm2FA">Confirm & Enable</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
 
     <script type="module">
-        // Import Supabase client (uncomment when you have the actual Supabase client)
+        // Import Supabase client
         import { supabase } from './js/supabaseClient.js';
 
-        // Mock Supabase client for demonstration
-        const supabase = {
-            auth: {
-                getUser: () => Promise.resolve({ 
-                    data: { user: { id: '1', email: 'user@example.com' } }, 
-                    error: null 
-                })
-            },
-            from: () => ({
-                select: () => ({
-                    eq: () => ({
-                        single: () => Promise.resolve({
-                            data: {
-                                id: '1',
-                                full_name: 'Alex Johnson',
-                                username: 'alexj',
-                                status: 'Online',
-                                verified: true,
-                                theme_preference: 'dark',
-                                campus: 'Main Campus',
-                                level: 'Undergraduate',
-                                department: 'Computer Science',
-                                contact: 'alex.j@example.com',
-                                bio: 'Computer Science student passionate about web development and AI.',
-                                profile_photo: null,
-                                join_date: new Date('2023-01-15').toISOString(),
-                                post_count: 15,
-                                follower_count: 1250,
-                                following_count: 34
-                            },
-                            error: null
-                        })
-                    })
-                }),
-                update: () => ({
-                    eq: () => Promise.resolve({ error: null })
-                })
-            }),
-            channel: () => ({
-                on: () => ({
-                    subscribe: () => ({})
-                })
-            })
-        };
-
         // DOM Elements
-        const logo = document.getElementById('logo');
+        const header = document.getElementById('header');
         const themeIndicator = document.getElementById('themeIndicator');
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsDrawer = document.getElementById('settingsDrawer');
@@ -1381,13 +1537,38 @@
         const followingList = document.getElementById('followingList');
         const tabButtons = document.querySelectorAll('.tab-button');
         const overlay = document.getElementById('overlay');
+        const twoFactorToggle = document.getElementById('twoFactorToggle');
+        const twoFactorModal = document.getElementById('twoFactorModal');
+        const cancel2FA = document.getElementById('cancel2FA');
+        const confirm2FA = document.getElementById('confirm2FA');
         const darkModeToggle = document.getElementById('darkModeToggle');
+        const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
+        const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
         const body = document.body;
-        const verifiedBadge = document.getElementById('verifiedBadge');
+        const editAcademicBtn = document.getElementById('editAcademicBtn');
+        const academicGrid = document.getElementById('academicGrid');
+        const academicActions = document.getElementById('academicActions');
+        const cancelAcademicEdit = document.getElementById('cancelAcademicEdit');
+        const saveAcademicEdit = document.getElementById('saveAcademicEdit');
+        const editBioBtn = document.getElementById('editBioBtn');
+        const bioContent = document.getElementById('bioContent');
+        const bioInput = document.getElementById('bioInput');
+        const bioActions = document.getElementById('bioActions');
+        const cancelBioEdit = document.getElementById('cancelBioEdit');
+        const saveBioEdit = document.getElementById('saveBioEdit');
+        const shareProfileBtn = document.getElementById('shareProfileBtn');
+        const showFullNameToggle = document.getElementById('showFullNameToggle');
+        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
+        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
 
         // Current user and data
         let currentUser = null;
         let userProfile = null;
+        let userGroups = [];
+        let userNotifications = [];
+        let followers = [];
+        let following = [];
+        let userPostsCount = 0;
 
         // Initialize the page
         async function initializePage() {
@@ -1409,11 +1590,16 @@
                 // Load user groups
                 await loadUserGroups();
                 
+                // Initialize followers system
+                await initializeFollowers();
+                
                 // Load user notifications
                 await loadUserNotifications();
                 
-                // Load followers data
-                await loadFollowersData();
+                // Set up real-time subscriptions
+                setupNotificationsSubscription();
+                setupFollowersRealtime();
+                setupPostsRealtime();
                 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -1430,7 +1616,14 @@
                     .eq('id', currentUser.id)
                     .single();
                     
-                if (error) throw error;
+                if (error) {
+                    // If profile doesn't exist, create one
+                    if (error.code === 'PGRST116') {
+                        await createUserProfile();
+                        return;
+                    }
+                    throw error;
+                }
                 
                 userProfile = profile;
                 updateProfileUI();
@@ -1441,30 +1634,69 @@
             }
         }
 
+        // Create a new user profile if it doesn't exist
+        async function createUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .insert([
+                        {
+                            id: currentUser.id,
+                            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+                            status: 'Online',
+                            verified: false,
+                            theme_preference: 'dark',
+                            show_full_name: true,
+                            show_academic_info: true,
+                            show_groups_count: true
+                        }
+                    ])
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error creating profile:', error);
+                showError('Error creating profile');
+            }
+        }
+
         // Update the UI with profile data
         function updateProfileUI() {
             if (!userProfile) return;
             
-            // Set user name and info
-            document.getElementById('fullName').textContent = userProfile.full_name;
-            document.getElementById('username').textContent = `@${userProfile.username}`;
-            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name);
+            // Hide loading spinner and show name
+            document.getElementById('nameLoading').style.display = 'none';
+            document.getElementById('nameText').style.display = 'inline';
             
-            // Set verified badge
+            // Set user name and info
+            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
+            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
+            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
+            
+            // Set status
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.textContent = userProfile.status || 'Online';
+            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            
+            // Show verified badge if user is verified
             if (userProfile.verified) {
-                verifiedBadge.style.display = 'flex';
+                document.getElementById('verifiedBadge').style.display = 'flex';
             }
             
-            // Set stats
-            document.getElementById('postsCount').textContent = userProfile.post_count || 0;
-            document.getElementById('followersCount').textContent = userProfile.follower_count || 0;
-            document.getElementById('followingCount').textContent = userProfile.following_count || 0;
+            // Set academic details - use custom fields if available
+            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
+            const level = userProfile.custom_level || userProfile.level || 'Not set';
             
-            // Set academic details
-            document.getElementById('campusValue').textContent = userProfile.campus || 'Not set';
-            document.getElementById('campusInput').value = userProfile.campus || '';
-            document.getElementById('levelValue').textContent = userProfile.level || 'Not set';
-            document.getElementById('levelInput').value = userProfile.level || '';
+            document.getElementById('campusValue').textContent = campus;
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelValue').textContent = level;
+            document.getElementById('levelInput').value = level;
             document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
             document.getElementById('departmentInput').value = userProfile.department || '';
             document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
@@ -1473,6 +1705,19 @@
             // Set bio
             document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
             document.getElementById('bioInput').value = userProfile.bio || '';
+            
+            // Set join date
+            if (userProfile.join_date) {
+                const joinDate = new Date(userProfile.join_date);
+                document.getElementById('joinDate').textContent = joinDate.toLocaleDateString();
+            } else {
+                document.getElementById('joinDate').textContent = 'Recently';
+            }
+            
+            // Set privacy toggles
+            showFullNameToggle.checked = userProfile.show_full_name !== false;
+            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
+            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
             
             // Apply theme from database
             if (userProfile.theme_preference) {
@@ -1483,14 +1728,22 @@
         // Load user groups from Supabase
         async function loadUserGroups() {
             try {
-                // This would be your actual Supabase query for groups
-                const groupsData = [
-                    { id: 1, name: 'Computer Science Club', member_count: 45, is_admin: true },
-                    { id: 2, name: 'Web Developers', member_count: 120, is_admin: false },
-                    { id: 3, name: 'AI Enthusiasts', member_count: 78, is_admin: false }
-                ];
+                const { data: groups, error } = await supabase
+                    .from('group_members')
+                    .select(`
+                        groups (
+                            id,
+                            name,
+                            member_count
+                        ),
+                        is_admin
+                    `)
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
                 
-                updateGroupsUI(groupsData);
+                userGroups = groups || [];
+                updateGroupsUI();
                 
             } catch (error) {
                 console.error('Error loading groups:', error);
@@ -1499,11 +1752,11 @@
         }
 
         // Update the UI with groups data
-        function updateGroupsUI(groups) {
+        function updateGroupsUI() {
             const groupsGrid = document.getElementById('groupsGrid');
             groupsGrid.innerHTML = '';
             
-            if (groups.length === 0) {
+            if (userGroups.length === 0) {
                 groupsGrid.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-users"></i>
@@ -1513,7 +1766,8 @@
                 return;
             }
             
-            groups.forEach(group => {
+            userGroups.forEach(groupData => {
+                const group = groupData.groups;
                 const groupItem = document.createElement('div');
                 groupItem.className = 'group-item';
                 
@@ -1521,31 +1775,59 @@
                     <div class="group-avatar">${group.name.substring(0, 2)}</div>
                     <div class="group-info">
                         <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.member_count} members</div>
+                        <div class="group-members">${group.member_count || 0} members</div>
                     </div>
-                    ${group.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
+                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
                 `;
                 
                 groupsGrid.appendChild(groupItem);
             });
         }
 
-        // Load followers data from Supabase
+        // Initialize followers functionality
+        async function initializeFollowers() {
+            await loadFollowersData();
+            await loadPostsCount();
+        }
+
+        // Load followers and following data
         async function loadFollowersData() {
             try {
-                // This would be your actual Supabase query for followers/following
-                const followersData = [
-                    { id: 2, full_name: 'Sarah Wilson', username: 'sarahw', verified: true },
-                    { id: 3, full_name: 'Mike Chen', username: 'mikec', verified: false },
-                    { id: 4, full_name: 'Emma Davis', username: 'emmad', verified: true }
-                ];
+                // Load followers (people who follow the current user)
+                const { data: followersData, error: followersError } = await supabase
+                    .from('followers')
+                    .select(`
+                        follower:profiles!follower_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('following_id', currentUser.id);
+                    
+                if (followersError) throw followersError;
                 
-                const followingData = [
-                    { id: 2, full_name: 'Sarah Wilson', username: 'sarahw', verified: true },
-                    { id: 5, full_name: 'James Brown', username: 'jamesb', verified: false }
-                ];
+                followers = followersData.map(item => item.follower);
                 
-                updateFollowersUI(followersData, followingData);
+                // Load following (people the current user follows)
+                const { data: followingData, error: followingError } = await supabase
+                    .from('followers')
+                    .select(`
+                        following:profiles!following_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('follower_id', currentUser.id);
+                    
+                if (followingError) throw followingError;
+                
+                following = followingData.map(item => item.following);
+                
+                updateFollowersUI();
                 
             } catch (error) {
                 console.error('Error loading followers data:', error);
@@ -1553,17 +1835,37 @@
             }
         }
 
+        // Load user's posts count
+        async function loadPostsCount() {
+            try {
+                const { data, count, error } = await supabase
+                    .from('posts')
+                    .select('id', { count: 'exact' })
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userPostsCount = count || 0;
+                document.getElementById('postsCount').textContent = userPostsCount;
+                
+            } catch (error) {
+                console.error('Error loading posts count:', error);
+            }
+        }
+
         // Update followers UI
-        function updateFollowersUI(followers, following) {
-            // Update followers list
-            updateFollowersList(followers);
+        function updateFollowersUI() {
+            // Update counts
+            document.getElementById('followersCount').textContent = followers.length;
+            document.getElementById('followingCount').textContent = following.length;
             
-            // Update following list
-            updateFollowingList(following);
+            // Update followers list
+            updateFollowersList();
+            updateFollowingList();
         }
 
         // Update followers list
-        function updateFollowersList(followers) {
+        function updateFollowersList() {
             followersList.innerHTML = '';
             
             if (followers.length === 0) {
@@ -1581,17 +1883,19 @@
                 followerItem.className = 'follower-item';
                 followerItem.innerHTML = `
                     <div class="follower-avatar">
-                        ${getInitials(follower.full_name)}
+                        ${follower.profile_photo ? 
+                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(follower.full_name)
+                        }
                     </div>
                     <div class="follower-info">
-                        <div class="follower-name">
-                            ${follower.full_name}
-                            ${follower.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.6rem;"><i class="fas fa-check"></i></div>' : ''}
-                        </div>
+                        <div class="follower-name">${follower.full_name}</div>
                         <div class="follower-username">@${follower.username}</div>
                     </div>
-                    <button class="follow-action following" onclick="toggleFollow('${follower.id}')">
-                        Following
+                    <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}" 
+                            onclick="toggleFollow('${follower.id}')"
+                            data-user-id="${follower.id}">
+                        ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
                     </button>
                 `;
                 followersList.appendChild(followerItem);
@@ -1599,7 +1903,7 @@
         }
 
         // Update following list
-        function updateFollowingList(following) {
+        function updateFollowingList() {
             followingList.innerHTML = '';
             
             if (following.length === 0) {
@@ -1612,21 +1916,21 @@
                 return;
             }
             
-            following.forEach(user => {
+            following.forEach(followedUser => {
                 const followingItem = document.createElement('div');
                 followingItem.className = 'following-item';
                 followingItem.innerHTML = `
                     <div class="following-avatar">
-                        ${getInitials(user.full_name)}
+                        ${followedUser.profile_photo ? 
+                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(followedUser.full_name)
+                        }
                     </div>
                     <div class="following-info">
-                        <div class="following-name">
-                            ${user.full_name}
-                            ${user.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.6rem;"><i class="fas fa-check"></i></div>' : ''}
-                        </div>
-                        <div class="following-username">@${user.username}</div>
+                        <div class="following-name">${followedUser.full_name}</div>
+                        <div class="following-username">@${followedUser.username}</div>
                     </div>
-                    <button class="unfollow-btn" onclick="unfollowUser('${user.id}')">
+                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
                         Unfollow
                     </button>
                 `;
@@ -1634,31 +1938,86 @@
             });
         }
 
+        // Check if current user is following a specific user
+        function isFollowing(userId) {
+            return following.some(user => user.id === userId);
+        }
+
+        // Toggle follow/unfollow
+        async function toggleFollow(userId) {
+            try {
+                if (isFollowing(userId)) {
+                    await unfollowUser(userId);
+                } else {
+                    await followUser(userId);
+                }
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                showError('Error updating follow status');
+            }
+        }
+
+        // Follow a user
+        async function followUser(userId) {
+            try {
+                const { error } = await supabase
+                    .from('followers')
+                    .insert([
+                        {
+                            follower_id: currentUser.id,
+                            following_id: userId
+                        }
+                    ]);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
+                showError('User followed successfully!');
+                
+            } catch (error) {
+                console.error('Error following user:', error);
+                throw error;
+            }
+        }
+
+        // Unfollow a user
+        async function unfollowUser(userId) {
+            try {
+                const { error } = await supabase
+                    .from('followers')
+                    .delete()
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', userId);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
+                showError('User unfollowed');
+                
+            } catch (error) {
+                console.error('Error unfollowing user:', error);
+                throw error;
+            }
+        }
+
         // Load user notifications from Supabase
         async function loadUserNotifications() {
             try {
-                // This would be your actual Supabase query for notifications
-                const notificationsData = [
-                    {
-                        id: 1,
-                        type: 'new_follower',
-                        sender: { full_name: 'Sarah Wilson', username: 'sarahw', verified: true },
-                        content: 'started following you',
-                        created_at: new Date(Date.now() - 300000).toISOString(),
-                        read: false
-                    },
-                    {
-                        id: 2,
-                        type: 'new_post',
-                        sender: { full_name: 'Mike Chen', username: 'mikec', verified: false },
-                        post: { content: 'Just published a new article about web development!' },
-                        content: 'made a new post',
-                        created_at: new Date(Date.now() - 1800000).toISOString(),
-                        read: false
-                    }
-                ];
+                const { data: notifications, error } = await supabase
+                    .from('notifications')
+                    .select(`
+                        *,
+                        sender:profiles!sender_id(full_name, username),
+                        post:posts(id, content)
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                    
+                if (error) throw error;
                 
-                updateNotificationsUI(notificationsData);
+                userNotifications = notifications || [];
+                updateNotificationsUI();
                 
             } catch (error) {
                 console.error('Error loading notifications:', error);
@@ -1667,10 +2026,10 @@
         }
 
         // Update the UI with notifications data
-        function updateNotificationsUI(notifications) {
+        function updateNotificationsUI() {
             notificationsList.innerHTML = '';
             
-            if (notifications.length === 0) {
+            if (userNotifications.length === 0) {
                 notificationsList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-bell-slash"></i>
@@ -1680,43 +2039,106 @@
                 return;
             }
             
-            notifications.forEach(notification => {
+            userNotifications.forEach(notification => {
                 const notificationItem = document.createElement('div');
                 notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
                 
-                const time = new Date(notification.created_at).toLocaleTimeString([], { 
-                    hour: '2-digit', minute: '2-digit' 
-                });
+                // Format time
+                const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
                 let message = '';
-                let postPreview = '';
-                
-                if (notification.type === 'new_follower') {
+                if (notification.type === 'new_post') {
+                    const postPreview = notification.post?.content?.substring(0, 50) + (notification.post?.content?.length > 50 ? '...' : '');
+                    message = `New post: "${postPreview}"`;
+                } else if (notification.type === 'new_follower') {
                     message = 'Started following you';
-                } else if (notification.type === 'new_post') {
-                    message = 'Made a new post';
-                    const postContent = notification.post?.content || '';
-                    postPreview = `
-                        <div class="notification-post-preview">
-                            ${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}
-                        </div>
-                    `;
+                } else {
+                    message = notification.content;
                 }
                 
                 notificationItem.innerHTML = `
                     <div class="notification-header">
-                        <div class="notification-sender">
-                            ${notification.sender.full_name}
-                            ${notification.sender.verified ? '<div class="verified-badge" style="width: 16px; height: 16px; font-size: 0.6rem;"><i class="fas fa-check"></i></div>' : ''}
-                        </div>
+                        <div class="notification-sender">${notification.sender?.full_name || 'System'}</div>
                         <div class="notification-time">${time}</div>
                     </div>
                     <div class="notification-message">${message}</div>
-                    ${postPreview}
                 `;
                 
                 notificationsList.appendChild(notificationItem);
             });
+        }
+
+        // Set up real-time notifications subscription
+        function setupNotificationsSubscription() {
+            const channel = supabase
+                .channel(`notifications-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        // Add new notification to the beginning of the list
+                        userNotifications.unshift(payload.new);
+                        updateNotificationsUI();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for followers
+        function setupFollowersRealtime() {
+            // Subscribe to followers changes
+            const followersChannel = supabase
+                .channel(`followers-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `following_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `follower_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for posts
+        function setupPostsRealtime() {
+            // Subscribe to posts count changes
+            const postsChannel = supabase
+                .channel(`posts-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'posts',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadPostsCount();
+                    }
+                )
+                .subscribe();
         }
 
         // Get initials from full name
@@ -1727,82 +2149,81 @@
 
         // Show error message
         function showError(message) {
-            // In a real app, use a proper notification system
-            console.log(message);
+            // You could implement a toast notification system here
+            console.error(message);
+            alert(message);
         }
 
-        // Theme toggle with swipe on Peerloom text only
+        // Theme toggle with swipe
         let startX;
-        let isSwiping = false;
-        
-        logo.addEventListener('mousedown', (e) => {
+        header.addEventListener('mousedown', (e) => {
             startX = e.clientX;
-            isSwiping = true;
-            logo.classList.add('swiping');
-            themeIndicator.classList.add('show');
+            header.style.transition = 'none';
+            header.classList.add('swiping');
         });
 
-        logo.addEventListener('mousemove', (e) => {
-            if (isSwiping && e.buttons === 1) {
+        header.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) {
                 const dx = e.clientX - startX;
                 if (dx < -50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-sun"></i><span>Switch to Light Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
                 } else if (dx > 50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-moon"></i><span>Switch to Dark Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
                 }
             }
         });
 
-        logo.addEventListener('mouseup', (e) => {
-            if (isSwiping) {
-                logo.classList.remove('swiping');
-                themeIndicator.classList.remove('show');
-                
-                if (startX) {
-                    const dx = e.clientX - startX;
-                    if (dx < -50) {
-                        applyTheme('light');
-                    } else if (dx > 50) {
-                        applyTheme('dark');
-                    }
+        header.addEventListener('mouseup', (e) => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            
+            if (startX) {
+                const dx = e.clientX - startX;
+                if (dx < -50) {
+                    applyTheme('light');
+                } else if (dx > 50) {
+                    applyTheme('dark');
                 }
-                isSwiping = false;
+                startX = null;
             }
+        });
+
+        header.addEventListener('mouseleave', () => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            startX = null;
         });
 
         // Touch events for mobile
-        logo.addEventListener('touchstart', (e) => {
+        header.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
-            isSwiping = true;
-            logo.classList.add('swiping');
-            themeIndicator.classList.add('show');
+            header.style.transition = 'none';
+            header.classList.add('swiping');
         });
 
-        logo.addEventListener('touchmove', (e) => {
-            if (isSwiping) {
+        header.addEventListener('touchmove', (e) => {
+            if (startX) {
                 const dx = e.touches[0].clientX - startX;
                 if (dx < -50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-sun"></i><span>Switch to Light Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
                 } else if (dx > 50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-moon"></i><span>Switch to Dark Mode</span>';
+                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
                 }
             }
         });
 
-        logo.addEventListener('touchend', (e) => {
-            if (isSwiping) {
-                logo.classList.remove('swiping');
-                themeIndicator.classList.remove('show');
-                
-                if (startX) {
-                    const dx = e.changedTouches[0].clientX - startX;
-                    if (dx < -50) {
-                        applyTheme('light');
-                    } else if (dx > 50) {
-                        applyTheme('dark');
-                    }
+        header.addEventListener('touchend', (e) => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            
+            if (startX) {
+                const dx = e.changedTouches[0].clientX - startX;
+                if (dx < -50) {
+                    applyTheme('light');
+                } else if (dx > 50) {
+                    applyTheme('dark');
                 }
-                isSwiping = false;
+                startX = null;
             }
         });
 
@@ -1811,13 +2232,33 @@
             body.setAttribute('data-theme', theme);
             localStorage.setItem('peerloom-theme', theme);
             darkModeToggle.checked = theme === 'dark';
+            
+            // Save theme preference to database
+            if (userProfile) {
+                saveThemePreference(theme);
+            }
+        }
+
+        // Save theme preference to database
+        async function saveThemePreference(theme) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ theme_preference: theme })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+            } catch (error) {
+                console.error('Error saving theme preference:', error);
+            }
         }
 
         // Initialize theme
-        const savedTheme = localStorage.getItem('peerloom-theme') || 'dark';
+        const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
         applyTheme(savedTheme);
 
-        // Drawer functionality
+        // Settings drawer functionality
         settingsBtn.addEventListener('click', () => {
             settingsDrawer.classList.add('open');
             overlay.classList.add('active');
@@ -1828,6 +2269,7 @@
             overlay.classList.remove('active');
         });
 
+        // Notifications drawer functionality
         notificationsBtn.addEventListener('click', () => {
             notificationsDrawer.classList.add('open');
             overlay.classList.add('active');
@@ -1838,6 +2280,7 @@
             overlay.classList.remove('active');
         });
 
+        // Followers drawer functionality
         followersBtn.addEventListener('click', () => {
             followersDrawer.classList.add('open');
             overlay.classList.add('active');
@@ -1848,14 +2291,16 @@
             overlay.classList.remove('active');
         });
 
-        // Tab switching
+        // Tab switching for followers/following
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const tab = button.getAttribute('data-tab');
                 
+                // Update active tab
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 
+                // Show appropriate content
                 if (tab === 'followers') {
                     followersList.style.display = 'block';
                     followingList.style.display = 'none';
@@ -1871,21 +2316,318 @@
             notificationsDrawer.classList.remove('open');
             followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
+            twoFactorModal.classList.remove('active');
         });
 
-        // Dark mode toggle
+        // Mark all notifications as read
+        markAllReadBtn.addEventListener('click', async () => {
+            try {
+                const unreadNotifications = userNotifications.filter(n => !n.read);
+                if (unreadNotifications.length === 0) return;
+                
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ read: true })
+                    .eq('user_id', currentUser.id)
+                    .eq('read', false);
+                    
+                if (error) throw error;
+                
+                // Update local state
+                userNotifications.forEach(n => {
+                    n.read = true;
+                });
+                
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+                showError('Error marking notifications as read');
+            }
+        });
+
+        // 2FA functionality
+        twoFactorToggle.addEventListener('change', () => {
+            if (twoFactorToggle.checked) {
+                twoFactorModal.classList.add('active');
+                overlay.classList.add('active');
+            }
+        });
+
+        cancel2FA.addEventListener('click', () => {
+            twoFactorModal.classList.remove('active');
+            overlay.classList.remove('active');
+            twoFactorToggle.checked = false;
+        });
+
+        confirm2FA.addEventListener('click', () => {
+            twoFactorModal.classList.remove('active');
+            overlay.classList.remove('active');
+            // In a real app, you would enable 2FA here
+            showError('Two-factor authentication has been enabled!');
+        });
+
+        // Dark mode toggle in settings
         darkModeToggle.addEventListener('change', () => {
             applyTheme(darkModeToggle.checked ? 'dark' : 'light');
         });
 
-        // Global functions
-        window.toggleFollow = (userId) => {
-            showError('Follow functionality would be implemented here');
-        };
+        // Notification toggles
+        emailNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
+        });
 
-        window.unfollowUser = (userId) => {
-            showError('Unfollow functionality would be implemented here');
-        };
+        pushNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
+        });
+
+        // Privacy toggles
+        showFullNameToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_full_name', showFullNameToggle.checked);
+        });
+
+        showAcademicInfoToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked);
+        });
+
+        showGroupsCountToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked);
+        });
+
+        // Save privacy setting to database
+        async function savePrivacySetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
+
+        // Save notification setting to database
+        async function saveNotificationSetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
+
+        // Avatar upload
+        const avatarUpload = document.getElementById('avatarUpload');
+        const avatar = document.getElementById('avatars');
+        
+        avatarUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                // Upload avatar to Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                // Update profile with avatar URL
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ profile_photo: publicUrl })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+
+                // Update UI
+                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar">`;
+                
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                showError('Error uploading avatar');
+            }
+        });
+
+        // Edit academic details functionality
+        editAcademicBtn.addEventListener('click', () => {
+            // Hide values, show inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
+            academicActions.style.display = 'flex';
+            editAcademicBtn.style.display = 'none';
+        });
+
+        cancelAcademicEdit.addEventListener('click', () => {
+            // Show values, hide inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+            academicActions.style.display = 'none';
+            editAcademicBtn.style.display = 'block';
+            
+            // Reset input values to current user data
+            const campus = userProfile.custom_campus || userProfile.campus || '';
+            const level = userProfile.custom_level || userProfile.level || '';
+            
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelInput').value = level;
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('contactInput').value = userProfile.contact || '';
+        });
+
+        saveAcademicEdit.addEventListener('click', async () => {
+            try {
+                // Update user data in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        campus: document.getElementById('campusInput').value,
+                        custom_campus: document.getElementById('campusInput').value,
+                        level: document.getElementById('levelInput').value,
+                        custom_level: document.getElementById('levelInput').value,
+                        department: document.getElementById('departmentInput').value,
+                        contact: document.getElementById('contactInput').value
+                    })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.campus = document.getElementById('campusInput').value;
+                userProfile.custom_campus = document.getElementById('campusInput').value;
+                userProfile.level = document.getElementById('levelInput').value;
+                userProfile.custom_level = document.getElementById('levelInput').value;
+                userProfile.department = document.getElementById('departmentInput').value;
+                userProfile.contact = document.getElementById('contactInput').value;
+                
+                // Update displayed values
+                document.getElementById('campusValue').textContent = userProfile.custom_campus || userProfile.campus || 'Not set';
+                document.getElementById('levelValue').textContent = userProfile.custom_level || userProfile.level || 'Not set';
+                document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+                document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
+                
+                // Show values, hide inputs
+                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+                academicActions.style.display = 'none';
+                editAcademicBtn.style.display = 'block';
+                
+                showError('Academic details updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating academic details:', error);
+                showError('Error updating academic details');
+            }
+        });
+
+        // Edit bio functionality
+        editBioBtn.addEventListener('click', () => {
+            bioContent.style.display = 'none';
+            bioInput.style.display = 'block';
+            bioActions.style.display = 'flex';
+            editBioBtn.style.display = 'none';
+        });
+
+        cancelBioEdit.addEventListener('click', () => {
+            bioContent.style.display = 'block';
+            bioInput.style.display = 'none';
+            bioActions.style.display = 'none';
+            editBioBtn.style.display = 'block';
+            
+            // Reset bio input to current value
+            bioInput.value = userProfile.bio || '';
+        });
+
+        saveBioEdit.addEventListener('click', async () => {
+            try {
+                const newBio = bioInput.value;
+                
+                // Update bio in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ bio: newBio })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.bio = newBio;
+                bioContent.textContent = userProfile.bio || 'No bio yet...';
+                
+                bioContent.style.display = 'block';
+                bioInput.style.display = 'none';
+                bioActions.style.display = 'none';
+                editBioBtn.style.display = 'block';
+                
+                showError('Bio updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating bio:', error);
+                showError('Error updating bio');
+            }
+        });
+
+        // Share profile functionality
+        shareProfileBtn.addEventListener('click', async () => {
+            try {
+                // Create a shareable link
+                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `${userProfile.full_name}'s Profile`,
+                        text: `Check out ${userProfile.full_name}'s profile on Peerloom`,
+                        url: profileUrl
+                    });
+                } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(profileUrl);
+                    showError('Profile link copied to clipboard!');
+                }
+            } catch (error) {
+                console.error('Error sharing profile:', error);
+                
+                // Fallback: copy to clipboard
+                try {
+                    const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                    await navigator.clipboard.writeText(profileUrl);
+                    showError('Profile link copied to clipboard!');
+                } catch (clipboardError) {
+                    console.error('Error copying to clipboard:', clipboardError);
+                    showError('Error sharing profile');
+                }
+            }
+        });
+
+        // Make functions available globally for onclick handlers
+        window.toggleFollow = toggleFollow;
+        window.unfollowUser = unfollowUser;
 
         // Initialize the page
         initializePage();
