@@ -454,6 +454,7 @@
       box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
     }
 
+    /* FIXED: Drawer footer with proper button layout */
     .drawer-footer {
       padding: 0.7rem 1rem;
       background: rgba(255,255,255,0.1);
@@ -463,6 +464,7 @@
       display: flex;
       justify-content: space-between;
       gap: 0.5rem;
+      flex-wrap: nowrap;
     }
 
     .leave-btn {
@@ -482,6 +484,8 @@
       gap: 0.4rem;
       flex: 1;
       justify-content: center;
+      min-width: 0;
+      white-space: nowrap;
     }
 
     .leave-btn:hover {
@@ -507,6 +511,8 @@
       gap: 0.4rem;
       flex: 1;
       justify-content: center;
+      min-width: 0;
+      white-space: nowrap;
     }
 
     .share-btn:hover {
@@ -792,6 +798,17 @@
         min-height: 42px;
         padding: 0.6rem 3.8rem 0.6rem 0.8rem;
       }
+      
+      /* FIXED: Mobile drawer footer */
+      .drawer-footer {
+        flex-direction: row;
+        gap: 0.3rem;
+      }
+      
+      .share-btn, .leave-btn {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+      }
     }
 
     @media (max-width: 480px) {
@@ -824,6 +841,16 @@
       
       .member-name {
         font-size: 0.85rem;
+      }
+      
+      /* FIXED: Extra small screens */
+      .drawer-footer {
+        flex-wrap: wrap;
+      }
+      
+      .share-btn, .leave-btn {
+        min-width: 120px;
+        font-size: 0.7rem;
       }
     }
 
@@ -1869,23 +1896,31 @@ function renderTypingIndicators() {
   messagePanel.scrollTop = messagePanel.scrollHeight;
 }
 
-// FIXED: Real-time updates for ALL messages
+// FIXED: Real-time updates for ALL messages with improved AI reply detection
 const messageChannel = supabase.channel(`grp_${gid}`)
   .on('postgres_changes', { 
     event: 'INSERT', 
     schema: 'public', 
     table: 'group_messages', 
     filter: `group_id=eq.${gid}` 
-  }, (payload) => {
+  }, async (payload) => {
     console.log('New message received:', payload.new);
     
     if (payload.new.sender_id !== user.id) {
       hideAITypingIndicator();
       render(payload.new);
       
-      // FIXED: Check if this message is a reply to AI message
+      // FIXED: Enhanced AI response detection for replies to AI messages
       if (payload.new.reply_to) {
-        checkIfReplyToAI(payload.new);
+        console.log('Message has reply_to, checking if it\'s a reply to AI...');
+        const isReplyToAI = await checkIfReplyToAI(payload.new);
+        if (isReplyToAI) {
+          console.log('Message is a reply to AI, triggering response');
+          // Add a small delay to make it feel more natural
+          setTimeout(async () => {
+            await checkPeerloomAI(payload.new.content || 'Hello');
+          }, 1000);
+        }
       } else if (payload.new.sender_id !== AI_USER_ID && payload.new.sender_id !== user.id) {
         checkForAIResponse(payload.new);
       }
@@ -1893,54 +1928,49 @@ const messageChannel = supabase.channel(`grp_${gid}`)
   })
   .subscribe();
 
-// NEW: Check if message is a reply to AI
+// FIXED: Improved function to check if message is a reply to AI
 async function checkIfReplyToAI(message) {
   try {
+    console.log('Checking if message is reply to AI, reply_to ID:', message.reply_to);
+    
     const { data, error } = await supabase
       .from('group_messages')
       .select('sender_id')
       .eq('id', message.reply_to)
       .single();
     
-    if (data && data.sender_id === AI_USER_ID) {
-      console.log('Message is a reply to AI, triggering response');
-      await checkPeerloomAI(message.content || 'Hello');
+    if (error) {
+      console.log('Error checking reply message:', error);
+      return false;
     }
+    
+    console.log('Original message sender:', data.sender_id);
+    const isAIReply = data && data.sender_id === AI_USER_ID;
+    console.log('Is reply to AI:', isAIReply);
+    
+    return isAIReply;
   } catch (err) {
     console.log('Error checking if reply to AI:', err);
+    return false;
   }
 }
 
 // NEW: Improved AI response detection
 async function checkForAIResponse(message) {
   const messageText = message.content ? message.content.toLowerCase() : '';
-  const isReplyingToAI = message.reply_to && await isAIMessage(message.reply_to);
   
   console.log('Checking AI response for message:', {
     text: messageText,
-    isReplyingToAI: isReplyingToAI,
     hasAIMention: messageText.includes('@peerpal ai'),
     hasAIKeywords: hasAIKeywords(messageText)
   });
   
-  if ((message.content && messageText.includes('@peerpal ai')) || isReplyingToAI || hasAIKeywords(messageText)) {
+  if ((message.content && messageText.includes('@peerpal ai')) || hasAIKeywords(messageText)) {
     console.log('Triggering AI response');
-    await checkPeerloomAI(message.content || 'Hello');
-  }
-}
-
-async function isAIMessage(messageId) {
-  try {
-    const { data, error } = await supabase
-      .from('group_messages')
-      .select('sender_id')
-      .eq('id', messageId)
-      .single();
-    
-    return data && data.sender_id === AI_USER_ID;
-  } catch (err) {
-    console.log('Error checking if message is from AI:', err);
-    return false;
+    // Add a small delay to make it feel more natural
+    setTimeout(async () => {
+      await checkPeerloomAI(message.content || 'Hello');
+    }, 1000);
   }
 }
 
@@ -2129,7 +2159,10 @@ async function sendMsg() {
   const hasAIKeywordsFlag = hasAIKeywords(txt);
   
   if (isReplyingToAI || hasAIMention || hasAIKeywordsFlag) {
-    await checkPeerloomAI(txt);
+    // Add a small delay to make it feel more natural
+    setTimeout(async () => {
+      await checkPeerloomAI(txt);
+    }, 1000);
   }
 }
 sendMessageButton.onclick = sendMsg;
@@ -2150,6 +2183,9 @@ async function checkPeerloomAI(message) {
     
     let aiReply = "I'm here to help! How can I assist you today?";
     let success = false;
+    
+    // Simulate typing delay for better UX (1-2 seconds)
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     
     for (const model of AI_MODELS) {
       try {
