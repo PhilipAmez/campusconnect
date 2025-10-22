@@ -470,7 +470,8 @@
       -webkit-backdrop-filter: blur(15px);
       border-radius: 0 0 20px 20px;
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      gap: 0.5rem;
     }
 
     /* SLEEK LEAVE BUTTON */
@@ -489,12 +490,94 @@
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      flex: 1;
+      justify-content: center;
     }
 
     .leave-btn:hover {
       background: rgba(255,71,87,0.2);
       transform: translateY(-1px);
       border-color: rgba(255,71,87,0.4);
+    }
+
+    /* NEW: Share Group Button */
+    .share-btn {
+      padding: 0.5rem 1rem;
+      background: rgba(74, 144, 226, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(74, 144, 226, 0.3);
+      border-radius: 10px;
+      color: var(--accent);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .share-btn:hover {
+      background: rgba(74, 144, 226, 0.2);
+      transform: translateY(-1px);
+      border-color: rgba(74, 144, 226, 0.4);
+    }
+
+    /* NEW: Audio message player */
+    .audio-player {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+
+    .audio-player audio {
+      width: 100%;
+      height: 40px;
+      border-radius: 20px;
+    }
+
+    .audio-duration {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.3rem;
+      text-align: center;
+    }
+
+    /* Recording indicator */
+    .recording-indicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 10px;
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      gap: 1rem;
+      font-weight: bold;
+    }
+
+    .recording-indicator.active {
+      display: flex;
+    }
+
+    .pulse {
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+      100% { transform: scale(0.8); opacity: 1; }
     }
 
     /* NEW: Sleek Modal Backdrop */
@@ -1042,6 +1125,12 @@
     </div>
   </div>
 
+  <!-- Recording Indicator -->
+  <div class="recording-indicator" id="recordingIndicator">
+    <div class="pulse"></div>
+    <span>Recording... Click to stop</span>
+  </div>
+
   <!-- Backdrop -->
   <div id="drawerBackdrop" class="drawer-backdrop"></div>
 
@@ -1053,10 +1142,29 @@
     </div>
     <div class="members-list" id="membersList"></div>
     <div class="drawer-footer">
+      <button class="share-btn" id="shareGroupBtn">
+        <i class="fas fa-share-alt"></i>
+        Share Group
+      </button>
       <button class="leave-btn" id="leaveGroupBtn">
         <i class="fas fa-sign-out-alt"></i>
         Leave Group
       </button>
+    </div>
+  </div>
+
+  <!-- NEW: Share Group Modal -->
+  <div class="modal-backdrop" id="shareGroupModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Share Group</div>
+        <div class="modal-description">Share this link to invite others to join your group</div>
+      </div>
+      <input type="text" class="modal-input" id="shareGroupInput" readonly>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="shareGroupCancel">Close</button>
+        <button class="modal-btn confirm" id="shareGroupCopy">Copy Link</button>
+      </div>
     </div>
   </div>
 
@@ -1099,17 +1207,21 @@ let replyingMsg = null;
 let isRecording = false;
 let editingMessage = null;
 let deletingMessage = null;
+let mediaRecorder = null;
+let audioChunks = [];
 
 // AI User Configuration
 const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
 const AI_USER_NAME = 'PeerPal AI';
 const GEMINI_API_KEY = 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88';
 
-// AI Models for free tier
+// AI Models for PeerPal - EXACTLY as specified
 const AI_MODELS = [
-  'gemini-2.5-flash-lite',
-  'learnlm-2.0-flash-experimental', 
-  'gemma-3-2b'
+  'gemini-2.5-flash-live',
+  'gemini-2.0-flash-live', 
+  'gemini-2.0-flash-lite',
+  'gemini-2.5-flash-tts',
+  'gemini-2.0-flash-preview-image-generation'
 ];
 
 // Elements
@@ -1123,6 +1235,7 @@ const fileShareButton = document.getElementById('fileShareButton');
 const voiceCallButton = document.getElementById('voiceCallButton');
 const videoCallButton = document.getElementById('videoCallButton');
 const recordAudioButton = document.getElementById('recordAudioButton');
+const recordingIndicator = document.getElementById('recordingIndicator');
 const groupTitle = document.getElementById('groupTitle');
 const themeToggleButton = document.getElementById('themeToggleButton');
 const replyContextBox = document.getElementById('replyContextBox');
@@ -1133,9 +1246,14 @@ const body = document.body;
 const groupDrawer = document.getElementById('groupDrawer');
 const membersList = document.getElementById('membersList');
 const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+const shareGroupBtn = document.getElementById('shareGroupBtn');
 const drawerBackdrop = document.getElementById('drawerBackdrop');
 
 // Modal elements
+const shareGroupModal = document.getElementById('shareGroupModal');
+const shareGroupInput = document.getElementById('shareGroupInput');
+const shareGroupCancel = document.getElementById('shareGroupCancel');
+const shareGroupCopy = document.getElementById('shareGroupCopy');
 const editMessageModal = document.getElementById('editMessageModal');
 const editMessageInput = document.getElementById('editMessageInput');
 const editMessageCancel = document.getElementById('editMessageCancel');
@@ -1160,7 +1278,7 @@ applyTheme(localStorage.getItem('vibe-theme') || 'dark');
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
 groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 
-// FIXED: Load members with proper profile data and names
+// FIXED: Load members with proper profile data and names - FIXED ERROR HANDLING
 async function loadMembers() {
   try {
     console.log('Loading members for group:', gid);
@@ -1584,6 +1702,33 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && groupDrawer.classList.contains('open')) closeDrawer();
 });
 
+// ---------- Share Group Feature ----------
+shareGroupBtn.onclick = (e) => {
+  createRipple(e);
+  const groupUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
+  shareGroupInput.value = groupUrl;
+  shareGroupModal.classList.add('visible');
+};
+
+shareGroupCancel.onclick = () => {
+  shareGroupModal.classList.remove('visible');
+};
+
+shareGroupCopy.onclick = () => {
+  shareGroupInput.select();
+  document.execCommand('copy');
+  shareGroupCopy.textContent = 'Copied!';
+  setTimeout(() => {
+    shareGroupCopy.textContent = 'Copy Link';
+  }, 2000);
+};
+
+shareGroupModal.addEventListener('click', (e) => {
+  if (e.target === shareGroupModal) {
+    shareGroupModal.classList.remove('visible');
+  }
+});
+
 // ---------- Leave group with ripple ----------
 
 leaveGroupBtn.onclick = async (e) => {
@@ -1657,7 +1802,27 @@ function render(m) {
   nameTag.textContent = senderName;
   
   const ct = document.createElement('div');
-  ct.innerHTML = processMentions(m.content);
+  
+  // Check if this is an audio message
+  if (m.message_type === 'audio' && m.audio_url) {
+    const audioContainer = document.createElement('div');
+    audioContainer.className = 'audio-player';
+    
+    const audioElement = document.createElement('audio');
+    audioElement.controls = true;
+    audioElement.src = m.audio_url;
+    
+    const durationText = document.createElement('div');
+    durationText.className = 'audio-duration';
+    durationText.textContent = 'Audio message';
+    
+    audioContainer.appendChild(audioElement);
+    audioContainer.appendChild(durationText);
+    ct.appendChild(audioContainer);
+  } else {
+    // Regular text message
+    ct.innerHTML = processMentions(m.content);
+  }
   
   const ts = document.createElement('div');
   ts.className = 'timestamp';
@@ -1802,7 +1967,7 @@ const messageChannel = supabase.channel(`grp_${gid}`)
 
 // NEW: Improved AI response detection
 async function checkForAIResponse(message) {
-  const messageText = message.content.toLowerCase();
+  const messageText = message.content ? message.content.toLowerCase() : '';
   const isReplyingToAI = message.reply_to && await isAIMessage(message.reply_to);
   
   console.log('Checking AI response for message:', {
@@ -1816,9 +1981,9 @@ async function checkForAIResponse(message) {
   // 1. Message mentions @PeerPal AI specifically
   // 2. Message is a reply to an AI message (even without @)
   // 3. Message contains AI-related keywords (more flexible approach)
-  if (messageText.includes('@peerpal ai') || isReplyingToAI || hasAIKeywords(messageText)) {
+  if ((message.content && messageText.includes('@peerpal ai')) || isReplyingToAI || hasAIKeywords(messageText)) {
     console.log('Triggering AI response');
-    await checkPeerloomAI(message.content);
+    await checkPeerloomAI(message.content || 'Hello');
   }
 }
 
@@ -1840,6 +2005,8 @@ async function isAIMessage(messageId) {
 
 // NEW: Check for AI-related keywords (more flexible than just @mentions)
 function hasAIKeywords(text) {
+  if (!text) return false;
+  
   const aiKeywords = [
     'peerpal', 'ai', 'assistant', 'bot', 'help', 'question',
     'how to', 'what is', 'can you', 'could you', 'please help',
@@ -1872,6 +2039,111 @@ emojiPickerBox.onclick = (e) => {
 
 // Initialize mention system after member data is loaded
 initMentionSystem();
+
+// ---------- AUDIO MESSAGES FUNCTIONALITY ----------
+recordAudioButton.onclick = async () => {
+  if (!isRecording) {
+    await startRecording();
+  } else {
+    stopRecording();
+  }
+};
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      await uploadAudioMessage(audioBlob);
+      
+      // Stop all tracks
+      stream.getTracks().forEach(track => track.stop());
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    recordAudioButton.classList.add('active');
+    recordingIndicator.classList.add('active');
+    
+    // Add click listener to stop recording when clicking the indicator
+    recordingIndicator.onclick = stopRecording;
+    
+  } catch (error) {
+    console.error('Error starting recording:', error);
+    alert('Error accessing microphone. Please check permissions.');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    recordAudioButton.classList.remove('active');
+    recordingIndicator.classList.remove('active');
+  }
+}
+
+async function uploadAudioMessage(audioBlob) {
+  try {
+    // Create a unique filename
+    const fileName = `audio_${Date.now()}_${user.id}.wav`;
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('group_audios')
+      .upload(fileName, audioBlob);
+
+    if (error) {
+      throw error;
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('group_audios')
+      .getPublicUrl(fileName);
+
+    // Create audio message in database
+    const { data: messageData, error: messageError } = await supabase
+      .from('group_messages')
+      .insert({
+        group_id: gid,
+        sender_id: user.id,
+        sender_name: user.user_metadata.firstName,
+        content: 'Audio message',
+        message_type: 'audio',
+        audio_url: publicUrl,
+        reply_to: replyingMsg?.id,
+        reply_to_sender: replyingMsg?.sender_name,
+        reply_to_text: replyingMsg?.content
+      })
+      .select()
+      .single();
+
+    if (messageError) {
+      throw messageError;
+    }
+
+    // Render the audio message immediately
+    render(messageData);
+    
+    // Clear reply context if any
+    replyingMsg = null;
+    replyContextBox.style.display = 'none';
+
+  } catch (error) {
+    console.error('Error uploading audio message:', error);
+    alert('Error sending audio message. Please try again.');
+  }
+}
 
 // Send message - FIXED: Now renders immediately
 async function sendMsg() {
@@ -1937,7 +2209,7 @@ async function checkPeerloomAI(message) {
     // Clean the message by removing the mention if present
     const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
     
-    // Try each model in order until one works
+    // Try each model in order until one works - USING YOUR EXACT MODELS
     let aiReply = "I'm here to help! How can I assist you today?";
     let success = false;
     
@@ -2131,6 +2403,7 @@ function showDeleteMessageModal(messageId) {
 function closeModals() {
   editMessageModal.classList.remove('visible');
   deleteMessageModal.classList.remove('visible');
+  shareGroupModal.classList.remove('visible');
   editingMessage = null;
   deletingMessage = null;
 }
@@ -2191,12 +2464,7 @@ deleteMessageModal.addEventListener('click', (e) => {
   if (e.target === deleteMessageModal) closeModals();
 });
 
-// Placeholder audio & file
-recordAudioButton.onclick = () => {
-  isRecording = !isRecording;
-  recordAudioButton.classList.toggle('active', isRecording);
-  alert(isRecording ? 'Recording started...' : 'Recording stopped...');
-};
+// Placeholder file and calls
 fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
