@@ -144,32 +144,6 @@
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
         }
-        .btn-google {
-            background: white;
-            color: #4285F4;
-            border: 1px solid #dadce0;
-            margin-bottom: 1rem;
-        }
-        .btn-google:hover {
-            background: #f8f9fa;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 1.5rem 0;
-        }
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .divider span {
-            padding: 0 1rem;
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
         .support-button {
             position: fixed;
             bottom: 10px;
@@ -242,15 +216,6 @@
 
     <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
-        
-        <!-- Google OAuth Button -->
-        <button id="googleSignUp" class="btn btn-google">
-            <i class="fab fa-google"></i> Sign up with Google
-        </button>
-        
-        <div class="divider">
-            <span>or continue with email</span>
-        </div>
         
         <form id="signupForm">
             <div class="profile-photo-upload" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
@@ -363,24 +328,6 @@
             const initials = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase();
             return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random&rounded=true`;
         }
-
-        // Google OAuth Sign Up
-        document.getElementById('googleSignUp').addEventListener('click', async () => {
-            try {
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: `${window.location.origin}/complete-profile.html`
-                    }
-                });
-                
-                if (error) throw error;
-            } catch (error) {
-                console.error('Google OAuth error:', error);
-                document.getElementById('errorMessage').textContent = 'Failed to sign up with Google: ' + error.message;
-                document.getElementById('errorMessage').style.display = 'block';
-            }
-        });
 
         const form = document.getElementById('signupForm');
         const errorMessage = document.getElementById('errorMessage');
