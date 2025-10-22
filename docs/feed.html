@@ -34,6 +34,11 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            overflow: hidden;
+            height: 100%;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background-color: var(--background-dark);
@@ -312,25 +317,78 @@
             font-size: 1.5rem;
             cursor: pointer;
         }
-
+        
         .comments-list {
             flex: 1;
             overflow-y: auto;
             padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
         }
 
         .comment-item {
-            padding: var(--spacing-sm) 0;
-            border-bottom: 1px solid var(--glass-border);
+            max-width: 80%;
+            width: fit-content;
+            align-self: flex-start; /* Default for other users */
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.4rem 0.8rem; /* Reduced padding */
+            transition: background 0.2s ease;
+        }
+
+        .comment-item.current-user {
+            align-self: flex-end;
+            background: rgba(106, 90, 205, 0.2); /* A different color for the current user */
+            border-color: rgba(106, 90, 205, 0.4);
+        }
+
+        /* Style for comments from other users */
+        .comment-item.other-user {
+            background: rgba(0, 0, 0, 0.1);
+            align-self: flex-start;
+        }
+
+        .comment-header-line {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .comment-user {
             font-weight: bold;
-            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .comment-time {
+            font-size: 0.7rem; /* Smaller font size */
+            opacity: 0.7;
         }
 
         .comment-text {
+            word-wrap: break-word; /* Ensure long words break */
             line-height: 1.4;
+        }
+
+        .reply-info {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-bottom: 0.25rem;
+            font-style: italic;
+        }
+
+        .comment-actions {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .reply-btn {
+            color: var(--primary-color);
+            cursor: pointer;
         }
 
         .comment-input-container {
@@ -348,6 +406,9 @@
             background: var(--glass-bg);
             color: var(--text-color);
             outline: none;
+            resize: none; /* Prevent manual resizing */
+            overflow-y: hidden; /* Hide scrollbar until needed */
+            min-height: 2.5rem; /* Match button height */
         }
 
         .comment-submit {
@@ -1074,6 +1135,7 @@
         let currentVideoId = null;
         let savedPosts = [];
         let isLoggedIn = true;
+        let replyingToCommentId = null;
         let selectedVideoFile = null;
         let selectedVideoDuration = null;
         let mediaStream = null;
@@ -1279,8 +1341,13 @@
                         <div class="comments-list" id="commentsList-${video.id}">
                             <!-- Comments will be dynamically inserted here -->
                         </div>
+                        <div class="reply-indicator" id="replyIndicator-${video.id}" style="display: none; padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(0,0,0,0.2);">
+                            Replying to <span id="replyingToUser-${video.id}" style="font-weight: bold;"></span>
+                            <button onclick="cancelReply('${video.id}')" style="background: none; border: none; color: white; margin-left: 1rem; cursor: pointer;">×</button>
+                        </div>
+                       
                         <div class="comment-input-container">
-                            <input type="text" class="comment-input" id="commentInput-${video.id}" placeholder="Add a comment...">
+                            <textarea class="comment-input" id="commentInput-${video.id}" placeholder="Add a comment..." rows="1" oninput="autoGrow(this)"></textarea>
                             <button class="comment-submit" onclick="addComment('${video.id}')">Post</button>
                         </div>
                     </div>
@@ -1643,29 +1710,81 @@
             try {
                 const { data: comments, error } = await supabase
                     .from('comments')
-                    .select('*, profiles(username)')
+                    .select(`
+                        *, 
+                        profiles:user_id(username),
+                        parent_comment:parent_comment_id(profiles:user_id(username))
+                    `)
                     .eq('post_id', videoId)
                     .order('created_at', { ascending: true });
 
                 if (error) throw error;
                 commentsList.innerHTML = '';
-                if (comments && comments.length > 0) {
-                    comments.forEach(comment => {
-                        const commentItem = document.createElement('div');
-                        commentItem.className = 'comment-item';
-                        commentItem.innerHTML = `
-                            <div class="comment-user">@${comments.profiles.username || 'user'}</div>
-                            <div class="comment-time">${new Date(comments.created_at).toLocaleTimeString()}</div>
-                            <div class="comment-xt">${comments.comment}</div>
-                        `;
-                        commentsList.appendChild(commentItem);
-                    });
-                } else {
+
+                if (!comments || comments.length === 0) {
                     commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">No comments yet</div>';
+                    return;
                 }
+
+                // Build a tree structure for comments and replies
+                const commentMap = {};
+                const rootComments = [];
+
+                comments.forEach(comment => {
+                    comment.replies = [];
+                    commentMap[comment.id] = comment;
+                    if (comment.parent_comment_id) {
+                        if (commentMap[comment.parent_comment_id]) {
+                            commentMap[comment.parent_comment_id].replies.push(comment);
+                        }
+                    } else {
+                        rootComments.push(comment);
+                    }
+                });
+
+                // Render comments and their replies
+                rootComments.forEach(comment => {
+                    renderComment(comment, commentsList, 0, videoId);
+                });
+
             } catch (error) {
                 console.error('Error loading comments:', error);
                 commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">Error loading comments</div>';
+            }
+        }
+
+        // Render a single comment and its replies recursively
+        async function renderComment(comment, parentElement, depth, videoId) {
+            const { data: { user } } = await supabase.auth.getUser();
+            const commentItem = document.createElement('div');
+            commentItem.className = 'comment-item';
+            commentItem.style.marginLeft = `${depth * 20}px`; // Indent replies
+            
+            if (user && comment.user_id === user.id) {
+                commentItem.classList.add('current-user');
+            } else {
+                commentItem.classList.add('other-user');
+            }
+            
+            const parentUsername = comment.parent_comment?.profiles?.username;
+            const username = comment.profiles ? comment.profiles.username : 'user';
+            commentItem.innerHTML = `
+                ${parentUsername ? `<div class="reply-info">Replying to @${parentUsername}</div>` : ''}
+                <div class="comment-header-line">
+                    <div class="comment-user">@${username}</div>
+                    <div class="comment-time">${new Date(comment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <div class="comment-text">${comment.content}</div>
+                <div class="comment-actions">
+                    <span class="reply-btn" onclick="startReply('${videoId}', '${comment.id}', '${username}')">Reply</span>
+                </div>
+            `;
+            parentElement.appendChild(commentItem);
+
+            if (comment.replies && comment.replies.length > 0) {
+                comment.replies.forEach(reply => {
+                    renderComment(reply, parentElement, depth + 1, videoId);
+                });
             }
         }
 
@@ -1693,33 +1812,61 @@
 
                  const { error: insertError } = await supabase
                     .from('comments')
-                    .insert({ post_id: videoId, user_id: user.id, content: commentText });
+                    .insert({ 
+                        post_id: videoId, 
+                        user_id: user.id, 
+                        content: commentText,
+                        parent_comment_id: replyingToCommentId
+                    });
 
                 if (insertError) throw insertError;
 
                 // Increment the comment count on the post
-                const { error: rpcError } = await supabase.rpc('increment_comment_count', { post_id_to_update: videoId });
+                const { data: newCount, error: rpcError } = await supabase.rpc('increment_comment_count', { post_id_to_update: videoId });
 
                 if (rpcError) {
                     console.error('Error incrementing comment count:', rpcError);
                 }
 
+
                 // Clear input
                 commentInput.value = '';
+                cancelReply(videoId); // Clear reply state
                 
                 // Refresh comments list
                 const commentsList = document.getElementById(`commentsList-${videoId}`);
                 await loadComments(videoId, commentsList);
 
-                // Increment comment count on UI
+                // Update comment count on UI with the value from the database
                 const commentCount = document.getElementById(`commentCount-${videoId}`);
-                commentCount.textContent = parseInt(commentCount.textContent) + 1;
+                if (newCount !== null) {
+                    commentCount.textContent = newCount;
+                }
                 
                 showToast('Comment added');
             } catch (error) {
                 console.error('Error adding comment:', error);
                 showToast('Error adding comment');
             }
+        }
+
+        // Start a reply to a specific comment
+        function startReply(videoId, commentId, username) {
+            replyingToCommentId = commentId;
+            const replyIndicator = document.getElementById(`replyIndicator-${videoId}`);
+            const replyingToUser = document.getElementById(`replyingToUser-${videoId}`);
+            const commentInput = document.getElementById(`commentInput-${videoId}`);
+
+            replyingToUser.textContent = `@${username}`;
+            replyIndicator.style.display = 'flex';
+            commentInput.focus();
+        }
+
+        // Cancel the current reply
+        function cancelReply(videoId) {
+            replyingToCommentId = null;
+            const replyIndicator = document.getElementById(`replyIndicator-${videoId}`);
+            replyIndicator.style.display = 'none';
         }
 
         // Delete post (only for user's own posts)
@@ -2225,6 +2372,9 @@
         window.toggleSave = toggleSave;
         window.deletePost = deletePost;
         window.toggleMute = toggleMute;
+        window.startReply = startReply;
+        window.cancelReply = cancelReply;
+        window.autoGrow = autoGrow;
         window.checkUploadButton = checkUploadButton;
         window.handleFileSelect = handleFileSelect;
     </script>
