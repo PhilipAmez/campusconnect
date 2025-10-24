@@ -236,6 +236,23 @@
                 <option value="Other">Other (Type Your School)</option>
             </select>
             <input type="text" id="customCampus" class="input-field" placeholder="Type your school" style="display:none; margin-bottom: 1rem;">
+            
+            <!-- Department Field -->
+            <select id="department" class="input-field" required>
+                <option value="" disabled selected>Select your department</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Business Administration">Business Administration</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Law">Law</option>
+                <option value="Arts">Arts</option>
+                <option value="Sciences">Sciences</option>
+                <option value="Social Sciences">Social Sciences</option>
+                <option value="Education">Education</option>
+                <option value="Other">Other (Type Your Department)</option>
+            </select>
+            <input type="text" id="customDepartment" class="input-field" placeholder="Type your department" style="display:none; margin-bottom: 1rem;">
+            
             <select id="level" class="input-field" required>
                 <option value="" disabled selected>Select your level</option>
                 <option value="JHS 1">JHS 1</option>
@@ -249,7 +266,7 @@
                 <option value="University 3rd Year">University 3rd Year</option>
                 <option value="University 4th Year">University 4th Year</option>
                 <option value="University 5th Year">University 5th Year</option>
-                <option value="Master’s / PhD">Master’s / PhD</option>
+                <option value="Master's / PhD">Master's / PhD</option>
                 <option value="Other">Other (Type Your Level)</option>
             </select>
             <input type="text" id="customLevel" class="input-field" placeholder="Type your level" style="display:none; margin-bottom: 1rem;">
@@ -306,6 +323,9 @@
             const campusSelect = document.getElementById('campus');
             const customCampusInput = document.getElementById('customCampus');
             const campus = campusSelect.value === 'Other' ? customCampusInput.value.trim() : campusSelect.value;
+            const departmentSelect = document.getElementById('department');
+            const customDepartmentInput = document.getElementById('customDepartment');
+            const department = departmentSelect.value === 'Other' ? customDepartmentInput.value.trim() : departmentSelect.value;
             const levelSelect = document.getElementById('level');
             const customLevelInput = document.getElementById('customLevel');
             const level = levelSelect.value === 'Other' ? customLevelInput.value.trim() : levelSelect.value;
@@ -347,6 +367,7 @@
                         contact,
                         profilePhoto: profilePhotoUrl,
                         campus,
+                        department,
                         level
                     }
                 }
@@ -377,6 +398,7 @@
                     email: newUser.email,
                     profile_photo: profilePhotoUrl,
                     campus,
+                    department,
                     level
                 });
 
@@ -401,6 +423,19 @@
             } else {
                 customCampusInput.style.display = 'none';
                 customCampusInput.required = false;
+            }
+        });
+
+        // Show/hide custom department input
+        const departmentSelect = document.getElementById('department');
+        const customDepartmentInput = document.getElementById('customDepartment');
+        departmentSelect.addEventListener('change', function() {
+            if (this.value === 'Other') {
+                customDepartmentInput.style.display = '';
+                customDepartmentInput.required = true;
+            } else {
+                customDepartmentInput.style.display = 'none';
+                customDepartmentInput.required = false;
             }
         });
 
