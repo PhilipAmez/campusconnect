@@ -1216,13 +1216,10 @@ const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
 const AI_USER_NAME = 'PeerPal AI';
 const GEMINI_API_KEY = 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88';
 
-// AI Models for PeerPal
+// AI Models for PeerPal - UPDATED with requested models
 const AI_MODELS = [
-  'gemini-2.5-flash-live',
-  'gemini-2.0-flash-live', 
-  'gemini-2.0-flash-lite',
-  'gemini-2.5-flash-tts',
-  'gemini-2.0-flash-preview-image-generation'
+  'gemini-2.5-flash-lite',  // Main model
+  'gemini-2.0-flash-lite'   // Fallback model
 ];
 
 // Elements
@@ -1808,9 +1805,8 @@ function render(m) {
     });
   });
 
-  if (!mine) {
-    attachGestures(div, mine, m);
-  }
+  // Attach gestures to all messages (including own messages)
+  attachGestures(div, mine, m);
 }
 
 async function loadHistory() {
@@ -2187,6 +2183,7 @@ async function checkPeerloomAI(message) {
     // Simulate typing delay for better UX (1-2 seconds)
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     
+    // Try the main model first
     for (const model of AI_MODELS) {
       try {
         console.log(`Trying model: ${model}`);
@@ -2428,10 +2425,12 @@ fileShareButton.onclick = () => alert('File upload coming soon!');
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
-// ---------- FIXED SWIPE GESTURES - OWN MESSAGES WORKING ----------
+// ---------- UPDATED GESTURES - OWN MESSAGES WITH LONG TAP AND DOUBLE TAP ----------
 function attachGestures(el, mine, msg) {
   let startX, startY, isSwiping = false;
-  let longT;
+  let longTapTimer;
+  let lastTapTime = 0;
+  let tapCount = 0;
   
   const swipeIndicator = document.createElement('div');
   swipeIndicator.className = 'swipe-indicator';
@@ -2443,10 +2442,11 @@ function attachGestures(el, mine, msg) {
     startY = y;
     isSwiping = false;
     
+    // Set up long tap timer (0.5 seconds) for own messages
     if (mine) {
-      longT = setTimeout(() => { 
+      longTapTimer = setTimeout(() => { 
         showDeleteMessageModal(msg.id);
-      }, 800);
+      }, 500);
     }
   };
   
@@ -2454,8 +2454,9 @@ function attachGestures(el, mine, msg) {
     const deltaX = x - startX;
     const deltaY = Math.abs(y - startY);
     
+    // Clear long tap timer if swiping
     if (Math.abs(deltaX) > 10) {
-      clearTimeout(longT);
+      clearTimeout(longTapTimer);
     }
     
     if (deltaX > 15 && deltaY < 50 && !isSwiping) {
@@ -2477,7 +2478,7 @@ function attachGestures(el, mine, msg) {
   };
   
   const handleEnd = () => {
-    clearTimeout(longT);
+    clearTimeout(longTapTimer);
     
     if (isSwiping) {
       el.style.transition = 'transform 0.3s ease';
@@ -2489,6 +2490,23 @@ function attachGestures(el, mine, msg) {
     }
     
     isSwiping = false;
+  };
+  
+  const handleTap = () => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+    
+    if (tapLength < 300 && tapCount === 1) {
+      // Double tap detected for own messages
+      if (mine) {
+        showEditMessageModal(msg.id, msg.content);
+      }
+      tapCount = 0;
+    } else {
+      tapCount = 1;
+    }
+    
+    lastTapTime = currentTime;
   };
   
   const resetSwipe = (element, indicator) => {
@@ -2529,11 +2547,8 @@ function attachGestures(el, mine, msg) {
   
   el.addEventListener('touchend', handleEnd);
   
-  el.addEventListener('dblclick', () => {
-    if (mine) {
-      showEditMessageModal(msg.id, msg.content);
-    }
-  });
+  // Add click/tap listener for double tap detection
+  el.addEventListener('click', handleTap);
 }
 
 function startReply(msg) {
