@@ -1450,7 +1450,7 @@ function initMentionSystem() {
   console.log('Mention Users:', mentionUsers);
 
   messageBar.addEventListener('input', handleMentionInput);
-  messageBar.addEventListener('keydown', handleMentionNavigation);
+  messageBar.addEventListener('keydown', handleMentionNavigation, true);
   
   messageBar.addEventListener('blur', () => {
     setTimeout(() => {
@@ -1550,7 +1550,7 @@ function handleMentionNavigation(e) {
         const user = mentionUsers.find(u => u.name === userName);
         if (user) {
           selectMention(user);
-        }
+      } else { console.log('User not found for mention:', userName); }
       }
       return;
     case 'Escape':
@@ -1576,7 +1576,7 @@ function selectMention(selectedUser) {
   
   if (lastAtPos !== -1) {
     const newText = text.substring(0, lastAtPos) + selectedUser.username + ' ' + text.substring(cursorPos);
-    messageBar.value = newText;
+    messageBar.textContent = newText;
     
     const newCursorPos = lastAtPos + selectedUser.username.length + 1;
     setTimeout(() => {
@@ -2154,7 +2154,7 @@ async function uploadAudioMessage(audioBlob) {
 
 // Send message - FIXED: Now renders immediately
 async function sendMsg() {
-  const txt = messageBar.value.trim();
+  const txt = messageBar.textContent.trim();
   if (!txt) return;
 
   typingChannel.send({
@@ -2184,7 +2184,7 @@ async function sendMsg() {
 
   render(data);
   
-  messageBar.value = '';
+  messageBar.textContent = '';
   replyingMsg = null;
   replyContextBox.style.display = 'none';
   mentionListBox.style.display = 'none';
