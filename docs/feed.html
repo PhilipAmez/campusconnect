@@ -328,11 +328,11 @@
         }
 
         .comment-item {
-            max-width: 80%;
-            width: fit-content;
+            width: 100%;
             align-self: flex-start; /* Default for other users */
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(5px);
+            text-align: left;
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             padding: 0.4rem 0.8rem; /* Reduced padding */
@@ -342,7 +342,12 @@
         .comment-item.current-user {
             align-self: flex-end;
             background: rgba(106, 90, 205, 0.2); /* A different color for the current user */
+            text-align: right;
             border-color: rgba(106, 90, 205, 0.4);
+        }
+
+        .comment-item.current-user .comment-header-line {
+            justify-content: flex-end;
         }
 
         /* Style for comments from other users */
@@ -361,6 +366,7 @@
         .comment-user {
             font-weight: bold;
             font-size: 0.85rem;
+            color: #0ea5e9; /* A bright, distinct blue */
         }
 
         .comment-time {
@@ -1822,7 +1828,7 @@
                 if (insertError) throw insertError;
 
                 // Increment the comment count on the post
-                const { data: newCount, error: rpcError } = await supabase.rpc('increment_comment_count', { post_id_to_update: videoId });
+                const { data: newCount, error: rpcError } = await supabase.rpc('increment_comment_count', { postid_uuid: videoId });
 
                 if (rpcError) {
                     console.error('Error incrementing comment count:', rpcError);
