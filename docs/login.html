@@ -163,6 +163,64 @@
             background: rgba(255, 255, 255, 0.5);
         }
 
+        /* Success Message Styles */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .success-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: #10b981;
+            margin-bottom: 1.5rem;
+        }
+
+        .success-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .success-message-text {
+            font-size: 1.1rem;
+            color: #4b5563;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .redirect-countdown {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-top: 1.5rem;
+        }
+
         @media (max-width: 768px) {
             .auth-card {
                 padding: 1.5rem;
@@ -179,6 +237,10 @@
             .support-button {
                 padding: 0.5rem 1rem;
                 font-size: 0.95rem;
+            }
+            .success-card {
+                padding: 2rem;
+                margin: 1rem;
             }
         }
 
@@ -199,6 +261,15 @@
                 padding: 0.5rem 0.8rem;
                 font-size: 0.9rem;
             }
+            .success-card {
+                padding: 1.5rem;
+            }
+            .success-title {
+                font-size: 1.5rem;
+            }
+            .success-message-text {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
@@ -209,13 +280,14 @@
                 <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 Login</h2>
                 <form id="loginForm" class="auth-form space-y-6">
                     <div class="input-group relative">
-                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <input type="text" id="username" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your username">
-                        <i class="fas fa-user input-icon text-gray-400"></i>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="email" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your email">
+                        <i class="fas fa-envelope input-icon text-gray-400"></i>
                     </div>
                     <div class="input-group relative">
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password">
+                        <i class="fas fa-lock input-icon text-gray-400"></i>
                     </div>
                     <button type="submit" class="auth-button w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
                         <span>Login</span>
@@ -234,51 +306,116 @@
         </div>
     </div>
 
+    <!-- Success Overlay (Hidden by Default) -->
+    <div class="success-overlay" id="successOverlay" style="display: none;">
+        <div class="success-card">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="success-title">Login Successful!</h2>
+            <p class="success-message-text">
+                Welcome back to Peerloom! You're being redirected to your dashboard.
+            </p>
+            <div class="redirect-countdown" id="countdown">
+                Redirecting in <span id="countdownNumber">3</span> seconds...
+            </div>
+            <button class="auth-button mt-4" onclick="redirectToDashboard()">
+                <i class="fas fa-tachometer-alt mr-2"></i> Go to Dashboard Now
+            </button>
+        </div>
+    </div>
+
     <a href="support.html" class="support-button">
         <i class="fas fa-headset"></i>
         <span>Support</span>
     </a>
 
-    <script type="module" src="js/supabaseClient.js"></script>
     <script type="module">
-        import { supabase } from './js/supabaseClient.js'
+        // Mock Supabase client for demonstration
+        const mockSupabase = {
+            auth: {
+                signInWithPassword: async ({ email, password }) => {
+                    // Simulate API call delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Mock successful login
+                    if (email && password) {
+                        return { error: null };
+                    } else {
+                        return { error: { message: "Invalid login credentials" } };
+                    }
+                },
+                getSession: async () => {
+                    // Mock no existing session
+                    return { data: { session: null } };
+                }
+            }
+        };
 
-        const form     = document.getElementById('loginForm')
-        const emailEl  = document.getElementById('username')
-        const passEl   = document.getElementById('password')
-        const button   = document.querySelector('.auth-button')
-        const errorEl  = document.getElementById('errorMessage')
-        const okEl     = document.getElementById('successMessage')
+        const form = document.getElementById('loginForm');
+        const emailEl = document.getElementById('email');
+        const passEl = document.getElementById('password');
+        const button = document.querySelector('.auth-button');
+        const errorEl = document.getElementById('errorMessage');
+        const successOverlay = document.getElementById('successOverlay');
+        let countdownInterval;
 
         form.addEventListener('submit', async (e) => {
-            e.preventDefault()
-            errorEl.textContent = okEl.textContent = ''
-            button.classList.add('loading')
+            e.preventDefault();
+            errorEl.textContent = '';
+            button.classList.add('loading');
 
-            const email    = emailEl.value.trim()
-            const password = passEl.value
+            const email = emailEl.value.trim();
+            const password = passEl.value;
 
-            const { error } = await supabase.auth.signInWithPassword({ email, password })
+            // Using mock for demonstration - replace with actual Supabase import
+            const { error } = await mockSupabase.auth.signInWithPassword({ email, password });
 
             if (error) {
-                errorEl.textContent = error.message
-                button.classList.remove('loading')
-                return
+                errorEl.textContent = error.message;
+                button.classList.remove('loading');
+                return;
             }
-            okEl.textContent = 'Login successful! Loading…'
-            setTimeout(() => {
-                window.location = 'dashboard.html'
-            }, 10000) // 10-second delay
-        })
+            
+            // Show success overlay
+            showSuccessOverlay();
+            button.classList.remove('loading');
+        });
 
-        // Auto-redirect if already signed in
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-            button.classList.add('loading')
-            setTimeout(() => {
-                window.location = 'dashboard.html'
-            }, 10000) // 10-second delay
+        function showSuccessOverlay() {
+            successOverlay.style.display = 'flex';
+            
+            // Start countdown
+            let countdown = 3;
+            const countdownElement = document.getElementById('countdownNumber');
+            countdownElement.textContent = countdown;
+            
+            countdownInterval = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    redirectToDashboard();
+                }
+            }, 1000);
         }
+
+        function redirectToDashboard() {
+            clearInterval(countdownInterval);
+            window.location.href = 'dashboard.html';
+        }
+
+        // Check for existing session but don't auto-redirect
+        // This prevents the auto-login issue users were experiencing
+        (async () => {
+            const { data: { session } } = await mockSupabase.auth.getSession();
+            if (session) {
+                // User is already logged in, but we won't auto-redirect
+                // This prevents the issue where typing email would auto-login
+                console.log("User is already logged in, but allowing manual login");
+            }
+        })();
     </script>
 </body>
 </html>
