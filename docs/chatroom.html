@@ -1299,51 +1299,22 @@ groupTitle.textContent = `${grp.data.name} - *${grp.data.description}*`;
 async function loadMembers() {
   try {
     console.log('Loading members for group:', gid);
-    
-    const { data: groupMembers, error: gmError } = await supabase
+
+    const { data, error } = await supabase
       .from('group_members')
-      .select('username')
+      .select(`
+        user_id,
+        profiles ( id, username, full_name, avatar_url )
+      `)
       .eq('group_id', gid);
-    
-    if (gmError) {
-      console.error('Error loading group members:', gmError);
+
+    if (error) {
+      console.error('Error loading members with profiles:', error);
       memberDetails = [];
       return;
     }
-    
-    console.log('Group members found:', groupMembers);
-    
-    if (!groupMembers || groupMembers.length === 0) {
-      memberDetails = [];
-      return;
-    }
-    
-    const userIds = groupMembers.map(member => member.user_id);
-    console.log('User IDs to fetch:', userIds);
-    
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, username, full_name, avatar_url')
-      .in('id', userIds);
-    
-    if (profilesError) {
-      console.error('Error loading profiles:', profilesError);
-      memberDetails = groupMembers.map(member => ({
-        user_id: member.user_id,
-        profiles: null
-      }));
-    } else {
-      console.log('Profiles loaded:', profiles);
-      
-      memberDetails = groupMembers.map(member => {
-        const profile = profiles.find(p => p.id === member.user_id);
-        return {
-          user_id: member.user_id,
-          profiles: profile || null
-        };
-      });
-    }
-    
+
+    memberDetails = data || [];
     isMember = memberDetails.some(m => m.user_id === user.id);
     console.log('Final member details:', memberDetails);
     
