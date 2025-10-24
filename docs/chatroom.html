@@ -542,56 +542,251 @@
       border-color: rgba(74, 144, 226, 0.4);
     }
 
-    .audio-player {
+    /* Enhanced Audio Player Styles */
+    .audio-player-container {
       width: 100%;
       margin: 0.5rem 0;
     }
 
-    .audio-player audio {
-      width: 100%;
+    .audio-player {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.8rem 1rem;
+      background: var(--msg-bg);
+      border-radius: 25px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .msg.sent .audio-player {
+      background: linear-gradient(135deg, var(--accent), #50e3c2);
+    }
+
+    .msg.recv .audio-player,
+    .msg.ai .audio-player {
+      background: var(--msg-bg);
+    }
+
+    .play-pause-btn {
+      width: 40px;
       height: 40px;
-      border-radius: 20px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .msg.sent .play-pause-btn {
+      background: white;
+      color: var(--accent);
+    }
+
+    .msg.recv .play-pause-btn,
+    .msg.ai .play-pause-btn {
+      background: rgba(255, 255, 255, 0.9);
+      color: #666;
+    }
+
+    .play-pause-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .play-pause-btn.playing {
+      animation: pulse 2s infinite;
+    }
+
+    .waveform-container {
+      flex: 1;
+      position: relative;
+      height: 40px;
+      display: flex;
+      align-items: center;
+    }
+
+    .waveform-bars {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 20px;
+      gap: 2px;
+    }
+
+    .waveform-bar {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 2px;
+      min-height: 2px;
+      transition: height 0.3s ease;
+    }
+
+    .msg.sent .waveform-bar {
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .msg.recv .waveform-bar,
+    .msg.ai .waveform-bar {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .msg.recv .waveform-bar,
+    [data-theme="dark"] .msg.ai .waveform-bar {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      width: 0%;
+      transition: width 0.1s linear;
+      z-index: 1;
+    }
+
+    .msg.sent .progress-bar {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .msg.recv .progress-bar,
+    .msg.ai .progress-bar {
+      background: rgba(74, 144, 226, 0.3);
+    }
+
+    .time-display {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      min-width: 45px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .msg.recv .time-display,
+    .msg.ai .time-display {
+      color: var(--text);
     }
 
     .audio-duration {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       opacity: 0.7;
       margin-top: 0.3rem;
       text-align: center;
+      color: var(--text);
     }
 
+    /* Recording Animation */
+    .recording-pulse {
+      animation: recordingPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes recordingPulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(255, 59, 48, 0);
+      }
+    }
+
+    /* Waveform Animation */
+    @keyframes waveform {
+      0%, 100% {
+        transform: scaleY(0.3);
+      }
+      50% {
+        transform: scaleY(1);
+      }
+    }
+
+    /* Enhanced recording indicator */
     .recording-indicator {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(255, 0, 0, 0.8);
+      background: rgba(255, 59, 48, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       color: white;
-      padding: 1rem 2rem;
-      border-radius: 10px;
+      padding: 1.5rem 2rem;
+      border-radius: 20px;
       z-index: 10000;
       display: none;
       align-items: center;
       gap: 1rem;
-      font-weight: bold;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(255, 59, 48, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .recording-indicator.active {
       display: flex;
+      animation: slideInUp 0.3s ease;
     }
 
-    .pulse {
-      width: 12px;
-      height: 12px;
+    .recording-visualizer {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+    }
+
+    .recording-bar {
+      width: 3px;
       background: white;
-      border-radius: 50%;
-      animation: pulse 1s infinite;
+      border-radius: 2px;
+      animation: recordingVisualizer 1s ease-in-out infinite;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(0.8); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.7; }
-      100% { transform: scale(0.8); opacity: 1; }
+    .recording-bar:nth-child(1) { animation-delay: 0s; height: 8px; }
+    .recording-bar:nth-child(2) { animation-delay: 0.1s; height: 12px; }
+    .recording-bar:nth-child(3) { animation-delay: 0.2s; height: 16px; }
+    .recording-bar:nth-child(4) { animation-delay: 0.3s; height: 20px; }
+    .recording-bar:nth-child(5) { animation-delay: 0.4s; height: 16px; }
+    .recording-bar:nth-child(6) { animation-delay: 0.5s; height: 12px; }
+    .recording-bar:nth-child(7) { animation-delay: 0.6s; height: 8px; }
+
+    @keyframes recordingVisualizer {
+      0%, 100% {
+        transform: scaleY(0.5);
+        opacity: 0.7;
+      }
+      50% {
+        transform: scaleY(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+    /* Audio message hover effects */
+    .audio-player:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     }
 
     .modal-backdrop {
@@ -829,6 +1024,26 @@
       .share-btn, .leave-btn {
         font-size: 0.75rem;
         padding: 0.4rem 0.8rem;
+      }
+
+      /* Responsive design for audio player */
+      .audio-player {
+        padding: 0.6rem 0.8rem;
+        gap: 0.6rem;
+      }
+
+      .play-pause-btn {
+        width: 36px;
+        height: 36px;
+      }
+
+      .time-display {
+        font-size: 0.75rem;
+        min-width: 40px;
+      }
+
+      .waveform-container {
+        height: 35px;
       }
     }
 
@@ -1147,10 +1362,18 @@
     </div>
   </div>
 
-  <!-- Recording Indicator -->
+  <!-- Enhanced Recording Indicator -->
   <div class="recording-indicator" id="recordingIndicator">
-    <div class="pulse"></div>
-    <span>Recording... Click to stop</span>
+    <div class="recording-visualizer">
+      <div class="recording-bar"></div>
+      <div class="recording-bar"></div>
+      <div class="recording-bar"></div>
+      <div class="recording-bar"></div>
+      <div class="recording-bar"></div>
+      <div class="recording-bar"></div>
+      <div class="recording-bar"></div>
+    </div>
+    <span>Recording... Tap to stop</span>
   </div>
 
   <!-- Backdrop -->
@@ -1352,6 +1575,306 @@ async function ensureAIUserInGroup() {
 }
 
 await ensureAIUserInGroup();
+
+// ---------- Enhanced Audio Player Functionality ----------
+function createAudioPlayer(audioUrl, isSent, duration = '0:00') {
+  const container = document.createElement('div');
+  container.className = 'audio-player-container';
+  
+  const playerDiv = document.createElement('div');
+  playerDiv.className = 'audio-player';
+  
+  const playPauseBtn = document.createElement('button');
+  playPauseBtn.className = 'play-pause-btn';
+  playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+  
+  const waveformContainer = document.createElement('div');
+  waveformContainer.className = 'waveform-container';
+  
+  const progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar';
+  
+  const waveformBars = document.createElement('div');
+  waveformBars.className = 'waveform-bars';
+  
+  // Create waveform bars (15 bars for visual effect)
+  for (let i = 0; i < 15; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'waveform-bar';
+    // Random height for visual interest (between 4px and 20px)
+    bar.style.height = `${Math.random() * 16 + 4}px`;
+    waveformBars.appendChild(bar);
+  }
+  
+  waveformContainer.appendChild(progressBar);
+  waveformContainer.appendChild(waveformBars);
+  
+  const timeDisplay = document.createElement('div');
+  timeDisplay.className = 'time-display';
+  timeDisplay.textContent = '0:00';
+  
+  playerDiv.appendChild(playPauseBtn);
+  playerDiv.appendChild(waveformContainer);
+  playerDiv.appendChild(timeDisplay);
+  container.appendChild(playerDiv);
+  
+  // Create audio element
+  const audio = new Audio(audioUrl);
+  let isPlaying = false;
+  let waveformAnimation = null;
+  
+  // Format time function
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  }
+  
+  // Update progress bar and time
+  function updateProgress() {
+    const progress = (audio.currentTime / audio.duration) * 100;
+    progressBar.style.width = `${progress}%`;
+    timeDisplay.textContent = formatTime(audio.currentTime);
+  }
+  
+  // Animate waveform bars when playing
+  function animateWaveform() {
+    const bars = waveformBars.querySelectorAll('.waveform-bar');
+    bars.forEach(bar => {
+      bar.style.animation = 'none';
+      void bar.offsetWidth; // Trigger reflow
+      bar.style.animation = `waveform ${0.5 + Math.random() * 0.5}s ease-in-out infinite`;
+      bar.style.animationDelay = `${Math.random() * 0.5}s`;
+    });
+  }
+  
+  // Stop waveform animation
+  function stopWaveformAnimation() {
+    const bars = waveformBars.querySelectorAll('.waveform-bar');
+    bars.forEach(bar => {
+      bar.style.animation = 'none';
+    });
+  }
+  
+  // Play/pause functionality
+  playPauseBtn.addEventListener('click', () => {
+    if (isPlaying) {
+      audio.pause();
+      playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+      playPauseBtn.classList.remove('playing');
+      stopWaveformAnimation();
+    } else {
+      audio.play().catch(err => console.error('Error playing audio:', err));
+      playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+      playPauseBtn.classList.add('playing');
+      animateWaveform();
+    }
+    isPlaying = !isPlaying;
+  });
+  
+  // Audio event listeners
+  audio.addEventListener('loadedmetadata', () => {
+    timeDisplay.textContent = formatTime(audio.currentTime);
+  });
+  
+  audio.addEventListener('timeupdate', updateProgress);
+  
+  audio.addEventListener('ended', () => {
+    isPlaying = false;
+    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    playPauseBtn.classList.remove('playing');
+    stopWaveformAnimation();
+    progressBar.style.width = '0%';
+    timeDisplay.textContent = formatTime(0);
+    audio.currentTime = 0;
+  });
+  
+  audio.addEventListener('error', (e) => {
+    console.error('Audio error:', e);
+    timeDisplay.textContent = 'Error';
+  });
+  
+  return container;
+}
+
+// ---------- Enhanced Recording Functionality ----------
+recordAudioButton.onclick = async () => {
+  if (!isRecording) {
+    await startRecording();
+  } else {
+    stopRecording();
+  }
+};
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      await uploadAudioMessage(audioBlob);
+      
+      stream.getTracks().forEach(track => track.stop());
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    recordAudioButton.classList.add('active', 'recording-pulse');
+    recordingIndicator.classList.add('active');
+    
+    recordingIndicator.onclick = stopRecording;
+    
+  } catch (error) {
+    console.error('Error starting recording:', error);
+    alert('Error accessing microphone. Please check permissions.');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    recordAudioButton.classList.remove('active', 'recording-pulse');
+    recordingIndicator.classList.remove('active');
+  }
+}
+
+// FIXED: Audio upload with proper error handling
+async function uploadAudioMessage(audioBlob) {
+  try {
+    const fileName = `audio_${Date.now()}_${user.id}.webm`;
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('group_audios')
+      .upload(fileName, audioBlob);
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      throw error;
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('group_audios')
+      .getPublicUrl(fileName);
+
+    console.log('Audio uploaded, public URL:', publicUrl);
+
+    // Create audio message in database
+    const { data: messageData, error: messageError } = await supabase
+      .from('group_messages')
+      .insert({
+        group_id: gid,
+        sender_id: user.id,
+        sender_name: user.user_metadata.firstName,
+        content: 'Audio message',
+        message_type: 'audio',
+        audio_url: publicUrl,
+        reply_to: replyingMsg?.id,
+        reply_to_sender: replyingMsg?.sender_name,
+        reply_to_text: replyingMsg?.content
+      })
+      .select()
+      .single();
+
+    if (messageError) {
+      console.error('Message insert error:', messageError);
+      throw messageError;
+    }
+
+    // Render the audio message immediately
+    render(messageData);
+    
+    // Clear reply context if any
+    replyingMsg = null;
+    replyContextBox.style.display = 'none';
+
+  } catch (error) {
+    console.error('Error uploading audio message:', error);
+    alert('Error sending audio message. Please try again.');
+  }
+}
+
+// ---------- Messages rendering & history ----------
+function render(m) {
+  const mine = m.sender_id === user.id;
+  const isAI = m.sender_id === AI_USER_ID;
+  
+  let senderName;
+  if (mine) {
+    senderName = user.user_metadata.firstName || user.user_metadata.full_name || 'You';
+  } else if (isAI) {
+    senderName = AI_USER_NAME;
+  } else {
+    const senderMember = memberDetails.find(member => member.user_id === m.sender_id);
+    if (senderMember) {
+      senderName = getDisplayName(senderMember);
+    } else {
+      senderName = m.sender_name || `User ${m.sender_id.substring(0,6)}`;
+    }
+  }
+  
+  const div = document.createElement('div');
+  div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
+  div.dataset.id = m.id;
+
+  if (m.reply_to) {
+    const br = document.createElement('div');
+    br.className = 'reply-banner';
+    br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
+    div.append(br);
+  }
+
+  const nameTag = document.createElement('div');
+  nameTag.className = 'sender-name';
+  nameTag.textContent = senderName;
+  
+  const ct = document.createElement('div');
+  
+  if (m.message_type === 'audio' && m.audio_url) {
+    // Use the new enhanced audio player
+    const audioPlayer = createAudioPlayer(m.audio_url, mine);
+    ct.appendChild(audioPlayer);
+  } else {
+    ct.innerHTML = processMentions(m.content);
+  }
+  
+  const ts = document.createElement('div');
+  ts.className = 'timestamp';
+  ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  div.append(nameTag, ct, ts);
+  messagePanel.append(div);
+  messagePanel.scrollTop = messagePanel.scrollHeight;
+
+  const aiMentions = div.querySelectorAll('.mention.ai-mention');
+  aiMentions.forEach(mention => {
+    mention.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const userId = mention.dataset.userId;
+      handleAIMentionClick(userId);
+    });
+  });
+
+  // Attach gestures to all messages (including own messages)
+  attachGestures(div, mine, m);
+}
+
+async function loadHistory() {
+  const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
+  messagePanel.innerHTML = '';
+  data.forEach(render);
+}
+await loadHistory();
 
 // ---------- Enhanced Mention System ----------
 let mentionUsers = [];
@@ -1723,89 +2246,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ---------- Messages rendering & history ----------
-function render(m) {
-  const mine = m.sender_id === user.id;
-  const isAI = m.sender_id === AI_USER_ID;
-  
-  let senderName;
-  if (mine) {
-    senderName = user.user_metadata.firstName || user.user_metadata.full_name || 'You';
-  } else if (isAI) {
-    senderName = AI_USER_NAME;
-  } else {
-    const senderMember = memberDetails.find(member => member.user_id === m.sender_id);
-    if (senderMember) {
-      senderName = getDisplayName(senderMember);
-    } else {
-      senderName = m.sender_name || `User ${m.sender_id.substring(0,6)}`;
-    }
-  }
-  
-  const div = document.createElement('div');
-  div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
-  div.dataset.id = m.id;
-
-  if (m.reply_to) {
-    const br = document.createElement('div');
-    br.className = 'reply-banner';
-    br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
-    div.append(br);
-  }
-
-  const nameTag = document.createElement('div');
-  nameTag.className = 'sender-name';
-  nameTag.textContent = senderName;
-  
-  const ct = document.createElement('div');
-  
-  if (m.message_type === 'audio' && m.audio_url) {
-    const audioContainer = document.createElement('div');
-    audioContainer.className = 'audio-player';
-    
-    const audioElement = document.createElement('audio');
-    audioElement.controls = true;
-    audioElement.src = m.audio_url;
-    
-    const durationText = document.createElement('div');
-    durationText.className = 'audio-duration';
-    durationText.textContent = 'Audio message';
-    
-    audioContainer.appendChild(audioElement);
-    audioContainer.appendChild(durationText);
-    ct.appendChild(audioContainer);
-  } else {
-    ct.innerHTML = processMentions(m.content);
-  }
-  
-  const ts = document.createElement('div');
-  ts.className = 'timestamp';
-  ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  div.append(nameTag, ct, ts);
-  messagePanel.append(div);
-  messagePanel.scrollTop = messagePanel.scrollHeight;
-
-  const aiMentions = div.querySelectorAll('.mention.ai-mention');
-  aiMentions.forEach(mention => {
-    mention.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const userId = mention.dataset.userId;
-      handleAIMentionClick(userId);
-    });
-  });
-
-  // Attach gestures to all messages (including own messages)
-  attachGestures(div, mine, m);
-}
-
-async function loadHistory() {
-  const { data } = await supabase.from('group_messages').select('*').eq('group_id', gid).order('created_at');
-  messagePanel.innerHTML = '';
-  data.forEach(render);
-}
-await loadHistory();
-
 // ---------- FIXED TYPING INDICATORS - NO DUPLICATES ----------
 let typingUsers = new Map();
 let typingTimeout;
@@ -2015,113 +2455,6 @@ emojiPickerBox.onclick = (e) => {
 };
 
 initMentionSystem();
-
-// ---------- FIXED AUDIO MESSAGES FUNCTIONALITY ----------
-recordAudioButton.onclick = async () => {
-  if (!isRecording) {
-    await startRecording();
-  } else {
-    stopRecording();
-  }
-};
-
-async function startRecording() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      await uploadAudioMessage(audioBlob);
-      
-      stream.getTracks().forEach(track => track.stop());
-    };
-
-    mediaRecorder.start();
-    isRecording = true;
-    recordAudioButton.classList.add('active');
-    recordingIndicator.classList.add('active');
-    
-    recordingIndicator.onclick = stopRecording;
-    
-  } catch (error) {
-    console.error('Error starting recording:', error);
-    alert('Error accessing microphone. Please check permissions.');
-  }
-}
-
-function stopRecording() {
-  if (mediaRecorder && isRecording) {
-    mediaRecorder.stop();
-    isRecording = false;
-    recordAudioButton.classList.remove('active');
-    recordingIndicator.classList.remove('active');
-  }
-}
-
-// FIXED: Audio upload with proper error handling
-async function uploadAudioMessage(audioBlob) {
-  try {
-    const fileName = `audio_${Date.now()}_${user.id}.webm`;
-    
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('group_audios')
-      .upload(fileName, audioBlob);
-
-    if (error) {
-      console.error('Storage upload error:', error);
-      throw error;
-    }
-
-    // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('group_audios')
-      .getPublicUrl(fileName);
-
-    console.log('Audio uploaded, public URL:', publicUrl);
-
-    // Create audio message in database
-    const { data: messageData, error: messageError } = await supabase
-      .from('group_messages')
-      .insert({
-        group_id: gid,
-        sender_id: user.id,
-        sender_name: user.user_metadata.firstName,
-        content: 'Audio message',
-        message_type: 'audio',
-        audio_url: publicUrl,
-        reply_to: replyingMsg?.id,
-        reply_to_sender: replyingMsg?.sender_name,
-        reply_to_text: replyingMsg?.content
-      })
-      .select()
-      .single();
-
-    if (messageError) {
-      console.error('Message insert error:', messageError);
-      throw messageError;
-    }
-
-    // Render the audio message immediately
-    render(messageData);
-    
-    // Clear reply context if any
-    replyingMsg = null;
-    replyContextBox.style.display = 'none';
-
-  } catch (error) {
-    console.error('Error uploading audio message:', error);
-    alert('Error sending audio message. Please try again.');
-  }
-}
 
 // Send message - FIXED: Now renders immediately
 async function sendMsg() {
