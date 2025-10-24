@@ -281,6 +281,27 @@
     
     .icon-btn:hover { transform: scale(1.1); }
     
+    /* FIXED: Dark mode icons and button text */
+    [data-theme="dark"] .icon-btn {
+      color: white;
+    }
+    
+    [data-theme="dark"] .leave-btn,
+    [data-theme="dark"] .share-btn,
+    [data-theme="dark"] .modal-btn {
+      color: white;
+    }
+    
+    [data-theme="dark"] .leave-btn {
+      background: rgba(255,71,87,0.15);
+      border: 1px solid rgba(255,71,87,0.4);
+    }
+    
+    [data-theme="dark"] .share-btn {
+      background: rgba(74, 144, 226, 0.15);
+      border: 1px solid rgba(74, 144, 226, 0.4);
+    }
+    
     .emoji-picker, .mention-list { 
       position: absolute; 
       bottom: calc(100% + 10px); 
@@ -1262,6 +1283,7 @@ const deleteMessageConfirm = document.getElementById('deleteMessageConfirm');
 
 let memberDetails = [];
 let isMember = false;
+let aiResponseInProgress = false; // FIXED: Track if AI response is already in progress
 
 // Theme toggle
 const applyTheme = (theme) => {
@@ -1953,6 +1975,12 @@ async function checkIfReplyToAI(message) {
 
 // NEW: Improved AI response detection
 async function checkForAIResponse(message) {
+  // FIXED: Prevent duplicate AI responses
+  if (aiResponseInProgress) {
+    console.log('AI response already in progress, skipping...');
+    return;
+  }
+  
   const messageText = message.content ? message.content.toLowerCase() : '';
   
   console.log('Checking AI response for message:', {
@@ -1963,9 +1991,17 @@ async function checkForAIResponse(message) {
   
   if ((message.content && messageText.includes('@peerpal ai')) || hasAIKeywords(messageText)) {
     console.log('Triggering AI response');
+    // Set flag to prevent duplicate responses
+    aiResponseInProgress = true;
+    
     // Add a small delay to make it feel more natural
     setTimeout(async () => {
       await checkPeerloomAI(message.content || 'Hello');
+      
+      // Reset flag after AI response is complete
+      setTimeout(() => {
+        aiResponseInProgress = false;
+      }, 2000); // Add small buffer to prevent rapid consecutive responses
     }, 1000);
   }
 }
@@ -2149,17 +2185,9 @@ async function sendMsg() {
   replyContextBox.style.display = 'none';
   mentionListBox.style.display = 'none';
 
-  // FIXED: Check if replying to AI message
-  const isReplyingToAI = replyingMsg && replyingMsg.sender_id === AI_USER_ID;
-  const hasAIMention = txt.toLowerCase().includes('@peerpal ai');
-  const hasAIKeywordsFlag = hasAIKeywords(txt);
-  
-  if (isReplyingToAI || hasAIMention || hasAIKeywordsFlag) {
-    // Add a small delay to make it feel more natural
-    setTimeout(async () => {
-      await checkPeerloomAI(txt);
-    }, 1000);
-  }
+  // FIXED: Check if replying to AI message - REMOVED duplicate AI trigger
+  // The real-time subscription will handle AI responses
+  console.log('Message sent, AI response will be handled by real-time subscription if needed');
 }
 sendMessageButton.onclick = sendMsg;
 messageBar.addEventListener('keydown', (e) => {
