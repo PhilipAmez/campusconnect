@@ -389,12 +389,45 @@
 
         .comment-actions {
             margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             font-size: 0.8rem;
         }
 
         .reply-btn {
             color: var(--primary-color);
             cursor: pointer;
+            font-weight: bold;
+        }
+
+        .replies-count {
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        .comment-like-btn {
+            color: var(--text-color); /* Default color */
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .comment-like-btn.liked {
+            color: var(--primary-color); /* Liked color */
+        }
+
+        .comment-like-count {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .replies-container {
+            margin-top: var(--spacing-sm);
+            padding-left: 1rem; /* Indent replies visually */
+            border-left: 1px solid rgba(255, 255, 255, 0.1); /* Optional visual separator */
         }
 
         .comment-input-container {
@@ -1145,6 +1178,7 @@
         let selectedVideoFile = null;
         let selectedVideoDuration = null;
         let mediaStream = null;
+        let isAddingComment = false; // Flag to prevent double submission
         let mediaRecorder = null;
         let recordedChunks = [];
         let isRecording = false;
@@ -1736,7 +1770,7 @@
                 const commentMap = {};
                 const rootComments = [];
 
-                comments.forEach(comment => {
+                comments.forEach(comment => { // Ensure user is defined for is_liked check
                     comment.replies = [];
                     commentMap[comment.id] = comment;
                     if (comment.parent_comment_id) {
@@ -1745,6 +1779,7 @@
                         }
                     } else {
                         rootComments.push(comment);
+                        comment.user_reaction_type = currentUser ? comment.user_reaction.find(r => r.user_id === currentUser.id)?.reaction_type : null;
                     }
                 });
 
@@ -1762,35 +1797,93 @@
         // Render a single comment and its replies recursively
         async function renderComment(comment, parentElement, depth, videoId) {
             const { data: { user } } = await supabase.auth.getUser();
+
             const commentItem = document.createElement('div');
             commentItem.className = 'comment-item';
             commentItem.style.marginLeft = `${depth * 20}px`; // Indent replies
-            
+
             if (user && comment.user_id === user.id) {
                 commentItem.classList.add('current-user');
+                commentItem.classList.remove('other-user'); // Ensure only one class
             } else {
                 commentItem.classList.add('other-user');
+                commentItem.classList.remove('current-user'); // Ensure only one class
             }
-            
+
             const parentUsername = comment.parent_comment?.profiles?.username;
             const username = comment.profiles ? comment.profiles.username : 'user';
-            commentItem.innerHTML = `
+
+            // Build the HTML for the main comment part
+            let commentHtml = `
                 ${parentUsername ? `<div class="reply-info">Replying to @${parentUsername}</div>` : ''}
                 <div class="comment-header-line">
                     <div class="comment-user">@${username}</div>
-                    <div class="comment-time">${new Date(comment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div class="comment-time">${new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
                 <div class="comment-text">${comment.content}</div>
                 <div class="comment-actions">
-                    <span class="reply-btn" onclick="startReply('${videoId}', '${comment.id}', '${username}')">Reply</span>
-                </div>
-            `;
+                    <span class="reply-btn" data-video-id="${videoId}" data-comment-id="${comment.id}" data-username="${username}">Reply</span>`;
+
+            // Add replies count if there are replies
+            if (comment.replies && comment.replies.length > 0) {
+                commentHtml += `<span class="replies-count replies-count-toggle" data-comment-id="${comment.id}" data-reply-count="${comment.replies.length}">${comment.replies.length} ${comment.replies.length > 1 ? 'replies' : 'reply'}</span>`;
+            }
+            commentHtml += `</div>`; // Close comment-actions
+
+            commentItem.innerHTML = commentHtml;
             parentElement.appendChild(commentItem);
 
+            // If there are replies, create a container for them and render them there
             if (comment.replies && comment.replies.length > 0) {
+                const repliesContainer = document.createElement('div');
+                repliesContainer.className = 'replies-container';
+                repliesContainer.id = `repliesContainer-${comment.id}`;
+                repliesContainer.style.display = 'none'; // Initially hidden
+                commentItem.appendChild(repliesContainer); // Append to the current comment item
+
                 comment.replies.forEach(reply => {
-                    renderComment(reply, parentElement, depth + 1, videoId);
+                    renderComment(reply, repliesContainer, depth + 1, videoId);
                 });
+            }
+
+            // Attach event listeners programmatically
+            const replyBtn = commentItem.querySelector('.reply-btn');
+            if (replyBtn) {
+                replyBtn.addEventListener('click', () => {
+                    startReply(replyBtn.dataset.videoId, replyBtn.dataset.commentId, replyBtn.dataset.username);
+                });
+            }
+
+            const repliesCountToggle = commentItem.querySelector('.replies-count-toggle');
+            if (repliesCountToggle) {
+                repliesCountToggle.addEventListener('click', () => {
+                    toggleReplies(repliesCountToggle.dataset.commentId);
+                });
+            }
+
+            const commentLikeBtn = commentItem.querySelector('.comment-like-btn');
+            if (commentLikeBtn) {
+                commentLikeBtn.addEventListener('click', () => {
+                    toggleCommentLike(commentLikeBtn, comment.id);
+                });
+            }
+        }
+
+        // Toggle visibility of replies
+        function toggleReplies(commentId) {
+            const repliesContainer = document.getElementById(`repliesContainer-${commentId}`);
+            const repliesCountSpan = document.querySelector(`.replies-count-toggle[data-comment-id="${commentId}"]`); // Find the span by its data attribute
+            
+            if (repliesContainer && repliesCountSpan) {
+                const currentReplyCount = repliesCountSpan.dataset.replyCount; // Get original count from data attribute
+                
+                if (repliesContainer.style.display === 'none') {
+                    repliesContainer.style.display = 'block';
+                    repliesCountSpan.textContent = `Hide replies`;
+                } else {
+                    repliesContainer.style.display = 'none';
+                    repliesCountSpan.textContent = `${currentReplyCount} ${currentReplyCount > 1 ? 'replies' : 'reply'}`;
+                }
             }
         }
 
@@ -1800,6 +1893,106 @@
             drawer.classList.remove('open');
         }
 
+        // Global variable to track the currently open reaction picker
+        let currentOpenReactionPicker = null;
+
+        // Function to show the reaction picker
+        function showReactionPicker(commentId, triggerElement) {
+            // Close any other open reaction picker
+            if (currentOpenReactionPicker && currentOpenReactionPicker.id !== `reactionPicker-${commentId}`) {
+                currentOpenReactionPicker.classList.remove('active');
+            }
+
+            let reactionPicker = document.getElementById(`reactionPicker-${commentId}`);
+            if (!reactionPicker) {
+                // Create the reaction picker if it doesn't exist
+                reactionPicker = document.createElement('div');
+                reactionPicker.className = 'reaction-picker';
+                reactionPicker.id = `reactionPicker-${commentId}`;
+                reactionPicker.innerHTML = `
+                    <span class="reaction-option" data-reaction-type="👍">👍</span>
+                    <span class="reaction-option" data-reaction-type="❤️">❤️</span>
+                    <span class="reaction-option" data-reaction-type="😂">😂</span>
+                    <span class="reaction-option" data-reaction-type="😮">😮</span>
+                    <span class="reaction-option" data-reaction-type="😢">😢</span>
+                `;
+                triggerElement.closest('.comment-actions').appendChild(reactionPicker);
+
+                // Attach event listeners to reaction options
+                reactionPicker.querySelectorAll('.reaction-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        const reactionType = e.currentTarget.dataset.reactionType;
+                        toggleCommentReaction(commentId, reactionType);
+                        reactionPicker.classList.remove('active'); // Hide picker after selection
+                        currentOpenReactionPicker = null;
+                    });
+                });
+            }
+
+            // Toggle visibility
+            reactionPicker.classList.toggle('active');
+            currentOpenReactionPicker = reactionPicker.classList.contains('active') ? reactionPicker : null;
+
+            // Close picker if clicking outside
+            document.addEventListener('click', function closePickerOnClickOutside(event) {
+                if (currentOpenReactionPicker && !reactionPicker.contains(event.target) && !triggerElement.contains(event.target)) {
+                    reactionPicker.classList.remove('active');
+                    currentOpenReactionPicker = null;
+                    document.removeEventListener('click', closePickerOnClickOutside);
+                }
+            });
+        }
+
+        // Function to update the UI with new reaction counts
+        function updateCommentReactionsUI(commentId, reactionsSummary, userReactionType) {
+            const reactionSummaryDisplay = document.getElementById(`reactionSummary-${commentId}`);
+            if (!reactionSummaryDisplay) return;
+
+            reactionSummaryDisplay.innerHTML = ''; // Clear existing reactions
+
+            if (reactionsSummary) {
+                for (const reactionType in reactionsSummary) {
+                    const count = reactionsSummary[reactionType];
+                    if (count > 0) {
+                        const reactionItem = document.createElement('span');
+                        reactionItem.className = `reaction-summary-item ${userReactionType === reactionType ? 'user-reacted' : ''}`;
+                        reactionItem.dataset.reactionType = reactionType;
+                        reactionItem.dataset.commentId = commentId;
+                        reactionItem.innerHTML = `${reactionType} ${count}`;
+                        reactionItem.addEventListener('click', () => toggleCommentReaction(commentId, reactionType));
+                        reactionSummaryDisplay.appendChild(reactionItem);
+                    }
+                }
+            }
+        }
+
+        // Toggle like status for comments (now handles multiple reaction types)
+        async function toggleCommentReaction(commentId, reactionType) {
+            if (!isLoggedIn) {
+                showLoginRedirect();
+                return;
+            }
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('User not found');
+
+                const { data: newReactionsSummary, error } = await supabase.rpc('toggle_comment_reaction', {
+                    p_comment_id: commentId,
+                    p_user_id: user.id,
+                    p_reaction_type: reactionType
+                });
+
+                if (error) throw error;
+
+                // Update UI with the new reactions summary
+                updateCommentReactionsUI(commentId, newReactionsSummary, newReactionsSummary[reactionType] > 0 ? reactionType : null);
+            } catch (error) {
+                console.error('Error toggling comment reaction:', error);
+                showToast('Error updating comment reaction');
+            }
+        }
+
         // Add a new comment
         async function addComment(videoId) {
             if (!isLoggedIn) {
@@ -1807,6 +2000,9 @@
                 return;
             }
             
+            if (isAddingComment) return; // Prevent double submission if already processing
+            isAddingComment = true; // Set flag
+
             const commentInput = document.getElementById(`commentInput-${videoId}`);
             const commentText = commentInput.value.trim();
             
@@ -1816,45 +2012,86 @@
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) throw new Error('User not found');
 
-                 const { error: insertError } = await supabase
-                    .from('comments')
-                    .insert({ 
-                        post_id: videoId, 
-                        user_id: user.id, 
-                        content: commentText,
-                        parent_comment_id: replyingToCommentId
-                    });
-
-                if (insertError) throw insertError;
-
-                // Increment the comment count on the post
-                const { data: newCount, error: rpcError } = await supabase.rpc('increment_comment_count', { postid_uuid: videoId });
+                commentInput.disabled = true; // Disable input to prevent further interaction
+                // Call the new RPC function to insert comment and increment count
+                const { data: result, error: rpcError } = await supabase.rpc('insert_comment_and_increment', {
+                    v_post_id: videoId,
+                    v_user_id: user.id,
+                    v_content: commentText,
+                    v_parent_comment_id: replyingToCommentId // Pass the parent comment ID
+                });
 
                 if (rpcError) {
-                    console.error('Error incrementing comment count:', rpcError);
+                    throw rpcError;
                 }
 
+                // Update the comment count on the UI from the function's return value
+                const newCountValue = Array.isArray(result) ? result[0] : result;
+                if (newCountValue && newCountValue.updated_comments_count != null) {
+                    document.getElementById(`commentCount-${videoId}`).textContent = String(newCountValue.updated_comments_count);
+                }
 
                 // Clear input
                 commentInput.value = '';
                 cancelReply(videoId); // Clear reply state
-                
-                // Refresh comments list
+
+                // Refresh comments list to show the new comment
                 const commentsList = document.getElementById(`commentsList-${videoId}`);
                 await loadComments(videoId, commentsList);
-
-                // Update comment count on UI with the value from the database
-                const commentCount = document.getElementById(`commentCount-${videoId}`);
-                if (newCount !== null) {
-                    commentCount.textContent = newCount;
-                }
                 
                 showToast('Comment added');
+                commentInput.disabled = false; // Re-enable input
+                isAddingComment = false; // Reset flag
             } catch (error) {
                 console.error('Error adding comment:', error);
                 showToast('Error adding comment');
+                commentInput.disabled = false; // Re-enable input on error
+                isAddingComment = false; // Reset flag on error
             }
         }
+
+        // Toggle like status for comments
+        async function toggleCommentLike(element, commentId) {
+            if (!isLoggedIn) {
+                showLoginRedirect();
+                return;
+            }
+
+            const likeIcon = element.querySelector('i');
+            const likeCountSpan = element.querySelector('.comment-like-count');
+            const isCurrentlyLiked = element.classList.contains('liked');
+
+            // Optimistically update the UI
+            element.classList.toggle('liked', !isCurrentlyLiked);
+            likeCountSpan.textContent = parseInt(likeCountSpan.textContent) + (isCurrentlyLiked ? -1 : 1);
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('User not found');
+
+                const { data, error } = await supabase.rpc('toggle_comment_like', {
+                    comment_id_to_toggle: commentId,
+                    user_id_to_toggle: user.id
+                });
+
+                if (error) throw error;
+
+                // Re-sync UI with the actual state from the database
+                likeCountSpan.textContent = data[0].likes_count;
+                if (data[0].liked) {
+                    element.classList.add('liked');
+                } else {
+                    element.classList.remove('liked');
+                }
+            } catch (error) {
+                console.error('Error toggling comment like:', error);
+                showToast('Error updating comment like');
+                // Revert UI on error
+                element.classList.toggle('liked', isCurrentlyLiked);
+                likeCountSpan.textContent = parseInt(likeCountSpan.textContent) + (isCurrentlyLiked ? 1 : -1);
+            }
+        }
+
 
         // Start a reply to a specific comment
         function startReply(videoId, commentId, username) {
@@ -2383,6 +2620,7 @@
         window.autoGrow = autoGrow;
         window.checkUploadButton = checkUploadButton;
         window.handleFileSelect = handleFileSelect;
+        window.toggleCommentReaction = toggleCommentReaction; // Make globally available
     </script>
 </body>
 </html>
