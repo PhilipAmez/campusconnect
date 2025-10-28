@@ -257,12 +257,23 @@
       align-items: center; 
       font-size: 1.2rem; 
       cursor: pointer; 
-      transition: transform 0.2s ease; 
+      transition: all 0.3s ease; 
       z-index: 2;
     }
     
     .audio-record:hover { transform: scale(1.1) translateY(-50%); }
-    .audio-record.active { background: var(--accent); color: var(--text-light); }
+    .audio-record.active { 
+      background: #ff4757;
+      color: white;
+      box-shadow: 0 0 0 6px rgba(255, 71, 87, 0.3);
+      animation: pulse-record 1.5s infinite;
+    }
+    
+    @keyframes pulse-record {
+      0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4); }
+      70% { box-shadow: 0 0 0 12px rgba(255, 71, 87, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+    }
     
     .icon-btn { 
       background: var(--glass-bg); 
@@ -562,28 +573,38 @@
 
     .recording-indicator {
       position: fixed;
-      top: 50%;
+      bottom: 80px;
       left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 0, 0, 0.8);
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       color: white;
-      padding: 1rem 2rem;
-      border-radius: 10px;
+      padding: 12px 24px;
+      border-radius: 25px;
       z-index: 10000;
       display: none;
       align-items: center;
-      gap: 1rem;
-      font-weight: bold;
+      gap: 12px;
+      font-weight: 600;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .recording-indicator.active {
       display: flex;
+      animation: slideUp 0.3s ease forwards;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
     }
 
     .pulse {
       width: 12px;
       height: 12px;
-      background: white;
+      background: #ff4757;
       border-radius: 50%;
       animation: pulse 1s infinite;
     }
@@ -712,6 +733,27 @@
       background: rgba(255, 71, 87, 0.2);
     }
 
+    /* Back button for mobile */
+    .back-button {
+      display: none;
+      background: var(--glass-bg);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+      color: var(--text);
+    }
+
+    .back-button:hover {
+      transform: scale(1.1);
+    }
+
     @media (min-width: 769px) {
       body {
         padding: 20px;
@@ -778,6 +820,8 @@
         margin: 0.3rem;
         margin-top: 0;
         margin-bottom: 0;
+        height: calc(100vh - 180px); /* Adjust height to account for keyboard */
+        overflow-y: auto;
       }
       
       .msg {
@@ -789,6 +833,9 @@
       .chat-input-area {
         margin: 0.3rem;
         margin-top: 0;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
       }
       
       .group-drawer { 
@@ -829,6 +876,11 @@
       .share-btn, .leave-btn {
         font-size: 0.75rem;
         padding: 0.4rem 0.8rem;
+      }
+      
+      /* Show back button on mobile */
+      .back-button {
+        display: flex;
       }
     }
 
@@ -872,6 +924,13 @@
       .share-btn, .leave-btn {
         min-width: 120px;
         font-size: 0.7rem;
+      }
+    }
+
+    /* Mobile keyboard fixes */
+    @media (max-height: 600px) {
+      .chat-messages {
+        height: calc(100vh - 160px);
       }
     }
 
@@ -1119,6 +1178,7 @@
 <body>
   <div class="chat-arena">
     <div class="chat-header">
+      <button class="back-button" id="backButton"><i class="fas fa-arrow-left"></i></button>
       <h1 id="groupTitle"></h1>
       <div class="header-actions">
         <button class="icon-btn" id="voiceCallButton"><i class="fas fa-phone"></i></button>
@@ -1147,10 +1207,11 @@
     </div>
   </div>
 
-  <!-- Recording Indicator -->
+  <!-- Modern Recording Indicator -->
   <div class="recording-indicator" id="recordingIndicator">
     <div class="pulse"></div>
-    <span>Recording... Click to stop</span>
+    <span>Recording... Tap to stop</span>
+    <div class="recording-time" id="recordingTime">00:00</div>
   </div>
 
   <!-- Backdrop -->
@@ -1231,6 +1292,8 @@ let editingMessage = null;
 let deletingMessage = null;
 let mediaRecorder = null;
 let audioChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
 
 // AI User Configuration
 const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
@@ -1252,6 +1315,7 @@ const voiceCallButton = document.getElementById('voiceCallButton');
 const videoCallButton = document.getElementById('videoCallButton');
 const recordAudioButton = document.getElementById('recordAudioButton');
 const recordingIndicator = document.getElementById('recordingIndicator');
+const recordingTime = document.getElementById('recordingTime');
 const groupTitle = document.getElementById('groupTitle');
 const themeToggleButton = document.getElementById('themeToggleButton');
 const replyContextBox = document.getElementById('replyContextBox');
@@ -1264,6 +1328,7 @@ const membersList = document.getElementById('membersList');
 const leaveGroupBtn = document.getElementById('leaveGroupBtn');
 const shareGroupBtn = document.getElementById('shareGroupBtn');
 const drawerBackdrop = document.getElementById('drawerBackdrop');
+const backButton = document.getElementById('backButton');
 
 // Modal elements
 const shareGroupModal = document.getElementById('shareGroupModal');
@@ -1290,6 +1355,11 @@ const applyTheme = (theme) => {
 };
 themeToggleButton.onclick = () => applyTheme(body.dataset.theme === 'dark' ? 'light' : 'dark');
 applyTheme(localStorage.getItem('vibe-theme') || 'dark');
+
+// Back button functionality
+backButton.onclick = () => {
+  window.location.href = 'dashboard.html'; // Update with your actual dashboard URL
+};
 
 // Load group info
 const grp = await supabase.from('groups').select('name, description').eq('id', gid).single();
@@ -2016,7 +2086,7 @@ emojiPickerBox.onclick = (e) => {
 
 initMentionSystem();
 
-// ---------- FIXED AUDIO MESSAGES FUNCTIONALITY ----------
+// ---------- ENHANCED AUDIO MESSAGES FUNCTIONALITY ----------
 recordAudioButton.onclick = async () => {
   if (!isRecording) {
     await startRecording();
@@ -2024,6 +2094,14 @@ recordAudioButton.onclick = async () => {
     stopRecording();
   }
 };
+
+// Recording timer function
+function updateRecordingTime() {
+  recordingSeconds++;
+  const minutes = Math.floor(recordingSeconds / 60);
+  const seconds = recordingSeconds % 60;
+  recordingTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
 
 async function startRecording() {
   try {
@@ -2049,6 +2127,10 @@ async function startRecording() {
     recordAudioButton.classList.add('active');
     recordingIndicator.classList.add('active');
     
+    // Start recording timer
+    recordingSeconds = 0;
+    recordingTimer = setInterval(updateRecordingTime, 1000);
+    
     recordingIndicator.onclick = stopRecording;
     
   } catch (error) {
@@ -2063,6 +2145,10 @@ function stopRecording() {
     isRecording = false;
     recordAudioButton.classList.remove('active');
     recordingIndicator.classList.remove('active');
+    
+    // Clear recording timer
+    clearInterval(recordingTimer);
+    recordingTime.textContent = '00:00';
   }
 }
 
@@ -2581,6 +2667,24 @@ replyContextClose.onclick = () => {
   replyingMsg = null; 
   replyContextBox.style.display = 'none'; 
 };
+
+// Handle mobile keyboard visibility
+function handleKeyboardVisibility() {
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (window.visualViewport.height < window.innerHeight * 0.8) {
+        // Keyboard is visible
+        messagePanel.style.height = 'calc(100vh - 180px)';
+      } else {
+        // Keyboard is hidden
+        messagePanel.style.height = 'calc(100vh - 160px)';
+      }
+    });
+  }
+}
+
+// Initialize keyboard handling
+handleKeyboardVisibility();
   </script>
 </body>
 </html>
