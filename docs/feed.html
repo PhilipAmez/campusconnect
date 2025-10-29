@@ -354,6 +354,8 @@
             display: flex;
             flex-direction: column;
             box-shadow: var(--glass-shadow);
+            /* Prevent swipe gestures on the drawer itself */
+            touch-action: pan-y;
         }
 
         .comment-drawer.open {
@@ -497,6 +499,8 @@
             border-top: 1px solid var(--glass-border);
             display: flex;
             gap: var(--spacing-sm);
+            /* Prevent swipe gestures on the input container */
+            touch-action: pan-y;
         }
 
         .comment-input {
@@ -510,6 +514,8 @@
             resize: none; /* Prevent manual resizing */
             overflow-y: hidden; /* Hide scrollbar until needed */
             min-height: 2.5rem; /* Match button height */
+            /* Prevent swipe gestures on the input */
+            touch-action: pan-y;
         }
 
         .comment-submit {
@@ -1136,6 +1142,13 @@
             padding: 0.1rem 0.3rem;
             border-radius: 8px;
         }
+        
+        /* Fix for swipe prevention */
+        .no-swipe {
+            touch-action: pan-y !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        
         /* Responsive Adjustments */
         @media (max-width: 768px) {
             .actions-sidebar {
@@ -1595,6 +1608,50 @@
                     const duration = videoPlayer.duration;
                     videoPlayer.currentTime = (clickX / width) * duration;
                 });
+
+                // FIX: Add touch event prevention for comment input
+                const commentInput = videoContainer.querySelector(`#commentInput-${video.id}`);
+                if (commentInput) {
+                    // Prevent touch events from propagating to parent containers
+                    commentInput.addEventListener('touchstart', function(e) {
+                        e.stopPropagation();
+                    });
+                    
+                    commentInput.addEventListener('touchmove', function(e) {
+                        e.stopPropagation();
+                    });
+                    
+                    commentInput.addEventListener('touchend', function(e) {
+                        e.stopPropagation();
+                    });
+                    
+                    // Add focus and blur handlers to manage swipe behavior
+                    commentInput.addEventListener('focus', function() {
+                        // Disable scroll-snap when typing in comment input
+                        document.getElementById('feed').classList.add('no-swipe');
+                    });
+                    
+                    commentInput.addEventListener('blur', function() {
+                        // Re-enable scroll-snap when done typing
+                        document.getElementById('feed').classList.remove('no-swipe');
+                    });
+                }
+
+                // Also prevent swipe on the comment drawer itself
+                const commentDrawer = videoContainer.querySelector(`#commentDrawer-${video.id}`);
+                if (commentDrawer) {
+                    commentDrawer.addEventListener('touchstart', function(e) {
+                        e.stopPropagation();
+                    });
+                    
+                    commentDrawer.addEventListener('touchmove', function(e) {
+                        e.stopPropagation();
+                    });
+                    
+                    commentDrawer.addEventListener('touchend', function(e) {
+                        e.stopPropagation();
+                    });
+                }
             });
             
             // Set up intersection observer after videos are loaded
@@ -2062,6 +2119,9 @@
         function closeComments(videoId) {
             const drawer = document.getElementById(`commentDrawer-${videoId}`);
             drawer.classList.remove('open');
+            
+            // FIX: Ensure scroll-snap is re-enabled when closing comments
+            document.getElementById('feed').classList.remove('no-swipe');
         }
 
         // Global variable to track the currently open reaction picker
