@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skrolz - Video Feed</title>    
+    <title>Skrolz - Video Feed</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* Base Styles & Variables */
         :root {
@@ -82,6 +83,67 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        /* Modern Video Controls */
+        .video-controls-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 5;
+        }
+
+        .video-container.controls-visible .video-controls-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .play-pause-btn {
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            transform: scale(0.8);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .video-container.controls-visible .play-pause-btn {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .progress-bar-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            padding-bottom: 5px;
+            cursor: pointer;
+            z-index: 6;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+            width: 0%;
         }
 
         /* Top Bar */
@@ -998,6 +1060,82 @@
             opacity: 1;
         }
 
+        /* Reaction Picker Styles */
+        .reaction-picker {
+            position: absolute;
+            bottom: calc(100% + 5px); /* Position above the button with a small gap */
+            left: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 0.5rem;
+            display: flex;
+            box-shadow: var(--glass-shadow);
+            z-index: 101; /* Above comments, below drawer */
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            max-width: 280px; /* Limit the width */
+            overflow-x: auto; /* Enable horizontal scrolling */
+            white-space: nowrap; /* Prevent emojis from wrapping */
+        }
+
+        /* Hide scrollbar for a cleaner look */
+        .reaction-picker::-webkit-scrollbar {
+            display: none;
+        }
+
+        .reaction-picker {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        .reaction-picker.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .reaction-option {
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.4rem;
+            margin: 0 0.25rem; /* Add horizontal margin instead of gap */
+            border-radius: 12px;
+            transition: background 0.2s ease;
+        }
+
+        .reaction-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .comment-reaction-btn {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .comment-reaction-btn { position: relative; } /* Make this the positioning context */
+
+        .comment-reaction-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .reaction-summary-item {
+            cursor: pointer;
+            padding: 0.1rem 0.3rem;
+            border-radius: 8px;
+        }
         /* Responsive Adjustments */
         @media (max-width: 768px) {
             .actions-sidebar {
@@ -1313,6 +1451,14 @@
                     <video class="video-player" loop muted playsinline preload="metadata">
                         <source src="${video.media_url}" type="video/mp4">
                     </video>
+                    <div class="video-controls-overlay">
+                        <i class="fas fa-play play-pause-btn" id="playPauseBtn-${video.id}"></i>
+                    </div>
+                    <div class="progress-bar-container" id="progressBarContainer-${video.id}">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill-${video.id}"></div>
+                        </div>
+                    </div>
                     <div class="top-bar">
                         <div class="add-post-btn" onclick="openUploadModal()">
                             +
@@ -1403,28 +1549,51 @@
                 });
                 
                 // Add single tap to pause/play - MODIFIED CODE
-                let tapTimer;
-                videoContainer.addEventListener('click', function(e) {
-                    // Don't trigger if clicking on action buttons or other UI elements
-                    if (e.target.closest('.actions-sidebar') || e.target.closest('.top-bar') || 
-                        e.target.closest('.video-info') || e.target.closest('.mute-toggle') ||
-                        e.target.closest('.comment-drawer') || e.target.closest('.add-post-btn')) {
+                const videoPlayer = videoContainer.querySelector('.video-player');
+                const playPauseBtn = videoContainer.querySelector(`#playPauseBtn-${video.id}`);
+                const progressFill = videoContainer.querySelector(`#progressFill-${video.id}`);
+                const progressBarContainer = videoContainer.querySelector(`#progressBarContainer-${video.id}`);
+                let controlsTimeout;
+
+                const toggleControls = () => {
+                    videoContainer.classList.toggle('controls-visible');
+                    clearTimeout(controlsTimeout);
+                    if (videoContainer.classList.contains('controls-visible')) {
+                        controlsTimeout = setTimeout(() => {
+                            videoContainer.classList.remove('controls-visible');
+                        }, 3000);
+                    }
+                };
+
+                const togglePlayPause = () => {
+                    if (videoPlayer.paused) {
+                        videoPlayer.play();
+                        playPauseBtn.className = 'fas fa-pause play-pause-btn';
+                    } else {
+                        videoPlayer.pause();
+                        playPauseBtn.className = 'fas fa-play play-pause-btn';
+                    }
+                    toggleControls();
+                };
+
+                videoContainer.addEventListener('click', (e) => {
+                    if (e.target.closest('.actions-sidebar, .top-bar, .video-info, .mute-toggle, .comment-drawer, .progress-bar-container')) {
                         return;
                     }
-                    
-                    // Clear any existing timer
-                    clearTimeout(tapTimer);
-                    
-                    // Set a timer to distinguish between single and double tap
-                    tapTimer = setTimeout(function() {
-                        // Single tap - toggle play/pause
-                        const video = e.currentTarget.querySelector('video');
-                        if (video.paused) {
-                            video.play().catch(err => console.log('Play failed:', err));
-                        } else {
-                            video.pause();
-                        }
-                    }, 300);
+                    togglePlayPause();
+                });
+
+                videoPlayer.addEventListener('timeupdate', () => {
+                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                    progressFill.style.width = `${progress}%`;
+                });
+
+                progressBarContainer.addEventListener('click', (e) => {
+                    const rect = progressBarContainer.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const width = progressBarContainer.clientWidth;
+                    const duration = videoPlayer.duration;
+                    videoPlayer.currentTime = (clickX / width) * duration;
                 });
             });
             
@@ -1748,6 +1917,8 @@
         async function loadComments(videoId, commentsList) {
             commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">Loading...</div>';
             try {
+                const { data: { user } } = await supabase.auth.getUser();
+
                 const { data: comments, error } = await supabase
                     .from('comments')
                     .select(`
@@ -1779,7 +1950,8 @@
                         }
                     } else {
                         rootComments.push(comment);
-                        comment.user_reaction_type = currentUser ? comment.user_reaction.find(r => r.user_id === currentUser.id)?.reaction_type : null;
+                        // Ensure user_reaction is an array before using .find()
+                        comment.user_reaction_type = user && Array.isArray(comment.user_reaction) ? comment.user_reaction.find(r => r.user_id === user.id)?.reaction_type : null;
                     }
                 });
 
@@ -1813,6 +1985,7 @@
             const parentUsername = comment.parent_comment?.profiles?.username;
             const username = comment.profiles ? comment.profiles.username : 'user';
 
+
             // Build the HTML for the main comment part
             let commentHtml = `
                 ${parentUsername ? `<div class="reply-info">Replying to @${parentUsername}</div>` : ''}
@@ -1822,13 +1995,18 @@
                 </div>
                 <div class="comment-text">${comment.content}</div>
                 <div class="comment-actions">
+                    <div class="comment-reaction-btn" onclick="showReactionPicker('${comment.id}', this)">
+                        <i class="far fa-smile"></i> React
+                    </div>
+                    <div class="reaction-summary" id="reaction-summary-${comment.id}">
+                    </div>
                     <span class="reply-btn" data-video-id="${videoId}" data-comment-id="${comment.id}" data-username="${username}">Reply</span>`;
 
             // Add replies count if there are replies
             if (comment.replies && comment.replies.length > 0) {
                 commentHtml += `<span class="replies-count replies-count-toggle" data-comment-id="${comment.id}" data-reply-count="${comment.replies.length}">${comment.replies.length} ${comment.replies.length > 1 ? 'replies' : 'reply'}</span>`;
             }
-            commentHtml += `</div>`; // Close comment-actions
+           commentHtml += `</div>`;
 
             commentItem.innerHTML = commentHtml;
             parentElement.appendChild(commentItem);
@@ -1860,13 +2038,6 @@
                     toggleReplies(repliesCountToggle.dataset.commentId);
                 });
             }
-
-            const commentLikeBtn = commentItem.querySelector('.comment-like-btn');
-            if (commentLikeBtn) {
-                commentLikeBtn.addEventListener('click', () => {
-                    toggleCommentLike(commentLikeBtn, comment.id);
-                });
-            }
         }
 
         // Toggle visibility of replies
@@ -1894,13 +2065,13 @@
         }
 
         // Global variable to track the currently open reaction picker
-        let currentOpenReactionPicker = null;
+        let openReactionPicker = null;
 
         // Function to show the reaction picker
         function showReactionPicker(commentId, triggerElement) {
             // Close any other open reaction picker
-            if (currentOpenReactionPicker && currentOpenReactionPicker.id !== `reactionPicker-${commentId}`) {
-                currentOpenReactionPicker.classList.remove('active');
+            if (openReactionPicker && openReactionPicker.id !== `reactionPicker-${commentId}`) {
+                openReactionPicker.classList.remove('active');
             }
 
             let reactionPicker = document.getElementById(`reactionPicker-${commentId}`);
@@ -1913,80 +2084,114 @@
                     <span class="reaction-option" data-reaction-type="👍">👍</span>
                     <span class="reaction-option" data-reaction-type="❤️">❤️</span>
                     <span class="reaction-option" data-reaction-type="😂">😂</span>
-                    <span class="reaction-option" data-reaction-type="😮">😮</span>
-                    <span class="reaction-option" data-reaction-type="😢">😢</span>
+                    <span class="reaction-option" data-reaction-type="🔥">🔥</span>
+                    <span class="reaction-option" data-reaction-type="🤯">🤯</span>
+                    <span class="reaction-option" data-reaction-type="👏">👏</span>
+                    <span class="reaction-option" data-reaction-type="🤔">🤔</span>
+                    <span class="reaction-option" data-reaction-type="🥰">🥰</span>
+                    <span class="reaction-option" data-reaction-type="🙏">🙏</span>
+                    <span class="reaction-option" data-reaction-type="🎉">🎉</span>
                 `;
-                triggerElement.closest('.comment-actions').appendChild(reactionPicker);
+                triggerElement.appendChild(reactionPicker);
 
                 // Attach event listeners to reaction options
                 reactionPicker.querySelectorAll('.reaction-option').forEach(option => {
                     option.addEventListener('click', (e) => {
                         const reactionType = e.currentTarget.dataset.reactionType;
                         toggleCommentReaction(commentId, reactionType);
-                        reactionPicker.classList.remove('active'); // Hide picker after selection
-                        currentOpenReactionPicker = null;
+                        reactionPicker.classList.remove('active');
+                        openReactionPicker = null;
                     });
                 });
             }
 
             // Toggle visibility
             reactionPicker.classList.toggle('active');
-            currentOpenReactionPicker = reactionPicker.classList.contains('active') ? reactionPicker : null;
+            openReactionPicker = reactionPicker.classList.contains('active') ? reactionPicker : null;
 
             // Close picker if clicking outside
             document.addEventListener('click', function closePickerOnClickOutside(event) {
-                if (currentOpenReactionPicker && !reactionPicker.contains(event.target) && !triggerElement.contains(event.target)) {
+                if (openReactionPicker && !reactionPicker.contains(event.target) && !triggerElement.contains(event.target)) {
                     reactionPicker.classList.remove('active');
-                    currentOpenReactionPicker = null;
+                    openReactionPicker = null;
                     document.removeEventListener('click', closePickerOnClickOutside);
                 }
             });
         }
 
         // Function to update the UI with new reaction counts
-        function updateCommentReactionsUI(commentId, reactionsSummary, userReactionType) {
-            const reactionSummaryDisplay = document.getElementById(`reactionSummary-${commentId}`);
-            if (!reactionSummaryDisplay) return;
+        async function updateCommentReactionsUI(commentId) {
+            try {
+                const reactionSummaryDisplay = document.getElementById(`reaction-summary-${commentId}`);
+                if (!reactionSummaryDisplay) return;
 
-            reactionSummaryDisplay.innerHTML = ''; // Clear existing reactions
+                const { data: { user } } = await supabase.auth.getUser();
+                const currentUserId = user ? user.id : null;
 
-            if (reactionsSummary) {
+                // Fetch all reactions for the given comment
+                const { data: reactions, error } = await supabase
+                    .from('comment_reactions')
+                    .select('reaction_type, user_id')
+                    .eq('comment_id', commentId);
+
+                if (error) throw error;
+
+                // Aggregate reactions
+                const reactionsSummary = {};
+                let userReactionType = null;
+
+                reactions.forEach(reaction => {
+                    reactionsSummary[reaction.reaction_type] = (reactionsSummary[reaction.reaction_type] || 0) + 1;
+                    if (currentUserId && reaction.user_id === currentUserId) {
+                        userReactionType = reaction.reaction_type;
+                    }
+                });
+
+                reactionSummaryDisplay.innerHTML = ''; // Clear existing reactions
+
                 for (const reactionType in reactionsSummary) {
-                    const count = reactionsSummary[reactionType];
+                    const count = reactionsSummary[reactionType]; // Use aggregated count
                     if (count > 0) {
                         const reactionItem = document.createElement('span');
                         reactionItem.className = `reaction-summary-item ${userReactionType === reactionType ? 'user-reacted' : ''}`;
                         reactionItem.dataset.reactionType = reactionType;
                         reactionItem.dataset.commentId = commentId;
                         reactionItem.innerHTML = `${reactionType} ${count}`;
-                        reactionItem.addEventListener('click', () => toggleCommentReaction(commentId, reactionType));
                         reactionSummaryDisplay.appendChild(reactionItem);
                     }
                 }
+            } catch (error) {
+                console.error('Error updating comment reactions UI:', error);
             }
         }
 
-        // Toggle like status for comments (now handles multiple reaction types)
+        // Toggle reaction for comments
         async function toggleCommentReaction(commentId, reactionType) {
             if (!isLoggedIn) {
                 showLoginRedirect();
                 return;
             }
-
+            
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) throw new Error('User not found');
-
-                const { data: newReactionsSummary, error } = await supabase.rpc('toggle_comment_reaction', {
+                
+                // Call the RPC function
+                const { error } = await supabase.rpc('toggle_comment_reaction', {
                     p_comment_id: commentId,
                     p_user_id: user.id,
                     p_reaction_type: reactionType
                 });
-
+                
                 if (error) throw error;
-
-                // Update UI with the new reactions summary
-                updateCommentReactionsUI(commentId, newReactionsSummary, newReactionsSummary[reactionType] > 0 ? reactionType : null);
+                
+                // After toggling, refresh the reactions for that comment
+                await updateCommentReactionsUI(commentId);
+                
+                // Close the picker
+                const picker = document.getElementById(`reactionPicker-${commentId}`);
+                if (picker) picker.classList.remove('active');
+                openReactionPicker = null;
             } catch (error) {
                 console.error('Error toggling comment reaction:', error);
                 showToast('Error updating comment reaction');
@@ -2050,49 +2255,6 @@
             }
         }
 
-        // Toggle like status for comments
-        async function toggleCommentLike(element, commentId) {
-            if (!isLoggedIn) {
-                showLoginRedirect();
-                return;
-            }
-
-            const likeIcon = element.querySelector('i');
-            const likeCountSpan = element.querySelector('.comment-like-count');
-            const isCurrentlyLiked = element.classList.contains('liked');
-
-            // Optimistically update the UI
-            element.classList.toggle('liked', !isCurrentlyLiked);
-            likeCountSpan.textContent = parseInt(likeCountSpan.textContent) + (isCurrentlyLiked ? -1 : 1);
-
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) throw new Error('User not found');
-
-                const { data, error } = await supabase.rpc('toggle_comment_like', {
-                    comment_id_to_toggle: commentId,
-                    user_id_to_toggle: user.id
-                });
-
-                if (error) throw error;
-
-                // Re-sync UI with the actual state from the database
-                likeCountSpan.textContent = data[0].likes_count;
-                if (data[0].liked) {
-                    element.classList.add('liked');
-                } else {
-                    element.classList.remove('liked');
-                }
-            } catch (error) {
-                console.error('Error toggling comment like:', error);
-                showToast('Error updating comment like');
-                // Revert UI on error
-                element.classList.toggle('liked', isCurrentlyLiked);
-                likeCountSpan.textContent = parseInt(likeCountSpan.textContent) + (isCurrentlyLiked ? 1 : -1);
-            }
-        }
-
-
         // Start a reply to a specific comment
         function startReply(videoId, commentId, username) {
             replyingToCommentId = commentId;
@@ -2132,6 +2294,13 @@
                 }
             }
         }
+
+        // Auto-grow textarea
+        function autoGrow(element) {
+            element.style.height = "5px";
+            element.style.height = (element.scrollHeight) + "px";
+        }
+
 
         // Open upload modal
         function openUploadModal() {
@@ -2620,7 +2789,9 @@
         window.autoGrow = autoGrow;
         window.checkUploadButton = checkUploadButton;
         window.handleFileSelect = handleFileSelect;
-        window.toggleCommentReaction = toggleCommentReaction; // Make globally available
+        window.showReactionPicker = showReactionPicker;
+        window.toggleCommentReaction = toggleCommentReaction;
+        window.updateCommentReactionsUI = updateCommentReactionsUI;
     </script>
 </body>
 </html>
