@@ -67,6 +67,12 @@
             position: relative;
         }
 
+        /* Disable scroll snap when comment drawer is open */
+        .feed-container.no-snap {
+            scroll-snap-type: none;
+            overflow: hidden;
+        }
+
         /* Video Container */
         .video-container {
             height: 100vh;
@@ -153,11 +159,38 @@
             left: 0;
             right: 0;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             padding: var(--spacing-md);
             z-index: 10;
             background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .back-button {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: none; /* Hidden by default, shown on mobile */
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.2s ease;
+            font-size: 1.2rem;
+        }
+
+        .back-button:hover {
+            transform: scale(1.1);
         }
 
         .app-title {
@@ -176,8 +209,6 @@
         }
 
         .search-icon {
-            position: absolute;
-            right: var(--spacing-md);
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
@@ -199,9 +230,6 @@
 
         /* Add Post Button */
         .add-post-btn {
-            position: absolute;
-            top: var(--spacing-md);
-            left: var(--spacing-md);
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
@@ -354,8 +382,6 @@
             display: flex;
             flex-direction: column;
             box-shadow: var(--glass-shadow);
-            /* Prevent swipe gestures on the drawer itself */
-            touch-action: pan-y;
         }
 
         .comment-drawer.open {
@@ -499,8 +525,6 @@
             border-top: 1px solid var(--glass-border);
             display: flex;
             gap: var(--spacing-sm);
-            /* Prevent swipe gestures on the input container */
-            touch-action: pan-y;
         }
 
         .comment-input {
@@ -514,8 +538,6 @@
             resize: none; /* Prevent manual resizing */
             overflow-y: hidden; /* Hide scrollbar until needed */
             min-height: 2.5rem; /* Match button height */
-            /* Prevent swipe gestures on the input */
-            touch-action: pan-y;
         }
 
         .comment-submit {
@@ -1143,14 +1165,12 @@
             border-radius: 8px;
         }
         
-        /* Fix for swipe prevention */
-        .no-swipe {
-            touch-action: pan-y !important;
-            -webkit-overflow-scrolling: touch !important;
-        }
-        
         /* Responsive Adjustments */
         @media (max-width: 768px) {
+            .back-button {
+                display: flex; /* Show back button on mobile */
+            }
+            
             .actions-sidebar {
                 right: var(--spacing-sm);
                 bottom: 3.5rem;
@@ -1333,6 +1353,7 @@
         let mediaRecorder = null;
         let recordedChunks = [];
         let isRecording = false;
+        let isCommentDrawerOpen = false; // Track if comment drawer is open
         
         // In-memory storage for videos
         let posts = [
@@ -1473,8 +1494,13 @@
                         </div>
                     </div>
                     <div class="top-bar">
-                        <div class="add-post-btn" onclick="openUploadModal()">
-                            +
+                        <div class="top-bar-left">
+                            <div class="back-button" onclick="goToDashboard()">
+                                <i class="fas fa-arrow-left"></i>
+                            </div>
+                            <div class="add-post-btn" onclick="openUploadModal()">
+                                +
+                            </div>
                         </div>
                         <div class="app-title" id="appTitle">Skrolz</div>
                         <div class="search-icon" id="searchIcon">
@@ -1609,36 +1635,10 @@
                     videoPlayer.currentTime = (clickX / width) * duration;
                 });
 
-                // FIX: Add touch event prevention for comment input
-                const commentInput = videoContainer.querySelector(`#commentInput-${video.id}`);
-                if (commentInput) {
-                    // Prevent touch events from propagating to parent containers
-                    commentInput.addEventListener('touchstart', function(e) {
-                        e.stopPropagation();
-                    });
-                    
-                    commentInput.addEventListener('touchmove', function(e) {
-                        e.stopPropagation();
-                    });
-                    
-                    commentInput.addEventListener('touchend', function(e) {
-                        e.stopPropagation();
-                    });
-                    
-                    // Add focus and blur handlers to manage swipe behavior
-                    commentInput.addEventListener('focus', function() {
-                        // Disable scroll-snap when typing in comment input
-                        document.getElementById('feed').classList.add('no-swipe');
-                    });
-                    
-                    commentInput.addEventListener('blur', function() {
-                        // Re-enable scroll-snap when done typing
-                        document.getElementById('feed').classList.remove('no-swipe');
-                    });
-                }
-
-                // Also prevent swipe on the comment drawer itself
+                // FIX: Add touch event prevention for comment input and drawer
                 const commentDrawer = videoContainer.querySelector(`#commentDrawer-${video.id}`);
+                const commentInput = videoContainer.querySelector(`#commentInput-${video.id}`);
+                
                 if (commentDrawer) {
                     commentDrawer.addEventListener('touchstart', function(e) {
                         e.stopPropagation();
@@ -1650,6 +1650,20 @@
                     
                     commentDrawer.addEventListener('touchend', function(e) {
                         e.stopPropagation();
+                    });
+                }
+                
+                if (commentInput) {
+                    commentInput.addEventListener('focus', function() {
+                        // Disable scroll-snap when typing in comment input
+                        document.getElementById('feed').classList.add('no-snap');
+                    });
+                    
+                    commentInput.addEventListener('blur', function() {
+                        // Only re-enable scroll-snap if comment drawer is closed
+                        if (!isCommentDrawerOpen) {
+                            document.getElementById('feed').classList.remove('no-snap');
+                        }
                     });
                 }
             });
@@ -1968,6 +1982,10 @@
             
             // Open drawer
             drawer.classList.add('open');
+            
+            // FIX: Disable scroll-snap when comment drawer is open
+            document.getElementById('feed').classList.add('no-snap');
+            isCommentDrawerOpen = true;
         }
 
         // Load comments
@@ -2120,8 +2138,9 @@
             const drawer = document.getElementById(`commentDrawer-${videoId}`);
             drawer.classList.remove('open');
             
-            // FIX: Ensure scroll-snap is re-enabled when closing comments
-            document.getElementById('feed').classList.remove('no-swipe');
+            // FIX: Re-enable scroll-snap when comment drawer is closed
+            document.getElementById('feed').classList.remove('no-snap');
+            isCommentDrawerOpen = false;
         }
 
         // Global variable to track the currently open reaction picker
@@ -2358,6 +2377,15 @@
             element.style.height = (element.scrollHeight) + "px";
         }
 
+        // Go to dashboard function
+        function goToDashboard() {
+            // Redirect to dashboard page
+            window.location.href = 'dashboard.html';
+            // If you don't have a dashboard page, you can use:
+            // window.location.href = '/'; // for home page
+            // or show a message
+            // showToast('Redirecting to dashboard...');
+        }
 
         // Open upload modal
         function openUploadModal() {
@@ -2849,6 +2877,7 @@
         window.showReactionPicker = showReactionPicker;
         window.toggleCommentReaction = toggleCommentReaction;
         window.updateCommentReactionsUI = updateCommentReactionsUI;
+        window.goToDashboard = goToDashboard; // Make goToDashboard globally available
     </script>
 </body>
 </html>
