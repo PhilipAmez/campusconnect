@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Peerloom</title>
-    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
-    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
+ <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
     <style>
         :root {
             --primary: #7c3aed;
@@ -166,40 +167,6 @@
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
         }
-        .success-message {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 1rem;
-            padding: 2rem;
-            max-width: 500px;
-            margin: 5rem auto;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            display: none;
-        }
-        .success-icon {
-            font-size: 4rem;
-            color: #10b981;
-            margin-bottom: 1rem;
-        }
-        .verification-steps {
-            text-align: left;
-            margin: 1.5rem 0;
-            background: rgba(255, 255, 255, 0.5);
-            padding: 1rem;
-            border-radius: 0.5rem;
-        }
-        .verification-steps li {
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: flex-start;
-        }
-        .verification-steps i {
-            color: #10b981;
-            margin-right: 0.5rem;
-            margin-top: 0.2rem;
-        }
         @media (max-width: 480px) {
             .card {
                 padding: 1rem;
@@ -217,10 +184,6 @@
                 padding: 0.5rem 0.8rem;
                 font-size: 0.9rem;
             }
-            .success-message {
-                padding: 1.5rem;
-                margin: 4rem 1rem;
-            }
         }
     </style>
 </head>
@@ -235,8 +198,7 @@
         </div>
     </nav>
 
-    <!-- Signup Form Card -->
-    <div class="card" id="signupCard">
+    <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
         <form id="signupForm">
             <div class="profile-photo-upload" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
@@ -253,8 +215,6 @@
             <select id="campus" class="input-field" required>
                 <option value="" disabled selected>Select your campus</option>
                 <option value="University of Ghana">University of Ghana</option>
-                 <option value="University of Ghana">Central University</option>
-                 <option value="University of Ghana">Koforidua Technical University</option>
                 <option value="Kwame Nkrumah University of Science and Technology">Kwame Nkrumah University of Science and Technology</option>
                 <option value="Ashesi University">Ashesi University</option>
                 <option value="Presbyterian Boys' Secondary School (PRESEC)">Presbyterian Boys' Secondary School (PRESEC)</option>
@@ -318,41 +278,15 @@
         <p class="text-center mt-4">Already have an account? <a href="login.html" class="text-purple-600">Login</a></p>
     </div>
 
-    <!-- Success Message Card (Initially Hidden) -->
-    <div class="success-message" id="successMessage">
-        <div class="success-icon">
-            <i class="fas fa-envelope-circle-check"></i>
-        </div>
-        <h2 class="text-2xl font-bold mb-4">Registration Successful!</h2>
-        <p class="text-lg mb-4">Thank you for signing up with Peerloom. Please verify your email to complete your registration.</p>
-        
-        <div class="verification-steps">
-            <h3 class="font-bold mb-2">What to do next:</h3>
-            <ul>
-                <li><i class="fas fa-check-circle"></i> Check your email inbox for a verification link</li>
-                <li><i class="fas fa-check-circle"></i> Click the verification link in the email</li>
-                <li><i class="fas fa-check-circle"></i> Return to Peerloom and log in with your credentials</li>
-            </ul>
-        </div>
-        
-        <p class="text-sm text-gray-600 mb-4">If you don't see the email, please check your spam folder.</p>
-        
-        <div class="flex justify-center space-x-4 mt-6">
-            <button class="btn" onclick="window.location.href='login.html'">
-                <i class="fas fa-sign-in-alt mr-2"></i> Go to Login
-            </button>
-            <button class="btn" onclick="document.getElementById('successMessage').style.display='none'; document.getElementById('signupCard').style.display='block';">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Sign Up
-            </button>
-        </div>
-    </div>
-
     <a href="support.html" class="support-button">
         <i class="fas fa-headset"></i>
         <span>Support</span>
     </a>
 
-    <script>
+    <script type="module" src="js/supabaseClient.js"></script>
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js'
+
         // Preview selected profile photo
         const profilePhotoInput = document.getElementById('profilePhoto');
         const profilePhotoPreview = document.getElementById('profilePhotoPreview');
@@ -400,20 +334,84 @@
                 return alert('Passwords do not match.');
             }
 
-            // Simulate successful signup (in a real app, this would be your actual signup logic)
-            // For demonstration purposes, we'll just show the success message
-            showSuccessMessage();
-            
-            // In a real implementation, you would have your actual signup code here
-            // and call showSuccessMessage() after successful registration
-        });
+            // 1. Upload profile photo to Supabase Storage (if selected)
+            let profilePhotoUrl = '';
+            if (profilePhotoInput.files.length > 0) {
+                const file = profilePhotoInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const filePath = `avatars/${Date.now()}_${Math.random().toString(36).substr(2, 8)}.${fileExt}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+                if (uploadError) {
+                    alert('Profile photo upload failed: ' + uploadError.message);
+                    return;
+                }
+                // Get public URL
+                const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                profilePhotoUrl = urlData.publicUrl;
+            } else {
+                // No photo uploaded, use initials avatar
+                profilePhotoUrl = generateInitialsAvatar(firstName, lastName);
+            }
 
-        function showSuccessMessage() {
-            // Hide the signup form
-            document.getElementById('signupCard').style.display = 'none';
-            // Show the success message
-            document.getElementById('successMessage').style.display = 'block';
-        }
+            // 2. Add profilePhotoUrl to both signUp and profile insert
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        firstName,
+                        lastName,
+                        username,
+                        contact,
+                        profilePhoto: profilePhotoUrl,
+                        campus,
+                        department,
+                        level
+                    }
+                }
+            });
+
+            if (signUpError) {
+                console.error('Sign up error:', signUpError);
+                return alert('Sign up failed: ' + signUpError.message);
+            }
+
+            const newUser = signUpData.user;
+
+            if (!newUser) {
+                alert('Sign-up initiated! Check your inbox to verify your email. You will be able to log in after verification.');
+                window.location = 'login.html';
+                return;
+            }
+
+            const fullName = `${firstName} ${lastName}`.trim();
+
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: newUser.id,
+                    full_name: fullName,
+                    username,
+                    contact: contact,
+                    email: newUser.email,
+                    profile_photo: profilePhotoUrl,
+                    campus,
+                    department,
+                    level
+                });
+
+            if (profileError) {
+                console.error('Profile insertion error:', profileError);
+                alert('Sign-up successful, but there was an error saving your profile details: ' + profileError.message);
+                window.location = 'login.html';
+                return;
+            }
+
+            alert('Sign-up successful! Check your inbox to verify your email, then log in.');
+            window.location = 'login.html';
+        });
 
         // Show/hide custom campus input
         const campusSelect = document.getElementById('campus');
