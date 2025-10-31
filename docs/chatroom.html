@@ -1490,6 +1490,84 @@
     }
   </style>
   <style>
+    /* Download button for images/videos */
+    .media-container {
+      position: relative;
+      display: inline-block;
+      max-width: 300px;
+      width: 100%;
+    }
+
+    .media-download-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      z-index: 1;
+    }
+    .media-download-btn:hover { background: rgba(0, 0, 0, 0.8); }
+
+    /* Play button overlay for videos */
+    .media-play-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+      z-index: 1;
+      font-size: 1.2rem;
+    }
+    .media-play-btn:hover { background: rgba(0, 0, 0, 0.8); transform: translate(-50%, -50%) scale(1.1); }
+
+    .media-download-btn .file-size {
+      font-size: 0.7rem;
+      font-weight: 500;
+      margin-left: 0.4rem;
+    }
+
+    /* Downloading animation */
+    .download-animation {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .media-download-btn.downloading {
+      background: rgba(0, 0, 0, 0.8);
+      cursor: not-allowed;
+    }
+
+  </style>
+  <style>
     /* Lightbox for viewing images/videos */
     .lightbox {
       position: fixed;
@@ -1666,6 +1744,33 @@
     </div>
   </div>
 
+  <script>
+    // This function is now globally available and can be called by event listeners.
+    function showFilePreview(file) {
+      const filePreviewContent = document.getElementById('filePreviewContent');
+      const filePreviewModal = document.getElementById('filePreviewModal');
+
+      if (!filePreviewContent || !filePreviewModal) {
+        console.error('File preview modal elements not found!');
+        return;
+      }
+
+      let previewHtml = '';
+      const fileType = file.type.split('/')[0];
+
+      if (fileType === 'image') {
+        previewHtml = `<img src="${URL.createObjectURL(file)}" style="max-height: 200px; border-radius: 8px;">`;
+      } else if (fileType === 'video') {
+        previewHtml = `<video src="${URL.createObjectURL(file)}" controls style="max-height: 200px; border-radius: 8px;"></video>`;
+      } else {
+        previewHtml = `<div class="file-attachment-card" style="background: var(--msg-bg);"><div class="file-icon-wrapper"><i class="fas fa-file-alt"></i></div><div class="file-info"><div class="file-name">${file.name}</div><div class="file-meta">${formatFileSize(file.size)}</div></div></div>`;
+      }
+
+      filePreviewContent.innerHTML = previewHtml;
+      filePreviewModal.classList.add('visible');
+    }
+  </script>
+
   <script type="module">
 import { supabase } from './js/supabaseClient.js';
 const session = await supabase.auth.getSession();
@@ -1676,7 +1781,9 @@ let replyingMsg = null;
 let isRecording = false;
 let editingMessage = null;
 let deletingMessage = null;
+let groupCreatorId = null;
 let mediaRecorder = null;
+let stagedFile = null;
 let audioChunks = [];
 let recordingTimer = null;
 let recordingSeconds = 0;
@@ -1764,7 +1871,7 @@ async function loadMembers() {
       .from('group_members')
       .select(`
         user_id,
-        profiles ( id, username, full_name, avatar_url )
+        profiles ( id, username, full_name, profile_photo )
       `)
       .eq('group_id', gid);
 
@@ -2060,37 +2167,32 @@ function handleAIMentionClick(userId) {
 // ---------- CLEAN TRANSPARENT GLASS DRAWER BEHAVIOUR ----------
 function renderMembers() {
   membersList.innerHTML = '';
-  
-  if (!memberDetails || memberDetails.length === 0) {
+
+  // Filter out the AI user from the list to be rendered
+  const humanMembers = memberDetails.filter(member => member.user_id !== AI_USER_ID);
+
+  if (humanMembers.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'member-item';
     empty.innerHTML = `<div class="member-name">No members found in this group</div>`;
     membersList.appendChild(empty);
     return;
   }
-
-  console.log('Rendering members:', memberDetails);
-
-  memberDetails.forEach(member => {
+  
+  humanMembers.forEach(member => {
     const displayName = getDisplayName(member);
-    const isAI = member.user_id === AI_USER_ID;
-    
-    let avatarUrl;
-    if (isAI) {
-      avatarUrl = createDefaultAvatar('AI');
-    } else {
-      avatarUrl = member.profiles?.avatar_url || createDefaultAvatar(displayName);
-    }
+    const isAdmin = member.user_id === groupCreatorId;
+    const avatarUrl = member.profiles?.profile_photo || createDefaultAvatar(displayName);
 
     const item = document.createElement('div');
-    item.className = `member-item ${isAI ? 'ai-member' : ''}`;
+    item.className = 'member-item';
     item.innerHTML = `
       <img src="${avatarUrl}" class="member-avatar" alt="${displayName}">
       <div class="member-info">
         <div class="member-name">${displayName}</div>
-        <div class="member-role">${isAI ? 'AI Assistant' : 'Member'}</div>
+        <div class="member-role">${isAdmin ? 'Admin' : 'Member'}</div>
       </div>
-      <div class="member-status ${isAI ? 'ai' : ''}"></div>
+      <div class="member-status"></div>
     `;
     membersList.appendChild(item);
   });
@@ -2182,6 +2284,62 @@ document.addEventListener('click', (e) => {
     closeDrawer();
   }
 });
+
+// ---------- Download Tracking & Animation ----------
+const downloadedFiles = new Set(JSON.parse(localStorage.getItem('downloadedFiles') || '[]'));
+
+function isDownloaded(url) {
+  return downloadedFiles.has(url);
+}
+
+function markAsDownloaded(url) {
+  downloadedFiles.add(url);
+  localStorage.setItem('downloadedFiles', JSON.stringify(Array.from(downloadedFiles)));
+}
+
+async function downloadWithAnimation(event, url, filename) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const downloadButton = event.currentTarget;
+  if (downloadButton.classList.contains('downloading')) return;
+
+  const originalContent = downloadButton.innerHTML;
+  downloadButton.innerHTML = '<div class="download-animation"></div>';
+  downloadButton.classList.add('downloading');
+
+  try {
+    // Fetch the file as a blob
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Network response was not ok.');
+    const blob = await response.blob();
+
+    // Create a temporary link to trigger the download
+    const tempUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = tempUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(tempUrl);
+    a.remove();
+
+    // Mark as downloaded and hide the button
+    markAsDownloaded(url);
+    downloadButton.style.display = 'none';
+
+  } catch (error) {
+    console.error('Download failed:', error);
+    alert('Download failed. Please try again.');
+    downloadButton.innerHTML = originalContent; // Restore button on error
+  } finally {
+    downloadButton.classList.remove('downloading');
+  }
+}
+// Make download functions globally available
+window.isDownloaded = isDownloaded;
+window.downloadWithAnimation = downloadWithAnimation;
 
 // ---------- ULTRA GLASSY VOICE MESSAGE BUBBLES ----------
 function createVoiceMessageBubble(audioUrl, isSent, duration, messageId) {
@@ -2341,26 +2499,44 @@ function render(m) {
   
   if (m.message_type === 'placeholder') {
     ct.innerHTML = m.content;
+  } else if (m.message_type === 'uploading') {
+    const fileExt = m.file_name?.split('.').pop()?.toUpperCase() || 'FILE';
+    ct.innerHTML = `
+      <div class="file-attachment-card">
+        <div class="file-icon-wrapper"><i class="fas fa-file-alt"></i></div>
+        <div class="file-info">
+          <div class="file-name">${m.file_name}</div>
+          <div class="upload-progress-container"><div class="upload-progress-bar-wrapper"><div class="upload-progress-bar" id="progress-${m.id}"></div></div><span class="upload-progress-text" id="progress-text-${m.id}">0%</span></div>
+        </div>
+      </div>
+    `;
   } else if (m.message_type === 'audio' && m.audio_url) {
     // Create ultra glassy voice message bubble
     const voiceBubble = createVoiceMessageBubble(m.audio_url, mine, null, m.id);
     ct.appendChild(voiceBubble);
   } else if (m.message_type === 'image') {
-    div.style.padding = '0.3rem'; // Reduce padding for image messages
     div.style.padding = '0.3rem';
     div.style.backgroundColor = 'transparent';
-    ct.innerHTML = `<a href="${m.content}" target="_blank" rel="noopener noreferrer">
-                      <img src="${m.content}" alt="${m.file_name || 'Image'}" style="max-width: 300px; width: 100%; display: block; border-radius: 15px; cursor: pointer;">
-                    </a>`;
-    ct.innerHTML = `<img src="${m.content}" alt="${m.file_name || 'Image'}" 
-                         style="max-width: 300px; width: 100%; display: block; border-radius: 15px; cursor: pointer;" 
-                         onclick="openLightbox('${m.content}', 'image')">`;
+    ct.innerHTML = `<div class="media-container">
+                      <img src="${m.content}" alt="${m.file_name || 'Image'}" 
+                           style="width: 100%; display: block; border-radius: 15px; cursor: pointer;" 
+                           onclick="openLightbox('${m.content}', 'image')">
+                      ${!isDownloaded(m.content) ? `
+                        <a href="#" class="media-download-btn" title="Download" onclick="downloadWithAnimation(event, '${m.content}', '${m.file_name || 'image'}')"><i class="fas fa-download"></i></a>
+                      ` : ''}
+                    </div>`;
   } else if (m.message_type === 'video') {
-    div.style.padding = '0.3rem'; // Reduce padding for video messages
     div.style.padding = '0.3rem';
     div.style.backgroundColor = 'transparent';
-    ct.innerHTML = `<video src="${m.content}" controls style="max-width: 300px; width: 100%; display: block; border-radius: 15px;"></video>`;
-    ct.innerHTML = `<video src="${m.content}" controls style="max-width: 300px; width: 100%; display: block; border-radius: 15px;" onclick="openLightbox('${m.content}', 'video')"></video>`;
+    ct.innerHTML = `<div class="media-container" style="cursor: pointer;" onclick="openLightbox('${m.content}', 'video')">
+                      <video src="${m.content}#t=0.1" preload="metadata" style="width: 100%; display: block; border-radius: 15px; pointer-events: none;"></video>
+                      <div class="media-play-btn">
+                        <i class="fas fa-play"></i>
+                      </div>
+                      ${!isDownloaded(m.content) ? `
+                        <a href="#" class="media-download-btn" title="Download" onclick="event.stopPropagation(); downloadWithAnimation(event, '${m.content}', '${m.file_name || 'video'}')"><i class="fas fa-download"></i></a>
+                      ` : ''}
+                    </div>`;
   } else if (m.message_type === 'file') {
     const fileExt = m.file_name?.split('.').pop()?.toUpperCase() || 'FILE';
     ct.innerHTML = `
@@ -2370,7 +2546,7 @@ function render(m) {
         </div>
         <div class="file-info">
           <div class="file-name">${m.file_name || 'File'}</div>
-          <div class="file-meta">${fileExt} Document</div>
+          <div class="file-meta">${formatFileSize(m.file_size)} • ${fileExt} Document</div>
         </div>
         <a href="${m.content}" download="${m.file_name || 'File'}" class="download-btn-wrapper" title="Download">
           <i class="fas fa-download"></i>
@@ -3052,6 +3228,24 @@ deleteMessageModal.addEventListener('click', (e) => {
   if (e.target === deleteMessageModal) closeModals();
 });
 
+  
+
+
+filePreviewCancel.onclick = () => {
+  filePreviewModal.classList.remove('visible');
+  stagedFile = null;
+};
+
+filePreviewSend.onclick = () => {
+  if (stagedFile) {
+    uploadAndSendFile(stagedFile);
+  }
+  filePreviewModal.classList.remove('visible');
+  stagedFile = null;
+};
+
+
+
 // File sharing functionality
 const fileInput = document.getElementById('fileInput');
 fileShareButton.onclick = () => {
@@ -3060,58 +3254,84 @@ fileShareButton.onclick = () => {
 
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) {
-    uploadAndSendFile(file);
-  }
-  // Reset file input to allow selecting the same file again
-  e.target.value = '';
+    if (file) {
+        stagedFile = file;
+        showFilePreview(file);
+    }
+    e.target.value = ''; // Reset input
 });
 
 async function uploadAndSendFile(file) {
-  if (!file) return;
+    if (!file) return;
 
-  try {
-    const fileType = file.type.split('/')[0]; // 'image', 'video', etc.
-    let messageType;
+    // 1. Create a placeholder message
+    const { data: placeholderMessage, error: placeholderError } = await supabase.from('group_messages').insert({
+        group_id: gid,
+        sender_id: user.id,
+        sender_name: user.user_metadata.firstName,
+        content: 'Uploading...',
+        message_type: 'uploading',
+        file_name: file.name,
+        file_size: file.size
+    }).select().single();
 
-    if (fileType === 'image') {
-      messageType = 'image';
-    } else if (fileType === 'video') {
-      messageType = 'video';
-    } else {
-      messageType = 'file';
+    if (placeholderError) {
+        console.error('Error creating placeholder message:', placeholderError);
+        alert('Failed to start upload.');
+        return;
     }
 
-    // 1. Upload the file to Supabase Storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-    const filePath = `group_files/${gid}/${fileName}`;
+    render(placeholderMessage);
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('group_files') // Ensure you have a bucket named 'group_files'
-      .upload(filePath, file);
+    try {
+        const fileType = file.type.split('/')[0];
+        let messageType = (fileType === 'image' || fileType === 'video') ? fileType : 'file';
 
-    if (uploadError) throw uploadError;
+        // 2. Upload the file to Supabase Storage with progress
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const filePath = `group_files/${gid}/${fileName}`;
 
-    // 2. Get the public URL
-    const { data: { publicUrl } } = supabase.storage.from('group_files').getPublicUrl(filePath);
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('group_files')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            }, (event) => {
+                if (event.type === 'progress') {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    const progressBar = document.getElementById(`progress-${placeholderMessage.id}`);
+                    const progressText = document.getElementById(`progress-text-${placeholderMessage.id}`);
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (progressText) progressText.textContent = `${percent}%`;
+                }
+            });
 
-    // 3. Insert a message with the file info
-    const { error: messageError } = await supabase.from('group_messages').insert({
-      group_id: gid,
-      sender_id: user.id,
-      sender_name: user.user_metadata.firstName,
-      content: publicUrl,
-      message_type: messageType,
-      file_name: file.name
-    });
+        if (uploadError) throw uploadError;
 
-    if (messageError) throw messageError;
+        // 3. Get the public URL
+        const { data: { publicUrl } } = supabase.storage.from('group_files').getPublicUrl(filePath);
 
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    alert('Failed to upload file. Please try again.');
-  }
+        // 4. Update the placeholder message with the final file info
+        const { error: updateError } = await supabase.from('group_messages')
+            .update({
+                content: publicUrl,
+                message_type: messageType
+            })
+            .eq('id', placeholderMessage.id);
+
+        if (updateError) throw updateError;
+
+        // The real-time subscription will handle updating the UI from placeholder to final message
+        await loadHistory(); // Force a reload to ensure UI is correct
+
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Failed to upload file. Please try again.');
+        // Optionally, delete the placeholder message on failure
+        await supabase.from('group_messages').delete().eq('id', placeholderMessage.id);
+        document.querySelector(`.msg[data-id="${placeholderMessage.id}"]`)?.remove();
+    }
 }
 
 
@@ -3327,6 +3547,24 @@ document.addEventListener('keydown', (e) => {
     closeLightbox();
   }
 });
+
+// Make openLightbox globally available for onclick attributes
+window.openLightbox = openLightbox;
+
+// ---------- File Size Formatter ----------
+function formatFileSize(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+// Make formatFileSize globally available for use in template literals
+window.formatFileSize = formatFileSize;
 
 // Handle mobile keyboard visibility
 function handleKeyboardVisibility() {

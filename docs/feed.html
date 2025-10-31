@@ -793,6 +793,20 @@
             display: none;
             flex-direction: column;
             gap: var(--spacing-sm);
+            position: relative; /* For close button positioning */
+        }
+
+        .video-preview-close-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 24px;
+            height: 24px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
             margin-top: var(--spacing-md);
         }
 
@@ -1300,6 +1314,7 @@
                 
                 <!-- Video Preview - Redesigned -->
                 <div class="video-preview-container" id="videoPreviewContainer">
+                    <button class="video-preview-close-btn" id="videoPreviewCloseBtn" title="Remove video">×</button>
                     <video class="video-preview" id="videoPreview" controls playsinline></video>
                     <div class="video-info-preview">
                         <div class="video-filename">
@@ -1759,6 +1774,12 @@
             const postTitle = document.getElementById('postTitle');
             if (postTitle) {
                 postTitle.addEventListener('input', checkUploadButton);
+            }
+
+            // Video preview close button
+            const videoPreviewCloseBtn = document.getElementById('videoPreviewCloseBtn');
+            if (videoPreviewCloseBtn) {
+                videoPreviewCloseBtn.addEventListener('click', clearSelectedVideo);
             }
         }
 
@@ -2708,6 +2729,22 @@
             }
             
             // Immediately check if we have a valid file (even before metadata loads)
+            checkUploadButton();
+        }
+
+        // Clear selected video from the upload form
+        function clearSelectedVideo() {
+            selectedVideoFile = null;
+            selectedVideoDuration = null;
+            
+            const videoFileInput = document.getElementById('videoFile');
+            if (videoFileInput) videoFileInput.value = '';
+            
+            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+            if (videoPreviewContainer) videoPreviewContainer.classList.remove('active');
+            
+            const videoPreview = document.getElementById('videoPreview');
+            if (videoPreview) videoPreview.src = '';
             checkUploadButton();
         }
 
