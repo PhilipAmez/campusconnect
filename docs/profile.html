@@ -2434,11 +2434,15 @@
 
         // Avatar upload
         const avatarUpload = document.getElementById('avatarUpload');
-        const avatar = document.getElementById('avatars');
+        const avatar = document.getElementById('avatar');
         
         avatarUpload.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            if (!currentUser) {
+                showError('You must be logged in to upload an avatar.');
+                return;
+            }
 
             try {
                 // Upload avatar to Supabase Storage
@@ -2447,7 +2451,7 @@
                 const filePath = `avatars/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('avatars')
+                    .from('avatars') // Make sure you have a bucket named 'avatars' in Supabase Storage
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
@@ -2455,7 +2459,7 @@
                 // Get public URL
                 const { data: { publicUrl } } = supabase.storage
                     .from('avatars')
-                    .getPublicUrl(filePath);
+                    .getPublicUrl(filePath); // This returns the URL, not an object with publicUrl
 
                 // Update profile with avatar URL
                 const { error: updateError } = await supabase
@@ -2466,7 +2470,10 @@
                 if (updateError) throw updateError;
 
                 // Update UI
-                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar">`;
+                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
+                
+                // Update local profile object
+                userProfile.profile_photo = publicUrl;
                 
             } catch (error) {
                 console.error('Error uploading avatar:', error);

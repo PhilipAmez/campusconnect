@@ -41,6 +41,21 @@
       --gloss-red: rgba(255,71,87,0.12);
       --gloss-red-strong: rgba(255,71,87,0.22);
     }
+
+    .upload-progress-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .upload-progress-bar-wrapper {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .upload-progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s ease; }
+    .upload-progress-text { font-size: 0.8rem; font-weight: 500; }
     
     [data-theme="light"] {
       --page-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -51,6 +66,10 @@
       --ai-bg: var(--ai-bg-light);
       --circle-bg: var(--glass-bg-light);
     }
+    [data-theme="light"] .upload-progress-bar-wrapper {
+      background: rgba(0,0,0,0.1);
+    }
+
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -1402,6 +1421,119 @@
       box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
     }
   </style>
+  <style>
+    /* WhatsApp-style File Attachment */
+    .file-attachment-card {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      background: rgba(0, 0, 0, 0.1);
+      padding: 0.8rem;
+      border-radius: 12px;
+      min-width: 250px;
+    }
+
+    .msg.sent .file-attachment-card {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .file-icon-wrapper {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: var(--accent);
+      color: white;
+    }
+
+    .file-icon-wrapper .fas {
+      font-size: 1.2rem;
+    }
+
+    .file-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .file-meta {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
+
+    .download-btn-wrapper {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.1);
+      color: var(--text);
+      transition: background 0.2s ease;
+    }
+
+    .download-btn-wrapper:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+  </style>
+  <style>
+    /* Lightbox for viewing images/videos */
+    .lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 3000;
+      display: none; /* Hidden by default */
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .lightbox.visible {
+      display: flex;
+      opacity: 1;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 40px;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .lightbox-close:hover { transform: scale(1.1); }
+
+    .lightbox-content img,
+    .lightbox-content video {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+  </style>
 </head>
 <body>
   <div class="chat-arena">
@@ -1419,6 +1551,7 @@
 
     <div class="chat-input-area">
       <button class="icon-btn" id="emojiButton">😄</button>
+      <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
       <button class="icon-btn" id="fileShareButton"><i class="fas fa-paperclip"></i></button>
       <textarea id="messageBar" class="message-bar" data-placeholder="Type here" rows="1"></textarea>
       <button class="send-arrow" id="sendMessageButton">➤</button>
@@ -1464,6 +1597,14 @@
     </div>
   </div>
 
+  <!-- Lightbox for viewing images/videos -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close" id="lightboxClose">&times;</span>
+    <div class="lightbox-content" id="lightboxContent">
+      <!-- Image or video will be inserted here -->
+    </div>
+  </div>
+
   <!-- Share Group Modal -->
   <div class="modal-backdrop" id="shareGroupModal">
     <div class="modal-content">
@@ -1504,6 +1645,23 @@
       <div class="modal-actions">
         <button class="modal-btn cancel" id="deleteMessageCancel">Cancel</button>
         <button class="modal-btn delete" id="deleteMessageConfirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Preview Modal -->
+  <div class="modal-backdrop" id="filePreviewModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Send File</div>
+        <div class="modal-description">Review your file before sending.</div>
+      </div>
+      <div id="filePreviewContent" style="text-align: center; margin-bottom: 1.5rem;">
+        <!-- Preview will be inserted here -->
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="filePreviewCancel">Cancel</button>
+        <button class="modal-btn confirm" id="filePreviewSend">Send</button>
       </div>
     </div>
   </div>
@@ -1570,6 +1728,10 @@ const editMessageConfirm = document.getElementById('editMessageConfirm');
 const deleteMessageModal = document.getElementById('deleteMessageModal');
 const deleteMessageCancel = document.getElementById('deleteMessageCancel');
 const deleteMessageConfirm = document.getElementById('deleteMessageConfirm');
+const filePreviewModal = document.getElementById('filePreviewModal');
+const filePreviewContent = document.getElementById('filePreviewContent');
+const filePreviewCancel = document.getElementById('filePreviewCancel');
+const filePreviewSend = document.getElementById('filePreviewSend');
 
 let memberDetails = [];
 let isMember = false;
@@ -2177,10 +2339,43 @@ function render(m) {
   
   const ct = document.createElement('div');
   
-  if (m.message_type === 'audio' && m.audio_url) {
+  if (m.message_type === 'placeholder') {
+    ct.innerHTML = m.content;
+  } else if (m.message_type === 'audio' && m.audio_url) {
     // Create ultra glassy voice message bubble
     const voiceBubble = createVoiceMessageBubble(m.audio_url, mine, null, m.id);
     ct.appendChild(voiceBubble);
+  } else if (m.message_type === 'image') {
+    div.style.padding = '0.3rem'; // Reduce padding for image messages
+    div.style.padding = '0.3rem';
+    div.style.backgroundColor = 'transparent';
+    ct.innerHTML = `<a href="${m.content}" target="_blank" rel="noopener noreferrer">
+                      <img src="${m.content}" alt="${m.file_name || 'Image'}" style="max-width: 300px; width: 100%; display: block; border-radius: 15px; cursor: pointer;">
+                    </a>`;
+    ct.innerHTML = `<img src="${m.content}" alt="${m.file_name || 'Image'}" 
+                         style="max-width: 300px; width: 100%; display: block; border-radius: 15px; cursor: pointer;" 
+                         onclick="openLightbox('${m.content}', 'image')">`;
+  } else if (m.message_type === 'video') {
+    div.style.padding = '0.3rem'; // Reduce padding for video messages
+    div.style.padding = '0.3rem';
+    div.style.backgroundColor = 'transparent';
+    ct.innerHTML = `<video src="${m.content}" controls style="max-width: 300px; width: 100%; display: block; border-radius: 15px;"></video>`;
+    ct.innerHTML = `<video src="${m.content}" controls style="max-width: 300px; width: 100%; display: block; border-radius: 15px;" onclick="openLightbox('${m.content}', 'video')"></video>`;
+  } else if (m.message_type === 'file') {
+    const fileExt = m.file_name?.split('.').pop()?.toUpperCase() || 'FILE';
+    ct.innerHTML = `
+      <div class="file-attachment-card">
+        <div class="file-icon-wrapper">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="file-info">
+          <div class="file-name">${m.file_name || 'File'}</div>
+          <div class="file-meta">${fileExt} Document</div>
+        </div>
+        <a href="${m.content}" download="${m.file_name || 'File'}" class="download-btn-wrapper" title="Download">
+          <i class="fas fa-download"></i>
+        </a>
+      </div>`;
   } else {
     ct.innerHTML = processMentions(m.content);
   }
@@ -2857,8 +3052,69 @@ deleteMessageModal.addEventListener('click', (e) => {
   if (e.target === deleteMessageModal) closeModals();
 });
 
-// Placeholder file and calls
-fileShareButton.onclick = () => alert('File upload coming soon!');
+// File sharing functionality
+const fileInput = document.getElementById('fileInput');
+fileShareButton.onclick = () => {
+  fileInput.click();
+};
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    uploadAndSendFile(file);
+  }
+  // Reset file input to allow selecting the same file again
+  e.target.value = '';
+});
+
+async function uploadAndSendFile(file) {
+  if (!file) return;
+
+  try {
+    const fileType = file.type.split('/')[0]; // 'image', 'video', etc.
+    let messageType;
+
+    if (fileType === 'image') {
+      messageType = 'image';
+    } else if (fileType === 'video') {
+      messageType = 'video';
+    } else {
+      messageType = 'file';
+    }
+
+    // 1. Upload the file to Supabase Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `group_files/${gid}/${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('group_files') // Ensure you have a bucket named 'group_files'
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    // 2. Get the public URL
+    const { data: { publicUrl } } = supabase.storage.from('group_files').getPublicUrl(filePath);
+
+    // 3. Insert a message with the file info
+    const { error: messageError } = await supabase.from('group_messages').insert({
+      group_id: gid,
+      sender_id: user.id,
+      sender_name: user.user_metadata.firstName,
+      content: publicUrl,
+      message_type: messageType,
+      file_name: file.name
+    });
+
+    if (messageError) throw messageError;
+
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    alert('Failed to upload file. Please try again.');
+  }
+}
+
+
 voiceCallButton.onclick = () => alert('Starting voice call...');
 videoCallButton.onclick = () => alert('Starting video call...');
 
@@ -3036,6 +3292,41 @@ replyContextClose.onclick = () => {
   replyingMsg = null; 
   replyContextBox.style.display = 'none'; 
 };
+
+// ---------- Lightbox Functionality ----------
+const lightbox = document.getElementById('lightbox');
+const lightboxContent = document.getElementById('lightboxContent');
+const lightboxClose = document.getElementById('lightboxClose');
+
+function openLightbox(src, type) {
+  if (type === 'image') {
+    lightboxContent.innerHTML = `<img src="${src}" alt="Lightbox image">`;
+  } else if (type === 'video') {
+    lightboxContent.innerHTML = `<video src="${src}" controls autoplay></video>`;
+  }
+  lightbox.classList.add('visible');
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('visible');
+  // Stop video playback when closing
+  lightboxContent.innerHTML = '';
+}
+
+lightboxClose.addEventListener('click', closeLightbox);
+
+lightbox.addEventListener('click', (e) => {
+  // Close if the user clicks on the blurred background, but not on the content itself
+  if (e.target === lightbox) {
+    closeLightbox();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && lightbox.classList.contains('visible')) {
+    closeLightbox();
+  }
+});
 
 // Handle mobile keyboard visibility
 function handleKeyboardVisibility() {

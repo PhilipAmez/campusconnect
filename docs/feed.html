@@ -2780,25 +2780,22 @@
                 const fileExt = fileToUpload.name.split('.').pop();
                 const fileName = `${user.id}-${Date.now()}.${fileExt}`;
                 const filePath = `videos/${fileName}`;
-
+        
+                // The progress callback is not part of the upload method anymore.
+                // We can use `await` directly and handle progress with XHR if needed,
+                // but for simplicity, we'll show a loading state.
+                if (progressStatus) {
+                    progressStatus.textContent = 'Uploading...';
+                }
+                if (progressFill) {
+                    progressFill.style.width = '50%'; // Indeterminate progress
+                }
+        
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('Facts')
-                   
                     .upload(filePath, fileToUpload, {
                         cacheControl: '3600',
                         upsert: false
-                    }, (event) => {
-                        // Real-time progress
-                        if (event.type === 'progress') {
-                            const progress = (event.loaded / event.total) * 100;
-                            if (progressFill) {
-                                progressFill.style.width = `${progress}%`;
-                            }
-                            if (progressStatus) {
-                                progressStatus.textContent = `Uploading... ${Math.round(progress)}%`;
-                            }
-                        }
-                       
                     });
 
                 if (uploadError) {
@@ -2806,6 +2803,11 @@
                 }
 
                 console.log('File uploaded successfully:', uploadData);
+        
+                if (progressFill) {
+                    progressFill.style.width = '100%';
+                }
+                if (progressStatus) progressStatus.textContent = 'Processing...';
 
                 // 2. Get the public URL of the uploaded file
                 const { data: urlData } = supabase.storage.from('Facts').getPublicUrl(filePath);
