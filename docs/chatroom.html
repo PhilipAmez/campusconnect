@@ -1420,7 +1420,6 @@
     <div class="chat-input-area">
       <button class="icon-btn" id="emojiButton">😄</button>
       <button class="icon-btn" id="fileShareButton"><i class="fas fa-paperclip"></i></button>
-      <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip,.rar">
       <textarea id="messageBar" class="message-bar" data-placeholder="Type here" rows="1"></textarea>
       <button class="send-arrow" id="sendMessageButton">➤</button>
       <button class="audio-record" id="recordAudioButton"><i class="fas fa-microphone"></i></button>
@@ -2857,73 +2856,6 @@ editMessageModal.addEventListener('click', (e) => {
 deleteMessageModal.addEventListener('click', (e) => {
   if (e.target === deleteMessageModal) closeModals();
 });
-
-// ---------- Messages rendering & history (UPDATED) ----------
-function render(m) {
-  const mine = m.sender_id === user.id;
-  const isAI = m.sender_id === AI_USER_ID;
-  
-  let senderName;
-  if (mine) {
-    senderName = user.user_metadata.firstName || user.user_metadata.full_name || 'You';
-  } else if (isAI) {
-    senderName = AI_USER_NAME;
-  } else {
-    const senderMember = memberDetails.find(member => member.user_id === m.sender_id);
-    if (senderMember) {
-      senderName = getDisplayName(senderMember);
-    } else {
-      senderName = m.sender_name || `User ${m.sender_id.substring(0,6)}`;
-    }
-  }
-  
-  const div = document.createElement('div');
-  div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
-  div.dataset.id = m.id;
-
-  if (m.reply_to) {
-    const br = document.createElement('div');
-    br.className = 'reply-banner';
-    br.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
-    div.append(br);
-  }
-
-  const nameTag = document.createElement('div');
-  nameTag.className = 'sender-name';
-  nameTag.textContent = senderName;
-  
-  const ct = document.createElement('div');
-  
-  if (m.message_type === 'audio' && m.audio_url) {
-    const voiceBubble = createVoiceMessageBubble(m.audio_url, mine, null, m.id);
-    ct.appendChild(voiceBubble);
-  } else if (m.message_type === 'image' && m.file_url) {
-    ct.innerHTML = `<img src="${m.file_url}" alt="Image" style="max-width: 100%; border-radius: 10px; cursor: pointer;" onclick="window.open('${m.file_url}', '_blank')">`;
-  } else if (m.message_type === 'video' && m.file_url) {
-    ct.innerHTML = `<video src="${m.file_url}" controls style="max-width: 100%; border-radius: 10px;"></video>`;
-  } else if (m.message_type === 'file' && m.file_url) {
-    const fileName = m.content || 'Download File';
-    ct.innerHTML = `<a href="${m.file_url}" target="_blank" download style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--accent);"><i class="fas fa-file-alt"></i> ${fileName}</a>`;
-  } else {
-    ct.innerHTML = processMentions(m.content);
-  }
-  
-  const ts = document.createElement('div');
-  ts.className = 'timestamp';
-  ts.textContent = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  div.append(nameTag, ct, ts);
-  messagePanel.append(div);
-  messagePanel.scrollTop = messagePanel.scrollHeight;
-
-  // For voice messages, only attach delete gesture for own messages
-  if (m.message_type === 'audio' && mine) {
-    attachDeleteGesture(div, m);
-  } else if (m.message_type !== 'audio') {
-    // For text messages, attach full gestures
-    attachGestures(div, mine, m);
-  }
-}
 
 // Placeholder file and calls
 fileShareButton.onclick = () => alert('File upload coming soon!');
