@@ -580,19 +580,49 @@
 
             const fullName = `${firstName} ${lastName}`.trim();
 
-            const { data: profileData, error: profileError } = await supabase
+            // Prepare profile data according to your database structure
+            const profileData = {
+                id: newUser.id,
+                full_name: fullName,
+                username: username,
+                contact: contact,
+                email: newUser.email,
+                profile_photo: profilePhotoUrl,
+                department: department,
+                privacy: 'public', // Default privacy setting
+                status: 'active', // Default status
+                verified: false, // Will be true after email verification
+                show_full_name: true,
+                show_academic_info: true,
+                show_groups_count: true,
+                theme_preference: 'light',
+                join_date: new Date().toISOString(),
+                created_at: new Date().toISOString()
+            };
+
+            // Handle campus based on your database structure
+            if (campusSelect.value === 'Other') {
+                profileData.custom_campus = campus;
+                profileData.campus = 'Other';
+            } else {
+                profileData.campus = campus;
+                profileData.custom_campus = null;
+            }
+
+            // Handle level based on your database structure
+            if (levelSelect.value === 'Other') {
+                profileData.custom_level = level;
+                profileData.level = 'Other';
+            } else {
+                profileData.level = level;
+                profileData.custom_level = null;
+            }
+
+            console.log('Inserting profile data:', profileData);
+
+            const { data: insertedProfile, error: profileError } = await supabase
                 .from('profiles')
-                .insert({
-                    id: newUser.id,
-                    full_name: fullName,
-                    username,
-                    contact: contact,
-                    email: newUser.email,
-                    profile_photo: profilePhotoUrl,
-                    campus,
-                    department,
-                    level
-                });
+                .insert(profileData);
 
             if (profileError) {
                 console.error('Profile insertion error:', profileError);
@@ -600,6 +630,13 @@
                 userEmailSpan.textContent = email;
                 form.style.display = 'none';
                 verificationMessage.style.display = 'block';
+                
+                // Add error note to verification message
+                const errorNote = document.createElement('div');
+                errorNote.className = 'verification-note';
+                errorNote.style.borderLeftColor = '#ef4444';
+                errorNote.innerHTML = '<i class="fas fa-exclamation-triangle"></i> There was an issue saving your profile details. Please contact support.';
+                verificationMessage.appendChild(errorNote);
                 
                 // Scroll to verification message
                 verificationMessage.scrollIntoView({ behavior: 'smooth' });
