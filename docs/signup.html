@@ -580,49 +580,20 @@
 
             const fullName = `${firstName} ${lastName}`.trim();
 
-            // Prepare profile data according to your database structure
-            const profileData = {
-                id: newUser.id,
-                full_name: fullName,
-                username: username,
-                contact: contact,
-                email: newUser.email,
-                profile_photo: profilePhotoUrl,
-                department: department,
-                privacy: 'public', // Default privacy setting
-                status: 'active', // Default status
-                verified: false, // Will be true after email verification
-                show_full_name: true,
-                show_academic_info: true,
-                show_groups_count: true,
-                theme_preference: 'light',
-                join_date: new Date().toISOString(),
-                created_at: new Date().toISOString()
-            };
-
-            // Handle campus based on your database structure
-            if (campusSelect.value === 'Other') {
-                profileData.custom_campus = campus;
-                profileData.campus = 'Other';
-            } else {
-                profileData.campus = campus;
-                profileData.custom_campus = null;
-            }
-
-            // Handle level based on your database structure
-            if (levelSelect.value === 'Other') {
-                profileData.custom_level = level;
-                profileData.level = 'Other';
-            } else {
-                profileData.level = level;
-                profileData.custom_level = null;
-            }
-
-            console.log('Inserting profile data:', profileData);
-
-            const { data: insertedProfile, error: profileError } = await supabase
+            // Use the simple profile insertion that works from your original code
+            const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .insert(profileData);
+                .insert({
+                    id: newUser.id,
+                    full_name: fullName,
+                    username: username,
+                    contact: contact,
+                    email: newUser.email,
+                    profile_photo: profilePhotoUrl,
+                    campus: campus,
+                    department: department,
+                    level: level
+                });
 
             if (profileError) {
                 console.error('Profile insertion error:', profileError);
