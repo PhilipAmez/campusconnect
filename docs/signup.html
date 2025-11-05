@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Peerloom</title>
- <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
-  <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -167,6 +167,75 @@
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
         }
+        
+        /* Verification Message Styles */
+        .verification-message {
+            display: none;
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .verification-icon {
+            font-size: 3rem;
+            color: #10b981;
+            margin-bottom: 1rem;
+            animation: bounce 1s infinite alternate;
+        }
+        
+        .verification-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+        
+        .verification-text {
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        .verification-email {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .verification-note {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            border-left: 3px solid var(--accent);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
         @media (max-width: 480px) {
             .card {
                 padding: 1rem;
@@ -184,6 +253,12 @@
                 padding: 0.5rem 0.8rem;
                 font-size: 0.9rem;
             }
+            .verification-message {
+                padding: 1rem;
+            }
+            .verification-icon {
+                font-size: 2.5rem;
+            }
         }
     </style>
 </head>
@@ -200,6 +275,24 @@
 
     <div class="card">
         <h2 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Sign Up</h2>
+        
+        <!-- Verification Message -->
+        <div id="verificationMessage" class="verification-message">
+            <div class="verification-icon">
+                <i class="fas fa-envelope-circle-check"></i>
+            </div>
+            <h3 class="verification-title">Check Your Email!</h3>
+            <p class="verification-text">
+                We've sent a verification link to <span id="userEmailSpan" class="verification-email"></span>
+            </p>
+            <p class="verification-text">
+                Please click the link in the email to verify your account and complete your registration.
+            </p>
+            <div class="verification-note">
+                <i class="fas fa-lightbulb"></i> Can't find the email? Check your spam folder!
+            </div>
+        </div>
+
         <form id="signupForm">
             <div class="profile-photo-upload" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
                 <label for="profilePhoto" style="cursor:pointer;">
@@ -211,6 +304,7 @@
             <input type="text" id="firstName" class="input-field" placeholder="First name" required>
             <input type="text" id="lastName" class="input-field" placeholder="Last name" required>
             <input type="text" id="username" class="input-field" placeholder="Username (e.g., @charles_fx)" pattern="^@?\w{3,}$" title="Start with @ or a letter, at least 3 characters, only letters, numbers, and underscores." required>
+            <div id="usernameError" class="error-message" style="display: none;"></div>
             <input type="tel" id="contact" class="input-field" placeholder="Contact - phone or WhatsApp" required>
             <select id="campus" class="input-field" required>
                 <option value="" disabled selected>Select your campus</option>
@@ -274,6 +368,7 @@
             </select>
             <input type="text" id="customLevel" class="input-field" placeholder="Type your level" style="display:none; margin-bottom: 1rem;">
             <input type="email" id="email" class="input-field" placeholder="Email" required>
+            <div id="emailError" class="error-message" style="display: none;"></div>
             <input type="password" id="password" class="input-field" placeholder="Password" required>
             <input type="password" id="confirmPassword" class="input-field" placeholder="Confirm Password" required>
             <button type="submit" class="btn">Sign Up</button>
@@ -312,6 +407,72 @@
         }
 
         const form = document.getElementById('signupForm');
+        const verificationMessage = document.getElementById('verificationMessage');
+        const userEmailSpan = document.getElementById('userEmailSpan');
+        const usernameError = document.getElementById('usernameError');
+        const emailError = document.getElementById('emailError');
+
+        // Check if username already exists
+        async function checkUsernameExists(username) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('username')
+                .eq('username', username)
+                .maybeSingle();
+            
+            return { exists: !!data, error };
+        }
+
+        // Check if email already exists
+        async function checkEmailExists(email) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('email', email)
+                .maybeSingle();
+            
+            return { exists: !!data, error };
+        }
+
+        // Real-time validation for username
+        document.getElementById('username').addEventListener('blur', async function() {
+            const username = this.value.trim();
+            if (username.length < 3) return;
+            
+            const { exists, error } = await checkUsernameExists(username);
+            
+            if (error) {
+                console.error('Error checking username:', error);
+                return;
+            }
+            
+            if (exists) {
+                usernameError.textContent = 'Username already taken. Please choose another one.';
+                usernameError.style.display = 'flex';
+            } else {
+                usernameError.style.display = 'none';
+            }
+        });
+
+        // Real-time validation for email
+        document.getElementById('email').addEventListener('blur', async function() {
+            const email = this.value.trim();
+            if (!email) return;
+            
+            const { exists, error } = await checkEmailExists(email);
+            
+            if (error) {
+                console.error('Error checking email:', error);
+                return;
+            }
+            
+            if (exists) {
+                emailError.textContent = 'Email already registered. Please use a different email or login.';
+                emailError.style.display = 'flex';
+            } else {
+                emailError.style.display = 'none';
+            }
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -333,8 +494,30 @@
             const customLevelInput = document.getElementById('customLevel');
             const level = levelSelect.value === 'Other' ? customLevelInput.value.trim() : levelSelect.value;
 
+            // Hide any previous error messages
+            usernameError.style.display = 'none';
+            emailError.style.display = 'none';
+
             if (password !== confirmPassword) {
                 return alert('Passwords do not match.');
+            }
+
+            // Check if username and email are still available (double-check)
+            const [usernameCheck, emailCheck] = await Promise.all([
+                checkUsernameExists(username),
+                checkEmailExists(email)
+            ]);
+
+            if (usernameCheck.exists) {
+                usernameError.textContent = 'Username already taken. Please choose another one.';
+                usernameError.style.display = 'flex';
+                return;
+            }
+
+            if (emailCheck.exists) {
+                emailError.textContent = 'Email already registered. Please use a different email or login.';
+                emailError.style.display = 'flex';
+                return;
             }
 
             // 1. Upload profile photo to Supabase Storage (if selected)
@@ -378,7 +561,13 @@
 
             if (signUpError) {
                 console.error('Sign up error:', signUpError);
-                return alert('Sign up failed: ' + signUpError.message);
+                if (signUpError.message.includes('already registered')) {
+                    emailError.textContent = 'Email already registered. Please use a different email or login.';
+                    emailError.style.display = 'flex';
+                } else {
+                    alert('Sign up failed: ' + signUpError.message);
+                }
+                return;
             }
 
             const newUser = signUpData.user;
@@ -407,13 +596,23 @@
 
             if (profileError) {
                 console.error('Profile insertion error:', profileError);
-                alert('Sign-up successful, but there was an error saving your profile details: ' + profileError.message);
-                window.location = 'login.html';
+                // Show verification message even if profile insertion fails (user can contact support)
+                userEmailSpan.textContent = email;
+                form.style.display = 'none';
+                verificationMessage.style.display = 'block';
+                
+                // Scroll to verification message
+                verificationMessage.scrollIntoView({ behavior: 'smooth' });
                 return;
             }
 
-            alert('Sign-up successful! Check your inbox to verify your email, then log in.');
-            window.location = 'login.html';
+            // Show verification message
+            userEmailSpan.textContent = email;
+            form.style.display = 'none';
+            verificationMessage.style.display = 'block';
+            
+            // Scroll to verification message
+            verificationMessage.scrollIntoView({ behavior: 'smooth' });
         });
 
         // Show/hide custom campus input
