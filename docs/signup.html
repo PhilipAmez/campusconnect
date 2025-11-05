@@ -580,11 +580,10 @@
 
             const fullName = `${firstName} ${lastName}`.trim();
 
-            // Use the simple profile insertion that works from your original code
+            // UPDATE the existing profile instead of INSERT (since Supabase trigger already created it)
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .insert({
-                    id: newUser.id,
+                .update({
                     full_name: fullName,
                     username: username,
                     contact: contact,
@@ -593,11 +592,12 @@
                     campus: campus,
                     department: department,
                     level: level
-                });
+                })
+                .eq('id', newUser.id); // Update the profile for this specific user
 
             if (profileError) {
-                console.error('Profile insertion error:', profileError);
-                // Show verification message even if profile insertion fails (user can contact support)
+                console.error('Profile update error:', profileError);
+                // Show verification message even if profile update fails
                 userEmailSpan.textContent = email;
                 form.style.display = 'none';
                 verificationMessage.style.display = 'block';
@@ -606,7 +606,7 @@
                 const errorNote = document.createElement('div');
                 errorNote.className = 'verification-note';
                 errorNote.style.borderLeftColor = '#ef4444';
-                errorNote.innerHTML = '<i class="fas fa-exclamation-triangle"></i> There was an issue saving your profile details. Please contact support.';
+                errorNote.innerHTML = '<i class="fas fa-exclamation-triangle"></i> There was an issue updating your profile details. Please contact support.';
                 verificationMessage.appendChild(errorNote);
                 
                 // Scroll to verification message
