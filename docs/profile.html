@@ -151,7 +151,7 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.5rem;
-            padding-bottom: 2rem;
+            padding-bottom: 4rem; /* Extra padding for bottom buttons */
         }
         /* Profile card */
         .profile-card {
@@ -354,57 +354,57 @@
         .groups-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 1rem; /* Increased gap for better spacing */
+            gap: 1rem;
         }
         .group-item {
             display: flex;
             align-items: center;
-            gap: 1rem; /* Increased gap for better alignment */
-            padding: 1rem; /* More padding for comfort */
-            border-radius: var(--radius); /* Smoother corners */
-            background: var(--bg-tertiary); /* Softer background */
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
             transition: var(--transition);
-            box-shadow: var(--shadow); /* Added subtle shadow */
-            cursor: pointer; /* Indicate interactivity */
+            box-shadow: var(--shadow);
+            cursor: pointer;
         }
         .group-item:hover {
-            background: var(--bg-secondary); /* Darker on hover for depth */
-            transform: translateY(-3px); /* Lift effect */
-            box-shadow: var(--shadow-lg); /* Enhanced shadow on hover */
+            background: var(--bg-secondary);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
         }
         .group-avatar {
-            width: 48px; /* Slightly larger for prominence */
+            width: 48px;
             height: 48px;
-            border-radius: 50%; /* Circular for a modern look */
-            background: linear-gradient(135deg, var(--primary), var(--primary-light)); /* Gradient for dope effect */
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 1.1rem; /* Larger text */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            font-size: 1.1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .group-info {
             flex: 1;
         }
         .group-name {
-            font-weight: 600; /* Bolder for emphasis */
-            margin-bottom: 0.25rem; /* Tighter spacing */
-            font-size: 1rem; /* Standard size */
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
         }
         .group-members {
-            font-size: 0.85rem; /* Slightly larger for readability */
-            color: var(--text-light); /* Softer color */
+            font-size: 0.85rem;
+            color: var(--text-light);
         }
         .admin-badge {
-            background: linear-gradient(135deg, var(--accent), #059669); /* Gradient for dope look */
+            background: linear-gradient(135deg, var(--accent), #059669);
             color: white;
             padding: 0.3rem 0.6rem;
-            border-radius: 20px; /* Pill shape */
+            border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         .bio-section {
             position: relative;
@@ -426,12 +426,23 @@
         .edit-bio-btn:hover {
             transform: scale(1.1);
         }
-        /* Share Profile Button */
-        .share-profile-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
+        /* Floating Glass Buttons */
+        .floating-buttons {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+            justify-content: space-between;
+            z-index: 50;
+            gap: 1rem;
+        }
+        .glass-btn {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            border-radius: var(--radius);
             padding: 0.75rem 1.5rem;
             font-weight: 500;
             cursor: pointer;
@@ -439,13 +450,22 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-top: 1rem;
-            width: 100%;
+            box-shadow: var(--shadow-lg);
+            flex: 1;
             justify-content: center;
+            text-decoration: none;
         }
-        .share-profile-btn:hover {
-            background: var(--primary-dark);
+        .glass-btn:hover {
             transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        [data-theme="dark"] .glass-btn {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        [data-theme="dark"] .glass-btn:hover {
+            background: rgba(15, 23, 42, 0.9);
         }
         /* Posts Drawer */
         .posts-drawer {
@@ -494,9 +514,9 @@
             padding: 1.5rem;
         }
         .posts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
+            display: flex;
+            flex-direction: column; /* Changed to column for better mobile layout */
+            gap: 1rem; /* Reduced gap for tighter layout */
         }
         .post-card {
             background: var(--bg-secondary);
@@ -505,6 +525,8 @@
             box-shadow: var(--shadow);
             transition: var(--transition);
             position: relative;
+            display: flex; /* Flex for better layout */
+            flex-direction: column;
         }
         .post-card:hover {
             transform: translateY(-5px);
@@ -512,7 +534,7 @@
         }
         .post-video {
             width: 100%;
-            height: 200px;
+            height: 180px; /* Slightly smaller */
             background: var(--bg-tertiary);
             display: flex;
             align-items: center;
@@ -521,10 +543,11 @@
             position: relative;
         }
         .post-video i {
-            font-size: 3rem;
+            font-size: 2.5rem; /* Smaller icon */
         }
         .post-info {
             padding: 1rem;
+            flex: 1;
         }
         .post-title {
             font-weight: 600;
@@ -533,54 +556,61 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            font-size: 1rem; /* Standard size */
         }
         .post-stats {
             display: flex;
             justify-content: space-between;
-            font-size: 0.875rem;
+            font-size: 0.8rem; /* Smaller for compactness */
             color: var(--text-secondary);
+            margin-top: auto;
+        }
+        .post-stats span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
         }
         .post-actions {
             position: absolute;
-            top: 0.75rem; /* Slightly lower for better positioning */
-            right: 0.75rem;
+            top: 0.5rem;
+            right: 0.5rem;
         }
         .post-menu-btn {
-            background: rgba(255, 255, 255, 0.1); /* More transparent and sleek */
-            color: var(--text-light); /* Softer color */
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
             border: none;
             border-radius: 50%;
-            width: 32px; /* Smaller for minimalism */
-            height: 32px;
+            width: 28px; /* Smaller button */
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: var(--transition);
-            backdrop-filter: blur(20px); /* Enhanced blur for glass effect */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+            backdrop-filter: blur(20px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         .post-menu-btn:hover {
-            background: rgba(255, 255, 255, 0.2); /* Subtle hover */
-            color: white; /* Brighter on hover */
-            transform: rotate(90deg) scale(1.1); /* Fun rotation animation */
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: rotate(90deg) scale(1.05);
         }
         .post-menu-btn i {
-            font-size: 1rem; /* Adjusted icon size */
+            font-size: 0.9rem; /* Smaller icon */
         }
         .post-menu {
             position: absolute;
-            top: calc(100% + 0.5rem); /* Slightly spaced from button */
+            top: calc(100% + 0.5rem);
             right: 0;
             background: var(--bg-primary);
             border-radius: var(--radius);
             box-shadow: var(--shadow-xl);
-            padding: 0.75rem 0; /* More padding for comfort */
-            min-width: 200px; /* Wider for better readability */
+            padding: 0.5rem 0;
+            min-width: 160px; /* Smaller width */
             z-index: 10;
             display: none;
-            border: 1px solid var(--glass-border); /* Subtle border */
-            backdrop-filter: blur(10px); /* Glass effect for dope look */
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
         }
         .post-menu.show {
             display: block;
@@ -588,8 +618,8 @@
         .menu-item {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1.25rem; /* More horizontal padding */
+            gap: 0.5rem; /* Reduced gap */
+            padding: 0.5rem 1rem; /* Smaller padding */
             border-radius: 6px;
             cursor: pointer;
             transition: var(--transition);
@@ -598,16 +628,17 @@
             width: 100%;
             text-align: left;
             color: var(--text-primary);
-            font-size: 0.9rem;
+            font-size: 0.8rem; /* Smaller font */
         }
         .menu-item:hover {
             background: var(--bg-secondary);
-            color: var(--primary); /* Accent on hover */
+            color: var(--primary);
         }
         .menu-item i {
-            width: 16px;
+            width: 12px; /* Smaller icon width */
             text-align: center;
             color: var(--text-secondary);
+            font-size: 0.8rem; /* Smaller icons */
         }
         .menu-item.monetize i {
             color: var(--accent);
@@ -1136,6 +1167,12 @@
             .theme-indicator {
                 left: 40%;
             }
+           
+            .floating-buttons {
+                bottom: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+            }
         }
         @media (max-width: 480px) {
             .avatar {
@@ -1236,11 +1273,6 @@
                         </div>
                     </div>
                    
-                    <button class="share-profile-btn" id="shareProfileBtn">
-                        <i class="fas fa-share-alt"></i>
-                        Share Profile
-                    </button>
-                   
                     <div class="profile-sections">
                         <div class="section">
                             <div class="section-header">
@@ -1317,6 +1349,17 @@
                 </div>
             </div>
         </main>
+        <!-- Floating Buttons -->
+        <div class="floating-buttons">
+            <a href="#" class="glass-btn" id="shareProfileBtn">
+                <i class="fas fa-share-alt"></i>
+                Share Profile
+            </a>
+            <a href="#" class="glass-btn" id="supportBtn">
+                <i class="fas fa-life-ring"></i>
+                Support
+            </a>
+        </div>
     </div>
     <!-- Posts Drawer -->
     <div class="posts-drawer" id="postsDrawer">
@@ -1591,6 +1634,7 @@
         const cancelBioEdit = document.getElementById('cancelBioEdit');
         const saveBioEdit = document.getElementById('saveBioEdit');
         const shareProfileBtn = document.getElementById('shareProfileBtn');
+        const supportBtn = document.getElementById('supportBtn');
         const showFullNameToggle = document.getElementById('showFullNameToggle');
         const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
         const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
@@ -1752,8 +1796,8 @@
                 applyTheme(userProfile.theme_preference);
             }
         }
-        // Load user groups from Supabase
-        async function loadUserGroups() {
+        // Load user groups from Supabase - Enhanced with error handling and retry
+        async function loadUserGroups(retry = false) {
             try {
                 const { data: groups, error } = await supabase
                     .from('group_members')
@@ -1767,14 +1811,28 @@
                     `)
                     .eq('user_id', currentUser.id);
                    
-                if (error) throw error;
-               
-                userGroups = groups || [];
-                updateGroupsUI();
+                if (error) {
+                    console.error('Groups query error:', error);
+                    if (!retry) {
+                        // Retry once
+                        setTimeout(() => loadUserGroups(true), 1000);
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    userGroups = groups || [];
+                    updateGroupsUI();
+                }
                
             } catch (error) {
                 console.error('Error loading groups:', error);
-                showError('Error loading groups');
+                const groupsGrid = document.getElementById('groupsGrid');
+                groupsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>Error loading groups. Please refresh the page.</p>
+                    </div>
+                `;
             }
         }
         // Update the UI with groups data
@@ -1855,7 +1913,7 @@
                         <i class="fas fa-play-circle"></i>
                         <div class="post-actions">
                             <button class="post-menu-btn" data-post-id="${post.id}">
-                                <i class="fas fa-ellipsis-h"></i> <!-- Changed to horizontal ellipsis for sleeker look -->
+                                <i class="fas fa-ellipsis-h"></i>
                             </button>
                             <div class="post-menu" id="post-menu-${post.id}">
                                 <button class="menu-item monetize" onclick="toggleMonetize('${post.id}')">
@@ -2772,6 +2830,11 @@
                     showError('Error sharing profile');
                 }
             }
+        });
+        // Support button functionality
+        supportBtn.addEventListener('click', () => {
+            // Open support page or email
+            window.open('mailto:support@peerloom.com', '_blank');
         });
         // Make functions available globally for onclick handlers
         window.toggleFollow = window.toggleFollow;
