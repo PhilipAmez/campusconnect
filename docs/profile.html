@@ -617,17 +617,19 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: var(--transition);
+            backdrop-filter: blur(10px);
         }
 
         .post-menu-btn:hover {
             background: rgba(0, 0, 0, 0.7);
+            transform: scale(1.1);
         }
 
         .post-menu {
@@ -636,11 +638,12 @@
             right: 0;
             background: var(--bg-primary);
             border-radius: var(--radius);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-xl);
             padding: 0.5rem;
-            min-width: 150px;
+            min-width: 180px;
             z-index: 10;
             display: none;
+            border: 1px solid var(--border);
         }
 
         .post-menu.show {
@@ -650,8 +653,8 @@
         .menu-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0.75rem;
+            gap: 0.75rem;
+            padding: 0.75rem;
             border-radius: 6px;
             cursor: pointer;
             transition: var(--transition);
@@ -660,6 +663,7 @@
             width: 100%;
             text-align: left;
             color: var(--text-primary);
+            font-size: 0.9rem;
         }
 
         .menu-item:hover {
@@ -669,6 +673,15 @@
         .menu-item i {
             width: 16px;
             text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .menu-item.monetize i {
+            color: var(--accent);
+        }
+
+        .menu-item.delete i {
+            color: var(--danger);
         }
 
         /* Settings Drawer with Glassmorphism */
@@ -1334,21 +1347,24 @@
                 <div class="profile-header-section">
                     <div class="avatar-container">
                         <label for="avatarUpload" class="avatar" id="avatar">
-                            <span id="avatarInitials">JS</span>
+                            <span id="avatarInitials">...</span>
                         </label>
                         <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
                     </div>
                     
                     <div class="profile-info">
                         <h1 id="fullName">
-                            <span id="nameText">John Smith</span>
-                            <div class="verified-badge" id="verifiedBadge">
+                            <div class="loading" id="nameLoading">
+                                <div class="spinner"></div>
+                            </div>
+                            <span id="nameText" style="display: none;">Loading...</span>
+                            <div class="verified-badge" id="verifiedBadge" style="display: none;">
                                 <i class="fas fa-check"></i>
                             </div>
                         </h1>
                         <p id="userInfo">
-                            <span id="username">@johnsmith</span>
-                            <span class="status-indicator status-online" id="statusIndicator">Online</span>
+                            <span id="username">Loading...</span>
+                            <span class="status-indicator" id="statusIndicator">Online</span>
                         </p>
                     </div>
                 </div>
@@ -1356,15 +1372,15 @@
                 <div class="profile-content">
                     <div class="profile-stats">
                         <div class="stat-card" id="postsStat">
-                            <div class="stat-value" id="postsCount">12</div>
+                            <div class="stat-value" id="postsCount">0</div>
                             <div class="stat-label">Posts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="followersCount">245</div>
+                            <div class="stat-value" id="followersCount">0</div>
                             <div class="stat-label">Followers</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="followingCount">178</div>
+                            <div class="stat-value" id="followingCount">0</div>
                             <div class="stat-label">Following</div>
                         </div>
                     </div>
@@ -1388,22 +1404,22 @@
                             <div class="academic-grid" id="academicGrid">
                                 <div class="academic-item">
                                     <span class="academic-label">Campus</span>
-                                    <span class="academic-value" id="campusValue">Main Campus</span>
+                                    <span class="academic-value" id="campusValue">Loading...</span>
                                     <input type="text" class="academic-input" id="campusInput" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Level</span>
-                                    <span class="academic-value" id="levelValue">Undergraduate</span>
+                                    <span class="academic-value" id="levelValue">Loading...</span>
                                     <input type="text" class="academic-input" id="levelInput" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Department</span>
-                                    <span class="academic-value" id="departmentValue">Computer Science</span>
+                                    <span class="academic-value" id="departmentValue">Loading...</span>
                                     <input type="text" class="academic-input" id="departmentInput" style="display: none;">
                                 </div>
                                 <div class="academic-item">
                                     <span class="academic-label">Contact</span>
-                                    <span class="academic-value" id="contactValue">john.smith@university.edu</span>
+                                    <span class="academic-value" id="contactValue">Loading...</span>
                                     <input type="text" class="academic-input" id="contactInput" style="display: none;">
                                 </div>
                             </div>
@@ -1421,27 +1437,8 @@
                                 </h2>
                             </div>
                             <div class="groups-grid" id="groupsGrid">
-                                <div class="group-item">
-                                    <div class="group-avatar">CS</div>
-                                    <div class="group-info">
-                                        <div class="group-name">Computer Science Club</div>
-                                        <div class="group-members">128 members</div>
-                                    </div>
-                                    <div class="admin-badge">Admin</div>
-                                </div>
-                                <div class="group-item">
-                                    <div class="group-avatar">DE</div>
-                                    <div class="group-info">
-                                        <div class="group-name">Data Engineering</div>
-                                        <div class="group-members">64 members</div>
-                                    </div>
-                                </div>
-                                <div class="group-item">
-                                    <div class="group-avatar">WT</div>
-                                    <div class="group-info">
-                                        <div class="group-name">Web Technologies</div>
-                                        <div class="group-members">92 members</div>
-                                    </div>
+                                <div class="loading">
+                                    <div class="spinner"></div>
                                 </div>
                             </div>
                         </div>
@@ -1457,7 +1454,7 @@
                                 <i class="fas fa-edit"></i>
                             </button>
                             <div class="bio-content" id="bioContent">
-                                Passionate computer science student with interest in AI and machine learning. Always looking to collaborate on innovative projects!
+                                Loading...
                             </div>
                             <textarea class="academic-input" id="bioInput" style="display: none; width: 100%; min-height: 120px; margin-top: 1rem;"></textarea>
                             <div class="modal-actions" id="bioActions" style="display: none; margin-top: 1rem;">
@@ -1482,7 +1479,9 @@
         
         <div class="posts-container">
             <div class="posts-grid" id="postsGrid">
-                <!-- Post cards will be generated here -->
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1621,26 +1620,8 @@
         
         <div class="notifications-content">
             <div class="notifications-list" id="notificationsList">
-                <div class="notification-item unread">
-                    <div class="notification-header">
-                        <div class="notification-sender">Sarah Johnson</div>
-                        <div class="notification-time">10:30 AM</div>
-                    </div>
-                    <div class="notification-message">Liked your post about machine learning algorithms</div>
-                </div>
-                <div class="notification-item">
-                    <div class="notification-header">
-                        <div class="notification-sender">Campus Events</div>
-                        <div class="notification-time">Yesterday</div>
-                    </div>
-                    <div class="notification-message">Tech conference registration is now open</div>
-                </div>
-                <div class="notification-item">
-                    <div class="notification-header">
-                        <div class="notification-sender">Data Science Group</div>
-                        <div class="notification-time">2 days ago</div>
-                    </div>
-                    <div class="notification-message">New meeting scheduled for Friday</div>
+                <div class="loading">
+                    <div class="spinner"></div>
                 </div>
             </div>
             
@@ -1667,56 +1648,14 @@
             </div>
             
             <div class="followers-list" id="followersList">
-                <div class="follower-item">
-                    <div class="follower-avatar">MJ</div>
-                    <div class="follower-info">
-                        <div class="follower-name">Michael Johnson</div>
-                        <div class="follower-username">@michaelj</div>
-                    </div>
-                    <button class="follow-action following">Following</button>
-                </div>
-                <div class="follower-item">
-                    <div class="follower-avatar">SW</div>
-                    <div class="follower-info">
-                        <div class="follower-name">Sarah Williams</div>
-                        <div class="follower-username">@sarahw</div>
-                    </div>
-                    <button class="follow-action">Follow Back</button>
-                </div>
-                <div class="follower-item">
-                    <div class="follower-avatar">AR</div>
-                    <div class="follower-info">
-                        <div class="follower-name">Alex Rodriguez</div>
-                        <div class="follower-username">@alexr</div>
-                    </div>
-                    <button class="follow-action following">Following</button>
+                <div class="loading">
+                    <div class="spinner"></div>
                 </div>
             </div>
             
             <div class="following-list" id="followingList" style="display: none;">
-                <div class="following-item">
-                    <div class="following-avatar">EJ</div>
-                    <div class="following-info">
-                        <div class="following-name">Emily Johnson</div>
-                        <div class="following-username">@emilyj</div>
-                    </div>
-                    <button class="unfollow-btn">Unfollow</button>
-                </div>
-                <div class="following-item">
-                    <div class="following-avatar">DC</div>
-                    <div class="following-info">
-                        <div class="following-name">David Chen</div>
-                        <div class="following-username">@davidc</div>
-                    </div>
-                    <button class="unfollow-btn">Unfollow</button>
-                </div>
-                <div class="following-item">
-                    <div class="following-avatar">LP</div>
-                    <div class="following-info">
-                        <div class="following-name">Lisa Park</div>
-                        <div class="following-username">@lisap</div>
-                    </div>
-                    <button class="unfollow-btn">Unfollow</button>
+                <div class="loading">
+                    <div class="spinner"></div>
                 </div>
             </div>
         </div>
@@ -1767,7 +1706,10 @@
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
 
-    <script>
+    <script type="module">
+        // Import Supabase client
+        import { supabase } from './js/supabaseClient.js';
+
         // DOM Elements
         const header = document.getElementById('header');
         const themeIndicator = document.getElementById('themeIndicator');
@@ -1814,83 +1756,265 @@
         const closePostsDrawer = document.getElementById('closePostsDrawer');
         const postsGrid = document.getElementById('postsGrid');
 
-        // Sample posts data
-        const userPosts = [
-            {
-                id: 1,
-                title: "Machine Learning Tutorial",
-                views: 2450,
-                likes: 128,
-                date: "3 days ago",
-                monetized: true
-            },
-            {
-                id: 2,
-                title: "Building a React App from Scratch",
-                views: 1820,
-                likes: 95,
-                date: "1 week ago",
-                monetized: false
-            },
-            {
-                id: 3,
-                title: "Data Structures Explained",
-                views: 3100,
-                likes: 210,
-                date: "2 weeks ago",
-                monetized: true
-            },
-            {
-                id: 4,
-                title: "Python Tips and Tricks",
-                views: 1560,
-                likes: 87,
-                date: "3 weeks ago",
-                monetized: false
-            },
-            {
-                id: 5,
-                title: "Web Development Best Practices",
-                views: 2750,
-                likes: 142,
-                date: "1 month ago",
-                monetized: true
-            },
-            {
-                id: 6,
-                title: "Introduction to AI",
-                views: 4200,
-                likes: 256,
-                date: "1 month ago",
-                monetized: true
-            }
-        ];
+        // Current user and data
+        let currentUser = null;
+        let userProfile = null;
+        let userGroups = [];
+        let userNotifications = [];
+        let followers = [];
+        let following = [];
+        let userPosts = [];
 
         // Initialize the page
-        function initializePage() {
-            // Load user posts
-            loadUserPosts();
-            
-            // Set up theme toggle
-            setupThemeToggle();
-            
-            // Set up drawer functionality
-            setupDrawers();
-            
-            // Set up edit functionality
-            setupEditFunctionality();
-            
-            // Set up other event listeners
-            setupEventListeners();
+        async function initializePage() {
+            try {
+                // Get current user
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+                
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                currentUser = user;
+                
+                // Load user profile
+                await loadUserProfile();
+                
+                // Load user groups
+                await loadUserGroups();
+                
+                // Load user posts
+                await loadUserPosts();
+                
+                // Initialize followers system
+                await initializeFollowers();
+                
+                // Load user notifications
+                await loadUserNotifications();
+                
+                // Set up real-time subscriptions
+                setupNotificationsSubscription();
+                setupFollowersRealtime();
+                setupPostsRealtime();
+                
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                showError('Error loading profile data. Please try again.');
+            }
         }
 
-        // Load user posts into the posts drawer
-        function loadUserPosts() {
+        // Load user profile from Supabase
+        async function loadUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                    
+                if (error) {
+                    // If profile doesn't exist, create one
+                    if (error.code === 'PGRST116') {
+                        await createUserProfile();
+                        return;
+                    }
+                    throw error;
+                }
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showError('Error loading profile data');
+            }
+        }
+
+        // Create a new user profile if it doesn't exist
+        async function createUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .insert([
+                        {
+                            id: currentUser.id,
+                            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+                            status: 'Online',
+                            verified: false,
+                            theme_preference: 'dark',
+                            show_full_name: true,
+                            show_academic_info: true,
+                            show_groups_count: true
+                        }
+                    ])
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                
+                userProfile = profile;
+                updateProfileUI();
+                
+            } catch (error) {
+                console.error('Error creating profile:', error);
+                showError('Error creating profile');
+            }
+        }
+
+        // Update the UI with profile data
+        function updateProfileUI() {
+            if (!userProfile) return;
+            
+            // Hide loading spinner and show name
+            document.getElementById('nameLoading').style.display = 'none';
+            document.getElementById('nameText').style.display = 'inline';
+            
+            // Set user name and info
+            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
+            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
+            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
+            
+            // Set status
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.textContent = userProfile.status || 'Online';
+            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            
+            // Show verified badge if user is verified
+            if (userProfile.verified) {
+                document.getElementById('verifiedBadge').style.display = 'flex';
+            }
+            
+            // Set academic details - use custom fields if available
+            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
+            const level = userProfile.custom_level || userProfile.level || 'Not set';
+            
+            document.getElementById('campusValue').textContent = campus;
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelValue').textContent = level;
+            document.getElementById('levelInput').value = level;
+            document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
+            document.getElementById('contactInput').value = userProfile.contact || '';
+            
+            // Set bio
+            document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
+            document.getElementById('bioInput').value = userProfile.bio || '';
+            
+            // Set privacy toggles
+            showFullNameToggle.checked = userProfile.show_full_name !== false;
+            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
+            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
+            
+            // Apply theme from database
+            if (userProfile.theme_preference) {
+                applyTheme(userProfile.theme_preference);
+            }
+        }
+
+        // Load user groups from Supabase
+        async function loadUserGroups() {
+            try {
+                const { data: groups, error } = await supabase
+                    .from('group_members')
+                    .select(`
+                        groups (
+                            id,
+                            name,
+                            member_count
+                        ),
+                        is_admin
+                    `)
+                    .eq('user_id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                userGroups = groups || [];
+                updateGroupsUI();
+                
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                showError('Error loading groups');
+            }
+        }
+
+        // Update the UI with groups data
+        function updateGroupsUI() {
+            const groupsGrid = document.getElementById('groupsGrid');
+            groupsGrid.innerHTML = '';
+            
+            if (userGroups.length === 0) {
+                groupsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>You haven't joined any groups yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            userGroups.forEach(groupData => {
+                const group = groupData.groups;
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-item';
+                
+                groupItem.innerHTML = `
+                    <div class="group-avatar">${group.name.substring(0, 2)}</div>
+                    <div class="group-info">
+                        <div class="group-name">${group.name}</div>
+                        <div class="group-members">${group.member_count || 0} members</div>
+                    </div>
+                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
+                `;
+                
+                groupsGrid.appendChild(groupItem);
+            });
+        }
+
+        // Load user posts from Supabase
+        async function loadUserPosts() {
+            try {
+                const { data: posts, error } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                    
+                if (error) throw error;
+                
+                userPosts = posts || [];
+                updatePostsUI();
+                
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                showError('Error loading posts');
+            }
+        }
+
+        // Update the UI with posts data
+        function updatePostsUI() {
             postsGrid.innerHTML = '';
+            
+            if (userPosts.length === 0) {
+                postsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-video"></i>
+                        <p>You haven't created any posts yet</p>
+                    </div>
+                `;
+                return;
+            }
             
             userPosts.forEach(post => {
                 const postCard = document.createElement('div');
                 postCard.className = 'post-card';
+                
+                // Format time
+                const postDate = new Date(post.created_at);
+                const timeAgo = getTimeAgo(postDate);
                 
                 postCard.innerHTML = `
                     <div class="post-video">
@@ -1900,19 +2024,19 @@
                                 <i class="fas fa-ellipsis-v"></i>
                             </button>
                             <div class="post-menu" id="post-menu-${post.id}">
-                                <button class="menu-item" onclick="toggleMonetize(${post.id})">
+                                <button class="menu-item monetize" onclick="toggleMonetize('${post.id}')">
                                     <i class="fas fa-dollar-sign"></i>
                                     ${post.monetized ? 'Disable Monetization' : 'Enable Monetization'}
                                 </button>
-                                <button class="menu-item" onclick="editPost(${post.id})">
+                                <button class="menu-item" onclick="editPost('${post.id}')">
                                     <i class="fas fa-edit"></i>
                                     Edit Post
                                 </button>
-                                <button class="menu-item" onclick="deletePost(${post.id})">
+                                <button class="menu-item delete" onclick="deletePost('${post.id}')">
                                     <i class="fas fa-trash"></i>
                                     Delete Post
                                 </button>
-                                <button class="menu-item" onclick="sharePost(${post.id})">
+                                <button class="menu-item" onclick="sharePost('${post.id}')">
                                     <i class="fas fa-share"></i>
                                     Share Post
                                 </button>
@@ -1920,11 +2044,11 @@
                         </div>
                     </div>
                     <div class="post-info">
-                        <div class="post-title">${post.title}</div>
+                        <div class="post-title">${post.title || 'Untitled Post'}</div>
                         <div class="post-stats">
-                            <span><i class="fas fa-eye"></i> ${post.views}</span>
-                            <span><i class="fas fa-heart"></i> ${post.likes}</span>
-                            <span>${post.date}</span>
+                            <span><i class="fas fa-eye"></i> ${post.views || 0}</span>
+                            <span><i class="fas fa-heart"></i> ${post.likes || 0}</span>
+                            <span>${timeAgo}</span>
                         </div>
                     </div>
                 `;
@@ -1957,306 +2081,936 @@
             });
         }
 
+        // Get time ago string
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+
         // Post menu functions
-        function toggleMonetize(postId) {
-            const post = userPosts.find(p => p.id === postId);
-            if (post) {
-                post.monetized = !post.monetized;
-                alert(`Post "${post.title}" ${post.monetized ? 'monetized' : 'demonetized'} successfully!`);
+        window.toggleMonetize = async function(postId) {
+            try {
+                const post = userPosts.find(p => p.id === postId);
+                if (!post) return;
                 
-                // In a real app, you would update the database here
+                const newMonetizedStatus = !post.monetized;
+                
+                // Update in Supabase
+                const { error } = await supabase
+                    .from('posts')
+                    .update({ monetized: newMonetizedStatus })
+                    .eq('id', postId);
+                    
+                if (error) throw error;
+                
+                // Update local state
+                post.monetized = newMonetizedStatus;
+                
+                showError(`Post ${newMonetizedStatus ? 'monetized' : 'demonetized'} successfully!`);
+                
+            } catch (error) {
+                console.error('Error toggling monetization:', error);
+                showError('Error updating monetization status');
             }
-        }
+        };
 
-        function editPost(postId) {
+        window.editPost = function(postId) {
             const post = userPosts.find(p => p.id === postId);
             if (post) {
-                alert(`Editing post: ${post.title}`);
                 // In a real app, you would open an edit modal here
+                alert(`Editing post: ${post.title || 'Untitled Post'}`);
             }
-        }
+        };
 
-        function deletePost(postId) {
+        window.deletePost = async function(postId) {
             const post = userPosts.find(p => p.id === postId);
-            if (post && confirm(`Are you sure you want to delete "${post.title}"?`)) {
-                // In a real app, you would remove from database and update UI
-                alert(`Post "${post.title}" deleted successfully!`);
+            if (post && confirm(`Are you sure you want to delete "${post.title || 'Untitled Post'}"?`)) {
+                try {
+                    // Delete from Supabase
+                    const { error } = await supabase
+                        .from('posts')
+                        .delete()
+                        .eq('id', postId);
+                        
+                    if (error) throw error;
+                    
+                    // Update local state
+                    userPosts = userPosts.filter(p => p.id !== postId);
+                    updatePostsUI();
+                    
+                    showError('Post deleted successfully!');
+                    
+                } catch (error) {
+                    console.error('Error deleting post:', error);
+                    showError('Error deleting post');
+                }
             }
-        }
+        };
 
-        function sharePost(postId) {
+        window.sharePost = function(postId) {
             const post = userPosts.find(p => p.id === postId);
             if (post) {
                 // In a real app, you would implement actual sharing
-                alert(`Sharing post: ${post.title}`);
+                alert(`Sharing post: ${post.title || 'Untitled Post'}`);
+            }
+        };
+
+        // Initialize followers functionality
+        async function initializeFollowers() {
+            await loadFollowersData();
+        }
+
+        // Load followers and following data
+        async function loadFollowersData() {
+            try {
+                // Load followers (people who follow the current user)
+                const { data: followersData, error: followersError } = await supabase
+                    .from('followers')
+                    .select(`
+                        follower:profiles!follower_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('following_id', currentUser.id);
+                    
+                if (followersError) throw followersError;
+                
+                followers = followersData.map(item => item.follower);
+                
+                // Load following (people the current user follows)
+                const { data: followingData, error: followingError } = await supabase
+                    .from('followers')
+                    .select(`
+                        following:profiles!following_id (
+                            id,
+                            full_name,
+                            username,
+                            profile_photo
+                        )
+                    `)
+                    .eq('follower_id', currentUser.id);
+                    
+                if (followingError) throw followingError;
+                
+                following = followingData.map(item => item.following);
+                
+                updateFollowersUI();
+                
+            } catch (error) {
+                console.error('Error loading followers data:', error);
+                showError('Error loading followers data');
             }
         }
 
-        // Theme toggle with swipe
-        function setupThemeToggle() {
-            let startX;
+        // Update followers UI
+        function updateFollowersUI() {
+            // Update counts
+            document.getElementById('followersCount').textContent = followers.length;
+            document.getElementById('followingCount').textContent = following.length;
+            document.getElementById('postsCount').textContent = userPosts.length;
             
-            header.addEventListener('mousedown', (e) => {
-                startX = e.clientX;
-                header.style.transition = 'none';
-                header.classList.add('swiping');
-            });
+            // Update followers list
+            updateFollowersList();
+            updateFollowingList();
+        }
 
-            header.addEventListener('mousemove', (e) => {
-                if (e.buttons === 1) {
-                    const dx = e.clientX - startX;
-                    if (dx < -50) {
-                        themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
-                    } else if (dx > 50) {
-                        themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
-                    }
-                }
-            });
-
-            header.addEventListener('mouseup', (e) => {
-                header.style.transition = 'all 0.3s ease';
-                header.classList.remove('swiping');
-                
-                if (startX) {
-                    const dx = e.clientX - startX;
-                    if (dx < -50) {
-                        applyTheme('light');
-                    } else if (dx > 50) {
-                        applyTheme('dark');
-                    }
-                    startX = null;
-                }
-            });
-
-            header.addEventListener('mouseleave', () => {
-                header.style.transition = 'all 0.3s ease';
-                header.classList.remove('swiping');
-                startX = null;
-            });
-
-            // Touch events for mobile
-            header.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                header.style.transition = 'none';
-                header.classList.add('swiping');
-            });
-
-            header.addEventListener('touchmove', (e) => {
-                if (startX) {
-                    const dx = e.touches[0].clientX - startX;
-                    if (dx < -50) {
-                        themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
-                    } else if (dx > 50) {
-                        themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
-                    }
-                }
-            });
-
-            header.addEventListener('touchend', (e) => {
-                header.style.transition = 'all 0.3s ease';
-                header.classList.remove('swiping');
-                
-                if (startX) {
-                    const dx = e.changedTouches[0].clientX - startX;
-                    if (dx < -50) {
-                        applyTheme('light');
-                    } else if (dx > 50) {
-                        applyTheme('dark');
-                    }
-                    startX = null;
-                }
+        // Update followers list
+        function updateFollowersList() {
+            followersList.innerHTML = '';
+            
+            if (followers.length === 0) {
+                followersList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No followers yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            followers.forEach(follower => {
+                const followerItem = document.createElement('div');
+                followerItem.className = 'follower-item';
+                followerItem.innerHTML = `
+                    <div class="follower-avatar">
+                        ${follower.profile_photo ? 
+                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(follower.full_name)
+                        }
+                    </div>
+                    <div class="follower-info">
+                        <div class="follower-name">${follower.full_name}</div>
+                        <div class="follower-username">@${follower.username}</div>
+                    </div>
+                    <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}" 
+                            onclick="toggleFollow('${follower.id}')"
+                            data-user-id="${follower.id}">
+                        ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
+                    </button>
+                `;
+                followersList.appendChild(followerItem);
             });
         }
+
+        // Update following list
+        function updateFollowingList() {
+            followingList.innerHTML = '';
+            
+            if (following.length === 0) {
+                followingList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-plus"></i>
+                        <p>Not following anyone yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            following.forEach(followedUser => {
+                const followingItem = document.createElement('div');
+                followingItem.className = 'following-item';
+                followingItem.innerHTML = `
+                    <div class="following-avatar">
+                        ${followedUser.profile_photo ? 
+                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            getInitials(followedUser.full_name)
+                        }
+                    </div>
+                    <div class="following-info">
+                        <div class="following-name">${followedUser.full_name}</div>
+                        <div class="following-username">@${followedUser.username}</div>
+                    </div>
+                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
+                        Unfollow
+                    </button>
+                `;
+                followingList.appendChild(followingItem);
+            });
+        }
+
+        // Check if current user is following a specific user
+        function isFollowing(userId) {
+            return following.some(user => user.id === userId);
+        }
+
+        // Toggle follow/unfollow
+        window.toggleFollow = async function(userId) {
+            try {
+                if (isFollowing(userId)) {
+                    await unfollowUser(userId);
+                } else {
+                    await followUser(userId);
+                }
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                showError('Error updating follow status');
+            }
+        };
+
+        // Follow a user
+        async function followUser(userId) {
+            try {
+                const { error } = await supabase
+                    .from('followers')
+                    .insert([
+                        {
+                            follower_id: currentUser.id,
+                            following_id: userId
+                        }
+                    ]);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
+                showError('User followed successfully!');
+                
+            } catch (error) {
+                console.error('Error following user:', error);
+                throw error;
+            }
+        }
+
+        // Unfollow a user
+        window.unfollowUser = async function(userId) {
+            try {
+                const { error } = await supabase
+                    .from('followers')
+                    .delete()
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', userId);
+                    
+                if (error) throw error;
+                
+                // The real-time subscription will update the UI automatically
+                showError('User unfollowed');
+                
+            } catch (error) {
+                console.error('Error unfollowing user:', error);
+                throw error;
+            }
+        };
+
+        // Load user notifications from Supabase
+        async function loadUserNotifications() {
+            try {
+                const { data: notifications, error } = await supabase
+                    .from('notifications')
+                    .select(`
+                        *,
+                        sender:profiles!sender_id(full_name, username),
+                        post:posts(id, content)
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                    
+                if (error) throw error;
+                
+                userNotifications = notifications || [];
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                showError('Error loading notifications');
+            }
+        }
+
+        // Update the UI with notifications data
+        function updateNotificationsUI() {
+            notificationsList.innerHTML = '';
+            
+            if (userNotifications.length === 0) {
+                notificationsList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>No notifications yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            userNotifications.forEach(notification => {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                
+                // Format time
+                const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                let message = '';
+                if (notification.type === 'new_post') {
+                    const postPreview = notification.post?.content?.substring(0, 50) + (notification.post?.content?.length > 50 ? '...' : '');
+                    message = `New post: "${postPreview}"`;
+                } else if (notification.type === 'new_follower') {
+                    message = 'Started following you';
+                } else {
+                    message = notification.content;
+                }
+                
+                notificationItem.innerHTML = `
+                    <div class="notification-header">
+                        <div class="notification-sender">${notification.sender?.full_name || 'System'}</div>
+                        <div class="notification-time">${time}</div>
+                    </div>
+                    <div class="notification-message">${message}</div>
+                `;
+                
+                notificationsList.appendChild(notificationItem);
+            });
+        }
+
+        // Set up real-time notifications subscription
+        function setupNotificationsSubscription() {
+            const channel = supabase
+                .channel(`notifications-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        // Add new notification to the beginning of the list
+                        userNotifications.unshift(payload.new);
+                        updateNotificationsUI();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for followers
+        function setupFollowersRealtime() {
+            // Subscribe to followers changes
+            const followersChannel = supabase
+                .channel(`followers-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `following_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'followers',
+                        filter: `follower_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadFollowersData();
+                    }
+                )
+                .subscribe();
+        }
+
+        // Set up real-time subscriptions for posts
+        function setupPostsRealtime() {
+            // Subscribe to posts changes
+            const postsChannel = supabase
+                .channel(`posts-${currentUser.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'posts',
+                        filter: `user_id=eq.${currentUser.id}`
+                    },
+                    async (payload) => {
+                        await loadUserPosts();
+                        await loadFollowersData(); // To update the posts count
+                    }
+                )
+                .subscribe();
+        }
+
+        // Get initials from full name
+        function getInitials(fullName) {
+            if (!fullName) return 'U';
+            return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
+        }
+
+        // Show error message
+        function showError(message) {
+            // You could implement a toast notification system here
+            console.error(message);
+            alert(message);
+        }
+
+        // Theme toggle with swipe
+        let startX;
+        header.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            header.style.transition = 'none';
+            header.classList.add('swiping');
+        });
+
+        header.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) {
+                const dx = e.clientX - startX;
+                if (dx < -50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
+                } else if (dx > 50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
+                }
+            }
+        });
+
+        header.addEventListener('mouseup', (e) => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            
+            if (startX) {
+                const dx = e.clientX - startX;
+                if (dx < -50) {
+                    applyTheme('light');
+                } else if (dx > 50) {
+                    applyTheme('dark');
+                }
+                startX = null;
+            }
+        });
+
+        header.addEventListener('mouseleave', () => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            startX = null;
+        });
+
+        // Touch events for mobile
+        header.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            header.style.transition = 'none';
+            header.classList.add('swiping');
+        });
+
+        header.addEventListener('touchmove', (e) => {
+            if (startX) {
+                const dx = e.touches[0].clientX - startX;
+                if (dx < -50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
+                } else if (dx > 50) {
+                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
+                }
+            }
+        });
+
+        header.addEventListener('touchend', (e) => {
+            header.style.transition = 'all 0.3s ease';
+            header.classList.remove('swiping');
+            
+            if (startX) {
+                const dx = e.changedTouches[0].clientX - startX;
+                if (dx < -50) {
+                    applyTheme('light');
+                } else if (dx > 50) {
+                    applyTheme('dark');
+                }
+                startX = null;
+            }
+        });
 
         // Apply theme function
         function applyTheme(theme) {
             body.setAttribute('data-theme', theme);
             localStorage.setItem('peerloom-theme', theme);
             darkModeToggle.checked = theme === 'dark';
+            
+            // Save theme preference to database
+            if (userProfile) {
+                saveThemePreference(theme);
+            }
+        }
+
+        // Save theme preference to database
+        async function saveThemePreference(theme) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ theme_preference: theme })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+            } catch (error) {
+                console.error('Error saving theme preference:', error);
+            }
         }
 
         // Initialize theme
-        const savedTheme = localStorage.getItem('peerloom-theme') || 'dark';
+        const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
         applyTheme(savedTheme);
 
-        // Set up drawer functionality
-        function setupDrawers() {
-            // Settings drawer
-            settingsBtn.addEventListener('click', () => {
-                settingsDrawer.classList.add('open');
-                overlay.classList.add('active');
-            });
+        // Settings drawer functionality
+        settingsBtn.addEventListener('click', () => {
+            settingsDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
 
-            closeDrawer.addEventListener('click', () => {
-                settingsDrawer.classList.remove('open');
-                overlay.classList.remove('active');
-            });
+        closeDrawer.addEventListener('click', () => {
+            settingsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
 
-            // Notifications drawer
-            notificationsBtn.addEventListener('click', () => {
-                notificationsDrawer.classList.add('open');
-                overlay.classList.add('active');
-            });
+        // Notifications drawer functionality
+        notificationsBtn.addEventListener('click', () => {
+            notificationsDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
 
-            closeNotifications.addEventListener('click', () => {
-                notificationsDrawer.classList.remove('open');
-                overlay.classList.remove('active');
-            });
+        closeNotifications.addEventListener('click', () => {
+            notificationsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
 
-            // Followers drawer
-            followersBtn.addEventListener('click', () => {
-                followersDrawer.classList.add('open');
-                overlay.classList.add('active');
-            });
+        // Followers drawer functionality
+        followersBtn.addEventListener('click', () => {
+            followersDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
 
-            closeFollowersDrawer.addEventListener('click', () => {
-                followersDrawer.classList.remove('open');
-                overlay.classList.remove('active');
-            });
+        closeFollowersDrawer.addEventListener('click', () => {
+            followersDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
 
-            // Posts drawer
-            postsStat.addEventListener('click', () => {
-                postsDrawer.classList.add('open');
-                overlay.classList.add('active');
-            });
+        // Posts drawer functionality
+        postsStat.addEventListener('click', () => {
+            postsDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
 
-            closePostsDrawer.addEventListener('click', () => {
-                postsDrawer.classList.remove('open');
-                overlay.classList.remove('active');
-            });
+        closePostsDrawer.addEventListener('click', () => {
+            postsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
 
-            // Tab switching for followers/following
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const tab = button.getAttribute('data-tab');
-                    
-                    // Update active tab
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    
-                    // Show appropriate content
-                    if (tab === 'followers') {
-                        followersList.style.display = 'block';
-                        followingList.style.display = 'none';
-                    } else {
-                        followersList.style.display = 'none';
-                        followingList.style.display = 'block';
-                    }
-                });
-            });
-
-            overlay.addEventListener('click', () => {
-                settingsDrawer.classList.remove('open');
-                notificationsDrawer.classList.remove('open');
-                followersDrawer.classList.remove('open');
-                postsDrawer.classList.remove('open');
-                overlay.classList.remove('active');
-                twoFactorModal.classList.remove('active');
-            });
-        }
-
-        // Set up edit functionality
-        function setupEditFunctionality() {
-            // Edit academic details functionality
-            editAcademicBtn.addEventListener('click', () => {
-                // Hide values, show inputs
-                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
-                academicActions.style.display = 'flex';
-                editAcademicBtn.style.display = 'none';
-            });
-
-            cancelAcademicEdit.addEventListener('click', () => {
-                // Show values, hide inputs
-                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-                academicActions.style.display = 'none';
-                editAcademicBtn.style.display = 'block';
-            });
-
-            saveAcademicEdit.addEventListener('click', () => {
-                // Update displayed values
-                document.getElementById('campusValue').textContent = document.getElementById('campusInput').value;
-                document.getElementById('levelValue').textContent = document.getElementById('levelInput').value;
-                document.getElementById('departmentValue').textContent = document.getElementById('departmentInput').value;
-                document.getElementById('contactValue').textContent = document.getElementById('contactInput').value;
+        // Tab switching for followers/following
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.getAttribute('data-tab');
                 
-                // Show values, hide inputs
-                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-                academicActions.style.display = 'none';
-                editAcademicBtn.style.display = 'block';
+                // Update active tab
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
                 
-                alert('Academic details updated successfully!');
-            });
-
-            // Edit bio functionality
-            editBioBtn.addEventListener('click', () => {
-                bioContent.style.display = 'none';
-                bioInput.style.display = 'block';
-                bioActions.style.display = 'flex';
-                editBioBtn.style.display = 'none';
-            });
-
-            cancelBioEdit.addEventListener('click', () => {
-                bioContent.style.display = 'block';
-                bioInput.style.display = 'none';
-                bioActions.style.display = 'none';
-                editBioBtn.style.display = 'block';
-            });
-
-            saveBioEdit.addEventListener('click', () => {
-                bioContent.textContent = bioInput.value;
-                bioContent.style.display = 'block';
-                bioInput.style.display = 'none';
-                bioActions.style.display = 'none';
-                editBioBtn.style.display = 'block';
-                
-                alert('Bio updated successfully!');
-            });
-        }
-
-        // Set up other event listeners
-        function setupEventListeners() {
-            // Mark all notifications as read
-            markAllReadBtn.addEventListener('click', () => {
-                document.querySelectorAll('.notification-item').forEach(item => {
-                    item.classList.remove('unread');
-                });
-                alert('All notifications marked as read!');
-            });
-
-            // 2FA functionality
-            twoFactorToggle.addEventListener('change', () => {
-                if (twoFactorToggle.checked) {
-                    twoFactorModal.classList.add('active');
-                    overlay.classList.add('active');
+                // Show appropriate content
+                if (tab === 'followers') {
+                    followersList.style.display = 'block';
+                    followingList.style.display = 'none';
+                } else {
+                    followersList.style.display = 'none';
+                    followingList.style.display = 'block';
                 }
             });
+        });
 
-            cancel2FA.addEventListener('click', () => {
-                twoFactorModal.classList.remove('active');
-                overlay.classList.remove('active');
-                twoFactorToggle.checked = false;
-            });
+        overlay.addEventListener('click', () => {
+            settingsDrawer.classList.remove('open');
+            notificationsDrawer.classList.remove('open');
+            followersDrawer.classList.remove('open');
+            postsDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+            twoFactorModal.classList.remove('active');
+        });
 
-            confirm2FA.addEventListener('click', () => {
-                twoFactorModal.classList.remove('active');
-                overlay.classList.remove('active');
-                alert('Two-factor authentication has been enabled!');
-            });
+        // Mark all notifications as read
+        markAllReadBtn.addEventListener('click', async () => {
+            try {
+                const unreadNotifications = userNotifications.filter(n => !n.read);
+                if (unreadNotifications.length === 0) return;
+                
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ read: true })
+                    .eq('user_id', currentUser.id)
+                    .eq('read', false);
+                    
+                if (error) throw error;
+                
+                // Update local state
+                userNotifications.forEach(n => {
+                    n.read = true;
+                });
+                
+                updateNotificationsUI();
+                
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+                showError('Error marking notifications as read');
+            }
+        });
 
-            // Dark mode toggle in settings
-            darkModeToggle.addEventListener('change', () => {
-                applyTheme(darkModeToggle.checked ? 'dark' : 'light');
-            });
+        // 2FA functionality
+        twoFactorToggle.addEventListener('change', () => {
+            if (twoFactorToggle.checked) {
+                twoFactorModal.classList.add('active');
+                overlay.classList.add('active');
+            }
+        });
 
-            // Share profile functionality
-            shareProfileBtn.addEventListener('click', () => {
-                alert('Profile link copied to clipboard!');
-                // In a real app, you would implement actual sharing
-            });
+        cancel2FA.addEventListener('click', () => {
+            twoFactorModal.classList.remove('active');
+            overlay.classList.remove('active');
+            twoFactorToggle.checked = false;
+        });
+
+        confirm2FA.addEventListener('click', () => {
+            twoFactorModal.classList.remove('active');
+            overlay.classList.remove('active');
+            // In a real app, you would enable 2FA here
+            showError('Two-factor authentication has been enabled!');
+        });
+
+        // Dark mode toggle in settings
+        darkModeToggle.addEventListener('change', () => {
+            applyTheme(darkModeToggle.checked ? 'dark' : 'light');
+        });
+
+        // Notification toggles
+        emailNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
+        });
+
+        pushNotificationsToggle.addEventListener('change', async () => {
+            await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
+        });
+
+        // Privacy toggles
+        showFullNameToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_full_name', showFullNameToggle.checked);
+        });
+
+        showAcademicInfoToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked);
+        });
+
+        showGroupsCountToggle.addEventListener('change', async () => {
+            await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked);
+        });
+
+        // Save privacy setting to database
+        async function savePrivacySetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
         }
+
+        // Save notification setting to database
+        async function saveNotificationSetting(setting, value) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [setting]: value })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile[setting] = value;
+                
+            } catch (error) {
+                console.error(`Error saving ${setting}:`, error);
+                showError(`Error saving ${setting} preference`);
+            }
+        }
+
+        // Avatar upload
+        const avatarUpload = document.getElementById('avatarUpload');
+        const avatar = document.getElementById('avatar');
+        
+        avatarUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!currentUser) {
+                showError('You must be logged in to upload an avatar.');
+                return;
+            }
+
+            try {
+                // Upload avatar to Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars') // Make sure you have a bucket named 'avatars' in Supabase Storage
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath); // This returns the URL, not an object with publicUrl
+
+                // Update profile with avatar URL
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ profile_photo: publicUrl })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+
+                // Update UI
+                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
+                
+                // Update local profile object
+                userProfile.profile_photo = publicUrl;
+                
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                showError('Error uploading avatar');
+            }
+        });
+
+        // Edit academic details functionality
+        editAcademicBtn.addEventListener('click', () => {
+            // Hide values, show inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
+            academicActions.style.display = 'flex';
+            editAcademicBtn.style.display = 'none';
+        });
+
+        cancelAcademicEdit.addEventListener('click', () => {
+            // Show values, hide inputs
+            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+            academicActions.style.display = 'none';
+            editAcademicBtn.style.display = 'block';
+            
+            // Reset input values to current user data
+            const campus = userProfile.custom_campus || userProfile.campus || '';
+            const level = userProfile.custom_level || userProfile.level || '';
+            
+            document.getElementById('campusInput').value = campus;
+            document.getElementById('levelInput').value = level;
+            document.getElementById('departmentInput').value = userProfile.department || '';
+            document.getElementById('contactInput').value = userProfile.contact || '';
+        });
+
+        saveAcademicEdit.addEventListener('click', async () => {
+            try {
+                // Update user data in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        campus: document.getElementById('campusInput').value,
+                        custom_campus: document.getElementById('campusInput').value,
+                        level: document.getElementById('levelInput').value,
+                        custom_level: document.getElementById('levelInput').value,
+                        department: document.getElementById('departmentInput').value,
+                        contact: document.getElementById('contactInput').value
+                    })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.campus = document.getElementById('campusInput').value;
+                userProfile.custom_campus = document.getElementById('campusInput').value;
+                userProfile.level = document.getElementById('levelInput').value;
+                userProfile.custom_level = document.getElementById('levelInput').value;
+                userProfile.department = document.getElementById('departmentInput').value;
+                userProfile.contact = document.getElementById('contactInput').value;
+                
+                // Update displayed values
+                document.getElementById('campusValue').textContent = userProfile.custom_campus || userProfile.campus || 'Not set';
+                document.getElementById('levelValue').textContent = userProfile.custom_level || userProfile.level || 'Not set';
+                document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
+                document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
+                
+                // Show values, hide inputs
+                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
+                academicActions.style.display = 'none';
+                editAcademicBtn.style.display = 'block';
+                
+                showError('Academic details updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating academic details:', error);
+                showError('Error updating academic details');
+            }
+        });
+
+        // Edit bio functionality
+        editBioBtn.addEventListener('click', () => {
+            bioContent.style.display = 'none';
+            bioInput.style.display = 'block';
+            bioActions.style.display = 'flex';
+            editBioBtn.style.display = 'none';
+        });
+
+        cancelBioEdit.addEventListener('click', () => {
+            bioContent.style.display = 'block';
+            bioInput.style.display = 'none';
+            bioActions.style.display = 'none';
+            editBioBtn.style.display = 'block';
+            
+            // Reset bio input to current value
+            bioInput.value = userProfile.bio || '';
+        });
+
+        saveBioEdit.addEventListener('click', async () => {
+            try {
+                const newBio = bioInput.value;
+                
+                // Update bio in Supabase
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ bio: newBio })
+                    .eq('id', currentUser.id);
+                    
+                if (error) throw error;
+                
+                // Update local user profile
+                userProfile.bio = newBio;
+                bioContent.textContent = userProfile.bio || 'No bio yet...';
+                
+                bioContent.style.display = 'block';
+                bioInput.style.display = 'none';
+                bioActions.style.display = 'none';
+                editBioBtn.style.display = 'block';
+                
+                showError('Bio updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating bio:', error);
+                showError('Error updating bio');
+            }
+        });
+
+        // Share profile functionality
+        shareProfileBtn.addEventListener('click', async () => {
+            try {
+                // Create a shareable link
+                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `${userProfile.full_name}'s Profile`,
+                        text: `Check out ${userProfile.full_name}'s profile on Peerloom`,
+                        url: profileUrl
+                    });
+                } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(profileUrl);
+                    showError('Profile link copied to clipboard!');
+                }
+            } catch (error) {
+                console.error('Error sharing profile:', error);
+                
+                // Fallback: copy to clipboard
+                try {
+                    const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                    await navigator.clipboard.writeText(profileUrl);
+                    showError('Profile link copied to clipboard!');
+                } catch (clipboardError) {
+                    console.error('Error copying to clipboard:', clipboardError);
+                    showError('Error sharing profile');
+                }
+            }
+        });
+
+        // Make functions available globally for onclick handlers
+        window.toggleFollow = window.toggleFollow;
+        window.unfollowUser = window.unfollowUser;
 
         // Initialize the page
         initializePage();
