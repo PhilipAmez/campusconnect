@@ -3203,15 +3203,8 @@
         shareProfileBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             try {
-<<<<<<< HEAD
                 // Create a shareable link that works on GitHub Pages
                 const profileUrl = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
-                
-=======
-                // Create a shareable link
-                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
-               
->>>>>>> 329a2ba37c3cae6b1ba1a874b0ce3ab945432e05
                 // Check if Web Share API is available
                 if (navigator.share) {
                     await navigator.share({
@@ -3222,7 +3215,7 @@
                 } else {
                     // Fallback: copy to clipboard
                     await navigator.clipboard.writeText(profileUrl);
-                    showError('Profile link copied to clipboard!');
+                    showError('Profile link copied to clipboard!'); // Using showError for consistent toast messages
                 }
             } catch (error) {
                 console.error('Error sharing profile:', error);
@@ -3230,8 +3223,8 @@
                 // Fallback: copy to clipboard
                 try {
                     const profileUrl = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
-                    await navigator.clipboard.writeText(profileUrl);
-                    showError('Profile link copied to clipboard!');
+                    await navigator.clipboard.writeText(profileUrl); // Fallback copy
+                    showError('Profile link copied to clipboard!'); // Using showError for consistent toast messages
                 } catch (clipboardError) {
                     console.error('Error copying to clipboard:', clipboardError);
                     showError('Error sharing profile');
