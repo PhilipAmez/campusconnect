@@ -22,44 +22,55 @@
             --hover-bg: #f3f4f6;
             --transition: all 0.3s cubic-bezier(.4,0,.2,1);
             --bg-gradient: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --card-bg: rgba(255, 255, 255, 0.15);
         }
         [data-theme="dark"] {
-            --bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --card-bg: rgba(255, 255, 255, 0.05);
+            --bg-primary: #1f2937;
+            --bg-secondary: #374151;
             --text-dark: #f9fafb;
             --text-light: #9ca3af;
             --hover-bg: #4b5563;
             --primary: #7c3aed;
             --secondary: #4f46e5;
             --accent: #a78bfa;
+            --bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+        [data-theme="dark"] .sidebar, [data-theme="dark"] .main-content, [data-theme="dark"] .connections,
+        [data-theme="dark"] .card, [data-theme="dark"] .search-bar, [data-theme="dark"] .input-field,
+        [data-theme="dark"] .textarea-field, [data-theme="dark"] .btn, [data-theme="dark"] .session-indicator {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .group-item:hover, [data-theme="dark"] .connection-item:hover {
+            background: rgba(124, 58, 237, 0.1);
+        }
+        [data-theme="dark"] .nav-links.mobile {
+            background: rgba(31, 41, 55, 0.95);
+        }
+        [data-theme="dark"] .nav-links.mobile a {
+            color: var(--text-dark);
+            background: rgba(124, 58, 237, 0.1);
+            border-color: rgba(124, 58, 237, 0.2);
         }
         body {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
             background: var(--bg-gradient);
-            color: var(--text-dark);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
+            color: var(--text-dark);
+            overflow-x: hidden;
             transition: var(--transition);
         }
-        /* Splash Screen Styles */
-        .splash-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
-            color: #fff;
-            font-family: 'Great Vibes', cursive;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
+        .splash-active {
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%) !important;
+            color: #fff !important;
+            font-family: 'Great Vibes', cursive !important;
+            height: 100vh !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
         .snowflake {
             position: fixed;
@@ -141,7 +152,23 @@
             from { opacity: 1; }
             to { opacity: 0; visibility: hidden; }
         }
-        /* End Splash Styles */
+        @media (max-width: 768px) {
+            .splash-title {
+                font-size: 2.2rem;
+            }
+            .splash-text {
+                font-size: 1rem;
+                padding: 0 10px;
+            }
+            .enter-btn {
+                font-size: 1rem;
+                padding: 12px 28px;
+            }
+            .terms {
+                font-size: 0.75rem;
+                padding: 0 15px;
+            }
+        }
         .navbar {
             position: fixed;
             width: 100%;
@@ -168,14 +195,6 @@
             background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
             z-index: -1;
             opacity: 0.3;
-        }
-        .logo {
-            height: 28px;
-            transition: transform var(--transition);
-            cursor: pointer;
-        }
-        .logo:hover {
-            transform: scale(1.1);
         }
         .logo img {
             height: 28px;
@@ -270,17 +289,6 @@
             width: 20px;
             text-align: center;
         }
-        .topbar {
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
         .dashboard {
             display: flex;
             flex-direction: column;
@@ -294,11 +302,12 @@
             transition: var(--transition);
         }
         .sidebar, .main-content, .connections {
-            background: var(--glass-bg);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: var(--transition);
         }
         .sidebar, .connections {
             flex: 1 1 100%;
@@ -321,14 +330,15 @@
             backdrop-filter: blur(5px);
             border-radius: 0.8rem;
             margin-bottom: 1rem;
+            transition: var(--transition);
         }
         .card {
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             border-radius: 0.8rem;
             padding: 1rem;
             margin-bottom: 1rem;
-            transition: transform 0.2s;
+            transition: transform 0.2s, var(--transition);
         }
         .card:hover {
             transform: translateY(-2px);
@@ -342,7 +352,7 @@
             background: rgba(255, 255, 255, 0.2);
             font-size: 1rem;
             color: var(--text-dark);
-            transition: border 0.2s;
+            transition: border 0.2s, var(--transition);
             font-family: inherit;
         }
         .search-bar:focus, .input-field:focus, .textarea-field:focus {
@@ -373,7 +383,7 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 0.5rem;
             cursor: pointer;
-            transition: transform 0.2s, background 0.2s, color 0.2s;
+            transition: transform 0.2s, background 0.2s, color 0.2s, var(--transition);
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -386,7 +396,7 @@
             border-radius: 0.5rem;
             padding: 0.6rem 1.2rem;
             color: white;
-            transition: transform 0.2s, background 0.2s;
+            transition: transform 0.2s, background 0.2s, var(--transition);
         }
         .search-btn:hover {
             transform: translateY(-2px);
@@ -398,7 +408,7 @@
             gap: 0.8rem;
             padding: 0.6rem 0.5rem;
             border-radius: 0.6rem;
-            transition: background 0.2s, transform 0.2s;
+            transition: background 0.2s, transform 0.2s, var(--transition);
         }
         .group-item:hover, .connection-item:hover {
             background: rgba(237, 233, 254, 0.3);
@@ -416,7 +426,7 @@
             font-weight: bold;
             font-size: 1.1rem;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, var(--transition);
             overflow: hidden;
             flex-shrink: 0;
         }
@@ -468,6 +478,7 @@
             font-style: italic;
             font-size: 1.2rem;
             animation: fadeIn 0.3s ease;
+            transition: var(--transition);
         }
         .modal.show {
             display: block;
@@ -485,7 +496,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: var(--glass-bg);
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 0.8rem;
@@ -535,15 +546,8 @@
             }
         }
         @media (min-width: 1024px) {
-            .navbar {
-                display: none;
-            }
-            .topbar {
-                display: flex;
-            }
             .dashboard {
                 flex-direction: row;
-                padding: 1.5rem;
             }
             .nav-links {
                 display: flex;
@@ -665,43 +669,12 @@
                 font-size: 0.75rem;
                 padding: 0.3rem 0.6rem;
             }
-            .splash-title {
-                font-size: 2.2rem;
-            }
-            .splash-text {
-                font-size: 1rem;
-                padding: 0 10px;
-            }
-            .enter-btn {
-                font-size: 1rem;
-                padding: 12px 28px;
-            }
-            .terms {
-                font-size: 0.75rem;
-                padding: 0 15px;
-            }
         }
     </style>
 </head>
 <body>
-    <div id="splash-container" class="splash-container">
-        <div class="splash-screen" id="splash">
-            <div class="splash-title">Welcome to PeerLoom ✨</div>
-            <div class="splash-text">
-                Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
-                Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
-                Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
-                🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
-                Share your group link — grow your community, boost your rank, and claim the spotlight.
-            </div>
-            <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
-            <div class="terms">
-                *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
-            </div>
-        </div>
-    </div>
     <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo" id="logo-swipe">
+        <a href="index.html" class="logo">
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
@@ -721,17 +694,6 @@
         </div>
     </nav>
     <div class="dashboard lg:flex lg:flex-row">
-        <div class="topbar">
-            <a href="index.html" class="logo" id="logo-swipe-desktop">
-                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
-            </a>
-            <div class="nav-links" id="navLinksDesktop">
-                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-                <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-                <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
-                <a href="logout.html" class="nav-link" id="logoutDesktop"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            </div>
-        </div>
         <div class="sidebar">
             <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
             <div class="search-container">
@@ -812,32 +774,6 @@
     </div>
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-        // Theme Toggle
-        let currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        function toggleTheme() {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme);
-        }
-        // Swipe gesture for theme toggle
-        function addSwipeListener(elementId) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            let startX = 0;
-            element.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-            });
-            element.addEventListener('touchend', (e) => {
-                if (!startX) return;
-                const endX = e.changedTouches[0].clientX;
-                const deltaX = Math.abs(endX - startX);
-                if (deltaX > 50) {
-                    toggleTheme();
-                }
-                startX = 0;
-            });
-        }
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -896,62 +832,141 @@
             });
         }
         // Splash screen logic
-        function enterSite() {
+        function showSplash() {
+            const today = new Date().toISOString().split('T')[0];
+            document.body.classList.add('splash-active');
+            document.getElementById('navbar').style.display = 'none';
+            document.querySelector('.dashboard').style.display = 'none';
+            const splash = document.createElement('div');
+            splash.id = 'splash';
+            splash.className = 'splash-screen';
+            splash.innerHTML = `
+                <div class="splash-title">Welcome to PeerLoom ✨</div>
+                <div class="splash-text">
+                    Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+                    Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+                    Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+                    🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+                    Share your group link — grow your community, boost your rank, and claim the spotlight.
+                </div>
+                <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+                <div class="terms">
+                    *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
+                </div>
+            `;
+            document.body.appendChild(splash);
+            // Generate snowflakes
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+            }
+        }
+        window.enterSite = function() {
             const splash = document.getElementById('splash');
-            splash.style.animation = 'fadeOut 2s forwards';
-            localStorage.setItem('visited', 'true');
-            setTimeout(() => {
-                const container = document.getElementById('splash-container');
-                if (container) container.remove();
-            }, 2000);
+            if (splash) {
+                splash.style.animation = 'fadeOut 2s forwards';
+                setTimeout(() => {
+                    // Remove snowflakes
+                    document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+                    splash.remove();
+                    document.body.classList.remove('splash-active');
+                    document.getElementById('navbar').style.display = '';
+                    document.querySelector('.dashboard').style.display = '';
+                    const today = new Date().toISOString().split('T')[0];
+                    localStorage.setItem('last_splash', today);
+                    // If dark mode, regenerate snowflakes
+                    if (document.body.dataset.theme === 'dark') {
+                        generateSnowflakes();
+                    }
+                    // Load dashboard content
+                    loadSuggestedGroups();
+                    loadActiveGroups();
+                    loadConnections();
+                    checkFollowStatus();
+                }, 2000);
+            }
+        };
+        // Theme toggle with swipe on navbar
+        let startX = 0;
+        const navbar = document.getElementById('navbar');
+        if (navbar) {
+            navbar.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            }, { passive: true });
+            navbar.addEventListener('touchend', (e) => {
+                if (!startX) return;
+                const endX = e.changedTouches[0].clientX;
+                const deltaX = endX - startX;
+                const threshold = 50;
+                if (Math.abs(deltaX) > threshold) {
+                    toggleTheme();
+                }
+                startX = 0;
+            }, { passive: true });
+        }
+        function toggleTheme() {
+            const body = document.body;
+            if (body.dataset.theme === 'dark') {
+                body.removeAttribute('data-theme');
+                document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                generateSnowflakes();
+            }
+        }
+        function generateSnowflakes() {
+            // Remove existing snowflakes
+            document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+            // Generate new ones
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+            }
         }
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
-                return;
-            }
-            console.log("User authenticated, loading dashboard");
-            // Setup auto-logout functionality
-            resetLogoutTimer();
-            setupActivityListeners();
-           
-            // Start session indicator update interval
-            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-           
-            // Load groups and connections after authentication
-            loadSuggestedGroups();
-            loadActiveGroups();
-            loadConnections();
-            checkFollowStatus();
-
-            // Check for new user splash
-            if (!localStorage.getItem('visited')) {
-                const container = document.getElementById('splash-container');
-                if (container) {
-                    container.style.display = 'flex';
-                    // Generate snowflakes
-                    const snowflakes = 80;
-                    for (let i = 0; i < snowflakes; i++) {
-                        const snowflake = document.createElement('div');
-                        snowflake.classList.add('snowflake');
-                        snowflake.textContent = '❄';
-                        snowflake.style.left = Math.random() * 100 + 'vw';
-                        snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                        snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                        snowflake.style.animationDelay = Math.random() * 5 + 's';
-                        document.body.appendChild(snowflake);
-                    }
+            } else {
+                console.log("User authenticated, loading dashboard");
+                const today = new Date().toISOString().split('T')[0];
+                const lastSplash = localStorage.getItem('last_splash');
+                if (!lastSplash || lastSplash !== today) {
+                    showSplash();
+                    return;
+                } else {
+                    // Setup auto-logout functionality
+                    resetLogoutTimer();
+                    setupActivityListeners();
+                   
+                    // Start session indicator update interval
+                    sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+                   
+                    // Load groups and connections after authentication
+                    loadSuggestedGroups();
+                    loadActiveGroups();
+                    loadConnections();
+                    checkFollowStatus();
                 }
             }
-
-            // Add swipe listeners
-            addSwipeListener('logo-swipe');
-            addSwipeListener('logo-swipe-desktop');
         });
         // Hook up both "Logout" links
-        const logoutButtons = ['logout', 'logoutMobile', 'logoutDesktop']
+        const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
             .filter(Boolean);
         logoutButtons.forEach(btn => {
@@ -1539,8 +1554,6 @@
         window.joinGroup = joinGroup;
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
-        window.enterSite = enterSite;
-        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
