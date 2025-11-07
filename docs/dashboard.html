@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,6 +21,7 @@
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
             --transition: all 0.3s cubic-bezier(.4,0,.2,1);
+            --bg-gradient: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
         }
         [data-theme="dark"] {
             --bg-primary: #1f2937;
@@ -31,57 +32,45 @@
             --primary: #7c3aed;
             --secondary: #4f46e5;
             --accent: #a78bfa;
+            --bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
         }
-        [data-theme="dark"] body {
-            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
-        }
-        [data-theme="dark"] .sidebar, [data-theme="dark"] .main-content, [data-theme="dark"] .connections, [data-theme="dark"] .card {
-            background: rgba(55, 65, 81, 0.8) !important;
-            border-color: rgba(75, 85, 99, 0.5) !important;
-            color: var(--text-dark) !important;
-        }
-        [data-theme="dark"] .search-bar, [data-theme="dark"] .input-field, [data-theme="dark"] .textarea-field {
-            background: rgba(55, 65, 81, 0.8) !important;
-            color: #f9fafb !important;
-            border-color: rgba(107, 114, 128, 0.5) !important;
-        }
-        [data-theme="dark"] .text-gray-800 { color: #f9fafb !important; }
-        [data-theme="dark"] .text-gray-600 { color: #9ca3af !important; }
-        [data-theme="dark"] .text-gray-500 { color: #6b7280 !important; }
-        [data-theme="dark"] .btn {
-            background: rgba(55, 65, 81, 0.8) !important;
-            color: var(--text-dark) !important;
-            border-color: rgba(107, 114, 128, 0.5) !important;
+        [data-theme="dark"] .sidebar, [data-theme="dark"] .main-content, [data-theme="dark"] .connections,
+        [data-theme="dark"] .card, [data-theme="dark"] .search-bar, [data-theme="dark"] .input-field,
+        [data-theme="dark"] .textarea-field, [data-theme="dark"] .btn, [data-theme="dark"] .session-indicator {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-dark);
         }
         [data-theme="dark"] .group-item:hover, [data-theme="dark"] .connection-item:hover {
-            background: rgba(79, 70, 229, 0.2) !important;
+            background: rgba(124, 58, 237, 0.1);
         }
         [data-theme="dark"] .nav-links.mobile {
-            background: rgba(55, 65, 81, 0.95) !important;
+            background: rgba(31, 41, 55, 0.95);
         }
         [data-theme="dark"] .nav-links.mobile a {
-            background: rgba(124, 58, 237, 0.2) !important;
-            color: var(--text-dark) !important;
-            border-color: rgba(124, 58, 237, 0.3) !important;
+            color: var(--text-dark);
+            background: rgba(124, 58, 237, 0.1);
+            border-color: rgba(124, 58, 237, 0.2);
         }
         body {
-            background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+            background: var(--bg-gradient);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
             color: var(--text-dark);
             overflow-x: hidden;
-            transition: filter 0.3s ease;
+            transition: var(--transition);
         }
-        body.splash-mode {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
-            color: #fff;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .splash-active {
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%) !important;
+            color: #fff !important;
+            font-family: 'Great Vibes', cursive !important;
+            height: 100vh !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
         .snowflake {
             position: fixed;
@@ -110,8 +99,6 @@
             z-index: 10;
             overflow: hidden;
             animation: fadeIn 2s ease forwards;
-            font-family: 'Great Vibes', cursive;
-            display: none;
         }
         .splash-title {
             font-size: 3rem;
@@ -197,7 +184,6 @@
             transition: var(--transition);
             color: white;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
-            touch-action: pan-y; /* Allow vertical scroll, restrict horizontal for swipe */
         }
         .navbar::before {
             content: '';
@@ -313,7 +299,7 @@
             margin-left: auto;
             margin-right: auto;
             min-width: 0;
-            transition: filter 0.3s ease;
+            transition: var(--transition);
         }
         .sidebar, .main-content, .connections {
             background: rgba(255, 255, 255, 0.1);
@@ -321,6 +307,7 @@
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: var(--transition);
         }
         .sidebar, .connections {
             flex: 1 1 100%;
@@ -343,6 +330,7 @@
             backdrop-filter: blur(5px);
             border-radius: 0.8rem;
             margin-bottom: 1rem;
+            transition: var(--transition);
         }
         .card {
             background: rgba(255, 255, 255, 0.15);
@@ -350,7 +338,7 @@
             border-radius: 0.8rem;
             padding: 1rem;
             margin-bottom: 1rem;
-            transition: transform 0.2s;
+            transition: transform 0.2s, var(--transition);
         }
         .card:hover {
             transform: translateY(-2px);
@@ -364,7 +352,7 @@
             background: rgba(255, 255, 255, 0.2);
             font-size: 1rem;
             color: var(--text-dark);
-            transition: border 0.2s;
+            transition: border 0.2s, var(--transition);
             font-family: inherit;
         }
         .search-bar:focus, .input-field:focus, .textarea-field:focus {
@@ -395,7 +383,7 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 0.5rem;
             cursor: pointer;
-            transition: transform 0.2s, background 0.2s, color 0.2s;
+            transition: transform 0.2s, background 0.2s, color 0.2s, var(--transition);
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -408,7 +396,7 @@
             border-radius: 0.5rem;
             padding: 0.6rem 1.2rem;
             color: white;
-            transition: transform 0.2s, background 0.2s;
+            transition: transform 0.2s, background 0.2s, var(--transition);
         }
         .search-btn:hover {
             transform: translateY(-2px);
@@ -420,7 +408,7 @@
             gap: 0.8rem;
             padding: 0.6rem 0.5rem;
             border-radius: 0.6rem;
-            transition: background 0.2s, transform 0.2s;
+            transition: background 0.2s, transform 0.2s, var(--transition);
         }
         .group-item:hover, .connection-item:hover {
             background: rgba(237, 233, 254, 0.3);
@@ -438,7 +426,7 @@
             font-weight: bold;
             font-size: 1.1rem;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, var(--transition);
             overflow: hidden;
             flex-shrink: 0;
         }
@@ -490,9 +478,14 @@
             font-style: italic;
             font-size: 1.2rem;
             animation: fadeIn 0.3s ease;
+            transition: var(--transition);
         }
         .modal.show {
             display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         .blur-background {
             filter: blur(5px);
@@ -779,21 +772,6 @@
     <div id="notificationModal" class="modal">
         <span id="modalMessage">Group inserted</span>
     </div>
-    <!-- Splash Screen -->
-    <div class="splash-screen" id="splash">
-        <div class="splash-title">Welcome to PeerLoom ✨</div>
-        <div class="splash-text">
-            Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
-            Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
-            Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
-            🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
-            Share your group link — grow your community, boost your rank, and claim the spotlight.
-        </div>
-        <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
-        <div class="terms">
-            *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
-        </div>
-    </div>
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
         // Auto-logout timer (1 hour = 3600000 milliseconds)
@@ -853,9 +831,31 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
-        // Snowflake functions
-        function createSnowflakes() {
-            if (document.querySelector('.snowflake')) return;
+        // Splash screen logic
+        function showSplash() {
+            const today = new Date().toISOString().split('T')[0];
+            document.body.classList.add('splash-active');
+            document.getElementById('navbar').style.display = 'none';
+            document.querySelector('.dashboard').style.display = 'none';
+            const splash = document.createElement('div');
+            splash.id = 'splash';
+            splash.className = 'splash-screen';
+            splash.innerHTML = `
+                <div class="splash-title">Welcome to PeerLoom ✨</div>
+                <div class="splash-text">
+                    Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+                    Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+                    Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+                    🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+                    Share your group link — grow your community, boost your rank, and claim the spotlight.
+                </div>
+                <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+                <div class="terms">
+                    *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
+                </div>
+            `;
+            document.body.appendChild(splash);
+            // Generate snowflakes
             const snowflakes = 80;
             for (let i = 0; i < snowflakes; i++) {
                 const snowflake = document.createElement('div');
@@ -868,44 +868,35 @@
                 document.body.appendChild(snowflake);
             }
         }
-        function removeSnowflakes() {
-            document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
-        }
-        // Theme toggle
-        function toggleTheme() {
-            const html = document.documentElement;
-            const current = html.getAttribute('data-theme');
-            const newTheme = current === 'light' ? 'dark' : 'light';
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            if (newTheme === 'dark') {
-                createSnowflakes();
-            } else {
-                removeSnowflakes();
-            }
-        }
-        // Splash screen logic
-        function enterSite() {
+        window.enterSite = function() {
             const splash = document.getElementById('splash');
-            document.body.classList.remove('splash-mode');
-            localStorage.setItem('visited', 'true');
-            splash.style.animation = 'fadeOut 2s forwards';
-            setTimeout(() => {
-                splash.style.display = 'none';
-                if (document.documentElement.getAttribute('data-theme') === 'light') {
-                    removeSnowflakes();
-                }
-            }, 2000);
-        }
-        // Gate-keep the dashboard page
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Set theme from localStorage
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            if (savedTheme === 'dark') createSnowflakes();
-            // Swipe gesture on navbar
-            const navbar = document.getElementById('navbar');
-            let startX = 0;
+            if (splash) {
+                splash.style.animation = 'fadeOut 2s forwards';
+                setTimeout(() => {
+                    // Remove snowflakes
+                    document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+                    splash.remove();
+                    document.body.classList.remove('splash-active');
+                    document.getElementById('navbar').style.display = '';
+                    document.querySelector('.dashboard').style.display = '';
+                    const today = new Date().toISOString().split('T')[0];
+                    localStorage.setItem('last_splash', today);
+                    // If dark mode, regenerate snowflakes
+                    if (document.body.dataset.theme === 'dark') {
+                        generateSnowflakes();
+                    }
+                    // Load dashboard content
+                    loadSuggestedGroups();
+                    loadActiveGroups();
+                    loadConnections();
+                    checkFollowStatus();
+                }, 2000);
+            }
+        };
+        // Theme toggle with swipe on navbar
+        let startX = 0;
+        const navbar = document.getElementById('navbar');
+        if (navbar) {
             navbar.addEventListener('touchstart', (e) => {
                 startX = e.touches[0].clientX;
             }, { passive: true });
@@ -919,28 +910,58 @@
                 }
                 startX = 0;
             }, { passive: true });
+        }
+        function toggleTheme() {
+            const body = document.body;
+            if (body.dataset.theme === 'dark') {
+                body.removeAttribute('data-theme');
+                document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                generateSnowflakes();
+            }
+        }
+        function generateSnowflakes() {
+            // Remove existing snowflakes
+            document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+            // Generate new ones
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+            }
+        }
+        // Gate-keep the dashboard page
+        document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
             } else {
                 console.log("User authenticated, loading dashboard");
-                // Setup auto-logout functionality
-                resetLogoutTimer();
-                setupActivityListeners();
-               
-                // Start session indicator update interval
-                sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-               
-                // Load groups and connections after authentication
-                loadSuggestedGroups();
-                loadActiveGroups();
-                loadConnections();
-                checkFollowStatus();
-                // Check for splash screen
-                if (!localStorage.getItem('visited')) {
-                    document.body.classList.add('splash-mode');
-                    createSnowflakes();
-                    document.getElementById('splash').style.display = 'block';
+                const today = new Date().toISOString().split('T')[0];
+                const lastSplash = localStorage.getItem('last_splash');
+                if (!lastSplash || lastSplash !== today) {
+                    showSplash();
+                    return;
+                } else {
+                    // Setup auto-logout functionality
+                    resetLogoutTimer();
+                    setupActivityListeners();
+                   
+                    // Start session indicator update interval
+                    sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+                   
+                    // Load groups and connections after authentication
+                    loadSuggestedGroups();
+                    loadActiveGroups();
+                    loadConnections();
+                    checkFollowStatus();
                 }
             }
         });
@@ -1533,8 +1554,6 @@
         window.joinGroup = joinGroup;
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
-        window.enterSite = enterSite;
-        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
