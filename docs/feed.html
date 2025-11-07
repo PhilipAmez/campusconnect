@@ -2306,6 +2306,11 @@
             isAddingComment = true; // Set flag
 
             const commentInput = document.getElementById(`commentInput-${videoId}`);
+            if (!commentInput) {
+                console.error(`Error: Comment input element with ID 'commentInput-${videoId}' not found.`);
+                isAddingComment = false; // Reset flag
+                return;
+            }
             const commentText = commentInput.value.trim();
             
             if (!commentText) return;
