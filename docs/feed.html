@@ -1082,12 +1082,19 @@
         .guest-mode .comment-input-container {
             display: none;
         }
+        .guest-mode .reply-indicator {
+            display: none;
+        }
         .guest-mode .reply-btn,
         .guest-mode .comment-reaction-btn,
-        .guest-mode .replies-count-toggle {
+        .guest-mode .replies-count {
             pointer-events: none;
             opacity: 0.7;
             cursor: not-allowed;
+        }
+        .guest-mode .reaction-summary-item {
+            cursor: default;
+            opacity: 0.7;
         }
       
         /* Responsive Adjustments */
@@ -1115,6 +1122,7 @@
             }
             .comment-drawer {
                 height: 70vh; /* Slightly taller on mobile */
+                border-radius: 20px 20px 0 0;
             }
             .upload-content {
                 padding: var(--spacing-md);
@@ -1135,6 +1143,37 @@
             .video-preview {
                 max-height: 150px;
             }
+            .top-bar {
+                padding: var(--spacing-sm);
+            }
+            .top-bar-left {
+                gap: var(--spacing-sm);
+            }
+            .video-info {
+                padding: var(--spacing-sm);
+            }
+            .comment-header {
+                padding: var(--spacing-sm);
+            }
+            .comments-list {
+                padding: var(--spacing-sm);
+            }
+            .comment-input-container {
+                padding: var(--spacing-sm);
+            }
+        }
+        @media (max-width: 480px) {
+            .comment-drawer {
+                height: 80vh;
+            }
+            .upload-content {
+                max-height: 95vh;
+                margin: 1rem;
+            }
+            .login-redirect-content {
+                width: 95%;
+                padding: var(--spacing-md);
+            }
         }
         @media (min-width: 1200px) {
             .feed-container {
@@ -1152,6 +1191,9 @@
           
             .video-container {
                 height: -webkit-fill-available;
+            }
+            .comment-drawer {
+                bottom: env(safe-area-inset-bottom);
             }
         }
     </style>
@@ -1538,12 +1580,6 @@
                         </div>
                         <div class="comments-list" id="commentsList-${video.id}">
                             <!-- Comments will be dynamically inserted here -->
-                            ${!isLoggedIn ? `
-                            <div class="guest-comment-message">
-                                <span>Log in to add comments</span>
-                                <button onclick="showGuestLoginModal()">Join/Login</button>
-                            </div>
-                            ` : ''}
                         </div>
                         <div class="reply-indicator" id="replyIndicator-${video.id}" style="display: none; padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(0,0,0,0.2);">
                             Replying to <span id="replyingToUser-${video.id}" style="font-weight: bold;"></span>
@@ -2006,9 +2042,9 @@
                     }
                 });
                 // Render comments and their replies
-                rootComments.forEach(comment => {
-                    renderComment(comment, commentsList, 0, videoId);
-                });
+                for (const comment of rootComments) {
+                    await renderComment(comment, commentsList, 0, videoId);
+                }
             } catch (error) {
                 console.error('Error loading comments:', error);
                 commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">Error loading comments</div>';
@@ -2051,6 +2087,8 @@
            commentHtml += `</div>`;
             commentItem.innerHTML = commentHtml;
             parentElement.appendChild(commentItem);
+            // Update reactions UI
+            await updateCommentReactionsUI(comment.id);
             // If there are replies, create a container for them and render them there
             if (comment.replies && comment.replies.length > 0) {
                 const repliesContainer = document.createElement('div');
@@ -2058,9 +2096,9 @@
                 repliesContainer.id = `repliesContainer-${comment.id}`;
                 repliesContainer.style.display = 'none'; // Initially hidden
                 commentItem.appendChild(repliesContainer); // Append to the current comment item
-                comment.replies.forEach(reply => {
-                    renderComment(reply, repliesContainer, depth + 1, videoId);
-                });
+                for (const reply of comment.replies) {
+                    await renderComment(reply, repliesContainer, depth + 1, videoId);
+                }
             }
             // Attach event listeners programmatically
             const replyBtn = commentItem.querySelector('.reply-btn');
@@ -2077,17 +2115,6 @@
             if (repliesCountToggle) {
                 repliesCountToggle.addEventListener('click', () => {
                     toggleReplies(repliesCountToggle.dataset.commentId);
-                });
-            }
-            const reactionBtn = commentItem.querySelector('.comment-reaction-btn');
-            if (reactionBtn) {
-                reactionBtn.addEventListener('click', (e) => {
-                    if (!isLoggedIn) {
-                        showGuestLoginModal();
-                        e.stopPropagation();
-                        return;
-                    }
-                    showReactionPicker(comment.id, reactionBtn);
                 });
             }
         }
@@ -2300,11 +2327,11 @@
                         // For simplicity, we'll just reload in this edge case.
                         await loadComments(videoId, commentsList);
                     } else {
-                        renderComment(newComment, parentContainer, 1, videoId);
+                        await renderComment(newComment, parentContainer, 1, videoId);
                         parentContainer.style.display = 'block'; // Ensure replies are visible
                     }
                 } else {
-                    renderComment(newComment, commentsList, 0, videoId);
+                    await renderComment(newComment, commentsList, 0, videoId);
                 }
                 commentsList.scrollTop = commentsList.scrollHeight; // Scroll to the new comment
               
