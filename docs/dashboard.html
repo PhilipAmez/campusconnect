@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,7 +45,7 @@
             padding: 0;
         }
         
-        /* Splash Screen Styles */
+        /* Splash Screen Styles - Always visible first */
         .splash-container {
             position: fixed;
             top: 0;
@@ -243,7 +242,7 @@
             display: flex;
         }
         .nav-links.mobile a {
-            color: var(--text-dark);
+            color: #000000 !important; /* Force black text */
             padding: 0.8rem 1rem;
             border-radius: 0.4rem;
             font-size: 1.1rem;
@@ -259,7 +258,7 @@
         }
         .nav-links.mobile a:hover {
             background: rgba(124, 58, 237, 0.1);
-            color: var(--primary);
+            color: var(--primary) !important;
             transform: translateX(5px);
             border-color: rgba(124, 58, 237, 0.3);
         }
@@ -619,6 +618,7 @@
                 background: rgba(255, 255, 255, 0.7);
                 border: 1px solid rgba(124, 58, 237, 0.15);
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                color: #000000 !important; /* Force black text */
             }
             .nav-links.mobile a:last-child {
                 margin-bottom: 0;
@@ -668,6 +668,7 @@
             .nav-links.mobile a {
                 font-size: 0.95rem;
                 padding: 0.8rem;
+                color: #000000 !important; /* Force black text */
             }
             .dashboard {
                 padding: 3.2rem 0.2rem 0.5rem;
@@ -897,29 +898,7 @@
             applyTheme(newTheme);
         }
         
-        // Swipe gesture for theme toggle
-        let touchStartX = 0;
-        const navbar = document.getElementById('navbar');
-        if (navbar) {
-            navbar.addEventListener('touchstart', (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-            });
-            navbar.addEventListener('touchend', (e) => {
-                const touchEndX = e.changedTouches[0].screenX;
-                const diff = touchStartX - touchEndX;
-                if (Math.abs(diff) > 50) {
-                    toggleTheme();
-                }
-            });
-        }
-        
-        // Load theme on page load
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-        }
-        
-        // Splash screen functions
+        // Splash screen functions - SIMPLIFIED
         function enterSite() {
             const splashContainer = document.getElementById('splashContainer');
             const dashboardContent = document.querySelector('.dashboard-content');
@@ -927,7 +906,7 @@
             // Hide splash with animation
             splashContainer.style.animation = 'fadeOut 1s forwards';
             
-            // Show dashboard content
+            // Show dashboard content after animation
             setTimeout(() => {
                 splashContainer.style.display = 'none';
                 dashboardContent.style.display = 'block';
@@ -937,17 +916,32 @@
                 
                 // Apply theme to dashboard
                 loadTheme();
+                
+                // Initialize dashboard functionality
+                initializeDashboard();
             }, 1000);
-            
-            // Update last shown date
-            const today = new Date().toISOString().split('T')[0];
-            localStorage.setItem('lastSplashShown', today);
         }
         
-        function shouldShowSplash() {
-            const today = new Date().toISOString().split('T')[0];
-            const lastShown = localStorage.getItem('lastSplashShown');
-            return !lastShown || lastShown !== today;
+        // Load theme on page load
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+        
+        // Initialize dashboard functionality after splash is dismissed
+        function initializeDashboard() {
+            // Setup auto-logout functionality
+            resetLogoutTimer();
+            setupActivityListeners();
+           
+            // Start session indicator update interval
+            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+           
+            // Load groups and connections
+            loadSuggestedGroups();
+            loadActiveGroups();
+            loadConnections();
+            checkFollowStatus();
         }
         
         // Function to reset the logout timer
@@ -1009,38 +1003,19 @@
         
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            // Always show splash screen first
-            if (shouldShowSplash()) {
-                // Create snowflakes for splash
-                createSnowflakes();
-                // Dashboard content remains hidden until enterSite is called
-            } else {
-                // If splash shouldn't be shown, directly show dashboard
-                document.getElementById('splashContainer').style.display = 'none';
-                document.querySelector('.dashboard-content').style.display = 'block';
-                loadTheme();
-            }
+            // ALWAYS show splash screen first - no conditions
+            createSnowflakes();
             
+            // Check authentication but don't load dashboard yet
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
                 return;
             }
             
-            console.log("User authenticated, loading dashboard");
+            console.log("User authenticated, waiting for splash dismissal");
             
-            // Setup auto-logout functionality
-            resetLogoutTimer();
-            setupActivityListeners();
-           
-            // Start session indicator update interval
-            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-           
-            // Load groups and connections after authentication
-            loadSuggestedGroups();
-            loadActiveGroups();
-            loadConnections();
-            checkFollowStatus();
+            // Dashboard initialization will happen in enterSite() function
         });
         
         // Hook up both "Logout" links
