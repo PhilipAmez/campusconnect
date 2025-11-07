@@ -1232,7 +1232,7 @@
         let currentTheme = 'dark';
         let currentVideoId = null;
         let savedPosts = [];
-        let isLoggedIn = true;
+        let isLoggedIn = false; // Changed to false to test guest mode
         let replyingToCommentId = null;
         let selectedVideoFile = null;
         let selectedVideoDuration = null;
@@ -1242,8 +1242,6 @@
         let recordedChunks = [];
         let isRecording = false;
         let isCommentDrawerOpen = false; // Track if comment drawer is open
-        let isGuestMode = false; // Track if user is in guest mode
-        let currentVideoPosition = 0; // Track current scroll position for guest redirect
        
         // In-memory storage for videos
         let posts = [
@@ -1268,6 +1266,30 @@
                 created_at: new Date(Date.now() - 86400000).toISOString()
             }
         ];
+
+        // SIMPLE GUEST MODE CHECK - Add this function
+        function checkGuestMode() {
+            if (!isLoggedIn) {
+                document.body.classList.add('guest-mode');
+                // Store current URL for redirect after login
+                sessionStorage.setItem('redirectUrl', window.location.href);
+            }
+        }
+
+        // SIMPLE GUEST ACTION HANDLER - Add this function
+        function handleGuestAction(callback) {
+            if (!isLoggedIn) {
+                document.getElementById('loginRedirect').classList.add('active');
+                return;
+            }
+            callback();
+        }
+
+        // SIMPLE GUEST LOGIN MODAL - Add this function
+        function showGuestLoginModal() {
+            document.getElementById('loginRedirect').classList.add('active');
+        }
+       
         // Helper function to validate file before creating object URL
         function validateFileForObjectURL(file) {
             if (!file) {
@@ -1302,25 +1324,21 @@
             await checkLoginStatus();
             await fetchPostsFromDatabase();
             setupEventListeners();
-            checkGuestMode();
-        }
-        // Check if user is in guest mode (not logged in)
-        function checkGuestMode() {
-            if (!isLoggedIn) {
-                isGuestMode = true;
-                document.body.classList.add('guest-mode');
-                // Store current URL for redirect after login
-                sessionStorage.setItem('redirectUrl', window.location.href);
-            }
+            checkGuestMode(); // ADD THIS LINE
         }
         // Check login status
         async function checkLoginStatus() {
-            const { data: { session } } = await supabase.auth.getSession();
-            isLoggedIn = !!session;
-            if (!isLoggedIn) {
-                document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
-                    el.style.opacity = '0.7';
-                });
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                isLoggedIn = !!session;
+                if (!isLoggedIn) {
+                    document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
+                        el.style.opacity = '0.7';
+                    });
+                }
+            } catch (error) {
+                console.log('Auth check failed, defaulting to guest mode');
+                isLoggedIn = false;
             }
         }
         // Fetch posts from database
@@ -1335,12 +1353,22 @@
                         likes ( user_id )
                     `)
                     .order('created_at', { ascending: false });
-                if (error) throw error;
+               
+                if (error) {
+                    // If database fails, use sample data
+                    console.log('Using sample data due to error:', error);
+                    initializeFeed(posts);
+                    return;
+                }
+               
                 // Process posts to add a simple 'is_liked' boolean
-                posts = data.map(post => ({
-                    ...post,
-                    is_liked: user ? post.likes.some(like => like.user_id === user.id) : false
-                }));
+                if (data) {
+                    posts = data.map(post => ({
+                        ...post,
+                        is_liked: user ? post.likes.some(like => like.user_id === user.id) : false
+                    }));
+                }
+               
                 if (data && data.length > 0) {
                     initializeFeed(posts);
                 } else {
@@ -1359,7 +1387,8 @@
                
             } catch (error) {
                 console.error('Error fetching posts:', error);
-                showToast('Error loading posts');
+                // Use sample data as fallback
+                initializeFeed(posts);
             }
         }
         // Create video feed
@@ -1372,6 +1401,7 @@
                 videoContainer.className = 'video-container';
                 videoContainer.id = `video-${video.id}`;
                
+                // SIMPLE GUEST MODE TEMPLATE - Just add watermark and modify button behavior
                 videoContainer.innerHTML = `
                     <video class="video-player" loop muted playsinline preload="metadata">
                         <source src="${video.media_url}" type="video/mp4">
@@ -1406,7 +1436,7 @@
                         ` : ''}
                     </div>
                     <div class="actions-sidebar">
-                        <div class="action-item" onclick="handleGuestAction(() => toggleLike(this, '${video.id}'))">
+                        <div class="action-item" onclick="${isLoggedIn ? `toggleLike(this, '${video.id}')` : `showGuestLoginModal()`}">
                             <div class="action-icon" id="likeIcon-${video.id}" style="color: ${video.is_liked ? 'var(--primary-color)' : 'currentColor'};">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -1414,7 +1444,7 @@
                             </div>
                             <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count ?? 0}</div>
                         </div>
-                        <div class="action-item" onclick="handleGuestAction(() => openComments('${video.id}'))">
+                        <div class="action-item" onclick="${isLoggedIn ? `openComments('${video.id}')` : `showGuestLoginModal()`}">
                             <div class="action-icon">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
@@ -1422,7 +1452,7 @@
                             </div>
                             <div class="action-count" id="commentCount-${video.id}">${video.comments_count ?? 0}</div>
                         </div>
-                        <div class="action-item" onclick="handleGuestAction(() => shareVideo('${video.id}'))">
+                        <div class="action-item" onclick="${isLoggedIn ? `shareVideo('${video.id}')` : `showGuestLoginModal()`}">
                             <div class="action-icon">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -1487,7 +1517,7 @@
                
                 // Add double tap like functionality
                 videoContainer.addEventListener('dblclick', function(e) {
-                    if (isGuestMode) {
+                    if (!isLoggedIn) {
                         showGuestLoginModal();
                         return;
                     }
@@ -1574,18 +1604,6 @@
             // Set up intersection observer after videos are loaded
             setupIntersectionObserver();
         }
-        // Handle guest actions - show login modal if in guest mode
-        function handleGuestAction(callback) {
-            if (isGuestMode) {
-                showGuestLoginModal();
-                return;
-            }
-            callback();
-        }
-        // Show guest login modal
-        function showGuestLoginModal() {
-            document.getElementById('loginRedirect').classList.add('active');
-        }
         // Set up event listeners
         function setupEventListeners() {
             // Theme toggle on title swipe
@@ -1661,30 +1679,22 @@
                 }
             });
            
-            // Login redirect buttons
+            // SIMPLE LOGIN REDIRECT BUTTONS - Replace existing login button code
             const signUpButton = document.getElementById('signUpButton');
             const logInButton = document.getElementById('logInButton');
            
             if (signUpButton) {
                 signUpButton.addEventListener('click', function() {
-                    // Store current scroll position for redirect
-                    const feed = document.getElementById('feed');
-                    currentVideoPosition = feed.scrollTop;
-                    sessionStorage.setItem('scrollPosition', currentVideoPosition);
-                    sessionStorage.setItem('currentVideoId', currentVideoId);
-                   
+                    // Store current URL for redirect back
+                    sessionStorage.setItem('redirectUrl', window.location.href);
                     window.location.href = 'signup.html?redirect=' + encodeURIComponent(window.location.href);
                 });
             }
            
             if (logInButton) {
                 logInButton.addEventListener('click', function() {
-                    // Store current scroll position for redirect
-                    const feed = document.getElementById('feed');
-                    currentVideoPosition = feed.scrollTop;
-                    sessionStorage.setItem('scrollPosition', currentVideoPosition);
-                    sessionStorage.setItem('currentVideoId', currentVideoId);
-                   
+                    // Store current URL for redirect back
+                    sessionStorage.setItem('redirectUrl', window.location.href);
                     window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
                 });
             }
@@ -1698,22 +1708,6 @@
             const videoPreviewCloseBtn = document.getElementById('videoPreviewCloseBtn');
             if (videoPreviewCloseBtn) {
                 videoPreviewCloseBtn.addEventListener('click', clearSelectedVideo);
-            }
-           
-            // Track current video for guest redirect
-            const feed = document.getElementById('feed');
-            if (feed) {
-                feed.addEventListener('scroll', function() {
-                    currentVideoPosition = this.scrollTop;
-                    // Find the current video ID based on scroll position
-                    const videoContainers = document.querySelectorAll('.video-container');
-                    videoContainers.forEach(container => {
-                        const rect = container.getBoundingClientRect();
-                        if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
-                            currentVideoId = container.id.replace('video-', '');
-                        }
-                    });
-                });
             }
         }
         // Intersection Observer for video autoplay
@@ -2787,9 +2781,8 @@
         window.showReactionPicker = showReactionPicker;
         window.toggleCommentReaction = toggleCommentReaction;
         window.updateCommentReactionsUI = updateCommentReactionsUI;
-        window.goToDashboard = goToDashboard; // Make goToDashboard globally available
-        window.handleGuestAction = handleGuestAction; // Make handleGuestAction globally available
-        window.showGuestLoginModal = showGuestLoginModal; // Make showGuestLoginModal globally available
+        window.goToDashboard = goToDashboard;
+        window.showGuestLoginModal = showGuestLoginModal; // Add this line
     </script>
 </body>
 </html>
