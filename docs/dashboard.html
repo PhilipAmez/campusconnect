@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,8 +21,6 @@
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
             --transition: all 0.3s cubic-bezier(.4,0,.2,1);
-            --bg-primary: #f8fafc;
-            --bg-secondary: #f1f5f9;
         }
         [data-theme="dark"] {
             --bg-primary: #1f2937;
@@ -34,32 +32,56 @@
             --secondary: #4f46e5;
             --accent: #a78bfa;
         }
+        [data-theme="dark"] body {
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
+        }
+        [data-theme="dark"] .sidebar, [data-theme="dark"] .main-content, [data-theme="dark"] .connections, [data-theme="dark"] .card {
+            background: rgba(55, 65, 81, 0.8) !important;
+            border-color: rgba(75, 85, 99, 0.5) !important;
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] .search-bar, [data-theme="dark"] .input-field, [data-theme="dark"] .textarea-field {
+            background: rgba(55, 65, 81, 0.8) !important;
+            color: #f9fafb !important;
+            border-color: rgba(107, 114, 128, 0.5) !important;
+        }
+        [data-theme="dark"] .text-gray-800 { color: #f9fafb !important; }
+        [data-theme="dark"] .text-gray-600 { color: #9ca3af !important; }
+        [data-theme="dark"] .text-gray-500 { color: #6b7280 !important; }
+        [data-theme="dark"] .btn {
+            background: rgba(55, 65, 81, 0.8) !important;
+            color: var(--text-dark) !important;
+            border-color: rgba(107, 114, 128, 0.5) !important;
+        }
+        [data-theme="dark"] .group-item:hover, [data-theme="dark"] .connection-item:hover {
+            background: rgba(79, 70, 229, 0.2) !important;
+        }
+        [data-theme="dark"] .nav-links.mobile {
+            background: rgba(55, 65, 81, 0.95) !important;
+        }
+        [data-theme="dark"] .nav-links.mobile a {
+            background: rgba(124, 58, 237, 0.2) !important;
+            color: var(--text-dark) !important;
+            border-color: rgba(124, 58, 237, 0.3) !important;
+        }
         body {
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
             color: var(--text-dark);
             overflow-x: hidden;
-            transition: var(--transition);
+            transition: filter 0.3s ease;
         }
-        .splash-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        body.splash-mode {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
             background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
+            color: #fff;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 5000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-        }
-        .splash-overlay.show {
-            opacity: 1;
-            visibility: visible;
         }
         .snowflake {
             position: fixed;
@@ -71,10 +93,6 @@
             animation: fall linear infinite;
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
             z-index: 1;
-            display: none;
-        }
-        [data-theme="dark"] .snowflake {
-            display: block;
         }
         @keyframes fall {
             0% { transform: translateY(0) rotate(0deg); opacity: 1; }
@@ -93,7 +111,7 @@
             overflow: hidden;
             animation: fadeIn 2s ease forwards;
             font-family: 'Great Vibes', cursive;
-            color: #fff;
+            display: none;
         }
         .splash-title {
             font-size: 3rem;
@@ -147,6 +165,23 @@
             from { opacity: 1; }
             to { opacity: 0; visibility: hidden; }
         }
+        @media (max-width: 768px) {
+            .splash-title {
+                font-size: 2.2rem;
+            }
+            .splash-text {
+                font-size: 1rem;
+                padding: 0 10px;
+            }
+            .enter-btn {
+                font-size: 1rem;
+                padding: 12px 28px;
+            }
+            .terms {
+                font-size: 0.75rem;
+                padding: 0 15px;
+            }
+        }
         .navbar {
             position: fixed;
             width: 100%;
@@ -162,7 +197,7 @@
             transition: var(--transition);
             color: white;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
-            touch-action: pan-y; /* Prevent default touch behaviors for swipe */
+            touch-action: pan-y; /* Allow vertical scroll, restrict horizontal for swipe */
         }
         .navbar::before {
             content: '';
@@ -175,26 +210,12 @@
             z-index: -1;
             opacity: 0.3;
         }
-        .logo {
-            position: relative;
+        .logo img {
             height: 28px;
             transition: transform var(--transition);
-            touch-action: none; /* Allow custom touch handling for swipe */
         }
-        .logo img {
-            height: 100%;
-            transition: transform var(--transition);
-        }
-        .logo:hover img {
+        .logo img:hover {
             transform: scale(1.1);
-        }
-        .swipe-area {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100px; /* Area near logo for swipe */
-            height: 100%;
-            cursor: ew-resize;
         }
         .nav-links {
             display: flex;
@@ -292,7 +313,7 @@
             margin-left: auto;
             margin-right: auto;
             min-width: 0;
-            transition: var(--transition);
+            transition: filter 0.3s ease;
         }
         .sidebar, .main-content, .connections {
             background: rgba(255, 255, 255, 0.1);
@@ -300,7 +321,6 @@
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            color: var(--text-dark);
         }
         .sidebar, .connections {
             flex: 1 1 100%;
@@ -331,7 +351,6 @@
             padding: 1rem;
             margin-bottom: 1rem;
             transition: transform 0.2s;
-            color: var(--text-dark);
         }
         .card:hover {
             transform: translateY(-2px);
@@ -475,10 +494,6 @@
         .modal.show {
             display: block;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
         .blur-background {
             filter: blur(5px);
             pointer-events: none;
@@ -525,21 +540,6 @@
         }
         /* Mobile view improvements */
         @media (max-width: 768px) {
-            .splash-title {
-                font-size: 2.2rem;
-            }
-            .splash-text {
-                font-size: 1rem;
-                padding: 0 10px;
-            }
-            .enter-btn {
-                font-size: 1rem;
-                padding: 12px 28px;
-            }
-            .terms {
-                font-size: 0.75rem;
-                padding: 0 15px;
-            }
             .auth-title {
                 font-size: 1.1rem;
                 padding: 0.4rem 0.8rem;
@@ -627,7 +627,7 @@
             .navbar {
                 padding: 0.3rem 0.5rem;
             }
-            .logo {
+            .logo img {
                 height: 24px;
             }
             .nav-toggle {
@@ -679,30 +679,11 @@
         }
     </style>
 </head>
-<body data-theme="light">
-    <!-- Splash Overlay for New Users -->
-    <div class="splash-overlay" id="splashOverlay">
-        <div class="splash-screen" id="splash">
-            <div class="splash-title">Welcome to PeerLoom ✨</div>
-            <div class="splash-text">
-                Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
-                Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
-                Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
-                🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
-                Share your group link — grow your community, boost your rank, and claim the spotlight.
-            </div>
-            <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
-            <div class="terms">
-                *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
-            </div>
-        </div>
-    </div>
-
+<body>
     <nav class="navbar" id="navbar">
-        <div class="logo" id="logoContainer">
-            <div class="swipe-area"></div>
+        <a href="index.html" class="logo">
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
-        </div>
+        </a>
         <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
             <i class="fas fa-bars"></i>
         </button>
@@ -798,107 +779,23 @@
     <div id="notificationModal" class="modal">
         <span id="modalMessage">Group inserted</span>
     </div>
-
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splash">
+        <div class="splash-title">Welcome to PeerLoom ✨</div>
+        <div class="splash-text">
+            Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+            Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+            Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+            🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+            Share your group link — grow your community, boost your rank, and claim the spotlight.
+        </div>
+        <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+        <div class="terms">
+            *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
+        </div>
+    </div>
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-
-        // Snowflake effect (only in dark mode)
-        function initSnowflakes() {
-            const snowflakes = 80;
-            for (let i = 0; i < snowflakes; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄';
-                snowflake.style.left = Math.random() * 100 + 'vw';
-                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                document.body.appendChild(snowflake);
-            }
-        }
-
-        // Splash screen logic for new users
-        function showSplashIfNew() {
-            if (!localStorage.getItem('visited')) {
-                const overlay = document.getElementById('splashOverlay');
-                overlay.classList.add('show');
-                initSnowflakes(); // Init snowflakes on splash show
-            }
-        }
-
-        function enterSite() {
-            const splash = document.getElementById('splash');
-            const overlay = document.getElementById('splashOverlay');
-            splash.style.animation = 'fadeOut 2s forwards';
-            localStorage.setItem('visited', 'true');
-            setTimeout(() => {
-                overlay.classList.remove('show');
-            }, 2000);
-        }
-
-        // Theme toggle with swipe
-        let startX = 0;
-        let currentX = 0;
-        const SWIPE_THRESHOLD = 50; // Minimum swipe distance
-
-        function setupSwipeToggle() {
-            const swipeArea = document.querySelector('.swipe-area');
-            if (!swipeArea) return;
-
-            swipeArea.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-            }, { passive: true });
-
-            swipeArea.addEventListener('touchmove', (e) => {
-                currentX = e.touches[0].clientX;
-            }, { passive: true });
-
-            swipeArea.addEventListener('touchend', () => {
-                const deltaX = currentX - startX;
-                if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
-                    toggleTheme();
-                }
-                startX = 0;
-                currentX = 0;
-            }, { passive: true });
-
-            // Mouse support for desktop
-            swipeArea.addEventListener('mousedown', (e) => {
-                startX = e.clientX;
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (startX !== 0) {
-                    currentX = e.clientX;
-                }
-            });
-
-            swipeArea.addEventListener('mouseup', () => {
-                if (startX === 0) return;
-                const deltaX = currentX - startX;
-                if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
-                    toggleTheme();
-                }
-                startX = 0;
-                currentX = 0;
-            });
-        }
-
-        function toggleTheme() {
-            const body = document.body;
-            const currentTheme = body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            // Snowflakes are CSS-controlled, no need for JS toggle
-        }
-
-        // Load saved theme
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.body.setAttribute('data-theme', savedTheme);
-        }
-
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -956,12 +853,72 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
+        // Snowflake functions
+        function createSnowflakes() {
+            if (document.querySelector('.snowflake')) return;
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+            }
+        }
+        function removeSnowflakes() {
+            document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+        }
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            if (newTheme === 'dark') {
+                createSnowflakes();
+            } else {
+                removeSnowflakes();
+            }
+        }
+        // Splash screen logic
+        function enterSite() {
+            const splash = document.getElementById('splash');
+            document.body.classList.remove('splash-mode');
+            localStorage.setItem('visited', 'true');
+            splash.style.animation = 'fadeOut 2s forwards';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                if (document.documentElement.getAttribute('data-theme') === 'light') {
+                    removeSnowflakes();
+                }
+            }, 2000);
+        }
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            loadTheme();
-            setupSwipeToggle();
-            showSplashIfNew(); // Check and show splash for new users
-
+            // Set theme from localStorage
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'dark') createSnowflakes();
+            // Swipe gesture on navbar
+            const navbar = document.getElementById('navbar');
+            let startX = 0;
+            navbar.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            }, { passive: true });
+            navbar.addEventListener('touchend', (e) => {
+                if (!startX) return;
+                const endX = e.changedTouches[0].clientX;
+                const deltaX = endX - startX;
+                const threshold = 50;
+                if (Math.abs(deltaX) > threshold) {
+                    toggleTheme();
+                }
+                startX = 0;
+            }, { passive: true });
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
@@ -979,6 +936,12 @@
                 loadActiveGroups();
                 loadConnections();
                 checkFollowStatus();
+                // Check for splash screen
+                if (!localStorage.getItem('visited')) {
+                    document.body.classList.add('splash-mode');
+                    createSnowflakes();
+                    document.getElementById('splash').style.display = 'block';
+                }
             }
         });
         // Hook up both "Logout" links
@@ -1571,6 +1534,7 @@
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
         window.enterSite = enterSite;
+        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
