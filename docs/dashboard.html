@@ -45,7 +45,7 @@
             padding: 0;
         }
         
-        /* Splash Screen Styles - Always visible first */
+        /* Splash Screen Styles */
         .splash-container {
             position: fixed;
             top: 0;
@@ -898,7 +898,29 @@
             applyTheme(newTheme);
         }
         
-        // Splash screen functions - SIMPLIFIED
+        // Swipe gesture for theme toggle
+        let touchStartX = 0;
+        const navbar = document.getElementById('navbar');
+        if (navbar) {
+            navbar.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            navbar.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const diff = touchStartX - touchEndX;
+                if (Math.abs(diff) > 50) {
+                    toggleTheme();
+                }
+            });
+        }
+        
+        // Load theme on page load
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+        
+        // Splash screen functions
         function enterSite() {
             const splashContainer = document.getElementById('splashContainer');
             const dashboardContent = document.querySelector('.dashboard-content');
@@ -906,7 +928,7 @@
             // Hide splash with animation
             splashContainer.style.animation = 'fadeOut 1s forwards';
             
-            // Show dashboard content after animation
+            // Show dashboard content
             setTimeout(() => {
                 splashContainer.style.display = 'none';
                 dashboardContent.style.display = 'block';
@@ -916,32 +938,17 @@
                 
                 // Apply theme to dashboard
                 loadTheme();
-                
-                // Initialize dashboard functionality
-                initializeDashboard();
             }, 1000);
+            
+            // Update last shown date
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem('lastSplashShown', today);
         }
         
-        // Load theme on page load
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-        }
-        
-        // Initialize dashboard functionality after splash is dismissed
-        function initializeDashboard() {
-            // Setup auto-logout functionality
-            resetLogoutTimer();
-            setupActivityListeners();
-           
-            // Start session indicator update interval
-            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-           
-            // Load groups and connections
-            loadSuggestedGroups();
-            loadActiveGroups();
-            loadConnections();
-            checkFollowStatus();
+        function shouldShowSplash() {
+            const today = new Date().toISOString().split('T')[0];
+            const lastShown = localStorage.getItem('lastSplashShown');
+            return !lastShown || lastShown !== today;
         }
         
         // Function to reset the logout timer
@@ -1003,19 +1010,38 @@
         
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            // ALWAYS show splash screen first - no conditions
-            createSnowflakes();
+            // Always show splash screen first
+            if (shouldShowSplash()) {
+                // Create snowflakes for splash
+                createSnowflakes();
+                // Dashboard content remains hidden until enterSite is called
+            } else {
+                // If splash shouldn't be shown, directly show dashboard
+                document.getElementById('splashContainer').style.display = 'none';
+                document.querySelector('.dashboard-content').style.display = 'block';
+                loadTheme();
+            }
             
-            // Check authentication but don't load dashboard yet
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
                 return;
             }
             
-            console.log("User authenticated, waiting for splash dismissal");
+            console.log("User authenticated, loading dashboard");
             
-            // Dashboard initialization will happen in enterSite() function
+            // Setup auto-logout functionality
+            resetLogoutTimer();
+            setupActivityListeners();
+           
+            // Start session indicator update interval
+            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+           
+            // Load groups and connections after authentication
+            loadSuggestedGroups();
+            loadActiveGroups();
+            loadConnections();
+            checkFollowStatus();
         });
         
         // Hook up both "Logout" links
