@@ -2602,8 +2602,8 @@
         // Share profile functionality
         shareProfileBtn.addEventListener('click', async () => {
             try {
-                // Create a shareable link
-                const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                // Create a shareable link that works on GitHub Pages
+                const profileUrl = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
                 
                 // Check if Web Share API is available
                 if (navigator.share) {
@@ -2622,7 +2622,7 @@
                 
                 // Fallback: copy to clipboard
                 try {
-                    const profileUrl = `${window.location.origin}/profile.html?id=${currentUser.id}`;
+                    const profileUrl = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
                     await navigator.clipboard.writeText(profileUrl);
                     showError('Profile link copied to clipboard!');
                 } catch (clipboardError) {
