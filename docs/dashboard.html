@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,7 @@
             --text-dark: #1f2937;
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
-            --transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            --bg: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+            --transition: all 0.3s cubic-bezier(.4,0,.2,1);
         }
         [data-theme="dark"] {
             --bg-primary: #1f2937;
@@ -32,117 +31,57 @@
             --primary: #7c3aed;
             --secondary: #4f46e5;
             --accent: #a78bfa;
-            --bg: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+        [data-theme="dark"] body {
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
+        }
+        [data-theme="dark"] .sidebar, [data-theme="dark"] .main-content, [data-theme="dark"] .connections, [data-theme="dark"] .card {
+            background: rgba(55, 65, 81, 0.8) !important;
+            border-color: rgba(75, 85, 99, 0.5) !important;
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] .search-bar, [data-theme="dark"] .input-field, [data-theme="dark"] .textarea-field {
+            background: rgba(55, 65, 81, 0.8) !important;
+            color: #f9fafb !important;
+            border-color: rgba(107, 114, 128, 0.5) !important;
+        }
+        [data-theme="dark"] .text-gray-800 { color: #f9fafb !important; }
+        [data-theme="dark"] .text-gray-600 { color: #9ca3af !important; }
+        [data-theme="dark"] .text-gray-500 { color: #6b7280 !important; }
+        [data-theme="dark"] .btn {
+            background: rgba(55, 65, 81, 0.8) !important;
+            color: var(--text-dark) !important;
+            border-color: rgba(107, 114, 128, 0.5) !important;
+        }
+        [data-theme="dark"] .group-item:hover, [data-theme="dark"] .connection-item:hover {
+            background: rgba(79, 70, 229, 0.2) !important;
+        }
+        [data-theme="dark"] .nav-links.mobile {
+            background: rgba(55, 65, 81, 0.95) !important;
+        }
+        [data-theme="dark"] .nav-links.mobile a {
+            background: rgba(124, 58, 237, 0.2) !important;
+            color: var(--text-dark) !important;
+            border-color: rgba(124, 58, 237, 0.3) !important;
         }
         body {
-            background: var(--bg);
+            background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
             color: var(--text-dark);
             overflow-x: hidden;
-            transition: background 0.5s ease, color 0.5s ease;
+            transition: filter 0.3s ease;
         }
-        
-        /* Glowing Tooltip Styles */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: help;
-        }
-        
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            width: 220px;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            color: white;
-            text-align: center;
-            border-radius: 12px;
-            padding: 12px 16px;
-            position: absolute;
-            z-index: 10000;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.3s, visibility 0.3s;
-            font-size: 0.85rem;
-            line-height: 1.4;
-            box-shadow: 0 0 25px rgba(124, 58, 237, 0.5);
-            border: 1px solid rgba(124, 58, 237, 0.3);
-            font-weight: 400;
-            font-style: normal;
-        }
-        
-        .tooltip .tooltip-text::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -8px;
-            border-width: 8px;
-            border-style: solid;
-            border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
-        }
-        
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-        
-        .tooltip-glow {
-            position: relative;
-        }
-        
-        .tooltip-glow::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, #ff00cc, #3333ff, #00ccff, #33ff99);
-            border-radius: inherit;
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s;
-            filter: blur(8px);
-        }
-        
-        .tooltip-glow:hover::before {
-            opacity: 0.7;
-        }
-        
-        /* Enhanced tooltip for specific elements */
-        .tooltip-enhanced {
-            position: relative;
-        }
-        
-        .tooltip-enhanced .tooltip-text {
-            width: 260px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(79, 70, 229, 0.95));
-            box-shadow: 0 0 30px rgba(124, 58, 237, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-weight: 500;
-        }
-        
-        .tooltip-enhanced .tooltip-text::after {
-            border-color: rgba(124, 58, 237, 0.95) transparent transparent transparent;
-        }
-        
-        .splash-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+        body.splash-mode {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
             background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
             color: #fff;
-            font-family: 'Great Vibes', cursive;
-            display: none;
+            height: 100vh;
+            display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 10000;
         }
         .snowflake {
             position: fixed;
@@ -171,6 +110,8 @@
             z-index: 10;
             overflow: hidden;
             animation: fadeIn 2s ease forwards;
+            font-family: 'Great Vibes', cursive;
+            display: none;
         }
         .splash-title {
             font-size: 3rem;
@@ -240,16 +181,6 @@
                 font-size: 0.75rem;
                 padding: 0 15px;
             }
-            
-            /* Adjust tooltips for mobile */
-            .tooltip .tooltip-text {
-                width: 180px;
-                font-size: 0.8rem;
-            }
-            
-            .tooltip-enhanced .tooltip-text {
-                width: 200px;
-            }
         }
         .navbar {
             position: fixed;
@@ -266,7 +197,7 @@
             transition: var(--transition);
             color: white;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
-            touch-action: pan-y; /* Prevent default touch behaviors for swipe */
+            touch-action: pan-y; /* Allow vertical scroll, restrict horizontal for swipe */
         }
         .navbar::before {
             content: '';
@@ -390,7 +321,6 @@
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: var(--transition);
         }
         .sidebar, .connections {
             flex: 1 1 100%;
@@ -403,24 +333,16 @@
         }
         .auth-title {
             font-style: italic;
-            font-weight: 600;
+            font-weight: 400;
             color: var(--text-dark);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 1rem 1.5rem;
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
-            border-left: 4px solid var(--primary);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: var(--transition);
-        }
-        .auth-title:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border-radius: 0.8rem;
+            margin-bottom: 1rem;
         }
         .card {
             background: rgba(255, 255, 255, 0.15);
@@ -572,10 +494,6 @@
         .modal.show {
             display: block;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
         .blur-background {
             filter: blur(5px);
             pointer-events: none;
@@ -623,9 +541,9 @@
         /* Mobile view improvements */
         @media (max-width: 768px) {
             .auth-title {
-                font-size: 1.25rem;
-                padding: 0.8rem 1.2rem;
-                margin-bottom: 1rem;
+                font-size: 1.1rem;
+                padding: 0.4rem 0.8rem;
+                margin-bottom: 0.8rem;
             }
             .sidebar, .main-content, .connections {
                 padding: 1rem;
@@ -761,23 +679,7 @@
         }
     </style>
 </head>
-<body data-theme="light">
-    <div id="splashContainer" class="splash-container">
-        <div class="splash-screen" id="splash">
-            <div class="splash-title">Welcome to PeerLoom ✨</div>
-            <div class="splash-text">
-                Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
-                Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
-                Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
-                🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
-                Share your group link — grow your community, boost your rank, and claim the spotlight.
-            </div>
-            <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
-            <div class="terms">
-                *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
-            </div>
-        </div>
-    </div>
+<body>
     <nav class="navbar" id="navbar">
         <a href="index.html" class="logo">
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
@@ -786,18 +688,10 @@
             <i class="fas fa-bars"></i>
         </button>
         <div class="nav-links" id="navLinks">
-            <a href="about.html" class="nav-link tooltip tooltip-glow" data-tooltip="Learn more about PeerLoom and our mission">
-                <i class="fas fa-info-circle"></i> About
-            </a>
-            <a href="profile.html" class="nav-link tooltip tooltip-glow" data-tooltip="View and edit your personal profile">
-                <i class="fas fa-user"></i> Profile
-            </a>
-            <a href="feed.html" class="nav-link tooltip tooltip-glow" data-tooltip="Browse student-created content and posts">
-                <i class="fas fa-scroll"></i> Skrolz
-            </a>
-            <a href="logout.html" class="nav-link tooltip tooltip-glow" id="logout" data-tooltip="Sign out of your account">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+            <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
+            <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
+            <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
+            <a href="logout.html" class="nav-link" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
         <div class="nav-links mobile" id="navLinksMobile">
             <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
@@ -808,12 +702,10 @@
     </nav>
     <div class="dashboard lg:flex lg:flex-row">
         <div class="sidebar">
-            <h3 class="auth-title text-xl tooltip tooltip-enhanced" data-tooltip="Access your course materials and video tutorials">
-                <i class="fas fa-book"></i> Your University Courses
-            </h3>
+            <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
             <div class="search-container">
-                <input type="text" id="courseSearch" class="search-bar tooltip" data-tooltip="Search for course videos and tutorials" placeholder="Search course videos..." />
-                <button class="btn search-btn tooltip" id="searchCoursesBtn" data-tooltip="Find relevant course content">Search</button>
+                <input type="text" id="courseSearch" class="search-bar" placeholder="Search course videos..." />
+                <button class="btn search-btn" id="searchCoursesBtn">Search</button>
                 <div id="courseLoading" class="loading"></div>
             </div>
             <div id="courseList">
@@ -845,39 +737,31 @@
         </div>
         <div class="main-content">
             <div class="card">
-                <h3 class="auth-title text-xl tooltip tooltip-enhanced" data-tooltip="Start a new study group for your courses">
-                    <i class="fas fa-users"></i> Create Study Group
-                </h3>
-                <input type="text" id="groupName" class="input-field tooltip" data-tooltip="Give your group a descriptive name" placeholder="Group Name" />
-                <textarea id="groupDescription" class="textarea-field tooltip" data-tooltip="Describe the purpose and focus of your group" placeholder="Group Description"></textarea>
+                <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
+                <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
+                <textarea id="groupDescription" class="textarea-field" placeholder="Group Description"></textarea>
                 <!-- Changed from dropdown to text input -->
-                <input type="text" id="groupCourse" class="input-field tooltip" data-tooltip="Enter the course or subject this group is for" placeholder="Enter Course / subject" />
-                <button class="btn tooltip tooltip-glow" onclick="createGroup()" data-tooltip="Create your new study group">Create Group</button>
+                <input type="text" id="groupCourse" class="input-field" placeholder="Enter Course / subject" />
+                <button class="btn" onclick="createGroup()">Create Group</button>
             </div>
             <div class="card">
-                <h3 class="auth-title text-xl tooltip tooltip-enhanced" data-tooltip="Groups you are currently participating in">
-                    <i class="fas fa-user-friends"></i> Active Study Groups
-                </h3>
+                <h3 class="auth-title text-xl"><i class="fas fa-user-friends"></i> Active Study Groups</h3>
                 <div id="groupList" class="space-y-2">
                     <!-- populated by Supabase -->
                 </div>
             </div>
             <div class="card">
-                <h3 class="auth-title text-xl tooltip tooltip-enhanced" data-tooltip="Groups you might be interested in joining">
-                    <i class="fas fa-lightbulb"></i> Suggested Groups
-                </h3>
+                <h3 class="auth-title text-xl"><i class="fas fa-lightbulb"></i> Suggested Groups</h3>
                 <div id="suggestedGroups" class="space-y-2">
                     <!-- populated by Supabase with existing groups -->
                 </div>
             </div>
         </div>
         <div class="connections">
-            <h3 class="auth-title text-xl tooltip tooltip-enhanced" data-tooltip="Connect with other students in your university">
-                <i class="fas fa-user-plus"></i> University Connections
-            </h3>
+            <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
             <div class="search-container">
-                <input type="text" id="connectionSearch" class="search-bar tooltip" data-tooltip="Search for students by name, department, or username" placeholder="Search for coursemates..." />
-                <button class="btn search-btn tooltip" id="searchConnectionsBtn" data-tooltip="Find students to connect with">Search</button>
+                <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
+                <button class="btn search-btn" id="searchConnectionsBtn">Search</button>
                 <div id="connectionLoading" class="loading"></div>
             </div>
             <div id="connectionList">
@@ -886,7 +770,7 @@
         </div>
     </div>
     <!-- Session Active Indicator -->
-    <div id="sessionIndicator" class="session-indicator active tooltip" data-tooltip="Your session will automatically expire after 1 hour of inactivity">
+    <div id="sessionIndicator" class="session-indicator active">
         <span class="status-dot"></span>
         <span id="sessionStatus">Session Active</span>
         <span id="sessionTimer">(59:59)</span>
@@ -895,117 +779,27 @@
     <div id="notificationModal" class="modal">
         <span id="modalMessage">Group inserted</span>
     </div>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splash">
+        <div class="splash-title">Welcome to PeerLoom ✨</div>
+        <div class="splash-text">
+            Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+            Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+            Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+            🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+            Share your group link — grow your community, boost your rank, and claim the spotlight.
+        </div>
+        <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+        <div class="terms">
+            *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
+        </div>
+    </div>
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-        
-        // Initialize tooltips
-        function initializeTooltips() {
-            const tooltipElements = document.querySelectorAll('.tooltip');
-            
-            tooltipElements.forEach(element => {
-                const tooltipText = element.getAttribute('data-tooltip');
-                if (tooltipText) {
-                    const tooltipSpan = document.createElement('span');
-                    tooltipSpan.className = 'tooltip-text';
-                    tooltipSpan.textContent = tooltipText;
-                    element.appendChild(tooltipSpan);
-                }
-            });
-        }
-        
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
         let sessionUpdateInterval;
-        // Theme persistence and snowflakes
-        let snowflakeElements = [];
-        function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            if (theme === 'dark') {
-                createSnowflakes();
-            } else {
-                removeSnowflakes();
-            }
-        }
-        function createSnowflakes() {
-            if (snowflakeElements.length > 0) return;
-            const snowflakes = 80;
-            for (let i = 0; i < snowflakes; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄';
-                snowflake.style.left = Math.random() * 100 + 'vw';
-                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                document.body.appendChild(snowflake);
-                snowflakeElements.push(snowflake);
-            }
-        }
-        function removeSnowflakes() {
-            snowflakeElements.forEach(snow => snow.remove());
-            snowflakeElements = [];
-        }
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            applyTheme(newTheme);
-        }
-        // Swipe gesture for theme toggle
-        let touchStartX = 0;
-        const navbar = document.getElementById('navbar');
-        navbar.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        });
-        navbar.addEventListener('touchend', (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            const diff = touchStartX - touchEndX;
-            if (Math.abs(diff) > 50) {
-                toggleTheme();
-            }
-        });
-        // Load theme on page load
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-        }
-        // Splash screen functions
-        function showSplash() {
-            const container = document.getElementById('splashContainer');
-            container.style.display = 'flex';
-            // Create temporary snowflakes for splash
-            const tempSnowflakes = 80;
-            for (let i = 0; i < tempSnowflakes; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄';
-                snowflake.style.left = Math.random() * 100 + 'vw';
-                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                document.body.appendChild(snowflake);
-                snowflakeElements.push(snowflake); // Reuse the array for cleanup
-            }
-        }
-        function enterSite() {
-            const splash = document.getElementById('splash');
-            splash.style.animation = 'fadeOut 2s forwards';
-            const container = document.getElementById('splashContainer');
-            setTimeout(() => {
-                container.style.display = 'none';
-                // Remove splash snowflakes
-                removeSnowflakes();
-            }, 2000);
-            // Update last shown date
-            const today = new Date().toISOString().split('T')[0];
-            localStorage.setItem('lastSplashShown', today);
-        }
-        function shouldShowSplash() {
-            const today = new Date().toISOString().split('T')[0];
-            const lastShown = localStorage.getItem('lastSplashShown');
-            return !lastShown || lastShown !== today;
-        }
         // Function to reset the logout timer
         function resetLogoutTimer() {
             clearTimeout(logoutTimer);
@@ -1059,45 +853,96 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
+        // Snowflake functions
+        function createSnowflakes() {
+            if (document.querySelector('.snowflake')) return;
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+            }
+        }
+        function removeSnowflakes() {
+            document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
+        }
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            if (newTheme === 'dark') {
+                createSnowflakes();
+            } else {
+                removeSnowflakes();
+            }
+        }
+        // Splash screen logic
+        function enterSite() {
+            const splash = document.getElementById('splash');
+            document.body.classList.remove('splash-mode');
+            localStorage.setItem('visited', 'true');
+            splash.style.animation = 'fadeOut 2s forwards';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                if (document.documentElement.getAttribute('data-theme') === 'light') {
+                    removeSnowflakes();
+                }
+            }, 2000);
+        }
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            loadTheme(); // Load theme first
-            initializeTooltips(); // Initialize tooltips
-            
+            // Set theme from localStorage
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'dark') createSnowflakes();
+            // Swipe gesture on navbar
+            const navbar = document.getElementById('navbar');
+            let startX = 0;
+            navbar.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            }, { passive: true });
+            navbar.addEventListener('touchend', (e) => {
+                if (!startX) return;
+                const endX = e.changedTouches[0].clientX;
+                const deltaX = endX - startX;
+                const threshold = 50;
+                if (Math.abs(deltaX) > threshold) {
+                    toggleTheme();
+                }
+                startX = 0;
+            }, { passive: true });
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
-                return;
+            } else {
+                console.log("User authenticated, loading dashboard");
+                // Setup auto-logout functionality
+                resetLogoutTimer();
+                setupActivityListeners();
+               
+                // Start session indicator update interval
+                sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+               
+                // Load groups and connections after authentication
+                loadSuggestedGroups();
+                loadActiveGroups();
+                loadConnections();
+                checkFollowStatus();
+                // Check for splash screen
+                if (!localStorage.getItem('visited')) {
+                    document.body.classList.add('splash-mode');
+                    createSnowflakes();
+                    document.getElementById('splash').style.display = 'block';
+                }
             }
-            console.log("User authenticated, loading dashboard");
-            // Check and show splash if needed
-            if (shouldShowSplash()) {
-                showSplash();
-                // Wait for splash to be dismissed before proceeding
-                // Note: In a real app, you might need to pause loading until enterSite is called
-                // For simplicity, we'll load content but hide dashboard until splash is dismissed
-                document.querySelector('.dashboard').style.display = 'none';
-                // Listen for splash dismissal
-                const observer = new MutationObserver(() => {
-                    if (document.getElementById('splashContainer').style.display === 'none') {
-                        document.querySelector('.dashboard').style.display = '';
-                        observer.disconnect();
-                    }
-                });
-                observer.observe(document.getElementById('splashContainer'), { attributes: true, attributeFilter: ['style'] });
-            }
-            // Setup auto-logout functionality
-            resetLogoutTimer();
-            setupActivityListeners();
-           
-            // Start session indicator update interval
-            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-           
-            // Load groups and connections after authentication
-            loadSuggestedGroups();
-            loadActiveGroups();
-            loadConnections();
-            checkFollowStatus();
         });
         // Hook up both "Logout" links
         const logoutButtons = ['logout', 'logoutMobile']
@@ -1179,12 +1024,10 @@
                             <p class="text-gray-600">${group.course_code}</p>
                             ${group.description ? `<p class="text-sm text-gray-500 mt-1">${group.description}</p>` : ''}
                         </div>
-                        <a href="#" class="btn join-btn tooltip" data-tooltip="Join this study group" data-groupid="${group.id}">Join</a>
+                        <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
                     `;
                     suggestedGroupsDiv.appendChild(div);
                 });
-                // Re-initialize tooltips for dynamically added elements
-                initializeTooltips();
                 // Add join handlers
                 document.querySelectorAll('.join-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -1301,12 +1144,10 @@
                             <p class="text-gray-600">${groupData.course_code}</p>
                             ${groupData.description ? `<p class="text-sm text-gray-500 mt-1">${groupData.description}</p>` : ''}
                         </div>
-                        <a href="chatroom.html?groupId=${groupData.id}" class="btn tooltip" data-tooltip="Open group chat">Chat</a>
+                        <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
                     `;
                     groupListDiv.appendChild(div);
                 }
-                // Re-initialize tooltips for dynamically added elements
-                initializeTooltips();
             } else {
                 groupListDiv.innerHTML = '<p class="text-center text-gray-500">You are not a member of any groups yet.</p>';
             }
@@ -1410,7 +1251,7 @@
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
-                            <div class="avatar tooltip" data-tooltip="View ${fullName}'s profile" onclick="navigateToUserProfile('${profile.id}')">
+                            <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
                                 ${profilePhoto ?
                                     `<img src="${profilePhoto}" alt="${fullName}" />` :
                                     initials
@@ -1420,12 +1261,10 @@
                                 <p class="font-semibold text-gray-800">${fullName}</p>
                                 <p class="text-gray-600">${department} • ${status}</p>
                             </div>
-                            <button class="btn follow-btn tooltip" data-tooltip="Connect with ${fullName}" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
+                            <button class="btn follow-btn" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
                         `;
                         connectionList.appendChild(div);
                     });
-                    // Re-initialize tooltips for dynamically added elements
-                    initializeTooltips();
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1522,7 +1361,7 @@
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
-                            <div class="avatar tooltip" data-tooltip="View ${fullName}'s profile" onclick="navigateToUserProfile('${profile.id}')">
+                            <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
                                 ${profilePhoto ?
                                     `<img src="${profilePhoto}" alt="${fullName}" />` :
                                     initials
@@ -1532,12 +1371,10 @@
                                 <p class="font-semibold text-gray-800">${fullName}</p>
                                 <p class="text-gray-600">${department} • ${status}</p>
                             </div>
-                            <button class="btn follow-btn tooltip" data-tooltip="Connect with ${fullName}" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
+                            <button class="btn follow-btn" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
                         `;
                         connectionList.appendChild(div);
                     });
-                    // Re-initialize tooltips for dynamically added elements
-                    initializeTooltips();
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1697,6 +1534,7 @@
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
         window.enterSite = enterSite;
+        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
