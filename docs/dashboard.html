@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script type="module" src="js/supabaseClient.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
         :root {
             --primary: #7c3aed;
             --secondary: #4f46e5;
@@ -20,10 +21,14 @@
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
             --transition: all 0.3s cubic-bezier(.4,0,.2,1);
+            --bg-gradient: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --card-bg: rgba(255, 255, 255, 0.15);
         }
         [data-theme="dark"] {
-            --bg-primary: #1f2937;
-            --bg-secondary: #374151;
+            --bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --card-bg: rgba(255, 255, 255, 0.05);
             --text-dark: #f9fafb;
             --text-light: #9ca3af;
             --hover-bg: #4b5563;
@@ -32,13 +37,111 @@
             --accent: #a78bfa;
         }
         body {
-            background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
-            color: var(--text-dark);
-            overflow-x: hidden;
-            transition: filter 0.3s ease;
+            transition: var(--transition);
         }
+        /* Splash Screen Styles */
+        .splash-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
+            color: #fff;
+            font-family: 'Great Vibes', cursive;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            color: white;
+            font-size: 1em;
+            opacity: 0.8;
+            pointer-events: none;
+            animation: fall linear infinite;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+            z-index: 1;
+        }
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0.7; }
+        }
+        .splash-screen {
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            background: linear-gradient(145deg, #000, #111);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
+            padding: 50px 30px 70px;
+            text-align: center;
+            z-index: 10;
+            overflow: hidden;
+            animation: fadeIn 2s ease forwards;
+        }
+        .splash-title {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #d4af37, #f9f295, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            margin-bottom: 20px;
+        }
+        .splash-text {
+            font-size: 1.1rem;
+            color: #e0e0e0;
+            line-height: 1.7;
+            max-width: 700px;
+            margin: 0 auto 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        .highlight {
+            color: gold;
+            font-weight: bold;
+        }
+        .enter-btn {
+            padding: 14px 36px;
+            font-size: 1.1rem;
+            border: 2px solid gold;
+            border-radius: 40px;
+            background: transparent;
+            color: gold;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .enter-btn:hover {
+            background: gold;
+            color: #000;
+            box-shadow: 0 0 25px gold;
+        }
+        .terms {
+            margin-top: 40px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+        /* End Splash Styles */
         .navbar {
             position: fixed;
             width: 100%;
@@ -65,6 +168,14 @@
             background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
             z-index: -1;
             opacity: 0.3;
+        }
+        .logo {
+            height: 28px;
+            transition: transform var(--transition);
+            cursor: pointer;
+        }
+        .logo:hover {
+            transform: scale(1.1);
         }
         .logo img {
             height: 28px;
@@ -159,6 +270,17 @@
             width: 20px;
             text-align: center;
         }
+        .topbar {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
         .dashboard {
             display: flex;
             flex-direction: column;
@@ -169,10 +291,10 @@
             margin-left: auto;
             margin-right: auto;
             min-width: 0;
-            transition: filter 0.3s ease;
+            transition: var(--transition);
         }
         .sidebar, .main-content, .connections {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: 1rem;
             padding: 1.5rem;
@@ -201,7 +323,7 @@
             margin-bottom: 1rem;
         }
         .card {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--card-bg);
             backdrop-filter: blur(10px);
             border-radius: 0.8rem;
             padding: 1rem;
@@ -363,7 +485,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 0.8rem;
@@ -413,8 +535,15 @@
             }
         }
         @media (min-width: 1024px) {
+            .navbar {
+                display: none;
+            }
+            .topbar {
+                display: flex;
+            }
             .dashboard {
                 flex-direction: row;
+                padding: 1.5rem;
             }
             .nav-links {
                 display: flex;
@@ -536,12 +665,43 @@
                 font-size: 0.75rem;
                 padding: 0.3rem 0.6rem;
             }
+            .splash-title {
+                font-size: 2.2rem;
+            }
+            .splash-text {
+                font-size: 1rem;
+                padding: 0 10px;
+            }
+            .enter-btn {
+                font-size: 1rem;
+                padding: 12px 28px;
+            }
+            .terms {
+                font-size: 0.75rem;
+                padding: 0 15px;
+            }
         }
     </style>
 </head>
 <body>
+    <div id="splash-container" class="splash-container">
+        <div class="splash-screen" id="splash">
+            <div class="splash-title">Welcome to PeerLoom ✨</div>
+            <div class="splash-text">
+                Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+                Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+                Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+                🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+                Share your group link — grow your community, boost your rank, and claim the spotlight.
+            </div>
+            <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+            <div class="terms">
+                *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
+            </div>
+        </div>
+    </div>
     <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo">
+        <a href="index.html" class="logo" id="logo-swipe">
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
@@ -560,8 +720,18 @@
             <a href="logout.html" class="nav-link" id="logoutMobile"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>
-
     <div class="dashboard lg:flex lg:flex-row">
+        <div class="topbar">
+            <a href="index.html" class="logo" id="logo-swipe-desktop">
+                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
+            </a>
+            <div class="nav-links" id="navLinksDesktop">
+                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
+                <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
+                <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
+                <a href="logout.html" class="nav-link" id="logoutDesktop"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
         <div class="sidebar">
             <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
             <div class="search-container">
@@ -596,7 +766,6 @@
                 </div>
             </div>
         </div>
-
         <div class="main-content">
             <div class="card">
                 <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
@@ -619,7 +788,6 @@
                 </div>
             </div>
         </div>
-
         <div class="connections">
             <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
             <div class="search-container">
@@ -632,51 +800,71 @@
             </div>
         </div>
     </div>
-
     <!-- Session Active Indicator -->
     <div id="sessionIndicator" class="session-indicator active">
         <span class="status-dot"></span>
         <span id="sessionStatus">Session Active</span>
         <span id="sessionTimer">(59:59)</span>
     </div>
-
     <!-- Glassmorphism Modal -->
     <div id="notificationModal" class="modal">
         <span id="modalMessage">Group inserted</span>
     </div>
-
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-
+        // Theme Toggle
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('theme', currentTheme);
+        }
+        // Swipe gesture for theme toggle
+        function addSwipeListener(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            let startX = 0;
+            element.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            });
+            element.addEventListener('touchend', (e) => {
+                if (!startX) return;
+                const endX = e.changedTouches[0].clientX;
+                const deltaX = Math.abs(endX - startX);
+                if (deltaX > 50) {
+                    toggleTheme();
+                }
+                startX = 0;
+            });
+        }
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
         let sessionUpdateInterval;
-
         // Function to reset the logout timer
         function resetLogoutTimer() {
             clearTimeout(logoutTimer);
             logoutTimer = setTimeout(autoLogout, AUTO_LOGOUT_TIME);
             updateSessionIndicator();
         }
-
         // Function to update the session indicator
         function updateSessionIndicator() {
             const sessionIndicator = document.getElementById('sessionIndicator');
             const sessionStatus = document.getElementById('sessionStatus');
             const sessionTimer = document.getElementById('sessionTimer');
-            
+           
             if (!sessionIndicator || !sessionStatus || !sessionTimer) return;
-            
+           
             // Calculate remaining time
             const remainingTime = AUTO_LOGOUT_TIME - (Date.now() - (logoutTimer._idleStart || Date.now()));
             const minutes = Math.floor(remainingTime / 60000);
             const seconds = Math.floor((remainingTime % 60000) / 1000);
-            
+           
             // Format time display
             const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             sessionTimer.textContent = `(${timeString})`;
-            
+           
             // Update indicator style based on remaining time
             sessionIndicator.className = 'session-indicator';
             if (remainingTime > 10 * 60 * 1000) { // More than 10 minutes
@@ -690,7 +878,6 @@
                 sessionStatus.textContent = 'Session About to Expire';
             }
         }
-
         // Function to automatically logout user
         async function autoLogout() {
             console.log('Auto-logging out due to inactivity');
@@ -701,7 +888,6 @@
                 window.location.href = 'index.html?message=session_timeout';
             }
         }
-
         // Function to setup activity listeners
         function setupActivityListeners() {
             const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -709,34 +895,65 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
-
+        // Splash screen logic
+        function enterSite() {
+            const splash = document.getElementById('splash');
+            splash.style.animation = 'fadeOut 2s forwards';
+            localStorage.setItem('visited', 'true');
+            setTimeout(() => {
+                const container = document.getElementById('splash-container');
+                if (container) container.remove();
+            }, 2000);
+        }
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
-            } else {
-                console.log("User authenticated, loading dashboard");
-                // Setup auto-logout functionality
-                resetLogoutTimer();
-                setupActivityListeners();
-                
-                // Start session indicator update interval
-                sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-                
-                // Load groups and connections after authentication
-                loadSuggestedGroups();
-                loadActiveGroups();
-                loadConnections();
-                checkFollowStatus();
+                return;
             }
-        });
+            console.log("User authenticated, loading dashboard");
+            // Setup auto-logout functionality
+            resetLogoutTimer();
+            setupActivityListeners();
+           
+            // Start session indicator update interval
+            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+           
+            // Load groups and connections after authentication
+            loadSuggestedGroups();
+            loadActiveGroups();
+            loadConnections();
+            checkFollowStatus();
 
+            // Check for new user splash
+            if (!localStorage.getItem('visited')) {
+                const container = document.getElementById('splash-container');
+                if (container) {
+                    container.style.display = 'flex';
+                    // Generate snowflakes
+                    const snowflakes = 80;
+                    for (let i = 0; i < snowflakes; i++) {
+                        const snowflake = document.createElement('div');
+                        snowflake.classList.add('snowflake');
+                        snowflake.textContent = '❄';
+                        snowflake.style.left = Math.random() * 100 + 'vw';
+                        snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                        snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                        snowflake.style.animationDelay = Math.random() * 5 + 's';
+                        document.body.appendChild(snowflake);
+                    }
+                }
+            }
+
+            // Add swipe listeners
+            addSwipeListener('logo-swipe');
+            addSwipeListener('logo-swipe-desktop');
+        });
         // Hook up both "Logout" links
-        const logoutButtons = ['logout', 'logoutMobile']
+        const logoutButtons = ['logout', 'logoutMobile', 'logoutDesktop']
             .map(id => document.getElementById(id))
             .filter(Boolean);
-
         logoutButtons.forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -750,7 +967,6 @@
                 window.location.href = 'index.html?message=logout_success';
             });
         });
-
         // Burger-menu toggler with touch support
         const navToggle = document.getElementById('navToggle');
         const navLinksMobile = document.getElementById('navLinksMobile');
@@ -759,18 +975,15 @@
                 navLinksMobile.classList.toggle('show');
                 resetLogoutTimer(); // Reset timer on navigation interaction
             });
-
             document.addEventListener('click', (e) => {
                 if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
                     navLinksMobile.classList.remove('show');
                 }
             });
-
             navLinksMobile.addEventListener('touchmove', (e) => {
                 e.preventDefault();
             }, { passive: false });
         }
-
         // Load suggested groups (excluding your own and groups you're already in)
         async function loadSuggestedGroups() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -778,20 +991,16 @@
                 console.error('No user found');
                 return;
             }
-
             // Get groups the user is already a member of
             const { data: userGroups, error: userGroupsError } = await supabase
                 .from('group_members')
                 .select('group_id')
                 .eq('user_id', user.id);
-
             if (userGroupsError) {
                 console.error('Error loading user groups:', userGroupsError);
                 return;
             }
-
             const userGroupIds = userGroups.map(g => g.group_id);
-
             // Get groups not created by the user and not already joined
             const { data, error } = await supabase
                 .from('groups')
@@ -799,17 +1008,17 @@
                 .neq('created_by', user.id)
                 .not('id', 'in', `(${userGroupIds.join(',')})`)
                 .limit(5);
-                
+               
             if (error) {
                 console.error('Error loading suggested groups:', error);
                 return;
             }
-            
+           
             const suggestedGroupsDiv = document.getElementById('suggestedGroups');
             if (!suggestedGroupsDiv) return;
-            
+           
             suggestedGroupsDiv.innerHTML = '';
-            
+           
             if (data && data.length > 0) {
                 data.forEach(group => {
                     const div = document.createElement('div');
@@ -825,7 +1034,6 @@
                     `;
                     suggestedGroupsDiv.appendChild(div);
                 });
-
                 // Add join handlers
                 document.querySelectorAll('.join-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -839,16 +1047,14 @@
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No suggested groups found.</p>';
             }
         }
-
         // Join group function
         async function joinGroup(groupId, button) {
             const { data: { user } } = await supabase.auth.getUser();
-            
+           
             if (!user) {
                 showNotification('Please log in to join groups.');
                 return;
             }
-
             try {
                 // First check if user is already a member
                 const { data: existingMember, error: checkError } = await supabase
@@ -857,25 +1063,23 @@
                     .eq('group_id', groupId)
                     .eq('user_id', user.id)
                     .single();
-
                 if (existingMember) {
                     showNotification('You are already a member of this group.');
                     return;
                 }
-
                 // INSERT with joined_at timestamp and role
                 const { error } = await supabase
                     .from('group_members')
-                    .insert({ 
-                        group_id: groupId, 
+                    .insert({
+                        group_id: groupId,
                         user_id: user.id,
                         joined_at: new Date().toISOString(),
                         role: 'member'
                     });
-                    
+                   
                 if (error) {
                     console.error('Error joining group:', error);
-                    
+                   
                     if (error.code === '23505') {
                         showNotification('You are already a member of this group.');
                     } else {
@@ -883,11 +1087,11 @@
                     }
                 } else {
                     showNotification('Successfully joined group!');
-                    
+                   
                     // Update both lists to reflect the change
                     loadActiveGroups();
                     loadSuggestedGroups();
-                    
+                   
                     // Disable the join button
                     if (button) {
                         button.textContent = 'Joined';
@@ -900,7 +1104,6 @@
                 showNotification('An unexpected error occurred while joining the group.');
             }
         }
-
         // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -908,37 +1111,36 @@
                 console.error('No user found');
                 return;
             }
-
             const { data, error } = await supabase
                 .from('group_members')
                 .select('group_id')
                 .eq('user_id', user.id);
-                
+               
             if (error) {
                 console.error('Error loading active groups:', error);
                 return;
             }
-            
+           
             const groupListDiv = document.getElementById('groupList');
             if (!groupListDiv) return;
-            
+           
             groupListDiv.innerHTML = '';
-            
+           
             if (data && data.length > 0) {
                 const groupIds = data.map(m => m.group_id);
-                
+               
                 for (const groupId of groupIds) {
                     const { data: groupData, error: groupError } = await supabase
                         .from('groups')
                         .select('id, name, course_code, description')
                         .eq('id', groupId)
                         .single();
-                        
+                       
                     if (groupError) {
                         console.error('Error loading group details:', groupError);
                         continue;
                     }
-                    
+                   
                     const div = document.createElement('div');
                     div.className = 'group-item';
                     div.innerHTML = `
@@ -956,26 +1158,24 @@
                 groupListDiv.innerHTML = '<p class="text-center text-gray-500">You are not a member of any groups yet.</p>';
             }
         }
-
         // Create group
         async function createGroup() {
             resetLogoutTimer(); // Reset timer on user action
-            
+           
             const groupName = document.getElementById('groupName').value.trim();
             const groupDescription = document.getElementById('groupDescription').value.trim();
             const course = document.getElementById('groupCourse').value.trim();
             const { data: { user } } = await supabase.auth.getUser();
-            
+           
             if (!user) {
                 showNotification('Please log in to create a group.');
                 return;
             }
-            
+           
             if (!groupName || !course) {
                 showNotification('Please fill in all required fields.');
                 return;
             }
-
             try {
                 // Create the group
                 const { data, error } = await supabase
@@ -989,45 +1189,40 @@
                     })
                     .select()
                     .single();
-
                 if (error) {
                     console.error('Error creating group:', error);
                     showNotification('Failed to create group. Please try again.');
                     return;
                 }
-
                 // Add creator as member with admin role and timestamp
                 const { error: memberError } = await supabase
                     .from('group_members')
-                    .insert({ 
+                    .insert({
                         group_id: data.id,
                         user_id: user.id,
                         joined_at: new Date().toISOString(),
                         role: 'admin'
                     });
-
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
                     showNotification('Group created but failed to add you as member.');
                     return;
                 }
-
                 // Success!
                 showNotification('Group created successfully!');
                 document.getElementById('groupName').value = '';
                 document.getElementById('groupDescription').value = '';
                 document.getElementById('groupCourse').value = '';
-                
+               
                 // Refresh the lists
                 loadActiveGroups();
                 loadSuggestedGroups();
-                
+               
             } catch (error) {
                 console.error('Unexpected error creating group:', error);
                 showNotification('An unexpected error occurred.');
             }
         }
-
         // Load connections from Supabase profiles
         async function loadConnections() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1035,7 +1230,6 @@
                 console.error('No user found');
                 return;
             }
-
             try {
                 // Get profiles excluding current user - using profile_photo instead of avatar_url
                 const { data: profiles, error } = await supabase
@@ -1043,17 +1237,15 @@
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .limit(3); // Limit to 3 profiles only
-                    
+                   
                 if (error) {
                     console.error('Supabase error loading connections:', error);
                     throw error;
                 }
-
                 const connectionList = document.getElementById('connectionList');
                 if (!connectionList) return;
-                
+               
                 connectionList.innerHTML = '';
-
                 if (profiles && profiles.length > 0) {
                     profiles.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
@@ -1061,13 +1253,13 @@
                         const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
                         const department = profile.department || 'No department';
-                        
+                       
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
                             <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
-                                ${profilePhoto ? 
-                                    `<img src="${profilePhoto}" alt="${fullName}" />` : 
+                                ${profilePhoto ?
+                                    `<img src="${profilePhoto}" alt="${fullName}" />` :
                                     initials
                                 }
                             </div>
@@ -1079,7 +1271,6 @@
                         `;
                         connectionList.appendChild(div);
                     });
-
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1089,7 +1280,6 @@
                             await toggleFollowUser(btn, userId);
                         });
                     });
-
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
@@ -1103,26 +1293,21 @@
                 }
             }
         }
-
         // Check follow status for all displayed users
         async function checkFollowStatus() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
             try {
                 // Get all users the current user is following
                 const { data: following, error } = await supabase
                     .from('followers')
                     .select('following_id')
                     .eq('follower_id', user.id);
-
                 if (error) {
                     console.error('Error checking follow status:', error);
                     return;
                 }
-
                 const followingIds = following.map(f => f.following_id);
-
                 // Update all follow buttons based on follow status
                 document.querySelectorAll('.follow-btn').forEach(btn => {
                     const userId = btn.dataset.userid;
@@ -1140,42 +1325,37 @@
                 console.error('Error in checkFollowStatus:', error);
             }
         }
-
         // Search connections from Supabase profiles
         async function searchConnections() {
             resetLogoutTimer(); // Reset timer on user action
-            
+           
             const connectionSearch = document.getElementById('connectionSearch').value.trim();
             const connectionLoading = document.getElementById('connectionLoading');
             const connectionList = document.getElementById('connectionList');
-            
+           
             if (!connectionList) return;
-            
+           
             if (!connectionSearch) {
                 // If search is empty, reload all connections
                 loadConnections();
                 return;
             }
-
             connectionLoading.style.display = 'block';
-
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
-
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%`)
                     .limit(3); // Limit to 3 profiles only
-                    
+                   
                 connectionList.innerHTML = '';
                 if (error) {
                     console.error('Supabase search error:', error);
                     throw error;
                 }
-
                 if (data && data.length > 0) {
                     data.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
@@ -1183,13 +1363,13 @@
                         const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
                         const department = profile.department || 'No department';
-                        
+                       
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
                             <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
-                                ${profilePhoto ? 
-                                    `<img src="${profilePhoto}" alt="${fullName}" />` : 
+                                ${profilePhoto ?
+                                    `<img src="${profilePhoto}" alt="${fullName}" />` :
                                     initials
                                 }
                             </div>
@@ -1201,7 +1381,6 @@
                         `;
                         connectionList.appendChild(div);
                     });
-
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1211,7 +1390,6 @@
                             await toggleFollowUser(btn, userId);
                         });
                     });
-
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
@@ -1224,25 +1402,22 @@
                 connectionLoading.style.display = 'none';
             }
         }
-
         // Search courses with YouTube API
         async function searchCourses() {
             resetLogoutTimer(); // Reset timer on user action
-            
+           
             const courseSearch = document.getElementById('courseSearch').value.trim();
             const courseLoading = document.getElementById('courseLoading');
             const courseList = document.getElementById('courseList');
             if (!courseSearch) return;
-
             courseLoading.style.display = 'block';
-
             try {
                 const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(courseSearch + ' tutorial')}&type=video&maxResults=10&key=AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message || 'YouTube API error');
-                
+               
                 courseList.innerHTML = '';
                 if (data.items && data.items.length > 0) {
                     data.items.slice(0, 3).forEach(item => {
@@ -1268,17 +1443,15 @@
                 courseLoading.style.display = 'none';
             }
         }
-
         // Toggle follow/unfollow user function using the followers table
         async function toggleFollowUser(button, userId) {
             resetLogoutTimer(); // Reset timer on user action
-            
+           
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 showNotification('Please log in to follow users.');
                 return;
             }
-
             try {
                 // Check if already following
                 const { data: existingFollow, error: checkError } = await supabase
@@ -1287,7 +1460,6 @@
                     .eq('follower_id', user.id)
                     .eq('following_id', userId)
                     .single();
-
                 if (existingFollow) {
                     // Unfollow: Delete the follow relationship
                     const { error } = await supabase
@@ -1295,7 +1467,7 @@
                         .delete()
                         .eq('follower_id', user.id)
                         .eq('following_id', userId);
-                        
+                       
                     if (error) {
                         console.error('Error unfollowing user:', error);
                         showNotification('Failed to unfollow user. Please try again.');
@@ -1309,11 +1481,11 @@
                     // Follow: Insert follow relationship
                     const { error } = await supabase
                         .from('followers')
-                        .insert({ 
+                        .insert({
                             follower_id: user.id,
                             following_id: userId
                         });
-                        
+                       
                     if (error) {
                         console.error('Error following user:', error);
                         showNotification('Failed to follow user. Please try again.');
@@ -1329,50 +1501,46 @@
                 showNotification('An unexpected error occurred while following the user.');
             }
         }
-
         // Navigate to user profile (other user's profile)
         function navigateToUserProfile(userId) {
             resetLogoutTimer(); // Reset timer on user action
             window.location.href = `profile.html?userId=${userId}`;
         }
-
         // Show notification with blur effect
         function showNotification(message, callback) {
             const modal = document.getElementById('notificationModal');
             const body = document.querySelector('.dashboard');
             const modalMessage = document.getElementById('modalMessage');
-            
+           
             if (!modal || !body || !modalMessage) return;
-            
+           
             modalMessage.textContent = message;
             modal.classList.add('show');
             body.classList.add('blur-background');
-
             setTimeout(() => {
                 modal.classList.remove('show');
                 body.classList.remove('blur-background');
                 if (callback) callback();
             }, 3000);
         }
-
         // Add event listeners
         document.addEventListener('DOMContentLoaded', () => {
             const searchConnectionsBtn = document.getElementById('searchConnectionsBtn');
             if (searchConnectionsBtn) {
                 searchConnectionsBtn.addEventListener('click', searchConnections);
             }
-
             const searchCoursesBtn = document.getElementById('searchCoursesBtn');
             if (searchCoursesBtn) {
                 searchCoursesBtn.addEventListener('click', searchCourses);
             }
         });
-
         // Make functions globally available
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
+        window.enterSite = enterSite;
+        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
