@@ -3,3256 +3,1011 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile - Peerloom</title>
+    <title>Profile - Peerloom</title>
     <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
     <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script type="module" src="js/supabaseClient.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
         :root {
             --primary: #7c3aed;
-            --primary-light: #8b5cf6;
-            --primary-dark: #6d28d9;
-            --secondary: #0ea5e9;
-            --accent: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-light: #94a3b8;
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #f1f5f9;
-            --border: #e2e8f0;
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --radius: 12px;
-            --glass-radius: 50px; /* For round buttons */
+            --secondary: #4f46e5;
+            --accent: #a78bfa;
+            --text-dark: #1f2937;
+            --text-light: #64748b;
+            --hover-bg: #f3f4f6;
+            --transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+            --tooltip-glow: rgba(124, 58, 237, 0.6);
         }
         [data-theme="dark"] {
-            --primary: #8b5cf6;
-            --primary-light: #a78bfa;
-            --primary-dark: #7c3aed;
-            --secondary: #0ea5e9;
-            --accent: #10b981;
-            --danger: #f87171;
-            --warning: #fbbf24;
-            --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --text-light: #94a3b8;
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #334155;
-            --border: #475569;
-            --glass-bg: rgba(15, 23, 42, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --bg-primary: #1f2937;
+            --bg-secondary: #374151;
+            --text-dark: #f9fafb;
+            --text-light: #9ca3af;
+            --hover-bg: #4b5563;
+            --primary: #7c3aed;
+            --secondary: #4f46e5;
+            --accent: #a78bfa;
+            --bg: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            --tooltip-glow: rgba(167, 139, 250, 0.8);
         }
         body {
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background: var(--bg);
+            font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
-            transition: var(--transition);
-            position: relative;
+            color: var(--text-dark);
             overflow-x: hidden;
+            transition: background 0.5s ease, color 0.5s ease;
         }
-        .app-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-        /* Header with swipe functionality */
-        .header {
+        .splash-container {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--glass-border);
-            z-index: 100;
-            touch-action: pan-x;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--primary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
+            color: #fff;
+            font-family: 'Great Vibes', cursive;
+            display: none;
             justify-content: center;
-            color: white;
-        }
-        .nav-actions {
-            display: flex;
             align-items: center;
-            gap: 1rem;
+            z-index: 10000;
         }
-        .nav-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .nav-icon:hover {
-            background: var(--primary);
-            color: white;
-            transform: translateY(-2px);
-        }
-        .theme-indicator {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            font-size: 0.875rem;
-            opacity: 0;
-            transition: var(--transition);
-        }
-        .header.swiping .theme-indicator {
-            opacity: 1;
-        }
-        /* Main content layout */
-        .main-content {
-            padding-top: 80px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-            padding-bottom: 4rem; /* Extra padding for bottom buttons */
-            padding-bottom: env(safe-area-inset-bottom, 4rem); /* For iOS safe area */
-        }
-        /* Profile card */
-        .profile-card {
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-        }
-        .profile-card:hover {
-            box-shadow: var(--shadow-lg);
-        }
-        .profile-header-section {
-            padding: 2rem 1.5rem 1rem;
-            text-align: center;
-            position: relative;
-        }
-        .avatar-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-        }
-        .avatar {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            border: 4px solid var(--bg-secondary);
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-        .avatar::before {
-            content: '';
-            position: absolute;
+        .snowflake {
+            position: fixed;
             top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
-            border-radius: 50%;
-            z-index: -1;
-            filter: blur(15px);
-            opacity: 0.7;
+            color: white;
+            font-size: 1em;
+            opacity: 0.8;
+            pointer-events: none;
+            animation: fall linear infinite;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+            z-index: 1;
         }
-        .avatar:hover {
-            transform: scale(1.05);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0.7; }
         }
-        .avatar img {
+        .splash-screen {
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            background: linear-gradient(145deg, #000, #111);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
+            padding: 50px 30px 70px;
+            text-align: center;
+            z-index: 10;
+            overflow: hidden;
+            animation: fadeIn 2s ease forwards;
+        }
+        .splash-title {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #d4af37, #f9f295, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            margin-bottom: 20px;
+        }
+        .splash-text {
+            font-size: 1.1rem;
+            color: #e0e0e0;
+            line-height: 1.7;
+            max-width: 700px;
+            margin: 0 auto 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        .highlight {
+            color: gold;
+            font-weight: bold;
+        }
+        .enter-btn {
+            padding: 14px 36px;
+            font-size: 1.1rem;
+            border: 2px solid gold;
+            border-radius: 40px;
+            background: transparent;
+            color: gold;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .enter-btn:hover {
+            background: gold;
+            color: #000;
+            box-shadow: 0 0 25px gold;
+        }
+        .terms {
+            margin-top: 40px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+        @media (max-width: 768px) {
+            .splash-title {
+                font-size: 2.2rem;
+            }
+            .splash-text {
+                font-size: 1rem;
+                padding: 0 10px;
+            }
+            .enter-btn {
+                font-size: 1rem;
+                padding: 12px 28px;
+            }
+            .terms {
+                font-size: 0.75rem;
+                padding: 0 15px;
+            }
+        }
+        .navbar {
+            position: fixed;
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-        .avatar-upload {
-            display: none;
-        }
-        .profile-content {
-            padding: 0 1.5rem 1.5rem;
-        }
-        .profile-header {
+            top: 0;
+            left: 0;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(79, 70, 229, 0.9));
+            backdrop-filter: blur(5px);
+            padding: 0.5rem 1rem;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.5rem;
+            align-items: center;
+            z-index: 1000;
+            transition: var(--transition);
+            color: white;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+            touch-action: pan-y;
         }
-        .profile-info h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
+        .navbar::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: -20%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            opacity: 0.3;
+        }
+        .logo img {
+            height: 28px;
+            transition: transform var(--transition);
+        }
+        .logo img:hover {
+            transform: scale(1.1);
+        }
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .nav-link {
+            color: white;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 0.5rem 0.8rem;
+            border-radius: 0.4rem;
+            transition: background 0.2s, color 0.2s;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            justify-content: center;
+            font-size: 1rem;
         }
-        .verified-badge {
-            width: 20px;
-            height: 20px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
             color: white;
         }
-        .profile-info p {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            text-align: center;
-        }
-        .profile-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat-card {
-            background: var(--bg-primary);
-            padding: 1rem;
-            border-radius: var(--radius);
-            text-align: center;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-            cursor: pointer;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-        .stat-value {
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
             font-size: 1.5rem;
-            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.3rem;
+            transition: background var(--transition);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        .nav-links.mobile {
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 0 0 0.7rem 0.7rem;
+            padding: 1rem 0.5rem;
+            z-index: 1001;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-links.mobile.show {
+            display: flex;
+        }
+        .nav-links.mobile a {
+            color: var(--text-dark);
+            padding: 0.8rem 1rem;
+            border-radius: 0.4rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            min-width: 0;
+            background: rgba(124, 58, 237, 0.05);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(124, 58, 237, 0.1);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .nav-links.mobile a:hover {
+            background: rgba(124, 58, 237, 0.1);
             color: var(--primary);
-            margin-bottom: 0.25rem;
+            transform: translateX(5px);
+            border-color: rgba(124, 58, 237, 0.3);
         }
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
+        .nav-links.mobile a i {
+            color: var(--primary);
+            width: 20px;
+            text-align: center;
         }
-        .profile-sections {
+        .profile-container {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            padding: 4rem 1rem 1.5rem;
+            margin-top: 0;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            min-width: 0;
+            transition: filter 0.3s ease;
         }
-        .section {
-            background: var(--bg-primary);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .section-icon {
-            color: var(--primary);
-        }
-        .academic-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-        .academic-item {
-            display: flex;
-            flex-direction: column;
-        }
-        .academic-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
-        }
-        .academic-value {
-            font-weight: 500;
-        }
-        .academic-edit {
-            background: none;
-            border: none;
-            color: var(--primary);
-            cursor: pointer;
-            transition: var(--transition);
-            padding: 0.5rem;
-            border-radius: 6px;
-        }
-        .academic-edit:hover {
-            background: var(--bg-secondary);
-            transform: scale(1.05);
-        }
-        .academic-input {
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 1rem;
-            width: 100%;
-        }
-        .academic-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        .groups-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-        .group-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            border-radius: var(--radius);
-            background: var(--bg-tertiary);
-            transition: var(--transition);
-            box-shadow: var(--shadow);
-            cursor: pointer;
-        }
-        .group-item:hover {
-            background: var(--bg-secondary);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-lg);
-        }
-        .group-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.1rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .group-info {
-            flex: 1;
-        }
-        .group-name {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            font-size: 1rem;
-        }
-        .group-members {
-            font-size: 0.85rem;
-            color: var(--text-light);
-        }
-        .admin-badge {
-            background: linear-gradient(135deg, var(--accent), #059669);
-            color: white;
-            padding: 0.3rem 0.6rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        .bio-section {
-            position: relative;
-        }
-        .bio-content {
-            line-height: 1.6;
-            color: var(--text-secondary);
-        }
-        .edit-bio-btn {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            background: none;
-            border: none;
-            color: var(--primary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .edit-bio-btn:hover {
-            transform: scale(1.1);
-        }
-        /* UPDATED: Liquid Glass Circle Buttons */
-        .floating-buttons {
-            position: fixed;
-            bottom: 1.5rem;
-            left: 1.5rem;
-            right: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            z-index: 50;
-            pointer-events: none;
-        }
-        .glass-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: var(--shadow-lg);
-            pointer-events: auto;
-            position: relative;
-            overflow: hidden;
-            text-decoration: none;
-        }
-        .glass-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
-            border-radius: 50%;
-            z-index: -1;
-        }
-        .glass-btn::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
-            opacity: 0;
-            transition: var(--transition);
-        }
-        .glass-btn:hover {
-            transform: translateY(-5px) scale(1.1);
-            box-shadow: var(--shadow-xl);
-        }
-        .glass-btn:hover::after {
-            opacity: 1;
-        }
-        [data-theme="dark"] .glass-btn {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        [data-theme="dark"] .glass-btn:hover {
-            background: rgba(15, 23, 42, 0.9);
-        }
-        .glass-btn i {
-            font-size: 1.25rem;
-            transition: var(--transition);
-        }
-        .glass-btn:hover i {
-            transform: scale(1.2);
-        }
-        /* Posts Drawer */
-        .posts-drawer {
-            position: fixed;
-            top: 0;
-            right: -100%;
-            width: 100%;
-            height: 100vh;
-            background: var(--bg-primary);
-            z-index: 1000;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .posts-drawer.open {
-            right: 0;
-        }
-        .drawer-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-secondary);
-        }
-        .drawer-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-        .close-drawer {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .close-drawer:hover {
-            color: var(--primary);
-            transform: scale(1.1);
-        }
-        .posts-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1.5rem;
-        }
-        .posts-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .post-card {
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-        .post-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-        .post-video {
-            width: 100%;
-            height: 180px;
-            background: var(--bg-tertiary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            position: relative;
-        }
-        .post-video i {
-            font-size: 2.5rem;
-        }
-        .post-info {
-            padding: 1rem;
-            flex: 1;
-        }
-        .post-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            font-size: 1rem;
-        }
-        .post-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: auto;
-        }
-        .post-stats span {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            cursor: pointer;
-            transition: var(--transition);
-            padding: 0.25rem;
-            border-radius: 4px;
-        }
-        .post-stats span:hover {
-            background: var(--bg-tertiary);
-            color: var(--primary);
-        }
-        .post-stats .like-btn.liked {
-            color: var(--danger);
-        }
-        .post-actions {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-        }
-        .post-menu-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-light);
-            border: none;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .post-menu-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            transform: rotate(90deg) scale(1.05);
-        }
-        .post-menu-btn i {
-            font-size: 0.9rem;
-        }
-        .post-menu {
-            position: absolute;
-            top: calc(100% + 0.5rem);
-            right: 0;
-            background: var(--bg-primary);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-xl);
-            padding: 0.5rem 0;
-            min-width: 160px;
-            z-index: 10;
-            display: none;
-            border: 1px solid var(--glass-border);
+        .profile-card {
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
-        }
-        .post-menu.show {
-            display: block;
-        }
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            color: var(--text-primary);
-            font-size: 0.8rem;
-        }
-        .menu-item:hover {
-            background: var(--bg-secondary);
-            color: var(--primary);
-        }
-        .menu-item i {
-            width: 12px;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.8rem; /* Sleeker, smaller icons */
-            opacity: 0.7;
-        }
-        .menu-item:hover i {
-            opacity: 1;
-        }
-        .menu-item.monetize i {
-            color: var(--accent);
-        }
-        .menu-item.delete i {
-            color: var(--danger);
-        }
-        /* Settings Drawer with Glassmorphism */
-        .settings-drawer {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 380px;
-            height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .settings-drawer.open {
-            right: 0;
-        }
-        .drawer-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1.5rem;
-        }
-        .settings-section {
-            margin-bottom: 2rem;
-        }
-        .section-divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-            margin: 1.5rem 0;
-        }
-        .settings-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 0;
-        }
-        .settings-info {
-            flex: 1;
-        }
-        .settings-label {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-        }
-        .settings-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        /* NEW: Select dropdown styling */
-        .settings-select {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0.5rem;
-            color: var(--text-primary);
-            width: 150px;
-            cursor: pointer;
-        }
-        .settings-select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        /* Notifications Drawer with Glassmorphism */
-        .notifications-drawer {
-            position: fixed;
-            top: 0;
-            left: -400px;
-            width: 380px;
-            height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .notifications-drawer.open {
-            left: 0;
-        }
-        .notifications-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .notifications-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-        .close-notifications {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .close-notifications:hover {
-            color: var(--primary);
-            transform: scale(1.1);
-        }
-        .notifications-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1.5rem;
-        }
-        .notifications-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .notification-item {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 1rem;
-            transition: var(--transition);
-        }
-        .notification-item.unread {
-            background: rgba(124, 58, 237, 0.1);
-            border-left: 3px solid var(--primary);
-        }
-        .notification-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 0.5rem;
-        }
-        .notification-sender {
-            font-weight: 600;
-            color: var(--primary);
-        }
-        .notification-time {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-        .notification-message {
-            font-size: 0.875rem;
-            line-height: 1.4;
-            color: var(--text-primary);
-        }
-        .mark-all-read-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--text-primary);
-            border: none;
-            border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            width: 100%;
-            backdrop-filter: blur(10px);
-        }
-        .mark-all-read-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-        /* Followers Drawer */
-        .followers-drawer {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 380px;
-            height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .followers-drawer.open {
-            right: 0;
-        }
-        .followers-tabs {
-            display: flex;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 1rem;
-        }
-        .tab-button {
-            flex: 1;
-            padding: 1rem;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-            border-bottom: 2px solid transparent;
-        }
-        .tab-button.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-        .tab-button:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .follower-item, .following-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            margin-bottom: 0.5rem;
-            transition: var(--transition);
-        }
-        .follower-item:hover, .following-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-        .follower-avatar, .following-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.875rem;
-        }
-        .follower-info, .following-info {
-            flex: 1;
-        }
-        .follower-name, .following-name {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-        }
-        .follower-username, .following-username {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        .follow-action {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .follow-action:hover {
-            background: var(--primary-dark);
-            transform: scale(1.05);
-        }
-        .follow-action.following {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        .unfollow-btn {
-            background: var(--danger);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .unfollow-btn:hover {
-            background: #dc2626;
-        }
-        /* Toggle Switch */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 52px;
-            height: 28px;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--bg-tertiary);
-            transition: var(--transition);
-            border-radius: 34px;
-        }
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: var(--transition);
-            border-radius: 50%;
-        }
-        input:checked + .toggle-slider {
-            background-color: var(--primary);
-        }
-        input:checked + .toggle-slider:before {
-            transform: translateX(24px);
-        }
-        /* 2FA Setup Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1100;
-            opacity: 0;
-            visibility: hidden;
-            transition: var(--transition);
-        }
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        .modal {
-            background: var(--bg-primary);
-            border-radius: var(--radius);
+            border-radius: 1rem;
             padding: 2rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: var(--shadow-xl);
-            transform: translateY(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             transition: var(--transition);
         }
-        .modal-overlay.active .modal {
-            transform: translateY(0);
-        }
-        .modal-header {
-            margin-bottom: 1.5rem;
-        }
-        .modal-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        .modal-desc {
-            color: var(--text-secondary);
-        }
-        .modal-body {
-            margin-bottom: 1.5rem;
-        }
-        .qrcode-container {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-        .qrcode-placeholder {
-            width: 200px;
-            height: 200px;
-            background: #f8fafc;
+        .avatar-large {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-secondary);
-            border: 1px dashed var(--border);
+            color: #fff;
+            font-weight: bold;
+            font-size: 3rem;
+            margin: 0 auto 1rem;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s;
         }
-        .backup-codes {
-            background: var(--bg-secondary);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+        .avatar-large:hover {
+            transform: scale(1.05);
         }
-        .codes-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        .auth-title {
+            font-style: italic;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: inline-flex;
+            align-items: center;
             gap: 0.5rem;
-            margin-top: 0.5rem;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 0 20px rgba(124, 58, 237, 0.3);
+            text-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+            transition: var(--transition);
         }
-        .code-item {
-            font-family: monospace;
-            padding: 0.5rem;
-            background: var(--bg-primary);
-            border-radius: 4px;
-            text-align: center;
+        .auth-title:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 30px rgba(124, 58, 237, 0.5);
+            text-shadow: 0 0 15px rgba(124, 58, 237, 0.7);
         }
-        .modal-actions {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: flex-end;
+        .input-field, .textarea-field {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.6rem;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 1rem;
+            color: var(--text-dark);
+            transition: border 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        .input-field:focus, .textarea-field:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3), 0 0 15px rgba(124, 58, 237, 0.4);
+        }
+        .input-field::placeholder, .textarea-field::placeholder {
+            color: var(--text-light);
+            text-shadow: 0 0 5px rgba(124, 58, 237, 0.3);
+            transition: text-shadow 0.3s ease;
+        }
+        .input-field:focus::placeholder, .textarea-field:focus::placeholder {
+            text-shadow: 0 0 10px rgba(124, 58, 237, 0.6);
         }
         .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 500;
+            font-style: italic;
+            font-weight: 400;
+            color: var(--text-dark);
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
             cursor: pointer;
-            transition: var(--transition);
-            border: none;
+            transition: transform 0.2s, background 0.2s, color 0.2s, box-shadow 0.3s;
+            position: relative;
         }
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        .btn-primary:hover {
-            background: var(--primary-dark);
+        .btn:hover {
             transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.3);
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
         }
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
         }
-        .btn-secondary:hover {
-            background: var(--bg-tertiary);
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 0.8rem;
+            text-align: center;
+            transition: background 0.2s;
+            position: relative;
         }
-        /* Overlay for drawer */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: var(--transition);
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
-        .overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        /* Loading state */
         .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--glass-border);
-            border-left: 4px solid var(--primary);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #a78bfa;
             border-radius: 50%;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
+            margin: 0 auto;
+            display: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Empty state */
-        .empty-state {
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            color: var(--text-dark);
             text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 1.2rem;
+            animation: fadeIn 0.3s ease;
         }
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
+        .modal.show {
+            display: block;
         }
-        /* Status indicator */
-        .status-indicator {
-            display: inline-flex;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .blur-background {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+        .session-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.8rem;
+            padding: 0.5rem 1rem;
+            display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
         }
-        .status-online {
-            background: var(--accent);
-            color: white;
+        .session-indicator.active {
+            color: #10b981;
         }
-        .status-offline {
-            background: var(--text-secondary);
-            color: white;
+        .session-indicator.warning {
+            color: #f59e0b;
         }
-        /* Responsive Design */
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
+        .session-indicator.expiring {
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+        .session-indicator .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        /* Glowing Tooltips */
+        [data-tooltip] {
+            position: relative;
+        }
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 1001;
+            box-shadow: 0 0 20px var(--tooltip-glow);
+            animation: glow 0.3s ease-in-out;
+            border: 1px solid var(--primary);
+        }
+        [data-tooltip]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 0.5rem solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.8);
+            z-index: 1001;
+        }
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px var(--tooltip-glow); }
+            50% { box-shadow: 0 0 25px var(--tooltip-glow); }
+            100% { box-shadow: 0 0 20px var(--tooltip-glow); }
+        }
+        @media (max-width: 768px) {
+            [data-tooltip]:hover::after {
+                bottom: 100%;
+                transform: translateX(-50%) translateY(10px);
+                white-space: normal;
+                max-width: 200px;
+                text-align: center;
+            }
+            [data-tooltip]:hover::before {
+                bottom: 90%;
+                border-top-color: transparent;
+                border-bottom-color: rgba(0, 0, 0, 0.8);
             }
         }
         @media (max-width: 768px) {
-            .header {
+            .auth-title {
+                font-size: 1.25rem;
+                padding: 0.8rem 1.2rem;
+                margin-bottom: 1rem;
+            }
+            .profile-card {
                 padding: 1rem;
             }
-           
-            .main-content {
-                padding-top: 70px;
+            .avatar-large {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
             }
-           
-            .profile-stats {
-                grid-template-columns: 1fr;
+        }
+        @media (min-width: 1024px) {
+            .nav-links {
+                display: flex;
             }
-           
-            .academic-grid {
-                grid-template-columns: 1fr;
+            .nav-toggle {
+                display: none;
             }
-           
-            .settings-drawer,
-            .notifications-drawer,
-            .followers-drawer {
-                width: 100%;
-                right: -100%;
+        }
+        @media (max-width: 1023px) {
+            .navbar {
+                padding: 0.5rem 0.8rem;
             }
-           
-            .notifications-drawer {
-                left: -100%;
+            .nav-links {
+                display: none;
             }
-           
-            .theme-indicator {
-                left: 40%;
+            .nav-toggle {
+                display: block;
             }
-           
-            .floating-buttons {
-                bottom: 1rem;
-                left: 1rem;
-                right: 1rem;
+            .nav-links.mobile {
+                top: 50px;
+                padding: 1rem;
+                background: rgba(255, 255, 255, 0.98);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
             }
-           
-            .glass-btn {
-                width: 55px;
-                height: 55px;
+            .nav-links.mobile a {
+                font-size: 1rem;
+                padding: 0.9rem 1rem;
+                margin-bottom: 0.3rem;
+                background: rgba(255, 255, 255, 0.7);
+                border: 1px solid rgba(124, 58, 237, 0.15);
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+            .nav-links.mobile a:last-child {
+                margin-bottom: 0;
+            }
+            .profile-container {
+                padding: 0.5rem;
+            }
+            .profile-card {
+                padding: 0.7rem;
+            }
+            .session-indicator {
+                bottom: 15px;
+                right: 15px;
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
             }
         }
         @media (max-width: 480px) {
-            .avatar {
-                width: 120px;
-                height: 120px;
-                font-size: 2.5rem;
+            .navbar {
+                padding: 0.3rem 0.5rem;
             }
-           
-            .profile-header {
-                flex-direction: column;
-                gap: 1rem;
+            .logo img {
+                height: 24px;
             }
-           
-            .modal {
-                padding: 1.5rem;
+            .nav-toggle {
+                font-size: 1.3rem;
+                padding: 0.4rem;
             }
-           
-            .codes-list {
-                grid-template-columns: 1fr;
+            .nav-links.mobile {
+                top: 40px;
+                padding: 0.8rem;
+                background: rgba(255, 255, 255, 0.98);
             }
-           
-            .theme-indicator {
-                left: 35%;
+            .nav-links.mobile a {
+                font-size: 0.95rem;
+                padding: 0.8rem;
             }
-           
-            .glass-btn {
-                width: 50px;
-                height: 50px;
+            .profile-container {
+                padding: 0.2rem;
             }
-           
-            .glass-btn i {
-                font-size: 1.1rem;
+            .profile-card {
+                padding: 0.5rem;
+            }
+            .input-field, .textarea-field {
+                padding: 0.6rem;
+            }
+            .btn {
+                padding: 0.4rem 0.8rem;
+            }
+            .session-indicator {
+                bottom: 10px;
+                right: 10px;
+                font-size: 0.75rem;
+                padding: 0.3rem 0.6rem;
             }
         }
     </style>
 </head>
-<body data-theme="dark">
-    <div class="app-container">
-        <!-- Header with swipe functionality -->
-        <header class="header" id="header">
-            <a href="index.html" class="logo">
-                   <div class="logo-icon">
-                    <i class="fas fa-users"></i>
-                </div>
-                <span>Peerloom</span>
-            </a>
-           
-            <div class="theme-indicator" id="themeIndicator">
-                <i class="fas fa-moon"></i>
-                <span>Swipe to toggle theme</span>
+<body data-theme="light">
+    <div id="splashContainer" class="splash-container">
+        <div class="splash-screen" id="splash">
+            <div class="splash-title">Welcome to PeerLoom ✨</div>
+            <div class="splash-text">
+                Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+                Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+                Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+                🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+                Share your group link — grow your community, boost your rank, and claim the spotlight.
             </div>
-           
-            <div class="nav-actions">
-                <div class="nav-icon" id="followersBtn">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="nav-icon" id="notificationsBtn">
-                    <i class="fas fa-bell"></i>
-                </div>
-                <div class="nav-icon" id="settingsBtn">
-                    <i class="fas fa-cog"></i>
-                </div>
-            </div>
-        </header>
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Profile Card -->
-            <div class="profile-card">
-                <div class="profile-header-section">
-                    <div class="avatar-container">
-                        <label for="avatarUpload" class="avatar" id="avatar">
-                            <span id="avatarInitials">...</span>
-                        </label>
-                        <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
-                    </div>
-                   
-                    <div class="profile-info">
-                        <h1 id="fullName">
-                            <div class="loading" id="nameLoading">
-                                <div class="spinner"></div>
-                            </div>
-                            <span id="nameText" style="display: none;">Loading...</span>
-                            <div class="verified-badge" id="verifiedBadge" style="display: none;">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </h1>
-                        <p id="userInfo">
-                            <span id="username">Loading...</span>
-                            <span class="status-indicator" id="statusIndicator">Online</span>
-                        </p>
-                    </div>
-                </div>
-               
-                <div class="profile-content">
-                    <div class="profile-stats">
-                        <div class="stat-card" id="postsStat">
-                            <div class="stat-value" id="postsCount">0</div>
-                            <div class="stat-label">Posts</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="followersCount">0</div>
-                            <div class="stat-label">Followers</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="followingCount">0</div>
-                            <div class="stat-label">Following</div>
-                        </div>
-                    </div>
-                   
-                    <div class="profile-sections">
-                        <div class="section">
-                            <div class="section-header">
-                                <h2 class="section-title">
-                                    <i class="fas fa-graduation-cap section-icon"></i>
-                                    Academic Details
-                                </h2>
-                                <button class="academic-edit" id="editAcademicBtn">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                            </div>
-                            <div class="academic-grid" id="academicGrid">
-                                <div class="academic-item">
-                                    <span class="academic-label">Campus</span>
-                                    <span class="academic-value" id="campusValue">Loading...</span>
-                                    <input type="text" class="academic-input" id="campusInput" style="display: none;">
-                                </div>
-                                <div class="academic-item">
-                                    <span class="academic-label">Level</span>
-                                    <span class="academic-value" id="levelValue">Loading...</span>
-                                    <input type="text" class="academic-input" id="levelInput" style="display: none;">
-                                </div>
-                                <div class="academic-item">
-                                    <span class="academic-label">Department</span>
-                                    <span class="academic-value" id="departmentValue">Loading...</span>
-                                    <input type="text" class="academic-input" id="departmentInput" style="display: none;">
-                                </div>
-                                <div class="academic-item">
-                                    <span class="academic-label">Contact</span>
-                                    <span class="academic-value" id="contactValue">Loading...</span>
-                                    <input type="text" class="academic-input" id="contactInput" style="display: none;">
-                                </div>
-                            </div>
-                            <div class="modal-actions" id="academicActions" style="display: none; margin-top: 1rem;">
-                                <button class="btn btn-secondary" id="cancelAcademicEdit">Cancel</button>
-                                <button class="btn btn-primary" id="saveAcademicEdit">Save Changes</button>
-                            </div>
-                        </div>
-                       
-                        <div class="section">
-                            <div class="section-header">
-                                <h2 class="section-title">
-                                    <i class="fas fa-users section-icon"></i>
-                                    Groups
-                                </h2>
-                            </div>
-                            <div class="groups-grid" id="groupsGrid">
-                                <div class="loading">
-                                    <div class="spinner"></div>
-                                </div>
-                            </div>
-                        </div>
-                       
-                        <div class="section bio-section">
-                            <div class="section-header">
-                                <h2 class="section-title">
-                                    <i class="fas fa-user-edit section-icon"></i>
-                                    Bio
-                                </h2>
-                            </div>
-                            <button class="edit-bio-btn" id="editBioBtn">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <div class="bio-content" id="bioContent">
-                                Loading...
-                            </div>
-                            <textarea class="academic-input" id="bioInput" style="display: none; width: 100%; min-height: 120px; margin-top: 1rem;"></textarea>
-                            <div class="modal-actions" id="bioActions" style="display: none; margin-top: 1rem;">
-                                <button class="btn btn-secondary" id="cancelBioEdit">Cancel</button>
-                                <button class="btn btn-primary" id="saveBioEdit">Save Changes</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-        <!-- UPDATED: Floating Buttons as Liquid-Glass Circles -->
-        <div class="floating-buttons">
-            <a href="#" class="glass-btn" id="shareProfileBtn" title="Share Profile">
-                <i class="fas fa-share-alt"></i>
-            </a>
-            <a href="support.html" class="glass-btn" id="supportBtn" title="Support">
-                <i class="fas fa-life-ring"></i>
-            </a>
-        </div>
-    </div>
-    <!-- Posts Drawer -->
-    <div class="posts-drawer" id="postsDrawer">
-        <div class="drawer-header">
-            <h2 class="drawer-title">My Posts</h2>
-            <button class="close-drawer" id="closePostsDrawer">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-       
-        <div class="posts-container">
-            <div class="posts-grid" id="postsGrid">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
+            <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+            <div class="terms">
+                *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
             </div>
         </div>
     </div>
-    <!-- UPDATED: Settings Drawer with Additional Settings -->
-    <div class="settings-drawer" id="settingsDrawer">
-        <div class="drawer-header">
-            <h2 class="drawer-title">Settings</h2>
-            <button class="close-drawer" id="closeDrawer">
-                <i class="fas fa-times"></i>
-            </button>
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="logo">
+            <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="about.html" class="nav-link" data-tooltip="Learn more about PeerLoom"><i class="fas fa-info-circle"></i> About</a>
+            <a href="dashboard.html" class="nav-link" data-tooltip="Access your study groups and courses"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="feed.html" class="nav-link" data-tooltip="Browse creative student content"><i class="fas fa-scroll"></i> Skrolz</a>
+            <a href="logout.html" class="nav-link" id="logout" data-tooltip="Sign out of your account"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
-       
-        <div class="drawer-content">
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-user-cog section-icon"></i>
-                    Profile Settings
-                </h3>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Show Full Name</div>
-                        <div class="settings-desc">Display your full name on profile</div>
+        <div class="nav-links mobile" id="navLinksMobile">
+            <a href="about.html" class="nav-link" data-tooltip="Learn more about PeerLoom"><i class="fas fa-info-circle"></i> About</a>
+            <a href="dashboard.html" class="nav-link" data-tooltip="Access your study groups and courses"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="feed.html" class="nav-link" data-tooltip="Browse creative student content"><i class="fas fa-scroll"></i> Skrolz</a>
+            <a href="logout.html" class="nav-link" id="logoutMobile" data-tooltip="Sign out of your account"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+    <div class="profile-container">
+        <div class="profile-card">
+            <h2 class="auth-title" data-tooltip="View and edit your personal profile information"><i class="fas fa-user"></i> Your Profile</h2>
+            <div id="profileAvatar" class="avatar-large" data-tooltip="Click to view full profile image"></div>
+            <div id="profileInfo">
+                <h3 id="fullName" class="text-2xl font-bold text-center mb-2">Loading...</h3>
+                <p id="username" class="text-center text-gray-600 mb-4">@loading</p>
+                <p id="department" class="text-center text-gray-500 mb-4">Loading department...</p>
+                <p id="status" class="text-center text-gray-500 mb-4">Loading status...</p>
+                <div class="stats-grid">
+                    <div class="stat-item" data-tooltip="Number of study groups you are a member of">
+                        <div class="text-2xl font-bold" id="groupsCount">0</div>
+                        <div>Groups</div>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="showFullNameToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Show Academic Info</div>
-                        <div class="settings-desc">Display academic information</div>
+                    <div class="stat-item" data-tooltip="Users following your profile">
+                        <div class="text-2xl font-bold" id="followersCount">0</div>
+                        <div>Followers</div>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="showAcademicInfoToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Show Groups Count</div>
-                        <div class="settings-desc">Display number of groups joined</div>
+                    <div class="stat-item" data-tooltip="Users you are following">
+                        <div class="text-2xl font-bold" id="followingCount">0</div>
+                        <div>Following</div>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="showGroupsCountToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
                 </div>
             </div>
-           
-            <div class="section-divider"></div>
-           
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-bell section-icon"></i>
-                    Notifications
-                </h3>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Email Notifications</div>
-                        <div class="settings-desc">Receive updates via email</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="emailNotificationsToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Push Notifications</div>
-                        <div class="settings-desc">Receive push notifications</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="pushNotificationsToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <!-- NEW: Notification frequency setting -->
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Notification Frequency</div>
-                        <div class="settings-desc">How often to receive notifications</div>
-                    </div>
-                    <select class="settings-select" id="notificationFrequency">
-                        <option value="immediate">Immediate</option>
-                        <option value="daily">Daily Digest</option>
-                        <option value="weekly">Weekly Summary</option>
-                    </select>
-                </div>
+            <div id="editForm" style="display: none;">
+                <h3 class="auth-title" data-tooltip="Modify your profile details here"><i class="fas fa-edit"></i> Edit Profile</h3>
+                <input type="file" id="profilePhoto" accept="image/*" class="input-field" data-tooltip="Upload a new profile photo (JPG, PNG)" />
+                <input type="text" id="editFullName" class="input-field" placeholder="Full Name" data-tooltip="Enter your full name" />
+                <input type="text" id="editUsername" class="input-field" placeholder="Username" data-tooltip="Choose a unique username" />
+                <input type="text" id="editDepartment" class="input-field" placeholder="Department" data-tooltip="Your academic department or major" />
+                <textarea id="editStatus" class="textarea-field" placeholder="Status (e.g., Online, Studying CS)" data-tooltip="A short status message about you"></textarea>
+                <button class="btn" onclick="updateProfile()" data-tooltip="Save changes to your profile">Update Profile</button>
+                <button class="btn" style="background: rgba(239, 68, 68, 0.2); margin-left: 0.5rem;" onclick="toggleEdit()" data-tooltip="Cancel editing and revert changes">Cancel</button>
             </div>
-           
-            <div class="section-divider"></div>
-           
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-shield-alt section-icon"></i>
-                    Security
-                </h3>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Two-Factor Authentication</div>
-                        <div class="settings-desc">Add an extra layer of security</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="twoFactorToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <!-- NEW: Privacy settings -->
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Private Account</div>
-                        <div class="settings-desc">Only approved followers can see your content</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="privateAccountToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Allow Direct Messages</div>
-                        <div class="settings-desc">Who can send you direct messages</div>
-                    </div>
-                    <select class="settings-select" id="directMessagesSetting">
-                        <option value="everyone">Everyone</option>
-                        <option value="followers">Followers Only</option>
-                        <option value="none">No One</option>
-                    </select>
-                </div>
-            </div>
-           
-            <div class="section-divider"></div>
-           
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-palette section-icon"></i>
-                    Appearance
-                </h3>
-               
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Dark Mode</div>
-                        <div class="settings-desc">Switch between light and dark themes</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="darkModeToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <!-- NEW: Font size setting -->
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Font Size</div>
-                        <div class="settings-desc">Adjust the text size</div>
-                    </div>
-                    <select class="settings-select" id="fontSizeSetting">
-                        <option value="small">Small</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="large">Large</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="section-divider"></div>
-            
-            <!-- NEW: Content & Media section -->
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-photo-video section-icon"></i>
-                    Content & Media
-                </h3>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Auto-play Videos</div>
-                        <div class="settings-desc">Automatically play videos in feed</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="autoplayVideosToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">High Quality Media</div>
-                        <div class="settings-desc">Load higher quality images and videos</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="highQualityMediaToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Data Saver Mode</div>
-                        <div class="settings-desc">Reduce data usage when on mobile</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="dataSaverToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="section-divider"></div>
-            
-            <!-- NEW: Language & Region section -->
-            <div class="settings-section">
-                <h3 class="section-title">
-                    <i class="fas fa-globe section-icon"></i>
-                    Language & Region
-                </h3>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Language</div>
-                        <div class="settings-desc">Choose your preferred language</div>
-                    </div>
-                    <select class="settings-select" id="languageSetting">
-                        <option value="en" selected>English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="de">German</option>
-                    </select>
-                </div>
-                
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <div class="settings-label">Time Format</div>
-                        <div class="settings-desc">12-hour or 24-hour clock</div>
-                    </div>
-                    <select class="settings-select" id="timeFormatSetting">
-                        <option value="12h">12-hour</option>
-                        <option value="24h">24-hour</option>
-                    </select>
-                </div>
-            </div>
+            <button class="btn" onclick="toggleEdit()" style="margin-top: 1rem;" data-tooltip="Begin editing your profile">Edit Profile</button>
+            <div id="profileLoading" class="loading"></div>
         </div>
     </div>
-    <!-- Notifications Drawer with Glassmorphism -->
-    <div class="notifications-drawer" id="notificationsDrawer">
-        <div class="notifications-header">
-            <h2 class="notifications-title">Notifications</h2>
-            <button class="close-notifications" id="closeNotifications">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-       
-        <div class="notifications-content">
-            <div class="notifications-list" id="notificationsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-           
-            <button class="mark-all-read-btn" id="markAllReadBtn">
-                <i class="fas fa-check-double"></i>
-                Mark All as Read
-            </button>
-        </div>
+    <!-- Session Active Indicator -->
+    <div id="sessionIndicator" class="session-indicator active" data-tooltip="Your session will auto-logout after 1 hour of inactivity">
+        <span class="status-dot"></span>
+        <span id="sessionStatus">Session Active</span>
+        <span id="sessionTimer">(59:59)</span>
     </div>
-    <!-- Followers Drawer -->
-    <div class="followers-drawer" id="followersDrawer">
-        <div class="drawer-header">
-            <h2 class="drawer-title">Followers & Following</h2>
-            <button class="close-drawer" id="closeFollowersDrawer">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-       
-        <div class="drawer-content">
-            <div class="followers-tabs">
-                <button class="tab-button active" data-tab="followers">Followers</button>
-                <button class="tab-button" data-tab="following">Following</button>
-            </div>
-           
-            <div class="followers-list" id="followersList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-           
-            <div class="following-list" id="followingList" style="display: none;">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-        </div>
+    <!-- Glassmorphism Modal -->
+    <div id="notificationModal" class="modal">
+        <span id="modalMessage">Profile updated</span>
     </div>
-    <!-- 2FA Setup Modal -->
-    <div class="modal-overlay" id="twoFactorModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title">Set Up Two-Factor Authentication</h2>
-                <p class="modal-desc">Scan the QR code with your authenticator app</p>
-            </div>
-           
-            <div class="modal-body">
-                <div class="qrcode-container">
-                    <div class="qrcode-placeholder">
-                        QR Code would appear here
-                    </div>
-                </div>
-               
-                <p style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
-                    Or enter this code manually: <strong>JBSWY3DPEHPK3PXP</strong>
-                </p>
-               
-                <div class="backup-codes">
-                    <p style="font-weight: 500; margin-bottom: 0.5rem;">Backup Codes</p>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        Save these codes in a secure place. Each code can be used once.
-                    </p>
-                    <div class="codes-list">
-                        <div class="code-item">7C3D 9F2A</div>
-                        <div class="code-item">B8E1 4C6F</div>
-                        <div class="code-item">2A9D 5E7B</div>
-                        <div class="code-item">F4C8 1D6A</div>
-                        <div class="code-item">9E5B 3A7D</div>
-                        <div class="code-item">6C2F 8E4A</div>
-                    </div>
-                </div>
-            </div>
-           
-            <div class="modal-actions">
-                <button class="btn btn-secondary" id="cancel2FA">Cancel</button>
-                <button class="btn btn-primary" id="confirm2FA">Confirm & Enable</button>
-            </div>
-        </div>
-    </div>
-    <!-- Overlay for drawer -->
-    <div class="overlay" id="overlay"></div>
     <script type="module">
-        // Import Supabase client
         import { supabase } from './js/supabaseClient.js';
-        // DOM Elements
-        const header = document.getElementById('header');
-        const themeIndicator = document.getElementById('themeIndicator');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsDrawer = document.getElementById('settingsDrawer');
-        const closeDrawer = document.getElementById('closeDrawer');
-        const notificationsBtn = document.getElementById('notificationsBtn');
-        const notificationsDrawer = document.getElementById('notificationsDrawer');
-        const closeNotifications = document.getElementById('closeNotifications');
-        const notificationsList = document.getElementById('notificationsList');
-        const markAllReadBtn = document.getElementById('markAllReadBtn');
-        const followersBtn = document.getElementById('followersBtn');
-        const followersDrawer = document.getElementById('followersDrawer');
-        const closeFollowersDrawer = document.getElementById('closeFollowersDrawer');
-        const followersList = document.getElementById('followersList');
-        const followingList = document.getElementById('followingList');
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const overlay = document.getElementById('overlay');
-        const twoFactorToggle = document.getElementById('twoFactorToggle');
-        const twoFactorModal = document.getElementById('twoFactorModal');
-        const cancel2FA = document.getElementById('cancel2FA');
-        const confirm2FA = document.getElementById('confirm2FA');
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
-        const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
-        const body = document.body;
-        const editAcademicBtn = document.getElementById('editAcademicBtn');
-        const academicGrid = document.getElementById('academicGrid');
-        const academicActions = document.getElementById('academicActions');
-        const cancelAcademicEdit = document.getElementById('cancelAcademicEdit');
-        const saveAcademicEdit = document.getElementById('saveAcademicEdit');
-        const editBioBtn = document.getElementById('editBioBtn');
-        const bioContent = document.getElementById('bioContent');
-        const bioInput = document.getElementById('bioInput');
-        const bioActions = document.getElementById('bioActions');
-        const cancelBioEdit = document.getElementById('cancelBioEdit');
-        const saveBioEdit = document.getElementById('saveBioEdit');
-        const shareProfileBtn = document.getElementById('shareProfileBtn');
-        const supportBtn = document.getElementById('supportBtn');
-        const showFullNameToggle = document.getElementById('showFullNameToggle');
-        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
-        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
-        const postsStat = document.getElementById('postsStat');
-        const postsDrawer = document.getElementById('postsDrawer');
-        const closePostsDrawer = document.getElementById('closePostsDrawer');
-        const postsGrid = document.getElementById('postsGrid');
-        // NEW: Additional settings elements
-        const notificationFrequency = document.getElementById('notificationFrequency');
-        const directMessagesSetting = document.getElementById('directMessagesSetting');
-        const fontSizeSetting = document.getElementById('fontSizeSetting');
-        const autoplayVideosToggle = document.getElementById('autoplayVideosToggle');
-        const highQualityMediaToggle = document.getElementById('highQualityMediaToggle');
-        const dataSaverToggle = document.getElementById('dataSaverToggle');
-        const languageSetting = document.getElementById('languageSetting');
-        const timeFormatSetting = document.getElementById('timeFormatSetting');
-        const privateAccountToggle = document.getElementById('privateAccountToggle');
-
-        // Current user and data
-        let currentUser = null;
-        let userProfile = null;
-        let userGroups = [];
-        let userNotifications = [];
-        let followers = [];
-        let following = [];
-        let userPosts = [];
-        let userLikes = new Set(); // Track user's likes
-        // Initialize the page
-        async function initializePage() {
-            try {
-                // Get current user
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
-                if (userError) throw userError;
-               
-                if (!user) {
-                    window.location.href = 'login.html';
+        // Auto-logout timer
+        let logoutTimer;
+        const AUTO_LOGOUT_TIME = 60 * 60 * 1000;
+        let sessionUpdateInterval;
+        // Theme persistence and snowflakes
+        let snowflakeElements = [];
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                createSnowflakes();
+            } else {
+                removeSnowflakes();
+            }
+        }
+        function createSnowflakes() {
+            if (snowflakeElements.length > 0) return;
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+                snowflakeElements.push(snowflake);
+            }
+        }
+        function removeSnowflakes() {
+            snowflakeElements.forEach(snow => snow.remove());
+            snowflakeElements = [];
+        }
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        }
+        // Swipe gesture
+        let touchStartX = 0;
+        const navbar = document.getElementById('navbar');
+        navbar.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        navbar.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                toggleTheme();
+            }
+        });
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+        // Splash functions (same as dashboard)
+        function showSplash() {
+            const container = document.getElementById('splashContainer');
+            container.style.display = 'flex';
+            const tempSnowflakes = 80;
+            for (let i = 0; i < tempSnowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+                snowflakeElements.push(snowflake);
+            }
+        }
+        function enterSite() {
+            const splash = document.getElementById('splash');
+            splash.style.animation = 'fadeOut 2s forwards';
+            const container = document.getElementById('splashContainer');
+            setTimeout(() => {
+                container.style.display = 'none';
+                removeSnowflakes();
+            }, 2000);
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem('lastSplashShown', today);
+        }
+        function shouldShowSplash() {
+            const today = new Date().toISOString().split('T')[0];
+            const lastShown = localStorage.getItem('lastSplashShown');
+            return !lastShown || lastShown !== today;
+        }
+        // Session functions (same as dashboard)
+        function resetLogoutTimer() {
+            clearTimeout(logoutTimer);
+            logoutTimer = setTimeout(autoLogout, AUTO_LOGOUT_TIME);
+            updateSessionIndicator();
+        }
+        function updateSessionIndicator() {
+            const sessionIndicator = document.getElementById('sessionIndicator');
+            const sessionStatus = document.getElementById('sessionStatus');
+            const sessionTimer = document.getElementById('sessionTimer');
+            if (!sessionIndicator || !sessionStatus || !sessionTimer) return;
+            const remainingTime = AUTO_LOGOUT_TIME - (Date.now() - (logoutTimer._idleStart || Date.now()));
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
+            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            sessionTimer.textContent = `(${timeString})`;
+            sessionIndicator.className = 'session-indicator';
+            if (remainingTime > 10 * 60 * 1000) {
+                sessionIndicator.classList.add('active');
+                sessionStatus.textContent = 'Session Active';
+            } else if (remainingTime > 2 * 60 * 1000) {
+                sessionIndicator.classList.add('warning');
+                sessionStatus.textContent = 'Session Expiring Soon';
+            } else {
+                sessionIndicator.classList.add('expiring');
+                sessionStatus.textContent = 'Session About to Expire';
+            }
+        }
+        async function autoLogout() {
+            console.log('Auto-logging out due to inactivity');
+            clearInterval(sessionUpdateInterval);
+            const { error } = await supabase.auth.signOut();
+            if (!error) {
+                window.location.href = 'index.html?message=session_timeout';
+            }
+        }
+        function setupActivityListeners() {
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(event => {
+                document.addEventListener(event, resetLogoutTimer, { passive: true });
+            });
+        }
+        // Profile functions
+        async function loadProfile(userId = null) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.replace('index.html?message=session_expired');
+                return;
+            }
+            const targetUserId = userId || user.id;
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', targetUserId)
+                .single();
+            if (error || !profile) {
+                showNotification('Profile not found.');
+                return;
+            }
+            document.getElementById('fullName').textContent = profile.full_name || 'No Name';
+            document.getElementById('username').textContent = `@${profile.username || 'no-username'}`;
+            document.getElementById('department').textContent = profile.department || 'No department';
+            document.getElementById('status').textContent = profile.status || 'No status';
+            if (profile.profile_photo) {
+                document.getElementById('profileAvatar').innerHTML = `<img src="${profile.profile_photo}" alt="${profile.full_name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+            } else {
+                const initials = (profile.full_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+                document.getElementById('profileAvatar').textContent = initials;
+            }
+            // Load stats
+            const { data: groupsCount } = await supabase.from('group_members').select('count').eq('user_id', targetUserId);
+            document.getElementById('groupsCount').textContent = groupsCount?.length || 0;
+            const { data: followersCount } = await supabase.from('followers').select('count').eq('following_id', targetUserId);
+            document.getElementById('followersCount').textContent = followersCount?.length || 0;
+            const { data: followingCount } = await supabase.from('followers').select('count').eq('follower_id', targetUserId);
+            document.getElementById('followingCount').textContent = followingCount?.length || 0;
+            // Populate edit form if own profile
+            if (targetUserId === user.id) {
+                document.getElementById('editFullName').value = profile.full_name || '';
+                document.getElementById('editUsername').value = profile.username || '';
+                document.getElementById('editDepartment').value = profile.department || '';
+                document.getElementById('editStatus').value = profile.status || '';
+            }
+        }
+        function toggleEdit() {
+            const form = document.getElementById('editForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+        async function updateProfile() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const fullName = document.getElementById('editFullName').value.trim();
+            const username = document.getElementById('editUsername').value.trim();
+            const department = document.getElementById('editDepartment').value.trim();
+            const status = document.getElementById('editStatus').value.trim();
+            const file = document.getElementById('profilePhoto').files[0];
+            let profilePhoto = null;
+            if (file) {
+                const { data, error } = await supabase.storage
+                    .from('avatars')
+                    .upload(`${user.id}/avatar`, file);
+                if (error) {
+                    showNotification('Error uploading photo.');
                     return;
                 }
-               
-                currentUser = user;
-               
-                // Load user profile
-                await loadUserProfile();
-               
-                // Load user groups
-                await loadUserGroups();
-               
-                // Load user posts
-                await loadUserPosts();
-               
-                // Load user likes
-                await loadUserLikes();
-               
-                // Initialize followers system
-                await initializeFollowers();
-               
-                // Load user notifications
-                await loadUserNotifications();
-               
-                // Set up real-time subscriptions
-                setupNotificationsSubscription();
-                setupFollowersRealtime();
-                setupPostsRealtime();
-               
-                // Initialize new settings
-                initializeNewSettings();
-               
-            } catch (error) {
-                console.error('Error initializing page:', error);
-                showError('Error loading profile data. Please try again.');
+                const { data: publicUrl } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar`);
+                profilePhoto = publicUrl.data.publicUrl;
+            }
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    full_name: fullName,
+                    username: username,
+                    department: department,
+                    status: status,
+                    profile_photo: profilePhoto
+                })
+                .eq('id', user.id);
+            if (error) {
+                showNotification('Failed to update profile.');
+            } else {
+                showNotification('Profile updated successfully!');
+                toggleEdit();
+                loadProfile();
             }
         }
-
-        // NEW: Initialize additional settings
-        function initializeNewSettings() {
-            // Set up event listeners for new settings
-            notificationFrequency.addEventListener('change', function() {
-                console.log('Notification frequency changed to:', this.value);
-                saveSetting('notification_frequency', this.value);
-            });
-            
-            directMessagesSetting.addEventListener('change', function() {
-                console.log('Direct messages setting changed to:', this.value);
-                saveSetting('direct_messages', this.value);
-            });
-            
-            fontSizeSetting.addEventListener('change', function() {
-                console.log('Font size changed to:', this.value);
-                saveSetting('font_size', this.value);
-                applyFontSize(this.value);
-            });
-            
-            autoplayVideosToggle.addEventListener('change', function() {
-                console.log('Autoplay videos:', this.checked);
-                saveSetting('autoplay_videos', this.checked);
-            });
-            
-            highQualityMediaToggle.addEventListener('change', function() {
-                console.log('High quality media:', this.checked);
-                saveSetting('high_quality_media', this.checked);
-            });
-            
-            dataSaverToggle.addEventListener('change', function() {
-                console.log('Data saver mode:', this.checked);
-                saveSetting('data_saver', this.checked);
-            });
-            
-            languageSetting.addEventListener('change', function() {
-                console.log('Language changed to:', this.value);
-                saveSetting('language', this.value);
-            });
-            
-            timeFormatSetting.addEventListener('change', function() {
-                console.log('Time format changed to:', this.value);
-                saveSetting('time_format', this.value);
-            });
-            
-            privateAccountToggle.addEventListener('change', function() {
-                console.log('Private account:', this.checked);
-                saveSetting('private_account', this.checked);
-            });
-
-            // Load saved settings
-            loadNewSettings();
+        function showNotification(message, callback) {
+            const modal = document.getElementById('notificationModal');
+            const body = document.querySelector('.profile-container');
+            const modalMessage = document.getElementById('modalMessage');
+            if (!modal || !body || !modalMessage) return;
+            modalMessage.textContent = message;
+            modal.classList.add('show');
+            body.classList.add('blur-background');
+            setTimeout(() => {
+                modal.classList.remove('show');
+                body.classList.remove('blur-background');
+                if (callback) callback();
+            }, 3000);
         }
-
-        // NEW: Load additional settings from profile
-        function loadNewSettings() {
-            if (!userProfile) return;
-            
-            // Set values from user profile
-            if (userProfile.notification_frequency) {
-                notificationFrequency.value = userProfile.notification_frequency;
-            }
-            if (userProfile.direct_messages) {
-                directMessagesSetting.value = userProfile.direct_messages;
-            }
-            if (userProfile.font_size) {
-                fontSizeSetting.value = userProfile.font_size;
-                applyFontSize(userProfile.font_size);
-            }
-            if (userProfile.autoplay_videos !== undefined) {
-                autoplayVideosToggle.checked = userProfile.autoplay_videos;
-            }
-            if (userProfile.high_quality_media !== undefined) {
-                highQualityMediaToggle.checked = userProfile.high_quality_media;
-            }
-            if (userProfile.data_saver !== undefined) {
-                dataSaverToggle.checked = userProfile.data_saver;
-            }
-            if (userProfile.language) {
-                languageSetting.value = userProfile.language;
-            }
-            if (userProfile.time_format) {
-                timeFormatSetting.value = userProfile.time_format;
-            }
-            if (userProfile.private_account !== undefined) {
-                privateAccountToggle.checked = userProfile.private_account;
-            }
-        }
-
-        // NEW: Apply font size to document
-        function applyFontSize(size) {
-            const sizes = {
-                'small': '14px',
-                'medium': '16px',
-                'large': '18px'
-            };
-            document.documentElement.style.fontSize = sizes[size] || '16px';
-        }
-
-        // NEW: Save setting to database
-        async function saveSetting(setting, value) {
-            if (!currentUser || !userProfile) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ [setting]: value })
-                    .eq('id', currentUser.id);
-                   
-                if (error) throw error;
-               
-                // Update local user profile
-                userProfile[setting] = value;
-               
-            } catch (error) {
-                console.error(`Error saving ${setting}:`, error);
-            }
-        }
-
-        // Load user profile from Supabase
-        async function loadUserProfile() {
-            try {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-                   
-                if (error) {
-                    // If profile doesn't exist, create one
-                    if (error.code === 'PGRST116') {
-                        await createUserProfile();
-                        return;
-                    }
-                    throw error;
-                }
-               
-                userProfile = profile;
-                updateProfileUI();
-               
-            } catch (error) {
-                console.error('Error loading profile:', error);
-                showError('Error loading profile data');
-            }
-        }
-        // Create a new user profile if it doesn't exist
-        async function createUserProfile() {
-            try {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: currentUser.id,
-                            full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
-                            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
-                            status: 'Online',
-                            verified: false,
-                            theme_preference: 'dark',
-                            show_full_name: true,
-                            show_academic_info: true,
-                            show_groups_count: true
-                        }
-                    ])
-                    .select()
-                    .single();
-                   
-                if (error) throw error;
-               
-                userProfile = profile;
-                updateProfileUI();
-               
-            } catch (error) {
-                console.error('Error creating profile:', error);
-                showError('Error creating profile');
-            }
-        }
-        // Update the UI with profile data
-        function updateProfileUI() {
-            if (!userProfile) return;
-           
-            // Hide loading spinner and show name
-            document.getElementById('nameLoading').style.display = 'none';
-            document.getElementById('nameText').style.display = 'inline';
-           
-            // Set user name and info
-            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
-            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
-            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
-           
-            // Set status
-            const statusIndicator = document.getElementById('statusIndicator');
-            statusIndicator.textContent = userProfile.status || 'Online';
-            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
-           
-            // Show verified badge if user is verified
-            if (userProfile.verified) {
-                document.getElementById('verifiedBadge').style.display = 'flex';
-            }
-           
-            // Set academic details - use custom fields if available
-            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
-            const level = userProfile.custom_level || userProfile.level || 'Not set';
-           
-            document.getElementById('campusValue').textContent = campus;
-            document.getElementById('campusInput').value = campus;
-            document.getElementById('levelValue').textContent = level;
-            document.getElementById('levelInput').value = level;
-            document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
-            document.getElementById('departmentInput').value = userProfile.department || '';
-            document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
-            document.getElementById('contactInput').value = userProfile.contact || '';
-           
-            // Set bio
-            document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
-            document.getElementById('bioInput').value = userProfile.bio || '';
-           
-            // Set privacy toggles
-            showFullNameToggle.checked = userProfile.show_full_name !== false;
-            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
-            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
-           
-            // Apply theme from database
-            if (userProfile.theme_preference) {
-                applyTheme(userProfile.theme_preference);
-            }
-
-            // Load new settings
-            loadNewSettings();
-        }
-        // Load user groups from Supabase - Enhanced with error handling and retry
-        async function loadUserGroups(retry = false) {
-            try {
-                const { data: groups, error } = await supabase
-                    .from('group_members')
-                    .select(`
-                        groups (
-                            id,
-                            name,
-                            member_count
-                        ),
-                        is_admin
-                    `)
-                    .eq('user_id', currentUser.id);
-                   
-                if (error) {
-                    console.error('Groups query error:', error);
-                    if (!retry) {
-                        // Retry once
-                        setTimeout(() => loadUserGroups(true), 1000);
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    userGroups = groups || [];
-                    updateGroupsUI();
-                }
-               
-            } catch (error) {
-                console.error('Error loading groups:', error);
-                const groupsGrid = document.getElementById('groupsGrid');
-                groupsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>Error loading groups. Please refresh the page.</p>
-                    </div>
-                `;
-            }
-        }
-        // Update the UI with groups data
-        function updateGroupsUI() {
-            const groupsGrid = document.getElementById('groupsGrid');
-            groupsGrid.innerHTML = '';
-           
-            if (userGroups.length === 0) {
-                groupsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>You haven't joined any groups yet</p>
-                    </div>
-                `;
+        // Gate-keep and load
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadTheme();
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('userId');
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.replace('index.html?message=session_expired');
                 return;
             }
-           
-            userGroups.forEach(groupData => {
-                const group = groupData.groups;
-                const groupItem = document.createElement('div');
-                groupItem.className = 'group-item';
-               
-                groupItem.innerHTML = `
-                    <div class="group-avatar">${group.name.substring(0, 2)}</div>
-                    <div class="group-info">
-                        <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.member_count || 0} members</div>
-                    </div>
-                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
-                `;
-               
-                groupsGrid.appendChild(groupItem);
-            });
-        }
-        // Load user posts from Supabase
-        async function loadUserPosts() {
-            try {
-                const { data: posts, error } = await supabase
-                    .from('posts')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false });
-                   
-                if (error) throw error;
-               
-                userPosts = posts || [];
-                updatePostsUI();
-               
-            } catch (error) {
-                console.error('Error loading posts:', error);
-                showError('Error loading posts');
-            }
-        }
-        // Load user's likes
-        async function loadUserLikes() {
-            try {
-                const { data: likes, error } = await supabase
-                    .from('post_likes')
-                    .select('post_id')
-                    .eq('user_id', currentUser.id);
-               
-                if (error) throw error;
-               
-                userLikes = new Set(likes.map(like => like.post_id));
-               
-            } catch (error) {
-                console.error('Error loading likes:', error);
-            }
-        }
-        // Update the UI with posts data
-        function updatePostsUI() {
-            postsGrid.innerHTML = '';
-           
-            if (userPosts.length === 0) {
-                postsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-video"></i>
-                        <p>You haven't created any posts yet</p>
-                    </div>
-                `;
-                return;
-            }
-           
-            userPosts.forEach(post => {
-                const postCard = document.createElement('div');
-                postCard.className = 'post-card';
-               
-                // Format time
-                const postDate = new Date(post.created_at);
-                const timeAgo = getTimeAgo(postDate);
-                const isLiked = userLikes.has(post.id);
-               
-                postCard.innerHTML = `
-                    <div class="post-video">
-                        <i class="fas fa-play-circle"></i>
-                        <div class="post-actions">
-                            <button class="post-menu-btn" data-post-id="${post.id}">
-                                <i class="fas fa-ellipsis-h"></i>
-                            </button>
-                            <div class="post-menu" id="post-menu-${post.id}">
-                                <button class="menu-item monetize" onclick="toggleMonetize('${post.id}')">
-                                    <i class="fas fa-dollar-sign"></i>
-                                    ${post.monetized ? 'Disable Monetization' : 'Enable Monetization'}
-                                </button>
-                                <button class="menu-item" onclick="editPost('${post.id}')">
-                                    <i class="fas fa-edit"></i>
-                                    Edit Post
-                                </button>
-                                <button class="menu-item delete" onclick="deletePost('${post.id}')">
-                                    <i class="fas fa-trash"></i>
-                                    Delete Post
-                                </button>
-                                <button class="menu-item" onclick="sharePost('${post.id}')">
-                                    <i class="fas fa-share"></i>
-                                    Share Post
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="post-info">
-                        <div class="post-title">${post.title || 'Untitled Post'}</div>
-                        <div class="post-stats">
-                            <span class="like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}" onclick="toggleLike('${post.id}', this)">
-                                <i class="fas fa-heart"></i> ${post.likes || 0}
-                            </span>
-                            <span>${timeAgo}</span>
-                        </div>
-                    </div>
-                `;
-               
-                postsGrid.appendChild(postCard);
-            });
-           
-            // Add event listeners for post menu buttons
-            document.querySelectorAll('.post-menu-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const postId = this.getAttribute('data-post-id');
-                    const menu = document.getElementById(`post-menu-${postId}`);
-                   
-                    // Close all other open menus
-                    document.querySelectorAll('.post-menu').forEach(m => {
-                        if (m !== menu) m.classList.remove('show');
-                    });
-                   
-                    // Toggle current menu
-                    menu.classList.toggle('show');
+            if (shouldShowSplash()) {
+                showSplash();
+                document.querySelector('.profile-container').style.display = 'none';
+                const observer = new MutationObserver(() => {
+                    if (document.getElementById('splashContainer').style.display === 'none') {
+                        document.querySelector('.profile-container').style.display = '';
+                        observer.disconnect();
+                    }
                 });
-            });
-           
-            // Close menus when clicking elsewhere
-            document.addEventListener('click', function() {
-                document.querySelectorAll('.post-menu').forEach(menu => {
-                    menu.classList.remove('show');
-                });
-            });
-        }
-        // Toggle like functionality
-        window.toggleLike = async function(postId, element) {
-            try {
-                const post = userPosts.find(p => p.id === postId);
-                if (!post) return;
-               
-                const isLiked = userLikes.has(postId);
-               
-                if (isLiked) {
-                    // Unlike
-                    const { error } = await supabase
-                        .from('post_likes')
-                        .delete()
-                        .eq('user_id', currentUser.id)
-                        .eq('post_id', postId);
-                   
-                    if (error) throw error;
-                   
-                    userLikes.delete(postId);
-                    post.likes = (post.likes || 0) - 1;
-                } else {
-                    // Like
-                    const { error } = await supabase
-                        .from('post_likes')
-                        .insert([{ user_id: currentUser.id, post_id: postId }]);
-                   
-                    if (error) throw error;
-                   
-                    userLikes.add(postId);
-                    post.likes = (post.likes || 0) + 1;
-                }
-               
-                // Update UI
-                element.innerHTML = `<i class="fas fa-heart"></i> ${post.likes || 0}`;
-                element.classList.toggle('liked', !isLiked);
-               
-            } catch (error) {
-                console.error('Error toggling like:', error);
-                showError('Error updating like');
+                observer.observe(document.getElementById('splashContainer'), { attributes: true, attributeFilter: ['style'] });
             }
-        };
-        // Get time ago string
-        function getTimeAgo(date) {
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-           
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-           
-            return date.toLocaleDateString();
-        }
-        // Post menu functions
-        window.toggleMonetize = async function(postId) {
-            try {
-                const post = userPosts.find(p => p.id === postId);
-                if (!post) return;
-               
-                const newMonetizedStatus = !post.monetized;
-               
-                // Update in Supabase
-                const { error } = await supabase
-                    .from('posts')
-                    .update({ monetized: newMonetizedStatus })
-                    .eq('id', postId);
-                   
-                if (error) throw error;
-               
-                // Update local state
-                post.monetized = newMonetizedStatus;
-               
-                showError(`Post ${newMonetizedStatus ? 'monetized' : 'demonetized'} successfully!`);
-               
-            } catch (error) {
-                console.error('Error toggling monetization:', error);
-                showError('Error updating monetization status');
-            }
-        };
-        window.editPost = function(postId) {
-            const post = userPosts.find(p => p.id === postId);
-            if (post) {
-                // In a real app, you would open an edit modal here
-                alert(`Editing post: ${post.title || 'Untitled Post'}`);
-            }
-        };
-        window.deletePost = async function(postId) {
-            const post = userPosts.find(p => p.id === postId);
-            if (post && confirm(`Are you sure you want to delete "${post.title || 'Untitled Post'}"?`)) {
-                try {
-                    // Delete from Supabase
-                    const { error } = await supabase
-                        .from('posts')
-                        .delete()
-                        .eq('id', postId);
-                       
-                    if (error) throw error;
-                   
-                    // Update local state
-                    userPosts = userPosts.filter(p => p.id !== postId);
-                    updatePostsUI();
-                   
-                    showError('Post deleted successfully!');
-                   
-                } catch (error) {
-                    console.error('Error deleting post:', error);
-                    showError('Error deleting post');
-                }
-            }
-        };
-        window.sharePost = function(postId) {
-            const post = userPosts.find(p => p.id === postId);
-            if (post) {
-                // In a real app, you would implement actual sharing
-                alert(`Sharing post: ${post.title || 'Untitled Post'}`);
-            }
-        };
-        // Initialize followers functionality
-        async function initializeFollowers() {
-            await loadFollowersData();
-        }
-        // Load followers and following data
-        async function loadFollowersData() {
-            try {
-                // Load followers (people who follow the current user)
-                const { data: followersData, error: followersError } = await supabase
-                    .from('followers')
-                    .select(`
-                        follower:profiles!follower_id (
-                            id,
-                            full_name,
-                            username,
-                            profile_photo
-                        )
-                    `)
-                    .eq('following_id', currentUser.id);
-                   
-                if (followersError) throw followersError;
-               
-                followers = followersData.map(item => item.follower);
-               
-                // Load following (people the current user follows)
-                const { data: followingData, error: followingError } = await supabase
-                    .from('followers')
-                    .select(`
-                        following:profiles!following_id (
-                            id,
-                            full_name,
-                            username,
-                            profile_photo
-                        )
-                    `)
-                    .eq('follower_id', currentUser.id);
-                   
-                if (followingError) throw followingError;
-               
-                following = followingData.map(item => item.following);
-               
-                updateFollowersUI();
-               
-            } catch (error) {
-                console.error('Error loading followers data:', error);
-                showError('Error loading followers data');
-            }
-        }
-        // Update followers UI
-        function updateFollowersUI() {
-            // Update counts
-            document.getElementById('followersCount').textContent = followers.length;
-            document.getElementById('followingCount').textContent = following.length;
-            document.getElementById('postsCount').textContent = userPosts.length;
-           
-            // Update followers list
-            updateFollowersList();
-            updateFollowingList();
-        }
-        // Update followers list
-        function updateFollowersList() {
-            followersList.innerHTML = '';
-           
-            if (followers.length === 0) {
-                followersList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>No followers yet</p>
-                    </div>
-                `;
-                return;
-            }
-           
-            followers.forEach(follower => {
-                const followerItem = document.createElement('div');
-                followerItem.className = 'follower-item';
-                followerItem.innerHTML = `
-                    <div class="follower-avatar">
-                        ${follower.profile_photo ?
-                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                            getInitials(follower.full_name)
-                        }
-                    </div>
-                    <div class="follower-info">
-                        <div class="follower-name">${follower.full_name}</div>
-                        <div class="follower-username">@${follower.username}</div>
-                    </div>
-                    <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}"
-                            onclick="toggleFollow('${follower.id}')"
-                            data-user-id="${follower.id}">
-                        ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
-                    </button>
-                `;
-                followersList.appendChild(followerItem);
-            });
-        }
-        // Update following list
-        function updateFollowingList() {
-            followingList.innerHTML = '';
-           
-            if (following.length === 0) {
-                followingList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-user-plus"></i>
-                        <p>Not following anyone yet</p>
-                    </div>
-                `;
-                return;
-            }
-           
-            following.forEach(followedUser => {
-                const followingItem = document.createElement('div');
-                followingItem.className = 'following-item';
-                followingItem.innerHTML = `
-                    <div class="following-avatar">
-                        ${followedUser.profile_photo ?
-                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                            getInitials(followedUser.full_name)
-                        }
-                    </div>
-                    <div class="following-info">
-                        <div class="following-name">${followedUser.full_name}</div>
-                        <div class="following-username">@${followedUser.username}</div>
-                    </div>
-                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
-                        Unfollow
-                    </button>
-                `;
-                followingList.appendChild(followingItem);
-            });
-        }
-        // Check if current user is following a specific user
-        function isFollowing(userId) {
-            return following.some(user => user.id === userId);
-        }
-        // Toggle follow/unfollow
-        window.toggleFollow = async function(userId) {
-            try {
-                if (isFollowing(userId)) {
-                    await unfollowUser(userId);
-                } else {
-                    await followUser(userId);
-                }
-            } catch (error) {
-                console.error('Error toggling follow:', error);
-                showError('Error updating follow status');
-            }
-        };
-        // Follow a user
-        async function followUser(userId) {
-            try {
-                const { error } = await supabase
-                    .from('followers')
-                    .insert([
-                        {
-                            follower_id: currentUser.id,
-                            following_id: userId
-                        }
-                    ]);
-                   
-                if (error) throw error;
-               
-                // The real-time subscription will update the UI automatically
-                showError('User followed successfully!');
-               
-            } catch (error) {
-                console.error('Error following user:', error);
-                throw error;
-            }
-        }
-        // Unfollow a user
-        window.unfollowUser = async function(userId) {
-            try {
-                const { error } = await supabase
-                    .from('followers')
-                    .delete()
-                    .eq('follower_id', currentUser.id)
-                    .eq('following_id', userId);
-                   
-                if (error) throw error;
-               
-                // The real-time subscription will update the UI automatically
-                showError('User unfollowed');
-               
-            } catch (error) {
-                console.error('Error unfollowing user:', error);
-                throw error;
-            }
-        };
-        // Load user notifications from Supabase
-        async function loadUserNotifications() {
-            try {
-                const { data: notifications, error } = await supabase
-                    .from('notifications')
-                    .select(`
-                        *,
-                        sender:profiles!sender_id(full_name, username),
-                        post:posts(id, content)
-                    `)
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-                   
-                if (error) throw error;
-               
-                userNotifications = notifications || [];
-                updateNotificationsUI();
-               
-            } catch (error) {
-                console.error('Error loading notifications:', error);
-                showError('Error loading notifications');
-            }
-        }
-        // Update the UI with notifications data
-        function updateNotificationsUI() {
-            notificationsList.innerHTML = '';
-           
-            if (userNotifications.length === 0) {
-                notificationsList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-bell-slash"></i>
-                        <p>No notifications yet</p>
-                    </div>
-                `;
-                return;
-            }
-           
-            userNotifications.forEach(notification => {
-                const notificationItem = document.createElement('div');
-                notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
-               
-                // Format time
-                const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-               
-                let message = '';
-                if (notification.type === 'new_post') {
-                    const postPreview = notification.post?.content?.substring(0, 50) + (notification.post?.content?.length > 50 ? '...' : '');
-                    message = `New post: "${postPreview}"`;
-                } else if (notification.type === 'new_follower') {
-                    message = 'Started following you';
-                } else {
-                    message = notification.content;
-                }
-               
-                notificationItem.innerHTML = `
-                    <div class="notification-header">
-                        <div class="notification-sender">${notification.sender?.full_name || 'System'}</div>
-                        <div class="notification-time">${time}</div>
-                    </div>
-                    <div class="notification-message">${message}</div>
-                `;
-               
-                notificationsList.appendChild(notificationItem);
-            });
-        }
-        // Set up real-time notifications subscription
-        function setupNotificationsSubscription() {
-            const channel = supabase
-                .channel(`notifications-${currentUser.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'notifications',
-                        filter: `user_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        // Add new notification to the beginning of the list
-                        userNotifications.unshift(payload.new);
-                        updateNotificationsUI();
-                    }
-                )
-                .subscribe();
-        }
-        // Set up real-time subscriptions for followers
-        function setupFollowersRealtime() {
-            // Subscribe to followers changes
-            const followersChannel = supabase
-                .channel(`followers-${currentUser.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'followers',
-                        filter: `following_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        await loadFollowersData();
-                    }
-                )
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'followers',
-                        filter: `follower_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        await loadFollowersData();
-                    }
-                )
-                .subscribe();
-        }
-        // Set up real-time subscriptions for posts
-        function setupPostsRealtime() {
-            // Subscribe to posts changes
-            const postsChannel = supabase
-                .channel(`posts-${currentUser.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'posts',
-                        filter: `user_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        await loadUserPosts();
-                        await loadFollowersData(); // To update the posts count
-                    }
-                )
-                .subscribe();
-        }
-        // Get initials from full name
-        function getInitials(fullName) {
-            if (!fullName) return 'U';
-            return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
-        }
-        // Show error message
-        function showError(message) {
-            // You could implement a toast notification system here
-            console.error(message);
-            alert(message);
-        }
-        // Theme toggle with swipe
-        let startX;
-        header.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            header.style.transition = 'none';
-            header.classList.add('swiping');
+            resetLogoutTimer();
+            setupActivityListeners();
+            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+            await loadProfile(userId);
         });
-        header.addEventListener('mousemove', (e) => {
-            if (e.buttons === 1) {
-                const dx = e.clientX - startX;
-                if (dx < -50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
-                } else if (dx > 50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
-                }
-            }
-        });
-        header.addEventListener('mouseup', (e) => {
-            header.style.transition = 'all 0.3s ease';
-            header.classList.remove('swiping');
-           
-            if (startX) {
-                const dx = e.clientX - startX;
-                if (dx < -50) {
-                    applyTheme('light');
-                } else if (dx > 50) {
-                    applyTheme('dark');
-                }
-                startX = null;
-            }
-        });
-        header.addEventListener('mouseleave', () => {
-            header.style.transition = 'all 0.3s ease';
-            header.classList.remove('swiping');
-            startX = null;
-        });
-        // Touch events for mobile
-        header.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            header.style.transition = 'none';
-            header.classList.add('swiping');
-        });
-        header.addEventListener('touchmove', (e) => {
-            if (startX) {
-                const dx = e.touches[0].clientX - startX;
-                if (dx < -50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-sun" style="color: #f59e0b"></i><span>Switch to Light Mode</span>';
-                } else if (dx > 50) {
-                    themeIndicator.innerHTML = '<i class="fas fa-moon" style="color: #7c3aed"></i><span>Switch to Dark Mode</span>';
-                }
-            }
-        });
-        header.addEventListener('touchend', (e) => {
-            header.style.transition = 'all 0.3s ease';
-            header.classList.remove('swiping');
-           
-            if (startX) {
-                const dx = e.changedTouches[0].clientX - startX;
-                if (dx < -50) {
-                    applyTheme('light');
-                } else if (dx > 50) {
-                    applyTheme('dark');
-                }
-                startX = null;
-            }
-        });
-        // Apply theme function
-        function applyTheme(theme) {
-            body.setAttribute('data-theme', theme);
-            localStorage.setItem('peerloom-theme', theme);
-            darkModeToggle.checked = theme === 'dark';
-           
-            // Save theme preference to database
-            if (userProfile) {
-                saveThemePreference(theme);
-            }
-        }
-        // Save theme preference to database
-        async function saveThemePreference(theme) {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ theme_preference: theme })
-                    .eq('id', currentUser.id);
-                   
-                if (error) throw error;
-               
-            } catch (error) {
-                console.error('Error saving theme preference:', error);
-            }
-        }
-        // Initialize theme
-        const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
-        applyTheme(savedTheme);
-        // Settings drawer functionality
-        settingsBtn.addEventListener('click', () => {
-            settingsDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
-        closeDrawer.addEventListener('click', () => {
-            settingsDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-        // Notifications drawer functionality
-        notificationsBtn.addEventListener('click', () => {
-            notificationsDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
-        closeNotifications.addEventListener('click', () => {
-            notificationsDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-        // Followers drawer functionality
-        followersBtn.addEventListener('click', () => {
-            followersDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
-        closeFollowersDrawer.addEventListener('click', () => {
-            followersDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-        // Posts drawer functionality
-        postsStat.addEventListener('click', () => {
-            postsDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
-        closePostsDrawer.addEventListener('click', () => {
-            postsDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-        // Tab switching for followers/following
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tab = button.getAttribute('data-tab');
-               
-                // Update active tab
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-               
-                // Show appropriate content
-                if (tab === 'followers') {
-                    followersList.style.display = 'block';
-                    followingList.style.display = 'none';
-                } else {
-                    followersList.style.display = 'none';
-                    followingList.style.display = 'block';
+        // Logout
+        const logoutButtons = ['logout', 'logoutMobile'].map(id => document.getElementById(id)).filter(Boolean);
+        logoutButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                clearTimeout(logoutTimer);
+                clearInterval(sessionUpdateInterval);
+                const { error } = await supabase.auth.signOut();
+                if (!error) {
+                    window.location.href = 'index.html?message=logout_success';
                 }
             });
         });
-        overlay.addEventListener('click', () => {
-            settingsDrawer.classList.remove('open');
-            notificationsDrawer.classList.remove('open');
-            followersDrawer.classList.remove('open');
-            postsDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-            twoFactorModal.classList.remove('active');
-        });
-        // Mark all notifications as read
-        markAllReadBtn.addEventListener('click', async () => {
-            try {
-                const unreadNotifications = userNotifications.filter(n => !n.read);
-                if (unreadNotifications.length === 0) return;
-               
-                const { error } = await supabase
-                    .from('notifications')
-                    .update({ read: true })
-                    .eq('user_id', currentUser.id)
-                    .eq('read', false);
-                   
-                if (error) throw error;
-               
-                // Update local state
-                userNotifications.forEach(n => {
-                    n.read = true;
-                });
-               
-                updateNotificationsUI();
-               
-            } catch (error) {
-                console.error('Error marking notifications as read:', error);
-                showError('Error marking notifications as read');
-            }
-        });
-        // 2FA functionality
-        twoFactorToggle.addEventListener('change', () => {
-            if (twoFactorToggle.checked) {
-                twoFactorModal.classList.add('active');
-                overlay.classList.add('active');
-            }
-        });
-        cancel2FA.addEventListener('click', () => {
-            twoFactorModal.classList.remove('active');
-            overlay.classList.remove('active');
-            twoFactorToggle.checked = false;
-        });
-        confirm2FA.addEventListener('click', () => {
-            twoFactorModal.classList.remove('active');
-            overlay.classList.remove('active');
-            // In a real app, you would enable 2FA here
-            showError('Two-factor authentication has been enabled!');
-        });
-        // Dark mode toggle in settings
-        darkModeToggle.addEventListener('change', () => {
-            applyTheme(darkModeToggle.checked ? 'dark' : 'light');
-        });
-        // Notification toggles
-        emailNotificationsToggle.addEventListener('change', async () => {
-            await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
-        });
-        pushNotificationsToggle.addEventListener('change', async () => {
-            await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
-        });
-        // Privacy toggles
-        showFullNameToggle.addEventListener('change', async () => {
-            await savePrivacySetting('show_full_name', showFullNameToggle.checked);
-        });
-        showAcademicInfoToggle.addEventListener('change', async () => {
-            await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked);
-        });
-        showGroupsCountToggle.addEventListener('change', async () => {
-            await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked);
-        });
-        // Save privacy setting to database
-        async function savePrivacySetting(setting, value) {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ [setting]: value })
-                    .eq('id', currentUser.id);
-                   
-                if (error) throw error;
-               
-                // Update local user profile
-                userProfile[setting] = value;
-               
-            } catch (error) {
-                console.error(`Error saving ${setting}:`, error);
-                showError(`Error saving ${setting} preference`);
-            }
-        }
-        // Save notification setting to database
-        async function saveNotificationSetting(setting, value) {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ [setting]: value })
-                    .eq('id', currentUser.id);
-                   
-                if (error) throw error;
-               
-                // Update local user profile
-                userProfile[setting] = value;
-               
-            } catch (error) {
-                console.error(`Error saving ${setting}:`, error);
-                showError(`Error saving ${setting} preference`);
-            }
-        }
-        // Avatar upload
-        const avatarUpload = document.getElementById('avatarUpload');
-        const avatar = document.getElementById('avatar');
-       
-        avatarUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (!currentUser) {
-                showError('You must be logged in to upload an avatar.');
-                return;
-            }
-            try {
-                // Upload avatar to Supabase Storage
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
-                const filePath = `avatars/${fileName}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('avatars') // Make sure you have a bucket named 'avatars' in Supabase Storage
-                    .upload(filePath, file);
-                if (uploadError) throw uploadError;
-                // Get public URL
-                const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(filePath); // This returns the URL, not an object with publicUrl
-                // Update profile with avatar URL
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ profile_photo: publicUrl })
-                    .eq('id', currentUser.id);
-                if (updateError) throw updateError;
-                // Update UI
-                avatar.innerHTML = `<img src="${publicUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
-               
-                // Update local profile object
-                userProfile.profile_photo = publicUrl;
-               
-            } catch (error) {
-                console.error('Error uploading avatar:', error);
-                showError('Error uploading avatar');
-            }
-        });
-        // Edit academic details functionality
-        editAcademicBtn.addEventListener('click', () => {
-            // Hide values, show inputs
-            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'block');
-            academicActions.style.display = 'flex';
-            editAcademicBtn.style.display = 'none';
-        });
-        cancelAcademicEdit.addEventListener('click', () => {
-            // Show values, hide inputs
-            document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-            document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-            academicActions.style.display = 'none';
-            editAcademicBtn.style.display = 'block';
-           
-            // Reset input values to current user data
-            const campus = userProfile.custom_campus || userProfile.campus || '';
-            const level = userProfile.custom_level || userProfile.level || '';
-           
-            document.getElementById('campusInput').value = campus;
-            document.getElementById('levelInput').value = level;
-            document.getElementById('departmentInput').value = userProfile.department || '';
-            document.getElementById('contactInput').value = userProfile.contact || '';
-        });
-        saveAcademicEdit.addEventListener('click', async () => {
-            try {
-                // Update user data in Supabase
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({
-                        campus: document.getElementById('campusInput').value,
-                        custom_campus: document.getElementById('campusInput').value,
-                        level: document.getElementById('levelInput').value,
-                        custom_level: document.getElementById('levelInput').value,
-                        department: document.getElementById('departmentInput').value,
-                        contact: document.getElementById('contactInput').value
-                    })
-                    .eq('id', currentUser.id);
-                   
-                if (error) throw error;
-               
-                // Update local user profile
-                userProfile.campus = document.getElementById('campusInput').value;
-                userProfile.custom_campus = document.getElementById('campusInput').value;
-                userProfile.level = document.getElementById('levelInput').value;
-                userProfile.custom_level = document.getElementById('levelInput').value;
-                userProfile.department = document.getElementById('departmentInput').value;
-                userProfile.contact = document.getElementById('contactInput').value;
-               
-                // Update displayed values
-                document.getElementById('campusValue').textContent = userProfile.custom_campus || userProfile.campus || 'Not set';
-                document.getElementById('levelValue').textContent = userProfile.custom_level || userProfile.level || 'Not set';
-                document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
-                document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
-               
-                // Show values, hide inputs
-                document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
-                document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
-                academicActions.style.display = 'none';
-                editAcademicBtn.style.display = 'block';
-               
-                showError('Academic details updated successfully!');
-               
-            } catch (error) {
-                console.error('Error updating academic details:', error);
-                showError('Error updating academic details');
-            }
-        });
-        // Edit bio functionality
-        editBioBtn.addEventListener('click', () => {
-            bioContent.style.display = 'none';
-            bioInput.style.display = 'block';
-            bioActions.style.display = 'flex';
-            editBioBtn.style.display = 'none';
-        });
-        cancelBioEdit.addEventListener('click', () => {
-            bioContent.style.display = 'block';
-            bioInput.style.display = 'none';
-            bioActions.style.display = 'none';
-            editBioBtn.style.display = 'block';
-           
-            // Reset bio input to current value
-            bioInput.value = userProfile.bio || '';
-        });
-        saveBioEdit.addEventListener('click', async () => {
-            try {
-                const newBio = bioInput.value;
-               
-                // Update bio in Supabase
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ bio: newBio })
-                    .eq('id', currentUser.id);
-                   
-                if (error) throw error;
-               
-                // Update local user profile
-                userProfile.bio = newBio;
-                bioContent.textContent = userProfile.bio || 'No bio yet...';
-               
-                bioContent.style.display = 'block';
-                bioInput.style.display = 'none';
-                bioActions.style.display = 'none';
-                editBioBtn.style.display = 'block';
-               
-                showError('Bio updated successfully!');
-               
-            } catch (error) {
-                console.error('Error updating bio:', error);
-                showError('Error updating bio');
-            }
-        });
-        // Share profile functionality
-        shareProfileBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            try {
-                // Create a shareable link that works on GitHub Pages
-                const profileUrl = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
-                // Check if Web Share API is available
-                if (navigator.share) {
-                    await navigator.share({
-                        title: `${userProfile.full_name}'s Profile`,
-                        text: `Check out ${userProfile.full_name}'s profile on Peerloom`,
-                        url: profileUrl
-                    });
-                } else {
-                    // Fallback: copy to clipboard
-                    await navigator.clipboard.writeText(profileUrl);
-                    showError('Profile link copied to clipboard!'); // Using showError for consistent toast messages
+        // Nav toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinksMobile = document.getElementById('navLinksMobile');
+        if (navToggle && navLinksMobile) {
+            navToggle.addEventListener('click', () => {
+                navLinksMobile.classList.toggle('show');
+                resetLogoutTimer();
+            });
+            document.addEventListener('click', (e) => {
+                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
+                    navLinksMobile.classList.remove('show');
                 }
-            } catch (error) {
-                console.error('Error sharing profile:', error);
-               
-                // Fallback: copy to clipboard
-                try {
-                    const profileUrl = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
-                    await navigator.clipboard.writeText(profileUrl); // Fallback copy
-                    showError('Profile link copied to clipboard!'); // Using showError for consistent toast messages
-                } catch (clipboardError) {
-                    console.error('Error copying to clipboard:', clipboardError);
-                    showError('Error sharing profile');
-                }
-            }
-        });
-        // Support button functionality - Direct to support.html
-        supportBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.location.href = 'support.html';
-        });
-        // Make functions available globally for onclick handlers
-        window.toggleFollow = window.toggleFollow;
-        window.unfollowUser = window.unfollowUser;
-        // Smooth scrolling handling - Ensure content doesn't overlap fixed elements
-        let ticking = false;
-        function updateScroll() {
-            // No additional logic needed as fixed positions handle it; safe-area-inset handles iOS
-            ticking = false;
+            });
+            navLinksMobile.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
         }
-        document.addEventListener('scroll', () => {
-            if (!ticking) {
-                requestAnimationFrame(updateScroll);
-                ticking = true;
-            }
-        });
-        // Initialize the page
-        initializePage();
+        // Global functions
+        window.enterSite = enterSite;
+        window.toggleEdit = toggleEdit;
+        window.updateProfile = updateProfile;
     </script>
 </body>
 </html>
