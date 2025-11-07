@@ -21,14 +21,12 @@
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
             --transition: all 0.3s cubic-bezier(.4,0,.2,1);
-            --bg-gradient: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --card-bg: rgba(255, 255, 255, 0.15);
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
         }
         [data-theme="dark"] {
-            --bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --card-bg: rgba(255, 255, 255, 0.05);
+            --bg-primary: #1f2937;
+            --bg-secondary: #374151;
             --text-dark: #f9fafb;
             --text-light: #9ca3af;
             --hover-bg: #4b5563;
@@ -37,29 +35,31 @@
             --accent: #a78bfa;
         }
         body {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            background: var(--bg-gradient);
-            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
+            color: var(--text-dark);
+            overflow-x: hidden;
             transition: var(--transition);
         }
-        /* Splash Screen Styles */
-        .splash-container {
+        .splash-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
-            color: #fff;
-            font-family: 'Great Vibes', cursive;
-            display: none;
+            display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 10000;
+            z-index: 5000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        .splash-overlay.show {
+            opacity: 1;
+            visibility: visible;
         }
         .snowflake {
             position: fixed;
@@ -71,6 +71,10 @@
             animation: fall linear infinite;
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
             z-index: 1;
+            display: none;
+        }
+        [data-theme="dark"] .snowflake {
+            display: block;
         }
         @keyframes fall {
             0% { transform: translateY(0) rotate(0deg); opacity: 1; }
@@ -88,6 +92,8 @@
             z-index: 10;
             overflow: hidden;
             animation: fadeIn 2s ease forwards;
+            font-family: 'Great Vibes', cursive;
+            color: #fff;
         }
         .splash-title {
             font-size: 3rem;
@@ -141,7 +147,6 @@
             from { opacity: 1; }
             to { opacity: 0; visibility: hidden; }
         }
-        /* End Splash Styles */
         .navbar {
             position: fixed;
             width: 100%;
@@ -157,6 +162,7 @@
             transition: var(--transition);
             color: white;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+            touch-action: pan-y; /* Prevent default touch behaviors for swipe */
         }
         .navbar::before {
             content: '';
@@ -170,19 +176,25 @@
             opacity: 0.3;
         }
         .logo {
+            position: relative;
             height: 28px;
             transition: transform var(--transition);
-            cursor: pointer;
-        }
-        .logo:hover {
-            transform: scale(1.1);
+            touch-action: none; /* Allow custom touch handling for swipe */
         }
         .logo img {
-            height: 28px;
+            height: 100%;
             transition: transform var(--transition);
         }
-        .logo img:hover {
+        .logo:hover img {
             transform: scale(1.1);
+        }
+        .swipe-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px; /* Area near logo for swipe */
+            height: 100%;
+            cursor: ew-resize;
         }
         .nav-links {
             display: flex;
@@ -270,17 +282,6 @@
             width: 20px;
             text-align: center;
         }
-        .topbar {
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
         .dashboard {
             display: flex;
             flex-direction: column;
@@ -294,11 +295,12 @@
             transition: var(--transition);
         }
         .sidebar, .main-content, .connections {
-            background: var(--glass-bg);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 1rem;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-dark);
         }
         .sidebar, .connections {
             flex: 1 1 100%;
@@ -323,12 +325,13 @@
             margin-bottom: 1rem;
         }
         .card {
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             border-radius: 0.8rem;
             padding: 1rem;
             margin-bottom: 1rem;
             transition: transform 0.2s;
+            color: var(--text-dark);
         }
         .card:hover {
             transform: translateY(-2px);
@@ -485,7 +488,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: var(--glass-bg);
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 0.8rem;
@@ -522,6 +525,21 @@
         }
         /* Mobile view improvements */
         @media (max-width: 768px) {
+            .splash-title {
+                font-size: 2.2rem;
+            }
+            .splash-text {
+                font-size: 1rem;
+                padding: 0 10px;
+            }
+            .enter-btn {
+                font-size: 1rem;
+                padding: 12px 28px;
+            }
+            .terms {
+                font-size: 0.75rem;
+                padding: 0 15px;
+            }
             .auth-title {
                 font-size: 1.1rem;
                 padding: 0.4rem 0.8rem;
@@ -535,15 +553,8 @@
             }
         }
         @media (min-width: 1024px) {
-            .navbar {
-                display: none;
-            }
-            .topbar {
-                display: flex;
-            }
             .dashboard {
                 flex-direction: row;
-                padding: 1.5rem;
             }
             .nav-links {
                 display: flex;
@@ -616,7 +627,7 @@
             .navbar {
                 padding: 0.3rem 0.5rem;
             }
-            .logo img {
+            .logo {
                 height: 24px;
             }
             .nav-toggle {
@@ -665,26 +676,12 @@
                 font-size: 0.75rem;
                 padding: 0.3rem 0.6rem;
             }
-            .splash-title {
-                font-size: 2.2rem;
-            }
-            .splash-text {
-                font-size: 1rem;
-                padding: 0 10px;
-            }
-            .enter-btn {
-                font-size: 1rem;
-                padding: 12px 28px;
-            }
-            .terms {
-                font-size: 0.75rem;
-                padding: 0 15px;
-            }
         }
     </style>
 </head>
-<body>
-    <div id="splash-container" class="splash-container">
+<body data-theme="light">
+    <!-- Splash Overlay for New Users -->
+    <div class="splash-overlay" id="splashOverlay">
         <div class="splash-screen" id="splash">
             <div class="splash-title">Welcome to PeerLoom ✨</div>
             <div class="splash-text">
@@ -700,10 +697,12 @@
             </div>
         </div>
     </div>
+
     <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo" id="logo-swipe">
+        <div class="logo" id="logoContainer">
+            <div class="swipe-area"></div>
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
-        </a>
+        </div>
         <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
             <i class="fas fa-bars"></i>
         </button>
@@ -721,17 +720,6 @@
         </div>
     </nav>
     <div class="dashboard lg:flex lg:flex-row">
-        <div class="topbar">
-            <a href="index.html" class="logo" id="logo-swipe-desktop">
-                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
-            </a>
-            <div class="nav-links" id="navLinksDesktop">
-                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-                <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-                <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
-                <a href="logout.html" class="nav-link" id="logoutDesktop"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            </div>
-        </div>
         <div class="sidebar">
             <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
             <div class="search-container">
@@ -810,34 +798,107 @@
     <div id="notificationModal" class="modal">
         <span id="modalMessage">Group inserted</span>
     </div>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-        // Theme Toggle
-        let currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        function toggleTheme() {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme);
+
+        // Snowflake effect (only in dark mode)
+        function initSnowflakes() {
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+            }
         }
-        // Swipe gesture for theme toggle
-        function addSwipeListener(elementId) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            let startX = 0;
-            element.addEventListener('touchstart', (e) => {
+
+        // Splash screen logic for new users
+        function showSplashIfNew() {
+            if (!localStorage.getItem('visited')) {
+                const overlay = document.getElementById('splashOverlay');
+                overlay.classList.add('show');
+                initSnowflakes(); // Init snowflakes on splash show
+            }
+        }
+
+        function enterSite() {
+            const splash = document.getElementById('splash');
+            const overlay = document.getElementById('splashOverlay');
+            splash.style.animation = 'fadeOut 2s forwards';
+            localStorage.setItem('visited', 'true');
+            setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 2000);
+        }
+
+        // Theme toggle with swipe
+        let startX = 0;
+        let currentX = 0;
+        const SWIPE_THRESHOLD = 50; // Minimum swipe distance
+
+        function setupSwipeToggle() {
+            const swipeArea = document.querySelector('.swipe-area');
+            if (!swipeArea) return;
+
+            swipeArea.addEventListener('touchstart', (e) => {
                 startX = e.touches[0].clientX;
-            });
-            element.addEventListener('touchend', (e) => {
-                if (!startX) return;
-                const endX = e.changedTouches[0].clientX;
-                const deltaX = Math.abs(endX - startX);
-                if (deltaX > 50) {
+            }, { passive: true });
+
+            swipeArea.addEventListener('touchmove', (e) => {
+                currentX = e.touches[0].clientX;
+            }, { passive: true });
+
+            swipeArea.addEventListener('touchend', () => {
+                const deltaX = currentX - startX;
+                if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
                     toggleTheme();
                 }
                 startX = 0;
+                currentX = 0;
+            }, { passive: true });
+
+            // Mouse support for desktop
+            swipeArea.addEventListener('mousedown', (e) => {
+                startX = e.clientX;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (startX !== 0) {
+                    currentX = e.clientX;
+                }
+            });
+
+            swipeArea.addEventListener('mouseup', () => {
+                if (startX === 0) return;
+                const deltaX = currentX - startX;
+                if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+                    toggleTheme();
+                }
+                startX = 0;
+                currentX = 0;
             });
         }
+
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            // Snowflakes are CSS-controlled, no need for JS toggle
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+        }
+
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -895,63 +956,33 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
-        // Splash screen logic
-        function enterSite() {
-            const splash = document.getElementById('splash');
-            splash.style.animation = 'fadeOut 2s forwards';
-            localStorage.setItem('visited', 'true');
-            setTimeout(() => {
-                const container = document.getElementById('splash-container');
-                if (container) container.remove();
-            }, 2000);
-        }
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
+            loadTheme();
+            setupSwipeToggle();
+            showSplashIfNew(); // Check and show splash for new users
+
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
-                return;
+            } else {
+                console.log("User authenticated, loading dashboard");
+                // Setup auto-logout functionality
+                resetLogoutTimer();
+                setupActivityListeners();
+               
+                // Start session indicator update interval
+                sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+               
+                // Load groups and connections after authentication
+                loadSuggestedGroups();
+                loadActiveGroups();
+                loadConnections();
+                checkFollowStatus();
             }
-            console.log("User authenticated, loading dashboard");
-            // Setup auto-logout functionality
-            resetLogoutTimer();
-            setupActivityListeners();
-           
-            // Start session indicator update interval
-            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-           
-            // Load groups and connections after authentication
-            loadSuggestedGroups();
-            loadActiveGroups();
-            loadConnections();
-            checkFollowStatus();
-
-            // Check for new user splash
-            if (!localStorage.getItem('visited')) {
-                const container = document.getElementById('splash-container');
-                if (container) {
-                    container.style.display = 'flex';
-                    // Generate snowflakes
-                    const snowflakes = 80;
-                    for (let i = 0; i < snowflakes; i++) {
-                        const snowflake = document.createElement('div');
-                        snowflake.classList.add('snowflake');
-                        snowflake.textContent = '❄';
-                        snowflake.style.left = Math.random() * 100 + 'vw';
-                        snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                        snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                        snowflake.style.animationDelay = Math.random() * 5 + 's';
-                        document.body.appendChild(snowflake);
-                    }
-                }
-            }
-
-            // Add swipe listeners
-            addSwipeListener('logo-swipe');
-            addSwipeListener('logo-swipe-desktop');
         });
         // Hook up both "Logout" links
-        const logoutButtons = ['logout', 'logoutMobile', 'logoutDesktop']
+        const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
             .filter(Boolean);
         logoutButtons.forEach(btn => {
@@ -1540,7 +1571,6 @@
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
         window.enterSite = enterSite;
-        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
