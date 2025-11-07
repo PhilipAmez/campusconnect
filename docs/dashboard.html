@@ -939,16 +939,6 @@
                 // Apply theme to dashboard
                 loadTheme();
             }, 1000);
-            
-            // Update last shown date
-            const today = new Date().toISOString().split('T')[0];
-            localStorage.setItem('lastSplashShown', today);
-        }
-        
-        function shouldShowSplash() {
-            const today = new Date().toISOString().split('T')[0];
-            const lastShown = localStorage.getItem('lastSplashShown');
-            return !lastShown || lastShown !== today;
         }
         
         // Function to reset the logout timer
@@ -1010,17 +1000,8 @@
         
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            // Always show splash screen first
-            if (shouldShowSplash()) {
-                // Create snowflakes for splash
-                createSnowflakes();
-                // Dashboard content remains hidden until enterSite is called
-            } else {
-                // If splash shouldn't be shown, directly show dashboard
-                document.getElementById('splashContainer').style.display = 'none';
-                document.querySelector('.dashboard-content').style.display = 'block';
-                loadTheme();
-            }
+            // Always show splash screen first and create snowflakes
+            createSnowflakes();
             
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -1028,7 +1009,7 @@
                 return;
             }
             
-            console.log("User authenticated, loading dashboard");
+            console.log("User authenticated");
             
             // Setup auto-logout functionality
             resetLogoutTimer();
@@ -1037,7 +1018,7 @@
             // Start session indicator update interval
             sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
            
-            // Load groups and connections after authentication
+            // Load groups and connections after authentication (they'll be ready when dashboard shows)
             loadSuggestedGroups();
             loadActiveGroups();
             loadConnections();
