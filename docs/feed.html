@@ -108,6 +108,29 @@
             to { transform: rotate(360deg); }
         }
 
+        /* New styles for the visually appealing spinner */
+        .bouncing-loader {
+            display: flex;
+            justify-content: center;
+        }
+
+        .bouncing-loader > div {
+            width: 16px;
+            height: 16px;
+            margin: 3px 6px;
+            border-radius: 50%;
+            background-color: #a78bfa; /* Using accent color from your dashboard */
+            opacity: 1;
+            animation: bouncing-loader 0.6s infinite alternate;
+        }
+
+        @keyframes bouncing-loader {
+            to {
+                opacity: 0.1;
+                transform: translateY(-16px);
+            }
+        }
+
         .liquid-path {
             fill: var(--primary-color);
             transition: d 0.2s cubic-bezier(0.2, 0.8, 0.2, 1.5);
@@ -1367,7 +1390,9 @@
             </div>
         </div>
     </div>
+    <script src="./js/feed.js"></script>
     <script type="module">
+        
         // Import supabase client
         import { supabase } from './js/supabaseClient.js';
         // App state
@@ -1641,12 +1666,8 @@
                 showToast('Error loading posts');
             } finally {
                 if (isRefreshing) {
-                    resetPullToRefresh();
+                    resetPullToRefresh(); // This correctly resets the pull-to-refresh UI
                 }
-
-                // Use sample data as fallback
-                initializeFeed(posts);
-
             }
         }
         // Create video feed
@@ -1661,9 +1682,18 @@
               
                 // SIMPLE GUEST MODE TEMPLATE - Just add watermark and modify button behavior
                 videoContainer.innerHTML = `
-                    <video class="video-player" loop muted playsinline preload="metadata">
-                        <source src="${video.media_url}" type="video/mp4">
-                    </video>
+                    <div class="video-wrapper" style="position: relative; width: 100%; height: 100%;">
+                        <video class="video-player" loop muted playsinline preload="metadata">
+                            <source src="${video.media_url}" type="video/mp4">
+                        </video>
+                        <div class="loading-overlay" id="loading-${video.id}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 6;">
+                            <div class="bouncing-loader">
+                                <div style="animation-delay: 0s;"></div>
+                                <div style="animation-delay: 0.2s;"></div>
+                                <div style="animation-delay: 0.4s;"></div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="video-controls-overlay">
                         <i class="fas fa-play play-pause-btn" id="playPauseBtn-${video.id}"></i>
                     </div>
@@ -1733,7 +1763,7 @@
                         ` : ''}
                     </div>
                     <div class="video-info">
-                        <div class="username">@${video.username || 'user'}</div>
+                        <a href="/profile/${video.username || 'user'}" class="username" style="text-decoration: none; color: inherit;">@${video.username || 'user'}</a>
                         <div class="caption">${video.content || ''}</div>
                         <div class="hashtags">${video.hashtags || ''}</div>
                         ${!isLoggedIn ? `
@@ -1786,6 +1816,10 @@
                 const videoPlayer = videoContainer.querySelector('.video-player');
                 const playPauseBtn = videoContainer.querySelector(`#playPauseBtn-${video.id}`);
                 const progressFill = videoContainer.querySelector(`#progressFill-${video.id}`);
+                const loadingOverlay = videoContainer.querySelector(`#loading-${video.id}`);
+                videoPlayer.addEventListener('loadstart', () => loadingOverlay.style.display = 'flex');
+                videoPlayer.addEventListener('waiting', () => loadingOverlay.style.display = 'flex'); // Show when buffering
+                videoPlayer.addEventListener('canplay', () => loadingOverlay.style.display = 'none'); // Hide when ready
                 const progressBarContainer = videoContainer.querySelector(`#progressBarContainer-${video.id}`);
                 let controlsTimeout;
                 const toggleControls = () => {
@@ -2193,8 +2227,6 @@
             drawer.classList.add('open');
           
             // FIX: Disable scroll-snap when comment drawer is open
-            document.getElementById('feed').classList.add('no-snap');
-            isCommentDrawerOpen = true;
         }
         // Load comments
         async function loadComments(videoId, commentsList) {
@@ -2339,10 +2371,6 @@
         function closeComments(videoId) {
             const drawer = document.getElementById(`commentDrawer-${videoId}`);
             drawer.classList.remove('open');
-          
-            // FIX: Re-enable scroll-snap when comment drawer is closed
-            document.getElementById('feed').classList.remove('no-snap');
-            isCommentDrawerOpen = false;
         }
         // Global variable to track the currently open reaction picker
         let openReactionPicker = null;
