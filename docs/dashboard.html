@@ -20,8 +20,8 @@
             --text-dark: #1f2937;
             --text-light: #64748b;
             --hover-bg: #f3f4f6;
-            --transition: all 0.3s cubic-bezier(.4,0,.2,1);
-            --bg-gradient: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+            --transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
         }
         [data-theme="dark"] {
             --bg-primary: #1f2937;
@@ -32,45 +32,34 @@
             --primary: #7c3aed;
             --secondary: #4f46e5;
             --accent: #a78bfa;
-            --bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        }
-        [data-theme="dark"] .sidebar, [data-theme="dark"] .main-content, [data-theme="dark"] .connections,
-        [data-theme="dark"] .card, [data-theme="dark"] .search-bar, [data-theme="dark"] .input-field,
-        [data-theme="dark"] .textarea-field, [data-theme="dark"] .btn, [data-theme="dark"] .session-indicator {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.1);
-            color: var(--text-dark);
-        }
-        [data-theme="dark"] .group-item:hover, [data-theme="dark"] .connection-item:hover {
-            background: rgba(124, 58, 237, 0.1);
-        }
-        [data-theme="dark"] .nav-links.mobile {
-            background: rgba(31, 41, 55, 0.95);
-        }
-        [data-theme="dark"] .nav-links.mobile a {
-            color: var(--text-dark);
-            background: rgba(124, 58, 237, 0.1);
-            border-color: rgba(124, 58, 237, 0.2);
+            --bg: linear-gradient(135deg, #1f2937 0%, #111827 100%);
         }
         body {
-            background: var(--bg-gradient);
+            background: var(--bg);
             font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
             min-height: 100vh;
             color: var(--text-dark);
             overflow-x: hidden;
-            transition: var(--transition);
+            transition: background 0.5s ease, color 0.5s ease;
+            margin: 0;
+            padding: 0;
         }
-        .splash-active {
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%) !important;
-            color: #fff !important;
-            font-family: 'Great Vibes', cursive !important;
-            height: 100vh !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
+        
+        /* Splash Screen Styles */
+        .splash-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
+            color: #fff;
+            font-family: 'Great Vibes', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            overflow: hidden;
         }
         .snowflake {
             position: fixed;
@@ -152,23 +141,13 @@
             from { opacity: 1; }
             to { opacity: 0; visibility: hidden; }
         }
-        @media (max-width: 768px) {
-            .splash-title {
-                font-size: 2.2rem;
-            }
-            .splash-text {
-                font-size: 1rem;
-                padding: 0 10px;
-            }
-            .enter-btn {
-                font-size: 1rem;
-                padding: 12px 28px;
-            }
-            .terms {
-                font-size: 0.75rem;
-                padding: 0 15px;
-            }
+        
+        /* Main Dashboard Styles - Initially Hidden */
+        .dashboard-content {
+            display: none;
         }
+        
+        /* Mobile-First Responsive Design */
         .navbar {
             position: fixed;
             width: 100%;
@@ -204,8 +183,7 @@
             transform: scale(1.1);
         }
         .nav-links {
-            display: flex;
-            gap: 1.5rem;
+            display: none;
         }
         .nav-link {
             color: white;
@@ -224,7 +202,7 @@
             color: white;
         }
         .nav-toggle {
-            display: none;
+            display: block;
             background: none;
             border: none;
             font-size: 1.5rem;
@@ -264,7 +242,7 @@
             display: flex;
         }
         .nav-links.mobile a {
-            color: var(--text-dark);
+            color: #000000 !important; /* Force black text */
             padding: 0.8rem 1rem;
             border-radius: 0.4rem;
             font-size: 1.1rem;
@@ -280,7 +258,7 @@
         }
         .nav-links.mobile a:hover {
             background: rgba(124, 58, 237, 0.1);
-            color: var(--primary);
+            color: var(--primary) !important;
             transform: translateX(5px);
             border-color: rgba(124, 58, 237, 0.3);
         }
@@ -299,7 +277,7 @@
             margin-left: auto;
             margin-right: auto;
             min-width: 0;
-            transition: var(--transition);
+            transition: filter 0.3s ease;
         }
         .sidebar, .main-content, .connections {
             background: rgba(255, 255, 255, 0.1);
@@ -320,17 +298,24 @@
         }
         .auth-title {
             font-style: italic;
-            font-weight: 400;
+            font-weight: 600;
             color: var(--text-dark);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(5px);
-            border-radius: 0.8rem;
-            margin-bottom: 1rem;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: var(--transition);
+        }
+        .auth-title:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .card {
             background: rgba(255, 255, 255, 0.15);
@@ -338,7 +323,7 @@
             border-radius: 0.8rem;
             padding: 1rem;
             margin-bottom: 1rem;
-            transition: transform 0.2s, var(--transition);
+            transition: transform 0.2s;
         }
         .card:hover {
             transform: translateY(-2px);
@@ -352,7 +337,7 @@
             background: rgba(255, 255, 255, 0.2);
             font-size: 1rem;
             color: var(--text-dark);
-            transition: border 0.2s, var(--transition);
+            transition: border 0.2s;
             font-family: inherit;
         }
         .search-bar:focus, .input-field:focus, .textarea-field:focus {
@@ -383,7 +368,7 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 0.5rem;
             cursor: pointer;
-            transition: transform 0.2s, background 0.2s, color 0.2s, var(--transition);
+            transition: transform 0.2s, background 0.2s, color 0.2s;
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -396,7 +381,7 @@
             border-radius: 0.5rem;
             padding: 0.6rem 1.2rem;
             color: white;
-            transition: transform 0.2s, background 0.2s, var(--transition);
+            transition: transform 0.2s, background 0.2s;
         }
         .search-btn:hover {
             transform: translateY(-2px);
@@ -408,7 +393,7 @@
             gap: 0.8rem;
             padding: 0.6rem 0.5rem;
             border-radius: 0.6rem;
-            transition: background 0.2s, transform 0.2s, var(--transition);
+            transition: background 0.2s, transform 0.2s;
         }
         .group-item:hover, .connection-item:hover {
             background: rgba(237, 233, 254, 0.3);
@@ -426,7 +411,7 @@
             font-weight: bold;
             font-size: 1.1rem;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s, var(--transition);
+            transition: transform 0.2s, box-shadow 0.2s;
             overflow: hidden;
             flex-shrink: 0;
         }
@@ -478,7 +463,6 @@
             font-style: italic;
             font-size: 1.2rem;
             animation: fadeIn 0.3s ease;
-            transition: var(--transition);
         }
         .modal.show {
             display: block;
@@ -531,12 +515,29 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
-        /* Mobile view improvements */
+        
+        /* Enhanced Mobile Responsiveness */
         @media (max-width: 768px) {
+            .splash-title {
+                font-size: 2.2rem;
+            }
+            .splash-text {
+                font-size: 1rem;
+                padding: 0 10px;
+            }
+            .enter-btn {
+                font-size: 1rem;
+                padding: 12px 28px;
+            }
+            .terms {
+                font-size: 0.75rem;
+                padding: 0 15px;
+            }
+            
             .auth-title {
-                font-size: 1.1rem;
-                padding: 0.4rem 0.8rem;
-                margin-bottom: 0.8rem;
+                font-size: 1.25rem;
+                padding: 0.8rem 1.2rem;
+                margin-bottom: 1rem;
             }
             .sidebar, .main-content, .connections {
                 padding: 1rem;
@@ -544,7 +545,36 @@
             .card {
                 padding: 0.8rem;
             }
+            .dashboard {
+                padding: 3.5rem 0.5rem 1rem;
+                gap: 1rem;
+            }
+            .search-container {
+                flex-direction: column;
+            }
+            .search-bar, .btn, .search-btn {
+                width: 100%;
+            }
+            .group-item, .connection-item {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+            .video-container iframe {
+                height: 130px;
+            }
+            .session-indicator {
+                bottom: 15px;
+                right: 15px;
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
         }
+        
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -564,6 +594,7 @@
                 max-width: 600px;
             }
         }
+        
         @media (max-width: 1023px) {
             .navbar {
                 padding: 0.5rem 0.8rem;
@@ -587,13 +618,14 @@
                 background: rgba(255, 255, 255, 0.7);
                 border: 1px solid rgba(124, 58, 237, 0.15);
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                color: #000000 !important; /* Force black text */
             }
             .nav-links.mobile a:last-child {
                 margin-bottom: 0;
             }
             .dashboard {
                 margin-top: 0;
-                padding: 0.5rem;
+                padding: 3.5rem 0.5rem 1rem;
             }
             .sidebar, .main-content, .connections {
                 padding: 0.7rem;
@@ -616,6 +648,7 @@
                 padding: 0.4rem 0.8rem;
             }
         }
+        
         @media (max-width: 480px) {
             .navbar {
                 padding: 0.3rem 0.5rem;
@@ -635,9 +668,10 @@
             .nav-links.mobile a {
                 font-size: 0.95rem;
                 padding: 0.8rem;
+                color: #000000 !important; /* Force black text */
             }
             .dashboard {
-                padding: 0.2rem;
+                padding: 3.2rem 0.2rem 0.5rem;
             }
             .sidebar, .main-content, .connections {
                 padding: 0.5rem;
@@ -670,120 +704,250 @@
                 padding: 0.3rem 0.6rem;
             }
         }
+        
+        @media (max-width: 360px) {
+            .splash-title {
+                font-size: 1.8rem;
+            }
+            .splash-text {
+                font-size: 0.9rem;
+            }
+            .enter-btn {
+                font-size: 0.9rem;
+                padding: 10px 20px;
+            }
+            .terms {
+                font-size: 0.7rem;
+            }
+            .auth-title {
+                font-size: 1.1rem;
+                padding: 0.6rem 1rem;
+            }
+            .dashboard {
+                padding: 3rem 0.2rem 0.5rem;
+            }
+        }
     </style>
 </head>
-<body>
-    <nav class="navbar" id="navbar">
-        <a href="index.html" class="logo">
-            <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
-        </a>
-        <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="nav-links" id="navLinks">
-            <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-            <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-            <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
-            <a href="logout.html" class="nav-link" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-        <div class="nav-links mobile" id="navLinksMobile">
-            <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-            <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
-            <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
-            <a href="logout.html" class="nav-link" id="logoutMobile"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-    </nav>
-    <div class="dashboard lg:flex lg:flex-row">
-        <div class="sidebar">
-            <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
-            <div class="search-container">
-                <input type="text" id="courseSearch" class="search-bar" placeholder="Search course videos..." />
-                <button class="btn search-btn" id="searchCoursesBtn">Search</button>
-                <div id="courseLoading" class="loading"></div>
+<body data-theme="light">
+    <!-- Splash Screen - Always shown first -->
+    <div id="splashContainer" class="splash-container">
+        <div class="splash-screen" id="splash">
+            <div class="splash-title">Welcome to PeerLoom ✨</div>
+            <div class="splash-text">
+                Step into the <span class="highlight">world's most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
+                Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
+                Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
+                🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
+                Share your group link — grow your community, boost your rank, and claim the spotlight.
             </div>
-            <div id="courseList">
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-book"></i> AI 101 - College Writing
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-calculator"></i> MATH 115 - Calculus I
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/WUvTyaaNkzM" title="MATH 115 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/FSyAehMdpyI" title="CHEM 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="main-content">
-            <div class="card">
-                <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
-                <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
-                <textarea id="groupDescription" class="textarea-field" placeholder="Group Description"></textarea>
-                <!-- Changed from dropdown to text input -->
-                <input type="text" id="groupCourse" class="input-field" placeholder="Enter Course / subject" />
-                <button class="btn" onclick="createGroup()">Create Group</button>
-            </div>
-            <div class="card">
-                <h3 class="auth-title text-xl"><i class="fas fa-user-friends"></i> Active Study Groups</h3>
-                <div id="groupList" class="space-y-2">
-                    <!-- populated by Supabase -->
-                </div>
-            </div>
-            <div class="card">
-                <h3 class="auth-title text-xl"><i class="fas fa-lightbulb"></i> Suggested Groups</h3>
-                <div id="suggestedGroups" class="space-y-2">
-                    <!-- populated by Supabase with existing groups -->
-                </div>
-            </div>
-        </div>
-        <div class="connections">
-            <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
-            <div class="search-container">
-                <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
-                <button class="btn search-btn" id="searchConnectionsBtn">Search</button>
-                <div id="connectionLoading" class="loading"></div>
-            </div>
-            <div id="connectionList">
-                <!-- Connections will be populated from Supabase -->
+            <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
+            <div class="terms">
+                *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
             </div>
         </div>
     </div>
-    <!-- Session Active Indicator -->
-    <div id="sessionIndicator" class="session-indicator active">
-        <span class="status-dot"></span>
-        <span id="sessionStatus">Session Active</span>
-        <span id="sessionTimer">(59:59)</span>
+
+    <!-- Dashboard Content - Hidden until splash is dismissed -->
+    <div class="dashboard-content">
+        <nav class="navbar" id="navbar">
+            <a href="index.html" class="logo">
+                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="navLinks">
+                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
+                <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
+                <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
+                <a href="logout.html" class="nav-link" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+            <div class="nav-links mobile" id="navLinksMobile">
+                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
+                <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> Profile</a>
+                <a href="feed.html" class="nav-link"><i class="fas fa-scroll"></i> Skrolz</a>
+                <a href="logout.html" class="nav-link" id="logoutMobile"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+        <div class="dashboard lg:flex lg:flex-row">
+            <div class="sidebar">
+                <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
+                <div class="search-container">
+                    <input type="text" id="courseSearch" class="search-bar" placeholder="Search course videos..." />
+                    <button class="btn search-btn" id="searchCoursesBtn">Search</button>
+                    <div id="courseLoading" class="loading"></div>
+                </div>
+                <div id="courseList">
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-book"></i> AI 101 - College Writing
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-calculator"></i> MATH 115 - Calculus I
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/WUvTyaaNkzM" title="MATH 115 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/FSyAehMdpyI" title="CHEM 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="card">
+                    <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
+                    <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
+                    <textarea id="groupDescription" class="textarea-field" placeholder="Group Description"></textarea>
+                    <input type="text" id="groupCourse" class="input-field" placeholder="Enter Course / subject" />
+                    <button class="btn" onclick="createGroup()">Create Group</button>
+                </div>
+                <div class="card">
+                    <h3 class="auth-title text-xl"><i class="fas fa-user-friends"></i> Active Study Groups</h3>
+                    <div id="groupList" class="space-y-2">
+                        <!-- populated by Supabase -->
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="auth-title text-xl"><i class="fas fa-lightbulb"></i> Suggested Groups</h3>
+                    <div id="suggestedGroups" class="space-y-2">
+                        <!-- populated by Supabase with existing groups -->
+                    </div>
+                </div>
+            </div>
+            <div class="connections">
+                <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
+                <div class="search-container">
+                    <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
+                    <button class="btn search-btn" id="searchConnectionsBtn">Search</button>
+                    <div id="connectionLoading" class="loading"></div>
+                </div>
+                <div id="connectionList">
+                    <!-- Connections will be populated from Supabase -->
+                </div>
+            </div>
+        </div>
+        <!-- Session Active Indicator -->
+        <div id="sessionIndicator" class="session-indicator active">
+            <span class="status-dot"></span>
+            <span id="sessionStatus">Session Active</span>
+            <span id="sessionTimer">(59:59)</span>
+        </div>
+        <!-- Glassmorphism Modal -->
+        <div id="notificationModal" class="modal">
+            <span id="modalMessage">Group inserted</span>
+        </div>
     </div>
-    <!-- Glassmorphism Modal -->
-    <div id="notificationModal" class="modal">
-        <span id="modalMessage">Group inserted</span>
-    </div>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
+        
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
         let sessionUpdateInterval;
+        
+        // Theme persistence and snowflakes
+        let snowflakeElements = [];
+        
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                createSnowflakes();
+            } else {
+                removeSnowflakes();
+            }
+        }
+        
+        function createSnowflakes() {
+            if (snowflakeElements.length > 0) return;
+            const snowflakes = 80;
+            for (let i = 0; i < snowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.textContent = '❄';
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
+                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(snowflake);
+                snowflakeElements.push(snowflake);
+            }
+        }
+        
+        function removeSnowflakes() {
+            snowflakeElements.forEach(snow => snow.remove());
+            snowflakeElements = [];
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        }
+        
+        // Swipe gesture for theme toggle
+        let touchStartX = 0;
+        const navbar = document.getElementById('navbar');
+        if (navbar) {
+            navbar.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            navbar.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const diff = touchStartX - touchEndX;
+                if (Math.abs(diff) > 50) {
+                    toggleTheme();
+                }
+            });
+        }
+        
+        // Load theme on page load
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+        
+        // Splash screen functions
+        function enterSite() {
+            const splashContainer = document.getElementById('splashContainer');
+            const dashboardContent = document.querySelector('.dashboard-content');
+            
+            // Hide splash with animation
+            splashContainer.style.animation = 'fadeOut 1s forwards';
+            
+            // Show dashboard content
+            setTimeout(() => {
+                splashContainer.style.display = 'none';
+                dashboardContent.style.display = 'block';
+                
+                // Remove splash snowflakes
+                removeSnowflakes();
+                
+                // Apply theme to dashboard
+                loadTheme();
+            }, 1000);
+        }
+        
         // Function to reset the logout timer
         function resetLogoutTimer() {
             clearTimeout(logoutTimer);
             logoutTimer = setTimeout(autoLogout, AUTO_LOGOUT_TIME);
             updateSessionIndicator();
         }
+        
         // Function to update the session indicator
         function updateSessionIndicator() {
             const sessionIndicator = document.getElementById('sessionIndicator');
@@ -814,6 +978,7 @@
                 sessionStatus.textContent = 'Session About to Expire';
             }
         }
+        
         // Function to automatically logout user
         async function autoLogout() {
             console.log('Auto-logging out due to inactivity');
@@ -824,6 +989,7 @@
                 window.location.href = 'index.html?message=session_timeout';
             }
         }
+        
         // Function to setup activity listeners
         function setupActivityListeners() {
             const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -831,140 +997,34 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
-        // Splash screen logic
-        function showSplash() {
-            const today = new Date().toISOString().split('T')[0];
-            document.body.classList.add('splash-active');
-            document.getElementById('navbar').style.display = 'none';
-            document.querySelector('.dashboard').style.display = 'none';
-            const splash = document.createElement('div');
-            splash.id = 'splash';
-            splash.className = 'splash-screen';
-            splash.innerHTML = `
-                <div class="splash-title">Welcome to PeerLoom ✨</div>
-                <div class="splash-text">
-                    Step into the <span class="highlight">world’s most vibrant student space</span> — where study groups, ideas, and creativity unite.<br><br>
-                    Create your group, invite friends, and chat instantly with <span class="highlight">PeerPal AI</span> — your smart study companion.<br>
-                    Watch and post creative student content on <span class="highlight">Skrolz</span>, and grow your network while learning together.<br><br>
-                    🎁 The <span class="highlight">most active group</span> with over 50 members wins <span class="highlight">exclusive PeerLoom rewards</span> every month!<br>
-                    Share your group link — grow your community, boost your rank, and claim the spotlight.
-                </div>
-                <button class="enter-btn" onclick="enterSite()">Enter PeerLoom</button>
-                <div class="terms">
-                    *Rewards apply to verified groups only. Members must remain active throughout the month. Engagement is based on messages, posts, and Skrolz activity. PeerLoom reserves the right to verify or disqualify inactive or spam groups.
-                </div>
-            `;
-            document.body.appendChild(splash);
-            // Generate snowflakes
-            const snowflakes = 80;
-            for (let i = 0; i < snowflakes; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄';
-                snowflake.style.left = Math.random() * 100 + 'vw';
-                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                document.body.appendChild(snowflake);
-            }
-        }
-        window.enterSite = function() {
-            const splash = document.getElementById('splash');
-            if (splash) {
-                splash.style.animation = 'fadeOut 2s forwards';
-                setTimeout(() => {
-                    // Remove snowflakes
-                    document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
-                    splash.remove();
-                    document.body.classList.remove('splash-active');
-                    document.getElementById('navbar').style.display = '';
-                    document.querySelector('.dashboard').style.display = '';
-                    const today = new Date().toISOString().split('T')[0];
-                    localStorage.setItem('last_splash', today);
-                    // If dark mode, regenerate snowflakes
-                    if (document.body.dataset.theme === 'dark') {
-                        generateSnowflakes();
-                    }
-                    // Load dashboard content
-                    loadSuggestedGroups();
-                    loadActiveGroups();
-                    loadConnections();
-                    checkFollowStatus();
-                }, 2000);
-            }
-        };
-        // Theme toggle with swipe on navbar
-        let startX = 0;
-        const navbar = document.getElementById('navbar');
-        if (navbar) {
-            navbar.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-            }, { passive: true });
-            navbar.addEventListener('touchend', (e) => {
-                if (!startX) return;
-                const endX = e.changedTouches[0].clientX;
-                const deltaX = endX - startX;
-                const threshold = 50;
-                if (Math.abs(deltaX) > threshold) {
-                    toggleTheme();
-                }
-                startX = 0;
-            }, { passive: true });
-        }
-        function toggleTheme() {
-            const body = document.body;
-            if (body.dataset.theme === 'dark') {
-                body.removeAttribute('data-theme');
-                document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                generateSnowflakes();
-            }
-        }
-        function generateSnowflakes() {
-            // Remove existing snowflakes
-            document.querySelectorAll('.snowflake').forEach(snowflake => snowflake.remove());
-            // Generate new ones
-            const snowflakes = 80;
-            for (let i = 0; i < snowflakes; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄';
-                snowflake.style.left = Math.random() * 100 + 'vw';
-                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                document.body.appendChild(snowflake);
-            }
-        }
+        
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
+            // Always show splash screen first and create snowflakes
+            createSnowflakes();
+            
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
-            } else {
-                console.log("User authenticated, loading dashboard");
-                const today = new Date().toISOString().split('T')[0];
-                const lastSplash = localStorage.getItem('last_splash');
-                if (!lastSplash || lastSplash !== today) {
-                    showSplash();
-                    return;
-                } else {
-                    // Setup auto-logout functionality
-                    resetLogoutTimer();
-                    setupActivityListeners();
-                   
-                    // Start session indicator update interval
-                    sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-                   
-                    // Load groups and connections after authentication
-                    loadSuggestedGroups();
-                    loadActiveGroups();
-                    loadConnections();
-                    checkFollowStatus();
-                }
+                return;
             }
+            
+            console.log("User authenticated");
+            
+            // Setup auto-logout functionality
+            resetLogoutTimer();
+            setupActivityListeners();
+           
+            // Start session indicator update interval
+            sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
+           
+            // Load groups and connections after authentication (they'll be ready when dashboard shows)
+            loadSuggestedGroups();
+            loadActiveGroups();
+            loadConnections();
+            checkFollowStatus();
         });
+        
         // Hook up both "Logout" links
         const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
@@ -982,6 +1042,7 @@
                 window.location.href = 'index.html?message=logout_success';
             });
         });
+        
         // Burger-menu toggler with touch support
         const navToggle = document.getElementById('navToggle');
         const navLinksMobile = document.getElementById('navLinksMobile');
@@ -999,6 +1060,7 @@
                 e.preventDefault();
             }, { passive: false });
         }
+        
         // Load suggested groups (excluding your own and groups you're already in)
         async function loadSuggestedGroups() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1006,6 +1068,7 @@
                 console.error('No user found');
                 return;
             }
+            
             // Get groups the user is already a member of
             const { data: userGroups, error: userGroupsError } = await supabase
                 .from('group_members')
@@ -1015,7 +1078,9 @@
                 console.error('Error loading user groups:', userGroupsError);
                 return;
             }
+            
             const userGroupIds = userGroups.map(g => g.group_id);
+            
             // Get groups not created by the user and not already joined
             const { data, error } = await supabase
                 .from('groups')
@@ -1049,6 +1114,7 @@
                     `;
                     suggestedGroupsDiv.appendChild(div);
                 });
+                
                 // Add join handlers
                 document.querySelectorAll('.join-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -1062,6 +1128,7 @@
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No suggested groups found.</p>';
             }
         }
+        
         // Join group function
         async function joinGroup(groupId, button) {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1070,6 +1137,7 @@
                 showNotification('Please log in to join groups.');
                 return;
             }
+            
             try {
                 // First check if user is already a member
                 const { data: existingMember, error: checkError } = await supabase
@@ -1078,10 +1146,12 @@
                     .eq('group_id', groupId)
                     .eq('user_id', user.id)
                     .single();
+                    
                 if (existingMember) {
                     showNotification('You are already a member of this group.');
                     return;
                 }
+                
                 // INSERT with joined_at timestamp and role
                 const { error } = await supabase
                     .from('group_members')
@@ -1119,6 +1189,7 @@
                 showNotification('An unexpected error occurred while joining the group.');
             }
         }
+        
         // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1126,6 +1197,7 @@
                 console.error('No user found');
                 return;
             }
+            
             const { data, error } = await supabase
                 .from('group_members')
                 .select('group_id')
@@ -1173,6 +1245,7 @@
                 groupListDiv.innerHTML = '<p class="text-center text-gray-500">You are not a member of any groups yet.</p>';
             }
         }
+        
         // Create group
         async function createGroup() {
             resetLogoutTimer(); // Reset timer on user action
@@ -1191,6 +1264,7 @@
                 showNotification('Please fill in all required fields.');
                 return;
             }
+            
             try {
                 // Create the group
                 const { data, error } = await supabase
@@ -1204,11 +1278,13 @@
                     })
                     .select()
                     .single();
+                    
                 if (error) {
                     console.error('Error creating group:', error);
                     showNotification('Failed to create group. Please try again.');
                     return;
                 }
+                
                 // Add creator as member with admin role and timestamp
                 const { error: memberError } = await supabase
                     .from('group_members')
@@ -1218,11 +1294,13 @@
                         joined_at: new Date().toISOString(),
                         role: 'admin'
                     });
+                    
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
                     showNotification('Group created but failed to add you as member.');
                     return;
                 }
+                
                 // Success!
                 showNotification('Group created successfully!');
                 document.getElementById('groupName').value = '';
@@ -1238,6 +1316,7 @@
                 showNotification('An unexpected error occurred.');
             }
         }
+        
         // Load connections from Supabase profiles
         async function loadConnections() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1245,6 +1324,7 @@
                 console.error('No user found');
                 return;
             }
+            
             try {
                 // Get profiles excluding current user - using profile_photo instead of avatar_url
                 const { data: profiles, error } = await supabase
@@ -1257,10 +1337,12 @@
                     console.error('Supabase error loading connections:', error);
                     throw error;
                 }
+                
                 const connectionList = document.getElementById('connectionList');
                 if (!connectionList) return;
                
                 connectionList.innerHTML = '';
+                
                 if (profiles && profiles.length > 0) {
                     profiles.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
@@ -1286,6 +1368,7 @@
                         `;
                         connectionList.appendChild(div);
                     });
+                    
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1295,6 +1378,7 @@
                             await toggleFollowUser(btn, userId);
                         });
                     });
+                    
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
@@ -1308,21 +1392,26 @@
                 }
             }
         }
+        
         // Check follow status for all displayed users
         async function checkFollowStatus() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            
             try {
                 // Get all users the current user is following
                 const { data: following, error } = await supabase
                     .from('followers')
                     .select('following_id')
                     .eq('follower_id', user.id);
+                    
                 if (error) {
                     console.error('Error checking follow status:', error);
                     return;
                 }
+                
                 const followingIds = following.map(f => f.following_id);
+                
                 // Update all follow buttons based on follow status
                 document.querySelectorAll('.follow-btn').forEach(btn => {
                     const userId = btn.dataset.userid;
@@ -1340,6 +1429,7 @@
                 console.error('Error in checkFollowStatus:', error);
             }
         }
+        
         // Search connections from Supabase profiles
         async function searchConnections() {
             resetLogoutTimer(); // Reset timer on user action
@@ -1355,10 +1445,13 @@
                 loadConnections();
                 return;
             }
+            
             connectionLoading.style.display = 'block';
+            
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
+                
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('id, full_name, status, profile_photo, username, department')
@@ -1367,10 +1460,12 @@
                     .limit(3); // Limit to 3 profiles only
                    
                 connectionList.innerHTML = '';
+                
                 if (error) {
                     console.error('Supabase search error:', error);
                     throw error;
                 }
+                
                 if (data && data.length > 0) {
                     data.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
@@ -1396,6 +1491,7 @@
                         `;
                         connectionList.appendChild(div);
                     });
+                    
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1405,6 +1501,7 @@
                             await toggleFollowUser(btn, userId);
                         });
                     });
+                    
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
@@ -1417,6 +1514,7 @@
                 connectionLoading.style.display = 'none';
             }
         }
+        
         // Search courses with YouTube API
         async function searchCourses() {
             resetLogoutTimer(); // Reset timer on user action
@@ -1424,16 +1522,22 @@
             const courseSearch = document.getElementById('courseSearch').value.trim();
             const courseLoading = document.getElementById('courseLoading');
             const courseList = document.getElementById('courseList');
+            
             if (!courseSearch) return;
+            
             courseLoading.style.display = 'block';
+            
             try {
                 const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(courseSearch + ' tutorial')}&type=video&maxResults=10&key=AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y`;
                 const response = await fetch(url);
+                
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message || 'YouTube API error');
                
                 courseList.innerHTML = '';
+                
                 if (data.items && data.items.length > 0) {
                     data.items.slice(0, 3).forEach(item => {
                         const div = document.createElement('div');
@@ -1458,6 +1562,7 @@
                 courseLoading.style.display = 'none';
             }
         }
+        
         // Toggle follow/unfollow user function using the followers table
         async function toggleFollowUser(button, userId) {
             resetLogoutTimer(); // Reset timer on user action
@@ -1467,6 +1572,7 @@
                 showNotification('Please log in to follow users.');
                 return;
             }
+            
             try {
                 // Check if already following
                 const { data: existingFollow, error: checkError } = await supabase
@@ -1475,6 +1581,7 @@
                     .eq('follower_id', user.id)
                     .eq('following_id', userId)
                     .single();
+                    
                 if (existingFollow) {
                     // Unfollow: Delete the follow relationship
                     const { error } = await supabase
@@ -1516,11 +1623,13 @@
                 showNotification('An unexpected error occurred while following the user.');
             }
         }
+        
         // Navigate to user profile (other user's profile)
         function navigateToUserProfile(userId) {
             resetLogoutTimer(); // Reset timer on user action
             window.location.href = `profile.html?userId=${userId}`;
         }
+        
         // Show notification with blur effect
         function showNotification(message, callback) {
             const modal = document.getElementById('notificationModal');
@@ -1532,28 +1641,34 @@
             modalMessage.textContent = message;
             modal.classList.add('show');
             body.classList.add('blur-background');
+            
             setTimeout(() => {
                 modal.classList.remove('show');
                 body.classList.remove('blur-background');
                 if (callback) callback();
             }, 3000);
         }
+        
         // Add event listeners
         document.addEventListener('DOMContentLoaded', () => {
             const searchConnectionsBtn = document.getElementById('searchConnectionsBtn');
             if (searchConnectionsBtn) {
                 searchConnectionsBtn.addEventListener('click', searchConnections);
             }
+            
             const searchCoursesBtn = document.getElementById('searchCoursesBtn');
             if (searchCoursesBtn) {
                 searchCoursesBtn.addEventListener('click', searchCourses);
             }
         });
+        
         // Make functions globally available
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
+        window.enterSite = enterSite;
+        window.toggleTheme = toggleTheme;
     </script>
 </body>
 </html>
