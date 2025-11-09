@@ -101,6 +101,29 @@
             align-items: center;
             transition: transform 0.3s ease;
         }
+
+        .liquid-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .liquid-path {
+            fill: var(--primary-color);
+            transition: d 0.2s cubic-bezier(0.2, 0.8, 0.2, 1.5);
+        }
+
+        .pull-to-refresh-icon {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            color: white;
+        }
         .pull-to-refresh.ready .pull-to-refresh-icon {
             transform: rotate(180deg); /* Arrow points up when ready to refresh */
         }
@@ -1285,11 +1308,16 @@
     <div class="feed-container" id="feed">
         <!-- Pull to Refresh Indicator -->
         <div class="pull-to-refresh" id="pullToRefresh">
-            <div class="pull-to-refresh-icon" id="pullToRefreshIcon">
-                <i class="fas fa-arrow-down"></i>
-            </div>
-            <div class="pull-to-refresh-spinner" id="pullToRefreshSpinner" style="display: none;">
-                <i class="fas fa-spinner fa-spin"></i>
+            <svg width="50" height="120" viewbox="0 0 50 120">
+                <path class="liquid-path" id="liquidPath" d="M 25, 20 C 25, 20 25, 20 25, 20 Z"></path>
+            </svg>
+            <div class="liquid-container" id="liquidContainer">
+                <div class="pull-to-refresh-icon" id="pullToRefreshIcon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="pull-to-refresh-spinner liquid-spinner" id="pullToRefreshSpinner" style="display: none;">
+                    <!-- Spinner is now a div for custom styling -->
+                </div>
             </div>
         </div>
         <!-- Videos will be dynamically inserted here -->
@@ -1484,6 +1512,9 @@
             const pullToRefresh = document.getElementById('pullToRefresh');
             const pullToRefreshIcon = document.getElementById('pullToRefreshIcon');
             const pullToRefreshSpinner = document.getElementById('pullToRefreshSpinner');
+            const liquidPath = document.getElementById('liquidPath');
+            const liquidContainer = document.getElementById('liquidContainer');
+            let readyToRefresh = false;
 
             feedContainer.addEventListener('touchstart', (e) => {
                 if (feedContainer.scrollTop === 0 && !isRefreshing) {
@@ -1502,9 +1533,21 @@
                 if (deltaY > 0) {
                     e.preventDefault(); // Prevent browser's default pull-to-refresh
                     const pullDistance = Math.min(deltaY, pullThreshold + 20);
-                    pullToRefresh.style.top = `${-50 + pullDistance}px`;
+                    const stretch = Math.max(0, deltaY - 20);
+                    const pathD = `M 25, 20 C 10, ${20 + stretch * 0.5} 40, ${20 + stretch * 0.5} 25, ${20 + stretch}`;
+                    
+                    liquidPath.setAttribute('d', pathD);
+                    liquidContainer.style.transform = `translateY(${stretch}px)`;
+
+                    pullToRefresh.style.top = `-50px`; // Keep the SVG container static
 
                     if (deltaY > pullThreshold) {
+                        if (!readyToRefresh) {
+                            readyToRefresh = true;
+                            if (navigator.vibrate) {
+                                navigator.vibrate(5); // Light vibration when ready
+                            }
+                        }
                         pullToRefresh.classList.add('ready');
                     } else {
                         pullToRefresh.classList.remove('ready');
@@ -1519,13 +1562,23 @@
                 const deltaY = currentY - touchStartY;
 
                 if (deltaY > pullThreshold) {
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50); // Stronger vibration on refresh
+                    }
                     isRefreshing = true;
-                    pullToRefresh.style.top = '20px';
+                    liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
+                    liquidContainer.style.transform = 'translateY(0)';
+                    liquidContainer.style.transition = 'transform 0.4s cubic-bezier(0.2, 1.5, 0.7, 1)';
+                    
                     pullToRefreshIcon.style.display = 'none';
                     pullToRefreshSpinner.style.display = 'block';
+                    
                     await fetchPostsFromDatabase(); // Refresh the feed
+                } else {
+                    // If not pulled far enough, just reset
+                    resetPullToRefresh();
                 }
-                resetPullToRefresh();
+                readyToRefresh = false;
             });
         }
 
@@ -1549,7 +1602,7 @@
                 const pullToRefreshIcon = document.getElementById('pullToRefreshIcon');
                 const pullToRefreshSpinner = document.getElementById('pullToRefreshSpinner');
                 
-                pullToRefresh.style.top = '20px';
+                // The spinner is already visible from the touchend event
                 pullToRefreshIcon.style.display = 'none';
                 pullToRefreshSpinner.style.display = 'block';
             }
@@ -1804,14 +1857,20 @@
             const pullToRefresh = document.getElementById('pullToRefresh');
             const pullToRefreshIcon = document.getElementById('pullToRefreshIcon');
             const pullToRefreshSpinner = document.getElementById('pullToRefreshSpinner');
+            const liquidPath = document.getElementById('liquidPath');
+            const liquidContainer = document.getElementById('liquidContainer');
 
             pullToRefresh.classList.remove('ready');
-            pullToRefresh.style.top = '-50px';
+            liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
+            liquidContainer.style.transform = 'translateY(0)';
+            liquidContainer.style.transition = 'transform 0.2s ease';
+
             pullToRefreshIcon.style.display = 'block';
             pullToRefreshSpinner.style.display = 'none';
-            
+
             touchStartY = 0;
             isRefreshing = false;
+            // readyToRefresh is reset in touchend
         }
 
         // Set up event listeners
