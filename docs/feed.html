@@ -77,19 +77,28 @@
         .pull-to-refresh {
             position: absolute;
             top: -50px; /* Start hidden above the viewport */
-            left: 0;
-            right: 0;
-            height: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 120px; /* Increased height for animation */
+            width: 50px;
             display: flex;
             justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
+            align-items: flex-start;
             color: var(--text-color);
             transition: top 0.3s ease;
             z-index: 0; /* Behind other top elements */
+            overflow: visible;
         }
 
-        .pull-to-refresh-icon {
+        .liquid-container {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             transition: transform 0.3s ease;
         }
         .pull-to-refresh.ready .pull-to-refresh-icon {
