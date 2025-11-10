@@ -1630,17 +1630,16 @@
                     const { data: videoData, error: videoError } = await supabase
                         .from('posts')
                         .select(`*, likes(user_id)`)
-                        .eq('id', sharedVideoId)                        
-                        .single();
+                        .eq('id', sharedVideoId);
 
                     if (videoError) {
                         console.error('Error fetching shared video:', videoError);
-                    } else if (videoData) {
+                    } else if (videoData && videoData.length > 0) {
+                        const singleVideo = videoData[0];
                         sharedVideo = {
-                            ...videoData,
+                            ...singleVideo,
                             // If user is not logged, there are no likes
-
-                            is_liked: user ? videoData.likes.some(like => like.user_id === user.id) : false
+                            is_liked: user ? singleVideo.likes.some(like => like.user_id === user.id) : false
                         };
                     }
                 }
