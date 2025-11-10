@@ -1877,17 +1877,13 @@
                 }
               
                 currentUser = user;
-
-                // Read userId from hash, fallback to query param, then to current user
-                const hash = window.location.hash.substring(1); // Remove '#'
-                const pathParts = hash.split('/');
-                if (pathParts[0] === 'profile' && pathParts[1]) {
-                    // This will be the username. We need to fetch the ID for this username.
-                    await loadProfileByUsername(pathParts[1]);
-                } else {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    profileUserId = urlParams.get('userId') || currentUser.id;
-                }
+                
+                // Determine which profile to load.
+                // Priority: URL query parameter 'userId' > current logged-in user.
+                const urlParams = new URLSearchParams(window.location.search);
+                const userIdFromUrl = urlParams.get('userId');
+                
+                profileUserId = userIdFromUrl || currentUser.id;
 
               
                 // Load user profile
