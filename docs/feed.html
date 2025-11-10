@@ -1618,34 +1618,62 @@
                 pullToRefreshSpinner.style.display = 'block';
             }
 
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedVideoId = urlParams.get('videoId');
+            let sharedVideo = null;
+
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                // Fetch posts and join with likes to see if the current user has liked it
-                const { data, error } = await supabase
+
+                // If a videoId is shared, fetch it first.
+                if (sharedVideoId) {
+                    const { data: videoData, error: videoError } = await supabase
+                        .from('posts')
+                        .select(`*, likes(user_id)`)
+                        .eq('id', sharedVideoId)
+                        .single();
+
+                    if (videoError) {
+                        console.error('Error fetching shared video:', videoError);
+                    } else if (videoData) {
+                        sharedVideo = {
+                            ...videoData,
+                            is_liked: user ? videoData.likes.some(like => like.user_id === user.id) : false
+                        };
+                    }
+                }
+
+                // Fetch the rest of the posts, excluding the shared one if it was found.
+                let query = supabase
                     .from('posts')
-                    .select(`
-                        *,
-                        likes ( user_id )
-                    `)
+                    .select(`*, likes(user_id)`)
                     .order('created_at', { ascending: false });
+
+                if (sharedVideoId) {
+                    query = query.neq('id', sharedVideoId);
+                }
+
+                const { data, error } = await query;
               
                 if (error) {
-                    // If database fails, use sample data
                     console.log('Using sample data due to error:', error);
                     initializeFeed(posts);
                     return;
                 }
               
-                // Process posts to add a simple 'is_liked' boolean
+                let fetchedPosts = [];
                 if (data) {
-                    posts = data.map(post => ({
+                    fetchedPosts = data.map(post => ({
                         ...post,
                         is_liked: user ? post.likes.some(like => like.user_id === user.id) : false
                     }));
                 }
-              
-                if (data && data.length > 0) {
-                    initializeFeed(posts);
+
+                // Prepend the shared video to the feed if it exists.
+                const finalPosts = sharedVideo ? [sharedVideo, ...fetchedPosts] : fetchedPosts;
+
+                if (finalPosts.length > 0) {
+                    initializeFeed(finalPosts);
                 } else {
                     // If no posts, show empty state
                     document.getElementById('feed').innerHTML = `

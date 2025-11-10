@@ -2209,9 +2209,9 @@
                         groups (
                             id,
                             name,
-                            member_count
+                            group_members(count)
                         ),
-                        is_admin
+                        role
                     `)
                     .eq('user_id', currentUser.id);
                   
@@ -2263,9 +2263,9 @@
                     <div class="group-avatar">${group.name.substring(0, 2)}</div>
                     <div class="group-info">
                         <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.member_count || 0} members</div>
+                        <div class="group-members">${group.group_members[0]?.count || 0} members</div>
                     </div>
-                    ${groupData.is_admin ? '<div class="admin-badge">Admin</div>' : ''}
+                    ${groupData.role === 'admin' ? '<div class="admin-badge">Admin</div>' : ''}
                 `;
               
                 groupsGrid.appendChild(groupItem);
@@ -2294,7 +2294,7 @@
         async function loadUserLikes() {
             try {
                 const { data: likes, error } = await supabase
-                    .from('post_likes')
+                    .from('likes')
                     .select('post_id')
                     .eq('user_id', currentUser.id);
               
