@@ -1837,9 +1837,9 @@
         const saveBioEdit = document.getElementById('saveBioEdit');
         const shareProfileBtn = document.getElementById('shareProfileBtn');
         const supportBtn = document.getElementById('supportBtn');
-        // const showFullNameToggle = document.getElementById('showFullNameToggle');
-        // const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
-        // const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
+        const showFullNameToggle = document.getElementById('showFullNameToggle');
+        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
+        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
         const postsStat = document.getElementById('postsStat');
         const postsDrawer = document.getElementById('postsDrawer');
         const closePostsDrawer = document.getElementById('closePostsDrawer');
@@ -1864,9 +1864,15 @@
         let userPosts = [];
         let userLikes = new Set(); // Track user's likes
         // Initialize the page
-        const showFullNameToggle = document.getElementById('showFullNameToggle');
-        const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
-        const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
+        // const showFullNameToggle = document.getElementById('showFullNameToggle');
+        // const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
+        // const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
+        // const editAcademicBtn = document.getElementById('editAcademicBtn');
+        // const editBioBtn = document.getElementById('editBioBtn');
+        // const settingsBtn = document.getElementById('settingsBtn');
+        const avatarLabel = document.getElementById('avatar');
+
+
 
 
         let profileUserId = null;
@@ -1894,6 +1900,9 @@
                 // Load user profile
                 await loadUserProfile();
               
+                // Now that all data is loaded, render the page
+                renderPage();
+
                 // Load user groups
                 await loadUserGroups();
               
@@ -2093,6 +2102,12 @@
                 showError('Error creating profile');
             }
         }
+
+        // This function will now be called only after all data is loaded
+        function renderPage() {
+            updateProfileUI(userProfile);
+        }
+
         // Update the UI with profile data
         function updateProfileUI(profileData) {
             if (!profileData) return;
@@ -2123,6 +2138,8 @@
                 document.getElementById('editAcademicBtn').style.display = 'none';
                 document.getElementById('editBioBtn').style.display = 'none';
                 document.getElementById('settingsBtn').style.display = 'none'; // Hide settings
+                editBioBtn.style.display = 'none';
+                settingsBtn.style.display = 'none'; // Hide settings
 
                 // Disable avatar upload functionality for other users
                 const avatarLabel = document.getElementById('avatar');
