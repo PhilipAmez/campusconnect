@@ -2044,10 +2044,8 @@
                 }
               
                 userProfile = profile;
-                // This is the crucial fix: Update the UI *after* the profile data is loaded.
-                updateProfileUI();
-
-                updateProfileUI();
+                // This is the crucial fix: Pass the loaded profile data directly to the UI function.
+                updateProfileUI(profile);
 
                 // Update follower/following counts from the aggregated query
                 document.getElementById('followersCount').textContent = profile.followers[0]?.count || 0;
@@ -2091,22 +2089,22 @@
             }
         }
         // Update the UI with profile data
-        function updateProfileUI() {
-            if (!userProfile) return;
+        function updateProfileUI(profileData) {
+            if (!profileData) return;
           
             // Hide loading spinner and show name
             document.getElementById('nameLoading').style.display = 'none';
             document.getElementById('nameText').style.display = 'inline';
           
             // Set user name and info
-            document.getElementById('fullName').textContent = userProfile.full_name || 'User';
-            document.getElementById('username').textContent = `@${userProfile.username || 'user'}`;
-            document.getElementById('avatarInitials').textContent = getInitials(userProfile.full_name || 'User');
+            document.getElementById('fullName').textContent = profileData.full_name || 'User';
+            document.getElementById('username').textContent = `@${profileData.username || 'user'}`;
+            document.getElementById('avatarInitials').textContent = getInitials(profileData.full_name || 'User');
           
             // Set status
             const statusIndicator = document.getElementById('statusIndicator');
-            statusIndicator.textContent = userProfile.status || 'Online';
-            statusIndicator.className = `status-indicator ${userProfile.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            statusIndicator.textContent = profileData.status || 'Online';
+            statusIndicator.className = `status-indicator ${profileData.status === 'Online' ? 'status-online' : 'status-offline'}`;
           
             // Show verified badge if user is verified
             if (userProfile.verified) {
@@ -2142,30 +2140,30 @@
             }
           
             // Set academic details - use custom fields if available
-            const campus = userProfile.custom_campus || userProfile.campus || 'Not set';
-            const level = userProfile.custom_level || userProfile.level || 'Not set';
+            const campus = profileData.custom_campus || profileData.campus || 'Not set';
+            const level = profileData.custom_level || profileData.level || 'Not set';
           
             document.getElementById('campusValue').textContent = campus;
             document.getElementById('campusInput').value = campus;
             document.getElementById('levelValue').textContent = level;
             document.getElementById('levelInput').value = level;
-            document.getElementById('departmentValue').textContent = userProfile.department || 'Not set';
-            document.getElementById('departmentInput').value = userProfile.department || '';
-            document.getElementById('contactValue').textContent = userProfile.contact || 'Not set';
-            document.getElementById('contactInput').value = userProfile.contact || '';
+            document.getElementById('departmentValue').textContent = profileData.department || 'Not set';
+            document.getElementById('departmentInput').value = profileData.department || '';
+            document.getElementById('contactValue').textContent = profileData.contact || 'Not set';
+            document.getElementById('contactInput').value = profileData.contact || '';
           
             // Set bio
-            document.getElementById('bioContent').textContent = userProfile.bio || 'No bio yet...';
-            document.getElementById('bioInput').value = userProfile.bio || '';
+            document.getElementById('bioContent').textContent = profileData.bio || 'No bio yet...';
+            document.getElementById('bioInput').value = profileData.bio || '';
           
             // Set privacy toggles
-            showFullNameToggle.checked = userProfile.show_full_name !== false;
-            showAcademicInfoToggle.checked = userProfile.show_academic_info !== false;
-            showGroupsCountToggle.checked = userProfile.show_groups_count !== false;
+            showFullNameToggle.checked = profileData.show_full_name !== false;
+            showAcademicInfoToggle.checked = profileData.show_academic_info !== false;
+            showGroupsCountToggle.checked = profileData.show_groups_count !== false;
           
             // Apply theme from database
-            if (userProfile.theme_preference) {
-                applyTheme(userProfile.theme_preference);
+            if (profileData.theme_preference) {
+                applyTheme(profileData.theme_preference);
             }
             // Load new settings
             loadNewSettings();
