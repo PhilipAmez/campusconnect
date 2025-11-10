@@ -1801,7 +1801,6 @@
         // DOM Elements
         const header = document.getElementById('header');
         const themeIndicator = document.getElementById('themeIndicator');
-        const settingsBtn = document.getElementById('settingsBtn');
         const settingsDrawer = document.getElementById('settingsDrawer');
         const closeDrawer = document.getElementById('closeDrawer');
         const notificationsBtn = document.getElementById('notificationsBtn');
@@ -1810,7 +1809,6 @@
         const notificationsList = document.getElementById('notificationsList');
         const markAllReadBtn = document.getElementById('markAllReadBtn');
         const followersBtn = document.getElementById('followersBtn');
-        // DOM Elements
         const followersDrawer = document.getElementById('followersDrawer');
         const closeFollowersDrawer = document.getElementById('closeFollowersDrawer');
         const followersList = document.getElementById('followersList');
@@ -1825,12 +1823,12 @@
         const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
         const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
         const body = document.body;
-        const editAcademicBtn = document.getElementById('editAcademicBtn');
+        
         const academicGrid = document.getElementById('academicGrid');
         const academicActions = document.getElementById('academicActions');
         const cancelAcademicEdit = document.getElementById('cancelAcademicEdit');
         const saveAcademicEdit = document.getElementById('saveAcademicEdit');
-        const editBioBtn = document.getElementById('editBioBtn');
+        
         const bioContent = document.getElementById('bioContent');
         const bioInput = document.getElementById('bioInput');
         const bioActions = document.getElementById('bioActions');
@@ -1838,7 +1836,6 @@
         const saveBioEdit = document.getElementById('saveBioEdit');
         const shareProfileBtn = document.getElementById('shareProfileBtn');
         const supportBtn = document.getElementById('supportBtn');
-       
         const postsStat = document.getElementById('postsStat');
         const postsDrawer = document.getElementById('postsDrawer');
         const closePostsDrawer = document.getElementById('closePostsDrawer');
@@ -1866,6 +1863,12 @@
         const showFullNameToggle = document.getElementById('showFullNameToggle');
         const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
         const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
+        const editAcademicBtn = document.getElementById('editAcademicBtn');
+        const editBioBtn = document.getElementById('editBioBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const avatarLabel = document.getElementById('avatar');
+
+
 
 
         let profileUserId = null;
@@ -2125,16 +2128,30 @@
           
             // Show verified badge if user is verified
             if (userProfile.verified) {
-                document.getElementById('verifiedBadge').style.display = 'flex';
+                const verifiedBadge = document.getElementById('verifiedBadge');
+                if (verifiedBadge) {
+                    verifiedBadge.style.display = 'flex';
+                }
             } else {
-                document.getElementById('verifiedBadge').style.display = 'none';
+                const verifiedBadge = document.getElementById('verifiedBadge');
+                if (verifiedBadge) {
+                    verifiedBadge.style.display = 'none';
+                }
             }
 
             // If viewing someone else's profile, hide all edit/settings controls and disable functionality
             if (profileUserId !== currentUser.id) {
-                document.getElementById('editAcademicBtn').style.display = 'none';
+                const editAcademicBtn = document.getElementById('editAcademicBtn');
+                if (editAcademicBtn) editAcademicBtn.style.display = 'none';
+
+                const editBioBtn = document.getElementById('editBioBtn');
+                if (editBioBtn) editBioBtn.style.display = 'none';
+
+                const settingsBtn = document.getElementById('settingsBtn');
+                if (settingsBtn) settingsBtn.style.display = 'none'; // Hide settings
 
                 // Disable avatar upload functionality for other users
+                const avatarLabel = document.getElementById('avatar');
                 avatarLabel.removeAttribute('for');
                 avatarLabel.style.cursor = 'default';
 
