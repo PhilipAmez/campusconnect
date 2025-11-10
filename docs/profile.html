@@ -2116,14 +2116,24 @@
                 document.getElementById('verifiedBadge').style.display = 'none';
             }
 
+            // If viewing someone else's profile, hide all edit/settings controls
             if (profileUserId !== currentUser.id) {
                 document.getElementById('editAcademicBtn').style.display = 'none';
                 document.getElementById('editBioBtn').style.display = 'none';
+                document.getElementById('settingsBtn').style.display = 'none'; // Hide settings
+
+                // Disable avatar upload for other users
+                const avatarLabel = document.getElementById('avatar');
+                avatarLabel.removeAttribute('for');
+                avatarLabel.style.cursor = 'default';
+
                 // Add a follow button if viewing another user's profile
-                const followButton = document.createElement('button');
-                followButton.id = 'followProfileBtn';
-                followButton.className = 'btn btn-primary';
-                document.querySelector('.profile-info').appendChild(followButton);
+                if (!document.getElementById('followProfileBtn')) {
+                    const followButton = document.createElement('button');
+                    followButton.id = 'followProfileBtn';
+                    followButton.className = 'btn btn-primary';
+                    document.querySelector('.profile-info').appendChild(followButton);
+                }
             }
           
             // Set academic details - use custom fields if available
