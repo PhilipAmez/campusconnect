@@ -2116,16 +2116,22 @@
                 document.getElementById('verifiedBadge').style.display = 'none';
             }
 
-            // If viewing someone else's profile, hide all edit/settings controls
+            // If viewing someone else's profile, hide all edit/settings controls and disable functionality
             if (profileUserId !== currentUser.id) {
                 document.getElementById('editAcademicBtn').style.display = 'none';
                 document.getElementById('editBioBtn').style.display = 'none';
                 document.getElementById('settingsBtn').style.display = 'none'; // Hide settings
 
-                // Disable avatar upload for other users
+                // Disable avatar upload functionality for other users
                 const avatarLabel = document.getElementById('avatar');
                 avatarLabel.removeAttribute('for');
                 avatarLabel.style.cursor = 'default';
+
+                // Remove event listeners to prevent editing via console
+                const editAcademicBtnClone = editAcademicBtn.cloneNode(true);
+                editAcademicBtn.parentNode.replaceChild(editAcademicBtnClone, editAcademicBtn);
+                const editBioBtnClone = editBioBtn.cloneNode(true);
+                editBioBtn.parentNode.replaceChild(editBioBtnClone, editBioBtn);
 
                 // Add a follow button if viewing another user's profile
                 if (!document.getElementById('followProfileBtn')) {
