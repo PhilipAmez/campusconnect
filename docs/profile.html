@@ -2104,8 +2104,14 @@
             if (!profileData) return;
           
             // Hide loading spinner and show name
-            document.getElementById('nameLoading').style.display = 'none';
-            document.getElementById('nameText').style.display = 'inline';
+            const nameLoading = document.getElementById('nameLoading');
+            if (nameLoading) {
+                nameLoading.style.display = 'none';
+            }
+            const nameText = document.getElementById('nameText');
+            if (nameText) {
+                nameText.style.display = 'inline';
+            }
           
             // Set user name and info
             document.getElementById('fullName').textContent = profileData.full_name || 'User';
