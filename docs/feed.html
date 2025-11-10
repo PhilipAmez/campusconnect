@@ -1629,7 +1629,7 @@
                 if (sharedVideoId) {
                     const { data: videoData, error: videoError } = await supabase
                         .from('posts')
-                        .select(`*, likes(user_id)`)
+                        .select(`*, likes(user_id), profiles(username)`)
                         .eq('id', sharedVideoId);
 
                     if (videoError) {
@@ -1647,7 +1647,7 @@
                 // Fetch the rest of the posts, excluding the shared one if it was found.
                 let query = supabase
                     .from('posts')
-                    .select(`*, likes(user_id)`)
+                    .select(`*, likes(user_id), profiles(username)`)
                     .order('created_at', { ascending: false });
 
                 if (sharedVideoId) {
