@@ -3174,7 +3174,9 @@
             document.querySelectorAll('.academic-value').forEach(el => el.style.display = 'block');
             document.querySelectorAll('.academic-input').forEach(el => el.style.display = 'none');
             academicActions.style.display = 'none';
-            editAcademicBtn.style.display = 'block';
+            if (profileUserId === currentUser.id) {
+                editAcademicBtn.style.display = 'block';
+            }
           
             // Reset input values to current user data
             const campus = userProfile.custom_campus || userProfile.campus || '';
@@ -3240,7 +3242,9 @@
             bioContent.style.display = 'block';
             bioInput.style.display = 'none';
             bioActions.style.display = 'none';
-            editBioBtn.style.display = 'block';
+            if (profileUserId === currentUser.id) {
+                editBioBtn.style.display = 'block';
+            }
           
             // Reset bio input to current value
             bioInput.value = userProfile.bio || '';
