@@ -709,6 +709,19 @@
             }
         }
 
+        // Handle SPA redirect from 404.html
+        function handleRedirect() {
+            const redirectPath = sessionStorage.getItem('redirectPath');
+            if (redirectPath) {
+                sessionStorage.removeItem('redirectPath');
+                // Example: if path is /profile/someuser, redirect to profile.html#/profile/someuser
+                if (redirectPath.startsWith('/profile/')) {
+                    const username = redirectPath.substring('/profile/'.length);
+                    window.location.replace(`/profile.html#/profile/${username}`);
+                }
+            }
+        }
+
         // Splash screen animation
         document.addEventListener('DOMContentLoaded', () => {
             const splashScreen = document.getElementById('splash-screen');
@@ -758,6 +771,9 @@
                     
                     // Check for URL parameters after page loads
                     checkUrlParameters();
+
+                    // Handle any SPA redirects
+                    handleRedirect();
                 }, 500);
             }, 3500);
         });

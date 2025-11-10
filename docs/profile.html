@@ -1864,6 +1864,7 @@
         let userPosts = [];
         let userLikes = new Set(); // Track user's likes
         // Initialize the page
+        let profileUserId = null;
         async function initializePage() {
             try {
                 // Get current user
@@ -1876,6 +1877,18 @@
                 }
               
                 currentUser = user;
+
+                // Read userId from hash, fallback to query param, then to current user
+                const hash = window.location.hash.substring(1); // Remove '#'
+                const pathParts = hash.split('/');
+                if (pathParts[0] === 'profile' && pathParts[1]) {
+                    // This will be the username. We need to fetch the ID for this username.
+                    await loadProfileByUsername(pathParts[1]);
+                } else {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    profileUserId = urlParams.get('userId') || currentUser.id;
+                }
+
               
                 // Load user profile
                 await loadUserProfile();
@@ -2026,8 +2039,8 @@
             try {
                 const { data: profile, error } = await supabase
                     .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
+                    .select('*, followers:followers!following_id(count), following:followers!follower_id(count)')
+                    .eq('id', profileUserId)
                     .single();
                   
                 if (error) {
@@ -2041,6 +2054,11 @@
               
                 userProfile = profile;
                 updateProfileUI();
+
+                // Update follower/following counts from the aggregated query
+                document.getElementById('followersCount').textContent = profile.followers[0]?.count || 0;
+                document.getElementById('followingCount').textContent = profile.following[0]?.count || 0;
+
               
             } catch (error) {
                 console.error('Error loading profile:', error);
@@ -2099,6 +2117,12 @@
             // Show verified badge if user is verified
             if (userProfile.verified) {
                 document.getElementById('verifiedBadge').style.display = 'flex';
+            } else {
+                document.getElementById('verifiedBadge').style.display = 'none';
+            }
+
+            if (profileUserId !== currentUser.id) {
+                document.getElementById('editAcademicBtn').style.display = 'none';
             }
           
             // Set academic details - use custom fields if available
@@ -2447,8 +2471,8 @@
         // Initialize followers functionality
         async function initializeFollowers() {
             await loadFollowersData();
-        }
-        // Load followers and following data
+        } // Load followers and following data
+
         async function loadFollowersData() {
             try {
                 // Load followers (people who follow the current user)
@@ -2462,7 +2486,7 @@
                             profile_photo
                         )
                     `)
-                    .eq('following_id', currentUser.id);
+                    .eq('following_id', profileUserId);
                   
                 if (followersError) throw followersError;
               
@@ -2479,7 +2503,7 @@
                             profile_photo
                         )
                     `)
-                    .eq('follower_id', currentUser.id);
+                    .eq('follower_id', profileUserId);
                   
                 if (followingError) throw followingError;
               
