@@ -44,7 +44,7 @@
             margin: 0;
             padding: 0;
         }
-        
+       
         /* Splash Screen Styles */
         .splash-container {
             position: fixed;
@@ -141,12 +141,12 @@
             from { opacity: 1; }
             to { opacity: 0; visibility: hidden; }
         }
-        
+       
         /* Main Dashboard Styles - Initially Hidden */
         .dashboard-content {
             display: none;
         }
-        
+       
         /* Mobile-First Responsive Design */
         .navbar {
             position: fixed;
@@ -425,11 +425,39 @@
             object-fit: cover;
             border-radius: 50%;
         }
-        .video-container iframe {
+        /* Improved Video Container for Responsive 16:9 Aspect Ratio */
+        .video-container {
+            position: relative;
             width: 100%;
-            height: 150px;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.2s ease;
+            margin-top: 0.5rem;
+        }
+        .video-container:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border: none;
             border-radius: 0.5rem;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
         .loading {
             border: 4px solid #f3f3f3;
@@ -515,7 +543,7 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
-        
+       
         /* Enhanced Mobile Responsiveness */
         @media (max-width: 768px) {
             .splash-title {
@@ -533,7 +561,7 @@
                 font-size: 0.75rem;
                 padding: 0 15px;
             }
-            
+           
             .auth-title {
                 font-size: 1.25rem;
                 padding: 0.8rem 1.2rem;
@@ -564,17 +592,19 @@
                 height: 36px;
                 font-size: 1rem;
             }
-            .video-container iframe {
-                height: 130px;
-            }
+            /* Responsive iframes handle mobile sizing automatically now */
             .session-indicator {
                 bottom: 15px;
                 right: 15px;
                 font-size: 0.8rem;
                 padding: 0.4rem 0.8rem;
             }
+            /* Improve mobile video grid spacing */
+            .video-grid {
+                gap: 0.75rem;
+            }
         }
-        
+       
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
@@ -594,7 +624,7 @@
                 max-width: 600px;
             }
         }
-        
+       
         @media (max-width: 1023px) {
             .navbar {
                 padding: 0.5rem 0.8rem;
@@ -638,17 +668,18 @@
                 height: 36px;
                 font-size: 1rem;
             }
-            .video-container iframe {
-                height: 130px;
-            }
+            /* Responsive handles tablet */
             .session-indicator {
                 bottom: 15px;
                 right: 15px;
                 font-size: 0.8rem;
                 padding: 0.4rem 0.8rem;
             }
+            .video-grid {
+                gap: 0.875rem;
+            }
         }
-        
+       
         @media (max-width: 480px) {
             .navbar {
                 padding: 0.3rem 0.5rem;
@@ -690,9 +721,6 @@
                 height: 32px;
                 font-size: 0.9rem;
             }
-            .video-container iframe {
-                height: 110px;
-            }
             .modal {
                 padding: 1rem 1.5rem;
                 font-size: 1rem;
@@ -703,8 +731,16 @@
                 font-size: 0.75rem;
                 padding: 0.3rem 0.6rem;
             }
+            /* Tighter spacing for small mobile */
+            .video-grid {
+                gap: 0.5rem;
+            }
+            .auth-title {
+                font-size: 1.15rem;
+                padding: 0.75rem 1rem;
+            }
         }
-        
+       
         @media (max-width: 360px) {
             .splash-title {
                 font-size: 1.8rem;
@@ -747,7 +783,6 @@
             </div>
         </div>
     </div>
-
     <!-- Dashboard Content - Hidden until splash is dismissed -->
     <div class="dashboard-content">
         <nav class="navbar" id="navbar">
@@ -774,34 +809,42 @@
             <div class="sidebar">
                 <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
                 <div class="search-container">
-                    <input type="text" id="courseSearch" class="search-bar" placeholder="Search course videos..." />
+                    <input type="text" id="courseSearch" class="search-bar" placeholder="Search educational videos..." />
                     <button class="btn search-btn" id="searchCoursesBtn">Search</button>
                     <div id="courseLoading" class="loading"></div>
                 </div>
                 <div id="courseList">
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-book"></i> AI 101 - College Writing
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-book"></i> AI 101 - College Writing
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
                     </div>
-                </div>
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-calculator"></i> MATH 115 - Calculus I
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/WUvTyaaNkzM" title="MATH 115 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-calculator"></i> MATH 115 - Calculus I
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/WUvTyaaNkzM" title="MATH 115 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
                     </div>
-                </div>
-                <div class="card">
-                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                        <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
-                    </h4>
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/FSyAehMdpyI" title="CHEM 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/FSyAehMdpyI" title="CHEM 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
                     </div>
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                            <i class="fas fa-code"></i> CS 101 - Intro to Programming
+                        </h4>
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/kqtD5dpn9C8" title="CS 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -849,18 +892,17 @@
             <span id="modalMessage">Group inserted</span>
         </div>
     </div>
-
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-        
+       
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
         let sessionUpdateInterval;
-        
+       
         // Theme persistence and snowflakes
         let snowflakeElements = [];
-        
+       
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
@@ -870,7 +912,7 @@
                 removeSnowflakes();
             }
         }
-        
+       
         function createSnowflakes() {
             if (snowflakeElements.length > 0) return;
             const snowflakes = 80;
@@ -886,18 +928,18 @@
                 snowflakeElements.push(snowflake);
             }
         }
-        
+       
         function removeSnowflakes() {
             snowflakeElements.forEach(snow => snow.remove());
             snowflakeElements = [];
         }
-        
+       
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             applyTheme(newTheme);
         }
-        
+       
         // Swipe gesture for theme toggle
         let touchStartX = 0;
         const navbar = document.getElementById('navbar');
@@ -913,58 +955,58 @@
                 }
             });
         }
-        
+       
         // Load theme on page load
         function loadTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             applyTheme(savedTheme);
         }
-        
+       
         // Splash screen functions
         function enterSite() {
             const splashContainer = document.getElementById('splashContainer');
             const dashboardContent = document.querySelector('.dashboard-content');
-            
+           
             // Hide splash with animation
             splashContainer.style.animation = 'fadeOut 1s forwards';
-            
+           
             // Show dashboard content
             setTimeout(() => {
                 splashContainer.style.display = 'none';
                 dashboardContent.style.display = 'block';
-                
+               
                 // Remove splash snowflakes
                 removeSnowflakes();
-                
+               
                 // Apply theme to dashboard
                 loadTheme();
             }, 1000);
         }
-        
+       
         // Function to reset the logout timer
         function resetLogoutTimer() {
             clearTimeout(logoutTimer);
             logoutTimer = setTimeout(autoLogout, AUTO_LOGOUT_TIME);
             updateSessionIndicator();
         }
-        
+       
         // Function to update the session indicator
         function updateSessionIndicator() {
             const sessionIndicator = document.getElementById('sessionIndicator');
             const sessionStatus = document.getElementById('sessionStatus');
             const sessionTimer = document.getElementById('sessionTimer');
-           
+          
             if (!sessionIndicator || !sessionStatus || !sessionTimer) return;
-           
+          
             // Calculate remaining time
             const remainingTime = AUTO_LOGOUT_TIME - (Date.now() - (logoutTimer._idleStart || Date.now()));
             const minutes = Math.floor(remainingTime / 60000);
             const seconds = Math.floor((remainingTime % 60000) / 1000);
-           
+          
             // Format time display
             const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             sessionTimer.textContent = `(${timeString})`;
-           
+          
             // Update indicator style based on remaining time
             sessionIndicator.className = 'session-indicator';
             if (remainingTime > 10 * 60 * 1000) { // More than 10 minutes
@@ -978,7 +1020,7 @@
                 sessionStatus.textContent = 'Session About to Expire';
             }
         }
-        
+       
         // Function to automatically logout user
         async function autoLogout() {
             console.log('Auto-logging out due to inactivity');
@@ -989,7 +1031,7 @@
                 window.location.href = 'index.html?message=session_timeout';
             }
         }
-        
+       
         // Function to setup activity listeners
         function setupActivityListeners() {
             const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -997,34 +1039,34 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
-        
+       
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
             // Always show splash screen first and create snowflakes
             createSnowflakes();
-            
+           
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 window.location.replace('index.html?message=session_expired');
                 return;
             }
-            
+           
             console.log("User authenticated");
-            
+           
             // Setup auto-logout functionality
             resetLogoutTimer();
             setupActivityListeners();
-           
+          
             // Start session indicator update interval
             sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
-           
+          
             // Load groups and connections after authentication (they'll be ready when dashboard shows)
             loadSuggestedGroups();
             loadActiveGroups();
             loadConnections();
             checkFollowStatus();
         });
-        
+       
         // Hook up both "Logout" links
         const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
@@ -1042,7 +1084,7 @@
                 window.location.href = 'index.html?message=logout_success';
             });
         });
-        
+       
         // Burger-menu toggler with touch support
         const navToggle = document.getElementById('navToggle');
         const navLinksMobile = document.getElementById('navLinksMobile');
@@ -1060,7 +1102,7 @@
                 e.preventDefault();
             }, { passive: false });
         }
-        
+       
         // Load suggested groups (excluding your own and groups you're already in)
         async function loadSuggestedGroups() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1068,7 +1110,7 @@
                 console.error('No user found');
                 return;
             }
-            
+           
             // Get groups the user is already a member of
             const { data: userGroups, error: userGroupsError } = await supabase
                 .from('group_members')
@@ -1078,9 +1120,9 @@
                 console.error('Error loading user groups:', userGroupsError);
                 return;
             }
-            
+           
             const userGroupIds = userGroups.map(g => g.group_id);
-            
+           
             // Get groups not created by the user and not already joined
             const { data, error } = await supabase
                 .from('groups')
@@ -1088,17 +1130,17 @@
                 .neq('created_by', user.id)
                 .not('id', 'in', `(${userGroupIds.join(',')})`)
                 .limit(5);
-               
+              
             if (error) {
                 console.error('Error loading suggested groups:', error);
                 return;
             }
-           
+          
             const suggestedGroupsDiv = document.getElementById('suggestedGroups');
             if (!suggestedGroupsDiv) return;
-           
+          
             suggestedGroupsDiv.innerHTML = '';
-           
+          
             if (data && data.length > 0) {
                 data.forEach(group => {
                     const div = document.createElement('div');
@@ -1114,7 +1156,7 @@
                     `;
                     suggestedGroupsDiv.appendChild(div);
                 });
-                
+               
                 // Add join handlers
                 document.querySelectorAll('.join-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -1128,16 +1170,16 @@
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No suggested groups found.</p>';
             }
         }
-        
+       
         // Join group function
         async function joinGroup(groupId, button) {
             const { data: { user } } = await supabase.auth.getUser();
-           
+          
             if (!user) {
                 showNotification('Please log in to join groups.');
                 return;
             }
-            
+           
             try {
                 // First check if user is already a member
                 const { data: existingMember, error: checkError } = await supabase
@@ -1146,12 +1188,12 @@
                     .eq('group_id', groupId)
                     .eq('user_id', user.id)
                     .single();
-                    
+                   
                 if (existingMember) {
                     showNotification('You are already a member of this group.');
                     return;
                 }
-                
+               
                 // INSERT with joined_at timestamp and role
                 const { error } = await supabase
                     .from('group_members')
@@ -1161,10 +1203,10 @@
                         joined_at: new Date().toISOString(),
                         role: 'member'
                     });
-                   
+                  
                 if (error) {
                     console.error('Error joining group:', error);
-                   
+                  
                     if (error.code === '23505') {
                         showNotification('You are already a member of this group.');
                     } else {
@@ -1172,11 +1214,11 @@
                     }
                 } else {
                     showNotification('Successfully joined group!');
-                   
+                  
                     // Update both lists to reflect the change
                     loadActiveGroups();
                     loadSuggestedGroups();
-                   
+                  
                     // Disable the join button
                     if (button) {
                         button.textContent = 'Joined';
@@ -1189,7 +1231,7 @@
                 showNotification('An unexpected error occurred while joining the group.');
             }
         }
-        
+       
         // Load active groups for the user
         async function loadActiveGroups() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1197,37 +1239,37 @@
                 console.error('No user found');
                 return;
             }
-            
+           
             const { data, error } = await supabase
                 .from('group_members')
                 .select('group_id')
                 .eq('user_id', user.id);
-               
+              
             if (error) {
                 console.error('Error loading active groups:', error);
                 return;
             }
-           
+          
             const groupListDiv = document.getElementById('groupList');
             if (!groupListDiv) return;
-           
+          
             groupListDiv.innerHTML = '';
-           
+          
             if (data && data.length > 0) {
                 const groupIds = data.map(m => m.group_id);
-               
+              
                 for (const groupId of groupIds) {
                     const { data: groupData, error: groupError } = await supabase
                         .from('groups')
                         .select('id, name, course_code, description')
                         .eq('id', groupId)
                         .single();
-                       
+                      
                     if (groupError) {
                         console.error('Error loading group details:', groupError);
                         continue;
                     }
-                   
+                  
                     const div = document.createElement('div');
                     div.className = 'group-item';
                     div.innerHTML = `
@@ -1245,26 +1287,26 @@
                 groupListDiv.innerHTML = '<p class="text-center text-gray-500">You are not a member of any groups yet.</p>';
             }
         }
-        
+       
         // Create group
         async function createGroup() {
             resetLogoutTimer(); // Reset timer on user action
-           
+          
             const groupName = document.getElementById('groupName').value.trim();
             const groupDescription = document.getElementById('groupDescription').value.trim();
             const course = document.getElementById('groupCourse').value.trim();
             const { data: { user } } = await supabase.auth.getUser();
-           
+          
             if (!user) {
                 showNotification('Please log in to create a group.');
                 return;
             }
-           
+          
             if (!groupName || !course) {
                 showNotification('Please fill in all required fields.');
                 return;
             }
-            
+           
             try {
                 // Create the group
                 const { data, error } = await supabase
@@ -1278,13 +1320,13 @@
                     })
                     .select()
                     .single();
-                    
+                   
                 if (error) {
                     console.error('Error creating group:', error);
                     showNotification('Failed to create group. Please try again.');
                     return;
                 }
-                
+               
                 // Add creator as member with admin role and timestamp
                 const { error: memberError } = await supabase
                     .from('group_members')
@@ -1294,29 +1336,29 @@
                         joined_at: new Date().toISOString(),
                         role: 'admin'
                     });
-                    
+                   
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
                     showNotification('Group created but failed to add you as member.');
                     return;
                 }
-                
+               
                 // Success!
                 showNotification('Group created successfully!');
                 document.getElementById('groupName').value = '';
                 document.getElementById('groupDescription').value = '';
                 document.getElementById('groupCourse').value = '';
-               
+              
                 // Refresh the lists
                 loadActiveGroups();
                 loadSuggestedGroups();
-               
+              
             } catch (error) {
                 console.error('Unexpected error creating group:', error);
                 showNotification('An unexpected error occurred.');
             }
         }
-        
+       
         // Load connections from Supabase profiles
         async function loadConnections() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1324,7 +1366,7 @@
                 console.error('No user found');
                 return;
             }
-            
+           
             try {
                 // Get profiles excluding current user - using profile_photo instead of avatar_url
                 const { data: profiles, error } = await supabase
@@ -1332,17 +1374,17 @@
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .limit(3); // Limit to 3 profiles only
-                   
+                  
                 if (error) {
                     console.error('Supabase error loading connections:', error);
                     throw error;
                 }
-                
+               
                 const connectionList = document.getElementById('connectionList');
                 if (!connectionList) return;
-               
+              
                 connectionList.innerHTML = '';
-                
+               
                 if (profiles && profiles.length > 0) {
                     profiles.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
@@ -1350,7 +1392,7 @@
                         const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
                         const department = profile.department || 'No department';
-                       
+                      
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
@@ -1368,7 +1410,7 @@
                         `;
                         connectionList.appendChild(div);
                     });
-                    
+                   
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1378,7 +1420,7 @@
                             await toggleFollowUser(btn, userId);
                         });
                     });
-                    
+                   
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
@@ -1392,26 +1434,26 @@
                 }
             }
         }
-        
+       
         // Check follow status for all displayed users
         async function checkFollowStatus() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            
+           
             try {
                 // Get all users the current user is following
                 const { data: following, error } = await supabase
                     .from('followers')
                     .select('following_id')
                     .eq('follower_id', user.id);
-                    
+                   
                 if (error) {
                     console.error('Error checking follow status:', error);
                     return;
                 }
-                
+               
                 const followingIds = following.map(f => f.following_id);
-                
+               
                 // Update all follow buttons based on follow status
                 document.querySelectorAll('.follow-btn').forEach(btn => {
                     const userId = btn.dataset.userid;
@@ -1429,43 +1471,43 @@
                 console.error('Error in checkFollowStatus:', error);
             }
         }
-        
+       
         // Search connections from Supabase profiles
         async function searchConnections() {
             resetLogoutTimer(); // Reset timer on user action
-           
+          
             const connectionSearch = document.getElementById('connectionSearch').value.trim();
             const connectionLoading = document.getElementById('connectionLoading');
             const connectionList = document.getElementById('connectionList');
-           
+          
             if (!connectionList) return;
-           
+          
             if (!connectionSearch) {
                 // If search is empty, reload all connections
                 loadConnections();
                 return;
             }
-            
+           
             connectionLoading.style.display = 'block';
-            
+           
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
-                
+               
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%`)
                     .limit(3); // Limit to 3 profiles only
-                   
+                  
                 connectionList.innerHTML = '';
-                
+               
                 if (error) {
                     console.error('Supabase search error:', error);
                     throw error;
                 }
-                
+               
                 if (data && data.length > 0) {
                     data.forEach(profile => {
                         const fullName = profile.full_name || 'Unknown User';
@@ -1473,7 +1515,7 @@
                         const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
                         const department = profile.department || 'No department';
-                       
+                      
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
@@ -1491,7 +1533,7 @@
                         `;
                         connectionList.appendChild(div);
                     });
-                    
+                   
                     // Add follow handlers after elements are created
                     document.querySelectorAll('.follow-btn').forEach(btn => {
                         btn.addEventListener('click', async (e) => {
@@ -1501,7 +1543,7 @@
                             await toggleFollowUser(btn, userId);
                         });
                     });
-                    
+                   
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
@@ -1514,32 +1556,43 @@
                 connectionLoading.style.display = 'none';
             }
         }
-        
-        // Search courses with YouTube API
+       
+        // Search courses with YouTube API - Now only educational content
+        // NOTE: The 403 error is likely due to API key restrictions (e.g., HTTP referrers not allowed for your domain/localhost).
+        // To fix: Go to Google Cloud Console > APIs & Services > Credentials > Edit your API key > Add your domain (e.g., http://localhost:*) to "Application restrictions > HTTP referrers".
+        // If quota exceeded or key invalid, create a new YouTube Data API v3 key.
         async function searchCourses() {
             resetLogoutTimer(); // Reset timer on user action
-           
+          
             const courseSearch = document.getElementById('courseSearch').value.trim();
             const courseLoading = document.getElementById('courseLoading');
             const courseList = document.getElementById('courseList');
-            
+           
             if (!courseSearch) return;
-            
+           
             courseLoading.style.display = 'block';
-            
+           
             try {
-                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(courseSearch + ' tutorial')}&type=video&maxResults=10&key=AIzaSyBYD4r9OeZ4dsM-eXUXvXcHTsb1rBJML8Y`;
+                // Add educational keywords to focus on educational content
+                const educationalKeywords = 'educational tutorial lecture course university college learning';
+                const query = `${courseSearch} ${educationalKeywords}`;
+                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=8&key=AIzaSyAj8ndzUssPrQGo6HqyTN36ZhvHNNQjpus`;
                 const response = await fetch(url);
-                
+               
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
+               
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message || 'YouTube API error');
-               
+              
                 courseList.innerHTML = '';
-                
+               
                 if (data.items && data.items.length > 0) {
-                    data.items.slice(0, 3).forEach(item => {
+                    // Create a video grid for better layout
+                    const videoGrid = document.createElement('div');
+                    videoGrid.className = 'video-grid';
+                   
+                    // Show 5 videos (one more than before)
+                    data.items.slice(0, 5).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'card';
                         div.innerHTML = `
@@ -1550,29 +1603,37 @@
                                 <iframe src="https://www.youtube.com/embed/${item.id.videoId}" title="${item.snippet.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                             </div>
                         `;
-                        courseList.appendChild(div);
+                        videoGrid.appendChild(div);
                     });
+                   
+                    courseList.appendChild(videoGrid);
                 } else {
-                    courseList.innerHTML = '<p class="text-center text-gray-500">No videos found.</p>';
+                    courseList.innerHTML = '<p class="text-center text-gray-500">No educational videos found.</p>';
                 }
             } catch (error) {
-                console.error('Fetch error:', error.message);
-                courseList.innerHTML = `<p class="text-center text-red-500">Error loading videos: ${error.message}</p>`;
+                console.error('YouTube API error:', error.message);
+                // Improved error handling with user-friendly message
+                courseList.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-red-500 mb-2">Error loading videos: ${error.message.includes('403') ? 'API key restricted. Check Google Cloud Console for referrer restrictions.' : error.message}</p>
+                        <p class="text-gray-500 text-sm">Try a different search or contact support.</p>
+                    </div>
+                `;
             } finally {
                 courseLoading.style.display = 'none';
             }
         }
-        
+       
         // Toggle follow/unfollow user function using the followers table
         async function toggleFollowUser(button, userId) {
             resetLogoutTimer(); // Reset timer on user action
-           
+          
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 showNotification('Please log in to follow users.');
                 return;
             }
-            
+           
             try {
                 // Check if already following
                 const { data: existingFollow, error: checkError } = await supabase
@@ -1581,7 +1642,7 @@
                     .eq('follower_id', user.id)
                     .eq('following_id', userId)
                     .single();
-                    
+                   
                 if (existingFollow) {
                     // Unfollow: Delete the follow relationship
                     const { error } = await supabase
@@ -1589,7 +1650,7 @@
                         .delete()
                         .eq('follower_id', user.id)
                         .eq('following_id', userId);
-                       
+                      
                     if (error) {
                         console.error('Error unfollowing user:', error);
                         showNotification('Failed to unfollow user. Please try again.');
@@ -1607,7 +1668,7 @@
                             follower_id: user.id,
                             following_id: userId
                         });
-                       
+                      
                     if (error) {
                         console.error('Error following user:', error);
                         showNotification('Failed to follow user. Please try again.');
@@ -1623,45 +1684,55 @@
                 showNotification('An unexpected error occurred while following the user.');
             }
         }
-        
+       
         // Navigate to user profile (other user's profile)
         function navigateToUserProfile(userId) {
             resetLogoutTimer(); // Reset timer on user action
             window.location.href = `profile.html?userId=${userId}`;
         }
-        
+       
         // Show notification with blur effect
         function showNotification(message, callback) {
             const modal = document.getElementById('notificationModal');
             const body = document.querySelector('.dashboard');
             const modalMessage = document.getElementById('modalMessage');
-           
+          
             if (!modal || !body || !modalMessage) return;
-           
+          
             modalMessage.textContent = message;
             modal.classList.add('show');
             body.classList.add('blur-background');
-            
+           
             setTimeout(() => {
                 modal.classList.remove('show');
                 body.classList.remove('blur-background');
                 if (callback) callback();
             }, 3000);
         }
-        
+       
         // Add event listeners
         document.addEventListener('DOMContentLoaded', () => {
             const searchConnectionsBtn = document.getElementById('searchConnectionsBtn');
             if (searchConnectionsBtn) {
                 searchConnectionsBtn.addEventListener('click', searchConnections);
             }
-            
+           
             const searchCoursesBtn = document.getElementById('searchCoursesBtn');
             if (searchCoursesBtn) {
                 searchCoursesBtn.addEventListener('click', searchCourses);
             }
+           
+            // Add enter key support for search
+            const courseSearchInput = document.getElementById('courseSearch');
+            if (courseSearchInput) {
+                courseSearchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchCourses();
+                    }
+                });
+            }
         });
-        
+       
         // Make functions globally available
         window.createGroup = createGroup;
         window.joinGroup = joinGroup;
