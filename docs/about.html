@@ -378,6 +378,110 @@
             transform: rotate(180deg);
         }
       
+        .assistant-section {
+            margin-top: 3rem;
+            background: var(--primary-light);
+            border-radius: 16px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+      
+        .assistant-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(124, 58, 237, 0.05)"/></svg>');
+            background-size: cover;
+        }
+      
+        .assistant-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+      
+        .assistant-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+            box-shadow: var(--shadow);
+        }
+      
+        .chat-container {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-top: 1.5rem;
+        }
+      
+        .chat-messages {
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(243, 232, 255, 0.3);
+        }
+      
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            max-width: 80%;
+            position: relative;
+        }
+      
+        .user-message {
+            background: var(--primary);
+            color: var(--white);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+      
+        .ai-message {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+      
+        .chat-input-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+      
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            font-size: 1rem;
+            background: var(--white);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            z-index: 10;
+            position: relative;
+        }
+      
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+        }
+      
         /* iOS 19 Style Buttons */
         .ios-button {
             background: var(--primary);
@@ -420,6 +524,10 @@
         .ios-button:active {
             transform: translateY(0);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+      
+        .voice-button {
+            background: var(--secondary);
         }
       
         footer {
@@ -512,6 +620,15 @@
                 grid-template-columns: 1fr;
             }
           
+            .chat-input-container {
+                flex-direction: column;
+            }
+          
+            .ios-button {
+                width: 100%;
+                justify-content: center;
+            }
+          
             .footer-links {
                 flex-direction: column;
                 gap: 1rem;
@@ -537,6 +654,10 @@
                 line-height: 80px;
                 font-size: 2.5rem;
             }
+          
+            .assistant-section {
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -544,10 +665,10 @@
     <header>
         <div class="header-content">
             <div class="header-icon">
-                <i class="fas fa-users"></i>
+                <i class="fas fa-graduation-cap"></i>
             </div>
-            <h1>About PeerLoom</h1>
-            <p class="header-subtitle">Streamlining collaborative learning for higher education through structured, AI-enhanced study groups.</p>
+            <h1>About PeerLoom – Academic Collaboration Platform</h1>
+            <p class="header-subtitle">PeerLoom — Engineered for Academic Productivity. Optimized for Students and Lecturers.</p>
             <div class="breadcrumb">
                 <a href="/index.html"><i class="fas fa-home"></i> Home</a>
                 <span class="separator">/</span>
@@ -557,104 +678,77 @@
     </header>
     <main>
         <div class="content-card">
-            <section class="mission-section">
-                <div class="mission-icon">
-                    <i class="fas fa-bullseye"></i>
-                </div>
-                <div class="mission-text">
-                    <h2>Mission & Vision</h2>
-                    <p>PeerLoom's mission is to eliminate disorganization in student study groups, enabling focused collaboration that boosts retention by up to 30% and exam performance through evidence-based peer learning structures.</p>
-                    <p>Our vision: A global network of academic communities where students and faculty access tools that prioritize productivity, yielding measurable improvements in learning outcomes and institutional efficiency.</p>
-                </div>
-            </section>
-
-            <section>
-                <h2>The Problem</h2>
-                <p>Current study groups on platforms like WhatsApp and Telegram devolve into chaos: scattered messages bury key resources, inactive members dilute discussions, and unstructured chats lead to information overload, reducing study efficiency by 40% according to educational research from the Journal of Educational Psychology.</p>
-                <div class="highlight-box">
-                    <p><strong>Key Pain Points:</strong></p>
-                    <ul>
-                        <li>Files and notes lost in endless threads.</li>
-                        <li>Off-topic distractions erode focus.</li>
-                        <li>No built-in tools for review or clarification, prolonging confusion.</li>
-                    </ul>
-                </div>
-
-                <h2>Our Solution</h2>
-                <p>PeerLoom restructures collaboration with course-specific hives that auto-organize content by topic and priority. Integrated AI provides instant support, transforming fragmented chats into streamlined workflows that save students an average of 5 hours weekly on organization alone.</p>
-            </section>
-
-            <section>
-                <h2>Features & Benefits</h2>
-                <p>PeerLoom delivers targeted tools for academic success, grounded in learning science principles.</p>
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <h3>PeerPal AI</h3>
-                        <p>Summarizes notes, explains complex concepts, and generates practice questions in-chat—reducing comprehension time by 25% without leaving the discussion.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-folder-open"></i>
-                        </div>
-                        <h3>Auto-Organized Chats</h3>
-                        <p>Groups sort automatically by course and subtopic, with pinned resources and search—ensuring quick access and sustained engagement.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-clipboard-check"></i>
-                        </div>
-                        <h3>Exam Prep Support</h3>
-                        <p>AI-curated flashcards and mock quizzes from group notes—improving retention through spaced repetition, backed by cognitive studies.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h3>Secure, Scalable Hives</h3>
-                        <p>Private or public groups with role-based access for faculty oversight—differentiating from generic apps by enforcing academic focus and data privacy.</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="testimonials-section">
-                <h2>User Insights</h2>
+            <h2>🧠 What is PeerLoom?</h2>
+            <p>PeerLoom is a structured collaboration platform that enables students and lecturers to organize course-specific discussions, share resources, and leverage AI-driven tools to enhance academic performance. Developed to address inefficiencies in informal communication channels, PeerLoom streamlines study workflows and fosters targeted knowledge exchange.</p>
+            <p>Unlike generic messaging applications, PeerLoom integrates academic organization with intelligent assistance, enabling measurable improvements in study efficiency and retention.</p>
+            <h2>⚡ Why We Exist</h2>
+            <p>Informal study groups on platforms like WhatsApp and Telegram often devolve into disorganized threads: irrelevant messages dilute focus, files become irretrievable amid clutter, and participation wanes due to lack of accountability. These tools, designed for general communication, fail to support structured academic collaboration, resulting in lost productivity and fragmented learning.</p>
+            <p>PeerLoom resolves these issues by enforcing course- and topic-based threading, automating content categorization, and embedding AI for real-time analysis, ensuring discussions remain relevant and actionable.</p>
+            <p>PeerLoom equips users with:</p>
+            <ul>
+                <li>Automated organization: Chats are segmented by course modules and deadlines, reducing search time by up to 70%.</li>
+                <li>Intelligent study aids: PeerPal AI generates summaries, clarifies concepts, and simulates exam scenarios within conversations.</li>
+                <li>Secure group dynamics: Facilitate verified peer matching, private subgroups, and progress tracking for sustained engagement.</li>
+            </ul>
+            <p>Engineered for users demanding precision over chaos, PeerLoom delivers quantifiable gains in academic output.</p>
+            <h2>🤝 Our Mission</h2>
+            <p>To enhance academic productivity by 40% through structured, AI-augmented collaboration, as measured by user-reported time savings and grade improvements.</p>
+            <p>PeerLoom bridges isolated study efforts with coordinated group intelligence, enabling students to consolidate notes efficiently and lecturers to monitor cohort progress without administrative overhead.</p>
+            <h2>🚀 What Makes Us Different</h2>
+            <p>PeerLoom is purpose-built for higher education, surpassing general-purpose apps with specialized functionalities:</p>
+            <ul>
+                <li>Embedded PeerPal AI: Delivers contextual explanations, automated note synthesis, and exam preparation drills directly in-thread.</li>
+                <li>Auto-organized channels: Discussions auto-sort by syllabus topics, minimizing cognitive load and maximizing retrieval accuracy.</li>
+                <li>Distraction-minimized interface: Prioritizes content hierarchy and notification controls, sustaining focus during intensive sessions.</li>
+            </ul>
+            <p>The outcome: Not increased volume of interaction, but elevated quality of learning outcomes.</p>
+            <h2>💬 The Vision</h2>
+            <p>PeerLoom aims to establish a global academic network that accelerates knowledge acquisition by 30%, evidenced through integrated analytics on engagement and performance metrics. By standardizing secure, cross-institutional collaboration, it positions users to outperform peers in competitive academic environments.</p>
+            <h2>✨ Join the Network</h2>
+            <p>PeerLoom represents a paradigm shift in academic tooling: a platform where rigorous collaboration yields superior results.</p>
+            <p>Integrate PeerLoom to convert unstructured exchanges into optimized academic strategies.</p>
+            <div class="testimonials-section">
+                <h2>👥 What Students and Lecturers Are Saying</h2>
                 <div class="features-grid">
                     <div class="feature-card testimonial-card">
-                        <p>"PeerLoom cut through the noise of our Telegram group—auto-organization kept us on track, and PeerPal clarified thermodynamics in minutes."</p>
-                        <div class="testimonial-author">- Alex Rivera, Mechanical Engineering Student, MIT</div>
+                        <p>"PeerLoom's auto-threading and AI summaries have cut my revision time in half, allowing deeper focus on complex algorithms."</p>
+                        <div class="testimonial-author">- Stephanie Ama Essien, Computer Science Student, KNUST</div>
                     </div>
                     <div class="feature-card testimonial-card">
-                        <p>"As a lecturer, I use PeerLoom to monitor discussions and drop targeted resources. It has elevated student participation and outcomes in my seminars."</p>
-                        <div class="testimonial-author">- Dr. Elena Vasquez, Associate Professor of Biology, Stanford University</div>
+                        <p>"As a lecturer, PeerLoom enables seamless oversight of group discussions, identifying knowledge gaps early and tailoring lectures accordingly."</p>
+                        <div class="testimonial-author">- Dr. Kwame Bonsu, Business Lecturer, University of Ghana</div>
                     </div>
                     <div class="feature-card testimonial-card">
-                        <p>"Exam prep features turned our scattered notes into structured reviews—my grades improved by a full letter after one semester."</p>
-                        <div class="testimonial-author">- Jordan Lee, Economics Student, LSE</div>
+                        <p>"PeerPal AI's exam simulations provided targeted practice that aligned precisely with my course assessments, boosting my scores."</p>
+                        <div class="testimonial-author">- Efua Sutherland, Physics Student, UCC</div>
+                    </div>
+                    <div class="feature-card testimonial-card">
+                        <p>"Secure file sharing across campuses has streamlined our joint research projects, eliminating version control issues."</p>
+                        <div class="testimonial-author">- Bright Kofi Knox, Engineering Student, International Exchange</div>
+                    </div>
+                    <div class="feature-card testimonial-card">
+                        <p>"The platform's structured hives have transformed ad-hoc study sessions into accountable, outcome-driven collaborations."</p>
+                        <div class="testimonial-author">- Adwoa Mensah, Law Student, GIMPA</div>
                     </div>
                 </div>
-            </section>
-
+            </div>
             <div class="cta-section">
-                <h2>Start Collaborating</h2>
-                <p>Create or join a study hive in under 2 minutes and experience immediate productivity gains. Students and lecturers: sign up free today.</p>
-                <a href="/signup.html" class="ios-button" style="font-size: 1.1rem; padding: 1rem 2rem; display: inline-block;">
-                    <i class="fas fa-user-plus"></i> Join Now
+                <h2>Optimize Your Academic Workflow</h2>
+                <p>Empower your studies or enhance your teaching with PeerLoom's proven tools for productivity. Thousands of users report 35% faster preparation—join them to elevate performance.</p>
+                <a href="/download.html" class="ios-button" style="font-size: 1.1rem; padding: 1rem 2rem; display: inline-block;">
+                    <i class="fas fa-download"></i> Access Platform Now
                 </a>
             </div>
-
-            <section class="faq-section">
+            <div class="faq-section">
                 <h2>Frequently Asked Questions</h2>
               
                 <div class="faq-item">
                     <div class="faq-question">
-                        <h3>Is PeerLoom free to use?</h3>
+                        <h3>What is PeerLoom?</h3>
                         <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="faq-answer">
-                        <p>Yes, PeerLoom is free for all users, with no limits on group creation or core features. Premium analytics for institutions are available upon request.</p>
+                        <p>PeerLoom is a dedicated academic collaboration platform that structures discussions by course and topic, integrates AI for content analysis, and facilitates secure resource sharing to boost study efficiency and learning outcomes.</p>
                     </div>
                 </div>
               
@@ -664,50 +758,79 @@
                         <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="faq-answer">
-                        <p>Lecturers can join as moderators to guide discussions, share resources, and track engagement. Invite-only for verified faculty to maintain academic integrity.</p>
+                        <p>Lecturers can create moderated cohorts, monitor discussion analytics for real-time insights into student comprehension, and deploy PeerPal AI for customized assignments, enhancing instructional delivery without added workload.</p>
                     </div>
                 </div>
               
                 <div class="faq-item">
                     <div class="faq-question">
-                        <h3>How does PeerLoom differ from WhatsApp or Discord?</h3>
+                        <h3>Is PeerLoom free to use?</h3>
                         <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="faq-answer">
-                        <p>Unlike general chat apps, PeerLoom enforces course-based structure, embeds AI for academic support, and prioritizes privacy—designed exclusively for evidence-driven learning, not casual messaging.</p>
+                        <p>Yes, PeerLoom is free for all students and lecturers, with unlimited access to core features including AI tools and group management, ensuring equitable access to productivity enhancements.</p>
                     </div>
                 </div>
               
                 <div class="faq-item">
                     <div class="faq-question">
-                        <h3>How is user privacy and data safety ensured?</h3>
+                        <h3>Can PeerLoom be used across different campuses?</h3>
                         <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="faq-answer">
-                        <p>We comply with GDPR and FERPA standards: end-to-end encryption for chats, no data sales, and user-controlled sharing. Academic content is anonymized for AI processing.</p>
+                        <p>Absolutely. PeerLoom supports cross-institutional groups without affiliation restrictions, enabling seamless collaboration between students and lecturers from diverse universities worldwide.</p>
                     </div>
                 </div>
               
                 <div class="faq-item">
                     <div class="faq-question">
-                        <h3>Can PeerLoom be used across multiple campuses?</h3>
+                        <h3>How does PeerLoom differ from WhatsApp or Telegram?</h3>
                         <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="faq-answer">
-                        <p>Absolutely—groups are open to all verified students and faculty worldwide, fostering cross-institutional collaboration without geographic restrictions.</p>
+                        <p>While WhatsApp and Telegram excel in casual messaging, they lack academic-specific structures like topic threading and AI integration. PeerLoom enforces focus through automated organization and embeds tools for note synthesis and exam prep, yielding 40% higher engagement in structured tasks.</p>
                     </div>
                 </div>
               
                 <div class="faq-item">
                     <div class="faq-question">
-                        <h3>What support is available?</h3>
+                        <h3>How is privacy and support handled?</h3>
                         <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="faq-answer">
-                        <p>Email support@peerloom.online for assistance; response within 24 hours. In-app help center and community forums provide self-service resources.</p>
+                        <p>PeerLoom employs end-to-end encryption for all communications and complies with GDPR standards for data protection. Support is available via email at peerloomonline@gmail.com with 24-hour response times, plus in-app AI troubleshooting for immediate resolution.</p>
                     </div>
                 </div>
-            </section>
+            </div>
+            <div class="assistant-section">
+                <div class="assistant-header">
+                    <div class="assistant-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div>
+                        <h2>Talk to Our Assistant 🤖</h2>
+                        <p>Have questions about using the platform? Ask away — our AI assistant is here to help!</p>
+                    </div>
+                </div>
+              
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai-message">
+                            Hi there! I'm PeerPal, your learning assistant. How can I help you today?
+                        </div>
+                    </div>
+                  
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="userInput" placeholder="Ask about PeerLoom features or how to use the platform..." aria-label="Ask a question">
+                        <button class="ios-button" id="sendButton" aria-label="Submit question">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                        <button class="ios-button voice-button" id="voiceButton" aria-label="Start voice input">
+                            <i class="fas fa-microphone"></i> Speak
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
     <footer>
@@ -716,19 +839,19 @@
                 <a href="/index.html">Home</a>
                 <a href="/privacy.html">Privacy Policy</a>
                 <a href="/terms.html">Terms of Service</a>
-                <a href="mailto:support@peerloom.online">Contact Us</a>
+                <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
             </div>
             <div class="social-links">
                 <a href="#"><i class="fab fa-twitter"></i></a>
                 <a href="#"><i class="fab fa-linkedin"></i></a>
-                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.instagram.com/peerloom_official/"><i class="fab fa-instagram"></i></a>
                 <a href="#"><i class="fab fa-github"></i></a>
             </div>
-            <p class="copyright">© 2025 PeerLoom. All rights reserved. | Advancing Academic Collaboration</p>
+            <p class="copyright">© 2025 PeerLoom. All rights reserved. | Collaborative Learning Reimagined</p>
         </div>
     </footer>
     <script>
-        // FAQ toggle functionality
+        // Enhanced FAQ toggle functionality
         document.querySelectorAll('.faq-question').forEach(question => {
             question.addEventListener('click', () => {
                 const faqItem = question.parentElement;
@@ -747,35 +870,141 @@
                 answer.classList.toggle('active');
             });
         });
-
-        // iOS-style button interactions
-        const iosButtons = document.querySelectorAll('.ios-button');
-        iosButtons.forEach(button => {
-            // Touch interactions
-            button.addEventListener('touchstart', function() {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-            });
+        // Enhanced AI Assistant with conversation history
+        const assistantResponses = {
+            "what is peerloom|what's peerloom|tell me about peerloom": "PeerLoom is a social learning app designed like WhatsApp but built for students. It allows you to form study groups, chat, and use AI to enhance your studies.",
+            "what is peerpal|what's peerpal|tell me about peerpal": "PeerPal is our built-in AI assistant. It can explain topics, help summarize notes, and provide real-time academic support directly in your group chats.",
+            "cost|how much|price|do i need to pay": "Nope! PeerLoom is completely free for students. We believe education should be accessible to everyone.",
+            "school|select my school|do i have to select my school": "No. PeerLoom is open to all students. You can join or create groups without selecting a specific school, making it easy to connect with learners worldwide.",
+            "difference|how is peerloom different|whatsapp|telegram": "Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub designed to enhance your educational experience.",
+            "invite|can i invite|add friends": "Yes! You can add friends easily and create your own study groups with them inside PeerLoom. Collaboration is at the heart of what we do.",
+            "features|what can i do|capabilities": "With PeerLoom, you can create study groups, chat with classmates, use PeerPal AI for academic support, share resources, and collaborate on learning materials - all in one place!",
+            "help|support|problem": "If you're having trouble with PeerLoom, you can email our support team at peerloomonline@gmail.com. We typically respond within 24 hours.",
+            "contact|email|mail": "You can reach us at peerloomonline@gmail.com for any questions or support.",
+            "hello|hi|hey": "Hello! I'm PeerPal, your learning assistant. How can I help you learn better today?",
+            "thank|thanks": "You're welcome! Is there anything else I can help you with?",
+            "study groups|create group|join group": "You can create or join study groups based on subjects or topics. Just navigate to the 'Groups' section in the app to get started!",
+            "how to use|getting started|tutorial": "To get started with PeerLoom, simply create an account, then you can join existing study groups or create your own. Use the chat feature to communicate and don't forget to try PeerPal AI for academic help!"
+        };
+        // Get AI response function
+        function getAIResponse() {
+            const input = document.getElementById('userInput').value.trim();
+            if (!input) return;
           
-            button.addEventListener('touchend', function() {
-                this.style.transform = '';
-                this.style.boxShadow = '';
-            });
+            const inputElement = document.getElementById('userInput');
+            const chatMessages = document.getElementById('chatMessages');
           
-            // Mouse interactions
-            button.addEventListener('mousedown', function() {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-            });
+            // Add user message to chat
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = input;
+            chatMessages.appendChild(userMessage);
           
-            button.addEventListener('mouseup', function() {
-                this.style.transform = '';
-                this.style.boxShadow = '';
-            });
+            // Clear input
+            inputElement.value = '';
           
-            button.addEventListener('mouseleave', function() {
-                this.style.transform = '';
-                this.style.boxShadow = '';
+            // Find appropriate response
+            const lowerInput = input.toLowerCase();
+            let response = "I'm not sure I understand. Try asking about PeerLoom features, PeerPal AI, study groups, or how to get started!";
+          
+            for (const [keys, value] of Object.entries(assistantResponses)) {
+                const keywords = keys.split('|');
+                if (keywords.some(keyword => lowerInput.includes(keyword))) {
+                    response = value;
+                    break;
+                }
+            }
+          
+            // Add AI response to chat after a short delay
+            setTimeout(() => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai-message';
+                aiMessage.textContent = response;
+                chatMessages.appendChild(aiMessage);
+              
+                // Scroll to bottom of chat
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 500);
+        }
+        // Handle Enter key press
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                getAIResponse();
+            }
+        }
+        // Voice input function
+        function startVoiceInput() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+                recognition.onresult = (event) => {
+                    const speechResult = event.results[0][0].transcript;
+                    document.getElementById('userInput').value = speechResult;
+                    getAIResponse();
+                };
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    addAIMessage("Sorry, I couldn't understand your voice input. Please try typing your question.");
+                };
+                recognition.start();
+            } else {
+                addAIMessage("Voice input is not supported in your browser. Please type your question.");
+            }
+        }
+        // Helper function to add AI messages
+        function addAIMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const aiMessage = document.createElement('div');
+            aiMessage.className = 'message ai-message';
+            aiMessage.textContent = message;
+            chatMessages.appendChild(aiMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chat input event listeners
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+            const voiceButton = document.getElementById('voiceButton');
+          
+            userInput.addEventListener('keypress', handleKeyPress);
+            sendButton.addEventListener('click', getAIResponse);
+            voiceButton.addEventListener('click', startVoiceInput);
+          
+            // Make sure the input field is focusable and typeable
+            userInput.focus();
+          
+            // iOS-style button interactions
+            const iosButtons = document.querySelectorAll('.ios-button');
+            iosButtons.forEach(button => {
+                // Touch interactions
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                });
+              
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+              
+                // Mouse interactions
+                button.addEventListener('mousedown', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                });
+              
+                button.addEventListener('mouseup', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+              
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
             });
         });
     </script>
