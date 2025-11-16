@@ -1395,6 +1395,7 @@
         
         // Import supabase client
         import { supabase } from './js/supabaseClient.js';
+        
         // App state
         let currentTheme = 'dark';
         let currentVideoId = null;
@@ -1490,14 +1491,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
         });
-        async function initializePage() {
-            await checkLoginStatus();
-            await fetchPostsFromDatabase();
-            setupEventListeners();
-
-            setupPullToRefresh();
-        }
-
         // Pull to refresh functionality
         function setupPullToRefresh() {
             const feedContainer = document.getElementById('feed');
@@ -1577,19 +1570,87 @@
             handleSharedLink(); // Handle shared link scrolling
 
         }
-        // Handle shared link
-        function handleSharedLink() {
+        // Handle shared link - FIXED VERSION
+        async function handleSharedLink() {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('videoId')) {
-                const videoId = urlParams.get('videoId');
-                setTimeout(() => {
-                    const targetVideo = document.getElementById(`video-${videoId}`);
-                    if (targetVideo) {
-                        targetVideo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const sharedVideoId = urlParams.get('videoId');
+            
+            if (!sharedVideoId) return;
+
+            try {
+                // Fetch the specific shared video
+                const { data: sharedVideoData, error: videoError } = await supabase
+                    .from('posts')
+                    .select(`*, likes(user_id), profiles(username)`)
+                    .eq('id', sharedVideoId)
+                    .single();
+
+                if (videoError) {
+                    console.error('Error fetching shared video:', videoError);
+                    return;
+                }
+
+                if (sharedVideoData) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    
+                    // Mark if this video is liked by current user
+                    const sharedVideo = {
+                        ...sharedVideoData,
+                        is_liked: user ? sharedVideoData.likes.some(like => like.user_id === user.id) : false
+                    };
+
+                    // Fetch other posts (excluding the shared one)
+                    const { data: otherPosts, error: postsError } = await supabase
+                        .from('posts')
+                        .select(`*, likes(user_id), profiles(username)`)
+                        .neq('id', sharedVideoId)
+                        .order('created_at', { ascending: false });
+
+                    if (postsError) {
+                        console.error('Error fetching posts:', postsError);
+                        // Still show the shared video even if others fail to load
+                        initializeFeed([sharedVideo]);
+                        return;
                     }
-                }, 500); // Small delay to ensure render
+
+                    // Combine: shared video first, then other posts
+                    const allPosts = otherPosts ? [sharedVideo, ...otherPosts.map(post => ({
+                        ...post,
+                        is_liked: user ? post.likes.some(like => like.user_id === user.id) : false
+                    }))] : [sharedVideo];
+
+                    initializeFeed(allPosts);
+
+                    // Scroll to shared video after render
+                    setTimeout(() => {
+                        const videoElement = document.getElementById(`video-${sharedVideoId}`);
+                        if (videoElement) {
+                            videoElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 300);
+                }
+            } catch (error) {
+                console.error('handleSharedLink error:', error);
             }
         }
+
+        async function initializePage() {
+            await checkLoginStatus();
+            
+            // Check if there's a shared video before fetching all posts
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('videoId')) {
+                // Let handleSharedLink load everything
+                await handleSharedLink();
+            } else {
+                // Normal feed load
+                await fetchPostsFromDatabase();
+            }
+            
+            setupEventListeners();
+            setupPullToRefresh();
+        }
+
         // Check login status
         async function checkLoginStatus() {
             try {
