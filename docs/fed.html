@@ -196,22 +196,15 @@
             transform: scale(1);
             opacity: 1;
         }
-        .bottom-controls-bar {
-            position: absolute;
-            bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0));
-            left: var(--spacing-md);
-            right: var(--spacing-md);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            z-index: 11;
-        }
         .progress-bar-container {
-            flex: 1; /* Take up remaining space */
+            position: absolute;
+            bottom: env(safe-area-inset-bottom, 0); /* Position at the very bottom, respecting safe areas */
+            left: 0;
+            right: 0;
             height: 20px;
             cursor: pointer;
-            /* z-index and positioning are now handled by parent */
-            padding-bottom: 5px;
+            z-index: 11;
+            padding: 0 var(--spacing-md) 5px; /* Add padding to the sides */
         }
         .progress-bar {
             height: 4px;
@@ -224,50 +217,17 @@
             border-radius: 2px;
             width: 0%;
         }
-        /* Thumbnail Preview on Progress Bar Hover */
-        .progress-bar-container:hover .thumbnail-preview {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0) translateX(-50%);
-        }
-        .thumbnail-preview {
-            position: absolute;
-            bottom: 100%; /* Position it right above the progress bar container */
-            left: 50%; /* Will be updated by JS */
-            transform: translateY(10px) translateX(-50%);
-            width: 160px; /* 16:9 aspect ratio */
-            height: 90px;
-            background: #000;
-            border: 2px solid var(--glass-border);
-            border-radius: 8px;
-            box-shadow: var(--glass-shadow);
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none; /* Prevents the preview from interfering with mouse events */
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            display: flex;
-            flex-direction: column;
-        }
-        .thumbnail-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 6px 6px 0 0;
-        }
-        .thumbnail-time {
-            position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;
-        }
         /* Top Bar */
         .top-bar {
-            position: fixed; /* Changed from absolute */
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: var(--spacing-md) var(--spacing-md) 0; /* Adjusted padding */
-            z-index: 20; /* Increased z-index */
+            padding: var(--spacing-md);
+            z-index: 10;
             background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
         }
         .top-bar-left {
@@ -324,27 +284,6 @@
             height: 2px;
             background: var(--primary-color);
         }
-        /* New styles for the tab loading spinner */
-        .feed-tab {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .tab-spinner {
-            display: none; /* Hidden by default */
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: var(--text-color);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        .feed-tab.loading .tab-spinner {
-            display: block; /* Show when loading */
-        }
-        .feed-tab.loading .feed-tab-text {
-            opacity: 0.6; /* Dim the text while loading */
-        }
         .search-icon {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
@@ -362,27 +301,6 @@
         .search-icon.active {
             box-shadow: 0 0 15px var(--primary-color);
             border-color: var(--primary-color);
-        }
-        .profile-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 50%;
-            cursor: pointer;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            transition: transform 0.2s ease;
-        }
-        .profile-icon:hover {
-            transform: scale(1.1);
-        }
-        .profile-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
         /* Add Post Button */
         .add-post-btn {
@@ -409,7 +327,7 @@
         .actions-sidebar {
             position: absolute;
             right: var(--spacing-sm);
-            bottom: calc(4.5rem + env(safe-area-inset-bottom, 0)); /* Moved up to accommodate progress bar */
+            bottom: calc(3.5rem + env(safe-area-inset-bottom, 0)); /* Moved up further */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -479,7 +397,7 @@
         /* Bottom Info */
         .video-info {
             position: absolute;
-            bottom: calc(3.5rem + env(safe-area-inset-bottom, 0)); /* Moved up to accommodate progress bar */
+            bottom: calc(1.5rem + env(safe-area-inset-bottom, 0)); /* Moved up */
             left: var(--spacing-md);
             right: 80px; /* Add space on the right to avoid overlap with actions */
             z-index: 10;
@@ -504,10 +422,13 @@
         }
         /* Mute Toggle */
         .volume-controls {
+            position: absolute;
+            bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0)); /* Adjust for safe area */
+            right: var(--spacing-md); /* Keep it on the right */
             display: flex;
             align-items: center;
             gap: var(--spacing-sm);
-            /* z-index and positioning are now handled by parent */
+            z-index: 10;
         }
         .mute-toggle {
             background: var(--glass-bg);
@@ -527,16 +448,15 @@
             overflow: hidden;
             transition: width 0.3s ease;
         }
-        .volume-controls:hover .volume-slider-container,
-        .volume-controls.slider-visible .volume-slider-container {
-            width: 80px; /* Expand when class is added */
+        .volume-controls:hover .volume-slider-container {
+            width: 80px; /* Expand on hover */
         }
         .volume-slider {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
             height: 4px;
-            background: linear-gradient(to right, var(--primary-color) var(--volume-progress, 100%), rgba(255, 255, 255, 0.3) var(--volume-progress, 100%));
+            background:linear-gradient(to right, var( --primary) var( --volume), transparent var( --volume));
             border-radius: 2px;
             outline: none;
             cursor: pointer;
@@ -759,16 +679,12 @@
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             z-index: 200;
-            display: flex; /* Changed from none to flex */
+            display: none;
             flex-direction: column;
             padding: var(--spacing-md);
-            opacity: 0; /* Hide by default */
-            visibility: hidden; /* Hide from screen readers and interactions */
-            transition: opacity 0.3s ease, visibility 0.3s ease; /* Add smooth transition */
         }
         .search-overlay.active {
-            opacity: 1; /* Show when active */
-            visibility: visible; /* Make it interactable */
+            display: flex;
         }
         .search-header {
             display: flex;
@@ -793,86 +709,6 @@
             color: var(--text-color);
             font-size: 1.5rem;
             cursor: pointer;
-        }
-        .search-options {
-            display: flex;
-            gap: var(--spacing-md);
-            padding-bottom: var(--spacing-sm);
-            border-bottom: 1px solid var(--glass-border);
-            margin-bottom: var(--spacing-sm);
-        }
-        .sort-option {
-            cursor: pointer;
-            padding: var(--spacing-sm) 0;
-            color: rgba(255, 255, 255, 0.6);
-            font-weight: bold;
-            position: relative;
-            transition: color 0.2s ease;
-        }
-        .sort-option.active, .sort-option:hover {
-            color: var(--text-color);
-        }
-        .sort-option.active::after {
-            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--primary-color);
-        }
-        .search-results {
-            flex: 1;
-            overflow-y: auto;
-            padding-top: var(--spacing-md);
-        }
-        .search-result-item {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            padding: var(--spacing-sm);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.2s ease;
-            text-decoration: none;
-            color: inherit;
-        }
-        .search-result-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        .search-result-thumbnail {
-            width: 60px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #333;
-        }
-        .search-result-info .title {
-            font-weight: bold;
-        }
-        .search-result-info .username {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        /* Trending Hashtags */
-        .trending-hashtags-container {
-            padding: var(--spacing-md) 0;
-        }
-        .trending-title {
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: var(--spacing-md);
-            padding-left: var(--spacing-sm);
-        }
-        .hashtags-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-sm);
-        }
-        .hashtag-pill {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: var(--spacing-sm) var(--spacing-md);
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-        .hashtag-pill:hover {
-            background: rgba(255, 255, 255, 0.15);
         }
         /* Upload Modal - Redesigned */
         .upload-modal {
@@ -1413,7 +1249,11 @@
           
             .actions-sidebar {
                 right: var(--spacing-sm);
-                bottom: calc(4.5rem + env(safe-area-inset-bottom, 0)); /* Consistent positioning, moved up */
+                bottom: calc(3.5rem + env(safe-area-inset-bottom, 0)); /* Consistent positioning, moved up */
+            }
+            .progress-bar-container {
+                left: var(--spacing-sm);
+                right: var(--spacing-sm);
             }
           
             .action-icon {
@@ -1424,6 +1264,9 @@
             .video-info {
                 /* The bottom property now handles safe area, so this can be simplified */
                 padding-bottom: var(--spacing-sm);
+            }
+            .volume-controls {
+                bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
             }
             .comment-drawer {
                 height: 70vh; /* Slightly taller on mobile */
@@ -1496,52 +1339,6 @@
                 transform: translateY(-15px);
             }
         }
-
-        /* Skeleton Loader Styles */
-        .skeleton-container {
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .skeleton-video, .skeleton-avatar, .skeleton-line {
-            position: relative;
-            overflow: hidden;
-            background-color: var(--glass-bg);
-        }
-        .skeleton-video::after, .skeleton-avatar::after, .skeleton-line::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -150%;
-            width: 150%;
-            height: 100%;
-            background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-            animation: shimmer 1.5s infinite;
-        }
-        .skeleton-avatar { border-radius: 50%; }
-        .skeleton-line { border-radius: 4px; }
-        .skeleton-video { border-radius: 12px; }
-
-        @keyframes shimmer {
-            100% {
-                left: 150%;
-            }
-        }
-
-        /* Skeleton Loader for Comments */
-        .skeleton-comment {
-            display: flex;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-sm) 0;
-        }
-        .skeleton-comment-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
         @media (max-width: 480px) {
             .comment-drawer {
                 height: 80vh;
@@ -1579,10 +1376,6 @@
     </style>
 </head>
 <body>
-    <!-- Static Top Bar Container -->
-    <div class="top-bar" id="staticTopBar">
-        <!-- Top bar content will be rendered here by JavaScript -->
-    </div>
     <div class="feed-container" id="feed">
         <!-- Pull to Refresh Indicator -->
         <div class="pull-to-refresh" id="pullToRefresh">
@@ -1608,14 +1401,7 @@
             <input type="text" class="search-input" id="searchInput" placeholder="Search...">
             <button class="close-search" id="closeSearch">×</button>
         </div>
-        <div class="search-options" id="searchSortOptions">
-            <span class="sort-option active" data-sort="relevance">Relevance</span>
-            <span class="sort-option" data-sort="likes">Most Liked</span>
-            <span class="sort-option" data-sort="recent">Most Recent</span>
-        </div>
-        <div class="search-results" id="searchResults">
-            <!-- Search results will be populated here -->
-        </div>
+        <!-- Search results would go here -->
     </div>
     <!-- Upload Modal - Redesigned -->
     <div class="upload-modal" id="uploadModal">
@@ -1723,8 +1509,6 @@
         let isRecording = false;
         let isCommentDrawerOpen = false; // Track if comment drawer is open
 
-        let trendingHashtagsSubscription = null; // To hold our realtime subscription
-        let currentSearchSort = 'relevance'; // Add state for search sorting
         let touchStartY = 0;
         let isRefreshing = false;
         const pullThreshold = 70; // Pixels to pull before refresh triggers
@@ -1802,30 +1586,6 @@
             return { valid: true };
         }
         // Initialize the app
-        // Function to show skeleton loader
-        function showSkeletonLoader() {
-            const feed = document.getElementById('feed');
-            feed.innerHTML = `
-            <div class="video-container skeleton-container">
-                <!-- Full-screen shimmering background -->
-                <div class="skeleton-video" style="width: 100%; height: 100%;"></div>
-
-                <!-- Info Area (positioned absolutely) -->
-                <div style="position: absolute; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0)); left: var(--spacing-md); right: 80px; z-index: 1;">
-                    <div class="skeleton-line" style="width: 150px; height: 1.1rem; margin-bottom: 0.5rem;"></div>
-                    <div class="skeleton-line" style="width: 80%; height: 1rem; margin-bottom: 0.25rem;"></div>
-                    <div class="skeleton-line" style="width: 60%; height: 1rem;"></div>
-                </div>
-
-                <!-- Sidebar Actions (positioned absolutely) -->
-                <div style="position: absolute; right: var(--spacing-sm); bottom: calc(3.5rem + env(safe-area-inset-bottom, 0)); display: flex; flex-direction: column; gap: 1.25rem; z-index: 1;">
-                    <div class="skeleton-avatar" style="width: 2.8rem; height: 2.8rem;"></div>
-                    <div class="skeleton-avatar" style="width: 2.8rem; height: 2.8rem;"></div>
-                    <div class="skeleton-avatar" style="width: 2.8rem; height: 2.8rem;"></div>
-                </div>
-            </div>
-            `;
-        }
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
         });
@@ -2203,10 +1963,6 @@
                         <video class="video-player" loop muted playsinline preload="metadata">
                             <source src="${video.media_url}" type="video/mp4">
                         </video>
-                        <!-- Hidden video for smooth thumbnail scrubbing -->
-                        <video class="video-player" id="scrubbingPlayer-${video.id}" muted playsinline preload="metadata" style="display: none;">
-                            <source src="${video.media_url}" type="video/mp4">
-                        </video>
                         <div class="loading-overlay" id="loading-${video.id}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 6;">
                             <div class="bouncing-loader">
                                 <div style="animation-delay: 0s;"></div>
@@ -2222,7 +1978,18 @@
                         <a href="profile.html?userId=${video.user_id}" class="username" style="text-decoration: none; color: inherit;">@${video.username || 'user'}</a>
                         <div class="caption">${video.content || ''}</div>
                         <div class="hashtags">${video.hashtags || ''}</div>
-                    </div><div class="actions-sidebar">
+                    </div>
+                    <div class="top-bar">
+                        <div class="top-bar-left">
+                            <div class="back-button" onclick="goToDashboard()">
+                                <i class="fas fa-arrow-left"></i>
+                            </div>
+                            ${isLoggedIn ? `
+                            <div class="add-post-btn" onclick="openUploadModal()">
+                                +
+                            </div>
+                            ` : ''}
+                        </div><div class="feed-switcher"><span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you">For You</span>${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved">Saved</span>` : ''}</div>${isLoggedIn ? `<div class="search-icon" id="searchIcon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>` : ''}</div><div class="actions-sidebar">
                         <div class="action-item" onclick="handleGuestAction(() => toggleLike(this, '${video.id}'))">
                             <div class="action-icon" id="likeIcon-${video.id}" style="color: ${video.is_liked ? 'var(--primary-color)' : 'currentColor'};">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="${video.is_liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -2261,31 +2028,32 @@
                         ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
                         ` : ''}
                     </div>
-                    <div class="bottom-controls-bar">
-                        <div class="progress-bar-container" id="progressBarContainer-${video.id}">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progressFill-${video.id}"></div>
-                            </div>
-                            <div class="thumbnail-preview" id="thumbnailPreview-${video.id}">
-                                <canvas class="thumbnail-image" id="thumbnailCanvas-${video.id}"></canvas>
-                                <span class="thumbnail-time" id="thumbnailTime-${video.id}">0:00</span>
-                            </div>
+                    <div class="progress-bar-container" id="progressBarContainer-${video.id}">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill-${video.id}"></div>
                         </div>
-                        <div class="volume-controls">
-                            <div class="volume-slider-container">
-                                <input type="range" min="0" max="1" step="0.01" value="1" class="volume-slider" id="volumeSlider-${video.id}">
-                            </div>
-                            <div class="mute-toggle" onclick="toggleMute(this, '${video.id}')">
-                                <svg class="volume-icon-unmuted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
-                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                </svg>
-                                <svg class="volume-icon-muted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                    <line x1="23" y1="9" x2="17" y2="15"></line>
-                                    <line x1="17" y1="9" x2="23" y2="15"></line>
-                                </svg>
-                            </div>
+                    </div>
+                        ${!isLoggedIn ? `
+                        <div class="peerlom-watermark">
+                            <span>🎓</span>
+                            <span>Created on Skrolz</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="volume-controls">
+                        <div class="volume-slider-container">
+                            <input type="range" min="0" max="1" step="0.01" value="1" class="volume-slider" id="volumeSlider-${video.id}">
+                        </div>
+                        <div class="mute-toggle" onclick="toggleMute(this, '${video.id}')">
+                            <svg class="volume-icon-unmuted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            </svg>
+                            <svg class="volume-icon-muted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <line x1="23" y1="9" x2="17" y2="15"></line>
+                                <line x1="17" y1="9" x2="23" y2="15"></line>
+                            </svg>
                         </div>
                     </div>
                     <div class="comment-drawer" id="commentDrawer-${video.id}">
@@ -2368,70 +2136,10 @@
                     videoPlayer.currentTime = (clickX / width) * duration;
                 });
 
-                // Thumbnail preview on hover
-                const thumbnailPreview = videoContainer.querySelector(`#thumbnailPreview-${video.id}`);
-                const thumbnailCanvas = videoContainer.querySelector(`#thumbnailCanvas-${video.id}`);
-                const thumbnailTime = videoContainer.querySelector(`#thumbnailTime-${video.id}`);
-                const scrubbingPlayer = videoContainer.querySelector(`#scrubbingPlayer-${video.id}`);
-                const ctx = thumbnailCanvas.getContext('2d');
-                let isScrubbing = false;
-                let throttleTimer;
-
-                progressBarContainer.addEventListener('mousemove', (e) => {
-                    if (isNaN(videoPlayer.duration)) return;
-
-                    const rect = progressBarContainer.getBoundingClientRect();
-                    const hoverX = e.clientX - rect.left;
-                    const progressBarWidth = progressBarContainer.clientWidth;
-                    const hoverTime = (hoverX / progressBarWidth) * videoPlayer.duration;
-
-                    if (hoverTime < 0 || hoverTime > videoPlayer.duration) return;
-
-                    // Position the preview box
-                    const previewLeft = Math.max(80, Math.min(hoverX, progressBarWidth - 80)); // Keep preview within bounds
-                    thumbnailPreview.style.left = `${previewLeft}px`;
-
-                    // Update the time display
-                    const minutes = Math.floor(hoverTime / 60);
-                    const seconds = Math.floor(hoverTime % 60).toString().padStart(2, '0');
-                    thumbnailTime.textContent = `${minutes}:${seconds}`;
-
-                    // Throttle the expensive video seeking
-                    if (!throttleTimer) {
-                        throttleTimer = setTimeout(() => {
-                            scrubbingPlayer.currentTime = hoverTime; // Use the hidden player
-                            throttleTimer = null;
-                        }, 100); // Seek at most every 100ms
-                    }
-                });
-
-                progressBarContainer.addEventListener('mouseenter', () => {
-                    isScrubbing = true;
-                });
-
-                progressBarContainer.addEventListener('mouseleave', () => {
-                    isScrubbing = false;
-                    // Clear any pending seek
-                    if (throttleTimer) {
-                        clearTimeout(throttleTimer);
-                        throttleTimer = null;
-                    }
-                });
-
-                // Draw the frame to the canvas when the video seeks
-                scrubbingPlayer.addEventListener('seeked', () => { // Listen to the hidden player
-                    // Only draw if the user is actively scrubbing to avoid unnecessary draws
-                    if (isScrubbing) {
-                        ctx.drawImage(scrubbingPlayer, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
-                    }
-                });
-
                 // Add volume slider event listener
                 const volumeSlider = videoContainer.querySelector(`#volumeSlider-${video.id}`);
                 volumeSlider.addEventListener('input', (e) => {
                     videoPlayer.volume = e.target.value;
-                    const progress = e.target.value * 100;
-                    volumeSlider.style.setProperty('--volume-progress', `${progress}%`);
                 });
 
                 // FIX: Add touch event prevention for comment input and drawer
@@ -2469,7 +2177,6 @@
           
             // Set up intersection observer after videos are loaded
             setupIntersectionObserver();
-            renderTopBar(); // Render the static top bar
 
             // Re-attach event listeners for newly created elements like feed tabs
             setupEventListeners();
@@ -2484,49 +2191,45 @@
             const liquidPath = document.getElementById('liquidPath');
             const liquidContainer = document.getElementById('liquidContainer');
 
-            // Add checks to ensure elements exist before manipulating them
-            if (pullToRefresh) pullToRefresh.classList.remove('ready');
-            if (liquidPath) liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
-            if (liquidContainer) {
-                liquidContainer.style.transform = 'translateY(0)';
-                liquidContainer.style.transition = 'transform 0.2s ease';
-            }
-            if (pullToRefreshIcon) pullToRefreshIcon.style.display = 'block';
-            if (pullToRefreshSpinner) pullToRefreshSpinner.style.display = 'none';
+            pullToRefresh.classList.remove('ready');
+            liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
+            liquidContainer.style.transform = 'translateY(0)';
+            liquidContainer.style.transition = 'transform 0.2s ease';
+
+            pullToRefreshIcon.style.display = 'block';
+            pullToRefreshSpinner.style.display = 'none';
 
             touchStartY = 0;
             isRefreshing = false;
+            // readyToRefresh is reset in touchend
         }
-
 
         // Renders just the top bar, useful for empty feed states
         function renderTopBar() {
-            const topBarContainer = document.getElementById('staticTopBar');
-            if (!topBarContainer) return;
-
+            const feed = document.getElementById('feed');
             const topBarHTML = `
-                <div class="top-bar-left">
-                    <div class="back-button" onclick="goToDashboard()">
-                        <i class="fas fa-arrow-left"></i>
+                <div class="top-bar">
+                    <div class="top-bar-left">
+                        <div class="back-button" onclick="goToDashboard()">
+                            <i class="fas fa-arrow-left"></i>
+                        </div>
+                        ${isLoggedIn ? `<div class="add-post-btn" onclick="openUploadModal()">+</div>` : ''}
                     </div>
-                    ${isLoggedIn ? `<a href="profile.html" class="profile-icon"><img src="https://i.pravatar.cc/50" alt="Profile"></a>` : ''}
-                </div>
-                <div class="feed-switcher">
-                    <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you"><span class="feed-tab-text">For You</span><div class="tab-spinner"></div></span>
-                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved"><span class="feed-tab-text">Saved</span><div class="tab-spinner"></div></span>` : ''}
-                </div>
-                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <div class="feed-switcher">
+                        <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you">For You</span>
+                        ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved">Saved</span>` : ''}
+                    </div>
                     ${isLoggedIn ? `<div class="search-icon" id="searchIcon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>` : ''}
-                    ${isLoggedIn ? `<div class="add-post-btn" onclick="openUploadModal()">+</div>` : ''}
                 </div>
             `;
-            topBarContainer.innerHTML = topBarHTML;
+            feed.insertAdjacentHTML('afterbegin', topBarHTML);
         }
+
 
         // Set up event listeners
         function setupEventListeners() {
             // Use event delegation for feed tabs since they are re-rendered
-            const feedContainer = document.getElementById('staticTopBar');
+            const feedContainer = document.getElementById('feed');
             // Remove any old listener to prevent duplicates
             feedContainer.removeEventListener('click', handleFeedTabClick); 
             feedContainer.addEventListener('click', handleFeedTabClick);
@@ -2540,28 +2243,19 @@
                 if (feedType === currentFeedType || clickedTab.classList.contains('loading')) return;
 
                 clickedTab.classList.add('loading');
-                // This logic will now correctly handle clicks on newly created tabs
-                showSkeletonLoader(); // Show skeleton loader immediately 
                 currentFeedType = feedType;
-                localStorage.setItem('lastFeedType', feedType); // Save preference
+                localStorage.setItem('lastFeedType', feedType);
                 await refreshCurrentFeed();
-                renderTopBar(); // Re-render top bar to update active tab
             }
 
             // --- The rest of your event listeners ---
-          
+
             // Search icon
             const searchIcon = document.getElementById('searchIcon');
             if (searchIcon) {
                 searchIcon.addEventListener('click', function() {
-                    const searchOverlay = document.getElementById('searchOverlay');
-                    const searchResultsContainer = document.getElementById('searchResults');
-                    
-                    searchOverlay.classList.add('active');
+                    document.getElementById('searchOverlay').classList.add('active');
                     this.classList.add('active');
-
-                    // Set initial state of search overlay
-                    searchResultsContainer.innerHTML = '<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">Search for posts, hashtags, or users.</div>';
                 });
             }
           
@@ -2635,34 +2329,6 @@
             if (postTitle) {
                 postTitle.addEventListener('input', checkUploadButton);
             }
-
-            // Search input with debouncing
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                let debounceTimer;
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        const query = this.value.trim();
-                        performSearch(query);
-                    }, 300); // Wait 300ms after user stops typing
-                });
-            }
-
-            // Search sort options
-            const searchSortOptions = document.getElementById('searchSortOptions');
-            if (searchSortOptions) {
-                searchSortOptions.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('sort-option')) {
-                        searchSortOptions.querySelector('.active').classList.remove('active');
-                        e.target.classList.add('active');
-                        currentSearchSort = e.target.dataset.sort;
-                        // Re-run the search with the new sort order
-                        performSearch(document.getElementById('searchInput').value.trim());
-                    }
-                });
-            }
-
             // Video preview close button
             const videoPreviewCloseBtn = document.getElementById('videoPreviewCloseBtn');
             if (videoPreviewCloseBtn) {
@@ -2866,7 +2532,6 @@
                 // Revert UI on error by re-fetching saved posts and re-rendering feed
                 await fetchSavedPosts();
                 await refreshCurrentFeed(); // Refresh the current feed
-                renderTopBar(); // Re-render top bar
             }
         }
         // Show toast notification
@@ -2886,9 +2551,6 @@
             const volumeSlider = document.getElementById(`volumeSlider-${videoId}`);
             const unmutedIcon = button.querySelector('.volume-icon-unmuted');
             const mutedIcon = button.querySelector('.volume-icon-muted');
-
-            // Toggle slider visibility
-            button.parentElement.classList.toggle('slider-visible');
 
             if (video.muted) {
                 video.muted = false;
@@ -2929,24 +2591,7 @@
         }
         // Load comments
         async function loadComments(videoId, commentsList) {
-            // Show skeleton loader for comments
-            let skeletonHTML = '';
-            const commentSkeleton = `
-                <div class="skeleton-comment">
-                    <div class="skeleton-avatar" style="width: 32px; height: 32px; flex-shrink: 0;"></div>
-                    <div class="skeleton-comment-content">
-                        <div class="skeleton-line" style="width: 100px; height: 0.8rem;"></div>
-                        <div class="skeleton-line" style="width: 90%; height: 1rem;"></div>
-                        <div class="skeleton-line" style="width: 60%; height: 1rem;"></div>
-                    </div>
-                </div>
-            `;
-            
-            for (let i = 0; i < 5; i++) { // Display 5 skeleton items
-                skeletonHTML += commentSkeleton;
-            }
-            commentsList.innerHTML = skeletonHTML;
-
+            commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;">Loading...</div>';
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data: comments, error } = await supabase
@@ -3801,122 +3446,6 @@
                 showToast(`Error uploading post: ${error.message}`);
             }
         }
-
-        // Perform search and render results
-        async function performSearch(query, sortOrder = currentSearchSort) {
-            const searchResultsContainer = document.getElementById('searchResults');
-            if (!searchResultsContainer) return;
-
-            if (!query) {
-                // If query is empty, show trending hashtags instead of a message
-                fetchAndRenderTrendingHashtags();
-                return;
-            }
-
-            searchResultsContainer.innerHTML = '<div style="text-align: center; padding-top: 2rem;">Searching...</div>';
-
-            try {
-                let queryBuilder = supabase
-                    .from('posts')
-                    .select('id, title, username, media_url, likes_count, created_at')
-                    // Enhanced search to include hashtags
-                    .or(`title.ilike.%${query}%,content.ilike.%${query}%,username.ilike.%${query}%,hashtags.ilike.%${query}%`);
-
-                // Apply sorting based on the selected option
-                if (sortOrder === 'likes') {
-                    queryBuilder = queryBuilder.order('likes_count', { ascending: false });
-                } else if (sortOrder === 'recent') {
-                    queryBuilder = queryBuilder.order('created_at', { ascending: false });
-                }
-                // 'relevance' (the default) doesn't need a specific order clause,
-                // as Supabase's default ordering will suffice. We could also sort by `created_at` as a fallback.
-
-                const { data, error } = await queryBuilder
-                    .limit(20); // Limit results to avoid overwhelming the UI
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    renderSearchResults(data);
-                } else {
-                    searchResultsContainer.innerHTML = `<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">No results found for "${query}"</div>`;
-                }
-            } catch (error) {
-                console.error('Error performing search:', error);
-                searchResultsContainer.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding-top: 2rem;">Error during search.</div>';
-            }
-        }
-
-        // Fetch and render trending hashtags
-        async function fetchAndRenderTrendingHashtags() {
-            const searchResultsContainer = document.getElementById('searchResults');
-            if (!searchResultsContainer) return;
-
-            searchResultsContainer.innerHTML = '<div style="text-align: center; padding-top: 2rem;">Loading trends...</div>';
-
-            try {
-                // Call the RPC function we created in Supabase
-                const { data, error } = await supabase.rpc('get_trending_hashtags', { limit_count: 15 });
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    renderTrendingHashtags(data);
-                } else {
-                    searchResultsContainer.innerHTML = '<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">No trending hashtags right now.</div>';
-                }
-            } catch (error) {
-                console.error('Error fetching trending hashtags:', error);
-                searchResultsContainer.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding-top: 2rem;">Could not load trends.</div>';
-            }
-        }
-
-        // Render the trending hashtags UI
-        function renderTrendingHashtags(hashtags) {
-            const searchResultsContainer = document.getElementById('searchResults');
-            const hashtagPills = hashtags.map(tag => 
-                `<div class="hashtag-pill" data-hashtag="${tag.hashtag}">${tag.hashtag}</div>`
-            ).join('');
-
-            searchResultsContainer.innerHTML = `
-                <div class="trending-hashtags-container">
-                    <div class="trending-title">🔥 Trending Hashtags</div>
-                    <div class="hashtags-grid">${hashtagPills}</div>
-                </div>
-            `;
-
-            // Add event listener for the newly created pills
-            searchResultsContainer.querySelectorAll('.hashtag-pill').forEach(pill => {
-                pill.addEventListener('click', () => {
-                    const searchInput = document.getElementById('searchInput');
-                    searchInput.value = pill.dataset.hashtag;
-                    performSearch(pill.dataset.hashtag);
-                });
-            });
-        }
-
-        // Render search results
-        function renderSearchResults(results) {
-            const searchResultsContainer = document.getElementById('searchResults');
-            searchResultsContainer.innerHTML = ''; // Clear previous results
-
-            results.forEach(post => {
-                const resultItem = document.createElement('a');
-                resultItem.href = `?videoId=${post.id}`; // Link to the video
-                resultItem.className = 'search-result-item';
-
-                resultItem.innerHTML = `
-                    <video class="search-result-thumbnail" src="${post.media_url}#t=1" preload="metadata"></video>
-                    <div class="search-result-info">
-                        <div class="title">${post.title || 'Untitled Post'}</div>
-                        <div class="username">@${post.username || 'user'} &bull; ❤️ ${post.likes_count || 0}</div>
-                    </div>
-                `;
-                searchResultsContainer.appendChild(resultItem);
-            });
-        }
-
-
         // Make functions globally available
         window.openUploadModal = openUploadModal;
         window.showUploadForm = showUploadForm;
@@ -3942,7 +3471,6 @@
         window.updateCommentReactionsUI = updateCommentReactionsUI;
         window.goToDashboard = goToDashboard;
         window.showGuestLoginModal = showGuestLoginModal; // Add this line
-        window.handleGuestAction = handleGuestAction; // Add this line to make the function globally available
     </script>
 </body>
 </html>
