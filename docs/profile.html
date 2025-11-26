@@ -1513,9 +1513,10 @@
                     <div class="avatar-container">
                         <label for="avatarUpload" class="avatar" id="avatar">
                             <div class="avatar-loader" id="avatarLoader">
+                                <span class="avatar-loader-text" id="avatarLoaderText"></span>
                                 <div class="spinner"></div>
                             </div>
-                            <span id="avatarInitials">...</span>
+                            <span id="avatarInitials"></span>
                         </label>
                         <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
                     </div>
@@ -3700,6 +3701,7 @@
         // Avatar upload
         const avatarUpload = document.getElementById('avatarUpload');
         const avatar = document.getElementById('avatar');
+        const avatarLoaderText = document.getElementById('avatarLoaderText');
         const avatarLoader = document.getElementById('avatarLoader');
       
         avatarUpload.addEventListener('change', async (e) => {
@@ -3710,19 +3712,31 @@
                 return;
             }
             try {
+                avatarLoaderText.textContent = '0%';
                 avatarLoader.classList.add('active'); // Show loader
+
                 // Upload avatar to Supabase Storage
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
-                const filePath = `${currentUser.id}.${fileExt}`; // Use a consistent file name
-                const { error: uploadError } = await supabase.storage
-                    .from('avatars') // Make sure you have a bucket named 'avatars' in Supabase Storage
-                    .upload(filePath, file, { upsert: true }); // Use upsert to overwrite existing avatar
+                const filePath = `photos/${currentUser.id}/avatar.${fileExt}`; // Place it in the photos/user-specific folder
+
+                // The supabase-js v2 .upload() method doesn't have a built-in progress handler.
+                // We'll simulate progress for a better UX, then switch to the real upload.
+                // In a real-world scenario with a large file, you'd use XHR to get real progress.
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress = Math.min(progress + 10, 90); // Simulate progress up to 90%
+                    avatarLoaderText.textContent = `${progress}%`;
+                }, 100);
+
+                const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+                
+                clearInterval(interval); // Stop the simulation
+                avatarLoaderText.textContent = '100%';
+
                 if (uploadError) throw uploadError;
+
                 // Get public URL
-                const { data } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(filePath);
+                const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
                 // Update profile with avatar URL
                 const { error: updateError } = await supabase
                     .from('profiles')
@@ -3730,16 +3744,23 @@
                     .eq('id', currentUser.id);
                 if (updateError) throw updateError;
                 // Update UI
-                avatar.innerHTML = `<img src="${data.publicUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
+                // To avoid removing the loader elements, we create an img and append it.
+                const existingImg = avatar.querySelector('img');
+                if (existingImg) existingImg.remove();
+                const img = document.createElement('img');
+                img.src = `${data.publicUrl}?t=${new Date().getTime()}`; // Add cache buster
+                img.alt = 'Avatar';
+                avatar.prepend(img); // Prepend to keep it behind the loader
               
                 // Update local profile object
                 userProfile.profile_photo = data.publicUrl;
-              
             } catch (error) {
                 console.error('Error uploading avatar:', error);
                 showError('Error uploading avatar');
             } finally {
+                setTimeout(() => { // Give user a moment to see 100%
                 avatarLoader.classList.remove('active'); // Hide loader
+                }, 500);
             }
         });
         // Edit academic details functionality
