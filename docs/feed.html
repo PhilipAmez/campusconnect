@@ -384,6 +384,18 @@
             height: 100%;
             object-fit: cover;
         }
+        .initials-avatar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1rem;
+            background-color: var(--primary-color); /* Use a background color */
+            color: var(--text-color);
+            text-decoration: none; /* Remove underline from link */
+            width: 2.5rem;
+            height: 2.5rem;
+        }
         /* Add Post Button */
         .add-post-btn {
             background: var(--glass-bg);
@@ -497,6 +509,19 @@
             line-height: 1.4;
             font-family: Georgia, 'Times New Roman', Times, serif;
             font-size: 1rem; /* Increased font size */
+        }
+        .post-author-avatar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .post-author-initials {
+            width: 24px; height: 24px; border-radius: 50%; background-color: var(--primary-color); color: var(--text-color); display: inline-flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: bold;
+        }
+        .comment-avatar-initials {
+            width: 32px; height: 32px; border-radius: 50%; background-color: var(--primary-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;
+            margin-right: 0.5rem;
         }
         .hashtags {
             font-size: 0.9rem;
@@ -1723,6 +1748,7 @@
         let isRecording = false;
         let isCommentDrawerOpen = false; // Track if comment drawer is open
 
+        let currentUserProfile = null; // To store the logged-in user's profile
         let trendingHashtagsSubscription = null; // To hold our realtime subscription
         let currentSearchSort = 'relevance'; // Add state for search sorting
         let touchStartY = 0;
@@ -2017,6 +2043,7 @@
 
         async function initializePage() {
             await checkLoginStatus();
+            await fetchUserProfile(); // Fetch user profile after checking login
 
             // Check localStorage for the last used feed type
             const lastFeedType = localStorage.getItem('lastFeedType');
@@ -2059,6 +2086,37 @@
             } catch (error) {
                 console.log('Auth check failed, defaulting to guest mode');
                 isLoggedIn = false;
+            }
+        }
+
+        // Fetch current user's profile
+        async function fetchUserProfile() {
+            if (!isLoggedIn) return;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('username, avatar_url')
+                    .eq('id', user.id)
+                    .single();
+
+                if (error) throw error;
+                currentUserProfile = data;
+            } catch (error) {
+                // If profile doesn't exist, create a temporary one for UI consistency
+                if (error.code === 'PGRST116') { // "single" query returned no rows
+                    const { data: { user } } = await supabase.auth.getUser();
+                    currentUserProfile = {
+                        username: user.email.split('@')[0],
+                        avatar_url: null,
+                        id: user.id
+                    };
+                } else {
+                    console.error('Error fetching user profile:', error);
+                }
+                console.error('Error fetching user profile:', error);
             }
         }
         // Fetch user's saved posts
@@ -2219,7 +2277,12 @@
                         <i class="fas fa-play play-pause-btn" id="playPauseBtn-${video.id}"></i>
                     </div>
                     <div class="video-info">
-                        <a href="profile.html?userId=${video.user_id}" class="username" style="text-decoration: none; color: inherit;">@${video.username || 'user'}</a>
+                        <div class="post-author-avatar">
+                            ${!video.profiles?.avatar_url ? `
+                                <div class="post-author-initials">${(video.username || 'U').substring(0, 2).toUpperCase()}</div>
+                            ` : ''}
+                            <a href="profile.html?userId=${video.user_id}" class="username" style="text-decoration: none; color: inherit;">@${video.username || 'user'}</a>
+                        </div>
                         <div class="caption">${video.content || ''}</div>
                         <div class="hashtags">${video.hashtags || ''}</div>
                     </div><div class="actions-sidebar">
@@ -2504,12 +2567,22 @@
             const topBarContainer = document.getElementById('staticTopBar');
             if (!topBarContainer) return;
 
+            let profileIconHtml = '';
+            if (isLoggedIn && currentUserProfile) {
+                if (currentUserProfile.avatar_url) {
+                    profileIconHtml = `<a href="profile.html" class="profile-icon"><img src="${currentUserProfile.avatar_url}" alt="Profile" crossOrigin="anonymous"></a>`;
+                } else {
+                    const initials = (currentUserProfile.username || 'U').substring(0, 2).toUpperCase();
+                    profileIconHtml = `<a href="profile.html" class="profile-icon initials-avatar"><span>${initials}</span></a>`;
+                }
+            }
+
             const topBarHTML = `
                 <div class="top-bar-left">
                     <div class="back-button" onclick="goToDashboard()">
                         <i class="fas fa-arrow-left"></i>
                     </div>
-                    ${isLoggedIn ? `<a href="profile.html" class="profile-icon"><img src="https://i.pravatar.cc/50" alt="Profile"></a>` : ''}
+                    ${profileIconHtml}
                 </div>
                 <div class="feed-switcher">
                     <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you"><span class="feed-tab-text">For You</span><div class="tab-spinner"></div></span>
@@ -2952,7 +3025,7 @@
                 const { data: comments, error } = await supabase
                     .from('comments')
                     .select(`
-                        *,
+                        *, profiles:user_id(username, avatar_url),
                         profiles:user_id(username),
                         parent_comment:parent_comment_id(profiles:user_id(username))
                     `)
