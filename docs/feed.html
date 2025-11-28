@@ -22,6 +22,7 @@
             --spacing-sm: 0.5rem;
             --spacing-md: 1rem;
             --spacing-lg: 1.5rem;
+            --modal-overlay-bg: rgba(0, 0, 0, 0.5); /* For logout modal */
         }
         [data-theme="light"] {
             --text-color: #000000;
@@ -295,12 +296,19 @@
             transform: scale(1.1);
         }
         .feed-switcher {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
             display: flex;
             gap: 1rem;
             align-items: center;
+            /* New styles for flexbox centering */
+            justify-content: flex-start; /* Align to start for scrolling */
+            flex-grow: 1;
+            margin: 0 1rem; /* Add some margin to not touch the side icons */
+            overflow-x: auto; /* Enable horizontal scrolling */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .feed-switcher::-webkit-scrollbar {
+            display: none; /* Hide scrollbar for Chrome, Safari, and Opera */
         }
         .feed-tab {
             font-size: 1.1rem;
@@ -384,6 +392,115 @@
             height: 100%;
             object-fit: cover;
         }
+                /* Profile Dropdown Menu */
+        .profile-dropdown {
+            position: absolute;
+            top: calc(100% + 5px); /* Position below the top bar */
+            left: var(--spacing-sm);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: var(--glass-shadow);
+            z-index: 200;
+            width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        }
+
+        .profile-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .profile-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--text-color);
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .profile-dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .profile-dropdown-item:first-child {
+            border-radius: 12px 12px 0 0;
+        }
+        .profile-dropdown-item:last-child {
+            border-radius: 0 0 12px 12px;
+            border-top: 1px solid var(--glass-border);
+            color: #ff6b6b; /* Red for logout */
+        }
+
+        /* Custom Modal Styles from settings.html */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-overlay-bg); /* Semi-transparent overlay */
+            z-index: 1000; /* Ensure it's on top */
+            overflow: auto; /* Enable scroll if needed */
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: var(--background-dark);
+            margin: 10% auto; /* 10% from the top and centered */
+            padding: 20px;
+            border: 1px solid var(--glass-border);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-confirm {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-cancel {
+            background-color: #666;
+            color: white;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .profile-dropdown-item:last-child {
+            color: #ff6b6b; /* Red for logout */
+        }
+
         .initials-avatar {
             display: flex;
             justify-content: center;
@@ -643,29 +760,28 @@
         .comment-item {
             width: 100%;
             align-self: flex-start; /* Default for other users */
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
+            background: transparent;
             text-align: left;
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 0.4rem 0.8rem; /* Reduced padding */
+            border: none;
+            border-radius: 0;
+            padding: 0.8rem 0; /* More vertical padding, no horizontal */
             transition: background 0.2s ease;
         }
         .comment-item.current-user {
-            align-self: flex-end;
-            background: rgba(106, 90, 205, 0.2); /* A different color for the current user */
-            text-align: right;
-            border-color: rgba(106, 90, 205, 0.4);
+            /* No longer needs special alignment or background */
         }
         .comment-item.current-user .comment-header-line {
-            justify-content: flex-end;
+            /* No longer needs to be right-aligned */
         }
         /* Style for comments from other users */
         .comment-item.other-user {
-            background: rgba(0, 0, 0, 0.1);
-            align-self: flex-start;
         }
         .comment-header-line {
+            display: flex;
+            align-items: center; /* Align avatar and text */
+            gap: 0.5rem;
+        }
+        .comment-info {
             display: flex;
             align-items: baseline;
             gap: 0.5rem;
@@ -674,7 +790,7 @@
         .comment-user {
             font-weight: bold;
             font-size: 0.85rem;
-            color: #0ea5e9; /* A bright, distinct blue */
+            color: #a78bfa; /* A soft, theme-aligned purple */
         }
         .comment-time {
             font-size: 0.7rem; /* Smaller font size */
@@ -683,6 +799,8 @@
         .comment-text {
             word-wrap: break-word; /* Ensure long words break */
             line-height: 1.4;
+            font-family: Verdana, Geneva, Tahoma, sans-serif; /* Example font change */
+            font-size: 0.95rem; /* Slightly adjust size for readability */
         }
         .reply-info {
             font-size: 0.8rem;
@@ -1491,6 +1609,12 @@
             .comment-input-container {
                 padding: var(--spacing-sm);
             }
+            .volume-controls {
+                display: none; /* Hide mute button and volume bar on mobile */
+            }
+            .progress-bar-container {
+                padding-right: 0; /* Use full width when volume controls are hidden */
+            }
         }
 
         /* Empty State Animation */
@@ -1726,6 +1850,29 @@
             </div>
         </div>
     </div>
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeLogoutModal">&times;</span>
+            <p>Are you sure you want to log out?</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" id="confirmLogout">Yes, Log Out</button>
+                <button class="btn-cancel" id="cancelLogout">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Logout Confirmation Modal (from settings.html) -->
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeLogoutModal">&times;</span>
+            <p>Are you sure you want to log out?</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" id="confirmLogout">Yes, Log Out</button>
+                <button class="btn-cancel" id="cancelLogout">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script src="./js/feed.js"></script>
     <script type="module">
         
@@ -1745,6 +1892,7 @@
         let mediaRecorder = null;
         let recordedChunks = [];
         let currentFeedType = 'for-you'; // 'for-you' or 'saved'
+        // 'for-you', 'following', or 'saved'
         let isRecording = false;
         let isCommentDrawerOpen = false; // Track if comment drawer is open
 
@@ -1950,8 +2098,8 @@
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data, error } = await supabase
-                    .from('posts')
-                    .select(`*, likes(user_id), profiles(username)`)
+                    .from('posts') // Fetch profile_photo for post author
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
                     .in('id', savedPosts) // Filter by saved post IDs
                     .order('created_at', { ascending: false });
                 if (error) throw error;
@@ -1971,10 +2119,51 @@
 
         // Refresh the currently active feed
         async function refreshCurrentFeed() {
-            if (currentFeedType === 'saved') {
+            if (currentFeedType === 'following') {
+                await fetchFollowingPostsFeed();
+            } else if (currentFeedType === 'saved') {
                 await fetchSavedPostsFeed();
             } else {
                 await fetchPostsFromDatabase();
+            }
+        }
+        // Fetch posts from followed users
+        async function fetchFollowingPostsFeed() {
+            if (!isLoggedIn) {
+                showGuestLoginModal();
+                return;
+            }
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                // First, get the list of users the current user is following.
+                const { data: followingData, error: followingError } = await supabase
+                    .from('followers')
+                    .select('following_id')
+                    .eq('follower_id', user.id);
+
+                if (followingError) throw followingError;
+
+                const followingIds = followingData.map(f => f.following_id);
+
+                if (followingIds.length === 0) {
+                    initializeFeed([]); // Show empty state if not following anyone
+                    return;
+                }
+
+                // Now, fetch posts from those users.
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .in('user_id', followingIds)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                initializeFeed(data);
+            } catch (error) {
+                console.error('Error fetching following feed:', error);
+                showToast('Error loading posts from users you follow.');
+            } finally {
+                resetPullToRefresh();
             }
         }
         // Handle shared link - FIXED VERSION
@@ -1988,7 +2177,7 @@
                 // Fetch the specific shared video
                 const { data: sharedVideoData, error: videoError } = await supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
                     .eq('id', sharedVideoId)
                     .single();
 
@@ -2009,7 +2198,7 @@
                     // Fetch other posts (excluding the shared one)
                     const { data: otherPosts, error: postsError } = await supabase
                         .from('posts')
-                        .select(`*, likes(user_id), profiles(username)`)
+                        .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
                         .neq('id', sharedVideoId)
                         .order('created_at', { ascending: false });
 
@@ -2042,6 +2231,11 @@
         }
 
         async function initializePage() {
+            // Apply theme from localStorage
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            currentTheme = savedTheme;
+
             await checkLoginStatus();
             await fetchUserProfile(); // Fetch user profile after checking login
 
@@ -2098,7 +2292,7 @@
 
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('username, avatar_url')
+                    .select('username, profile_photo')
                     .eq('id', user.id)
                     .single();
 
@@ -2119,6 +2313,15 @@
                 console.error('Error fetching user profile:', error);
             }
         }
+        // Logout function
+        async function logout() {
+            const modal = document.getElementById('logoutModal');
+            modal.style.display = "block";
+        }
+
+
+
+
         // Fetch user's saved posts
         async function fetchSavedPosts() {
             if (!isLoggedIn) return;
@@ -2159,7 +2362,7 @@
                 if (sharedVideoId) {
                     const { data: videoData, error: videoError } = await supabase
                         .from('posts')
-                        .select(`*, likes(user_id), profiles(username)`)
+                        .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
                         .eq('id', sharedVideoId);
 
                     if (videoError) {
@@ -2177,7 +2380,7 @@
                 // Fetch the rest of the posts, excluding the shared one if it was found.
                 let query = supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
                     .order('created_at', { ascending: false });
 
                 if (sharedVideoId) {
@@ -2248,6 +2451,16 @@
                 renderTopBar();
                 setupEventListeners(); // Re-attach listeners for the top bar
                 return;
+            } else if (posts.length === 0 && currentFeedType === 'following') {
+                feed.innerHTML = `
+                    <div class="video-container empty-state-container">
+                        <div class="empty-state-icon">👥</div>
+                        <div style="font-size: 1.2rem; font-weight: bold;">Your Following Feed is Empty</div>
+                        <div style="opacity: 0.8;">Posts from users you follow will appear here.</div>
+                    </div>
+                `;
+                renderTopBar();
+                return;
             }
 
             posts.forEach(video => {
@@ -2277,12 +2490,14 @@
                         <i class="fas fa-play play-pause-btn" id="playPauseBtn-${video.id}"></i>
                     </div>
                     <div class="video-info">
-                        <div class="post-author-avatar">
-                            ${!video.profiles?.avatar_url ? `
-                                <div class="post-author-initials">${(video.username || 'U').substring(0, 2).toUpperCase()}</div>
-                            ` : ''}
-                            <a href="profile.html?userId=${video.user_id}" class="username" style="text-decoration: none; color: inherit;">@${video.username || 'user'}</a>
-                        </div>
+                        <a href="profile.html?userId=${video.user_id}" class="post-author-avatar" style="text-decoration: none; color: inherit;">
+                            ${video.profiles?.profile_photo ? `
+                                <img src="${video.profiles.profile_photo}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                            ` : `
+                                <div class="post-author-initials">${(video.profiles?.username || 'U').substring(0, 2).toUpperCase()}</div>
+                            `}
+                            <span class="username">@${video.profiles?.username || 'user'}</span>
+                        </a>
                         <div class="caption">${video.content || ''}</div>
                         <div class="hashtags">${video.hashtags || ''}</div>
                     </div><div class="actions-sidebar">
@@ -2569,11 +2784,11 @@
 
             let profileIconHtml = '';
             if (isLoggedIn && currentUserProfile) {
-                if (currentUserProfile.avatar_url) {
-                    profileIconHtml = `<a href="profile.html" class="profile-icon"><img src="${currentUserProfile.avatar_url}" alt="Profile" crossOrigin="anonymous"></a>`;
+                if (currentUserProfile.profile_photo) {
+                    profileIconHtml = `<div class="profile-icon" onclick="toggleProfileDropdown()"><img src="${currentUserProfile.profile_photo}" alt="Profile" crossOrigin="anonymous"></div>`;
                 } else {
                     const initials = (currentUserProfile.username || 'U').substring(0, 2).toUpperCase();
-                    profileIconHtml = `<a href="profile.html" class="profile-icon initials-avatar"><span>${initials}</span></a>`;
+                    profileIconHtml = `<div class="profile-icon initials-avatar" onclick="toggleProfileDropdown()"><span>${initials}</span></div>`;
                 }
             }
 
@@ -2583,9 +2798,15 @@
                         <i class="fas fa-arrow-left"></i>
                     </div>
                     ${profileIconHtml}
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="profile.html" class="profile-dropdown-item"><i class="fas fa-user-circle" style="width: 16px;"></i> View Profile</a>
+                        <a href="settings.html" class="profile-dropdown-item"><i class="fas fa-cog" style="width: 16px;"></i> Settings</a>
+                        <div class="profile-dropdown-item" onclick="logout()"><i class="fas fa-sign-out-alt" style="width: 16px;"></i> Log Out</div>
+                    </div>
                 </div>
                 <div class="feed-switcher">
                     <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you"><span class="feed-tab-text">For You</span><div class="tab-spinner"></div></span>
+                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'following' ? 'active' : ''}" data-feed-type="following"><span class="feed-tab-text">Following</span><div class="tab-spinner"></div></span>` : ''}
                     ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved"><span class="feed-tab-text">Saved</span><div class="tab-spinner"></div></span>` : ''}
                 </div>
                 <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
@@ -2596,6 +2817,21 @@
             topBarContainer.innerHTML = topBarHTML;
         }
 
+        // Toggle profile dropdown
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            if (!dropdown) return;
+            dropdown.classList.toggle('active');
+
+            // Add a listener to close the dropdown if user clicks outside
+            if (dropdown.classList.contains('active')) {
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.profile-icon') && !e.target.closest('.profile-dropdown')) {
+                        dropdown.classList.remove('active');
+                    }
+                }, { once: true });
+            }
+        }
         // Set up event listeners
         function setupEventListeners() {
             // Use event delegation for feed tabs since they are re-rendered
@@ -2746,18 +2982,47 @@
             document.addEventListener('visibilitychange', () => {
                 handleVisibilityChange();
             });
+
+            // Logout Modal Interaction
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) {
+                const confirmLogoutButton = document.getElementById('confirmLogout');
+                const cancelLogoutButton = document.getElementById('cancelLogout');
+                const closeLogoutModal = document.getElementById('closeLogoutModal');
+
+                confirmLogoutButton.addEventListener('click', async () => {
+                    try {
+                        const { error } = await supabase.auth.signOut();
+                        if (error) throw error;
+                        window.location.href = 'login.html';
+                    } catch (error) {
+                        console.error('Error logging out:', error);
+                        showToast('Error logging out');
+                    } finally {
+                        logoutModal.style.display = "none";
+                    }
+                });
+
+                const closeModal = () => logoutModal.style.display = "none";
+                cancelLogoutButton.addEventListener('click', closeModal);
+                closeLogoutModal.addEventListener('click', closeModal);
+
+                window.addEventListener('click', (event) => {
+                    if (event.target == logoutModal) closeModal();
+                });
+            }
+
         }
         // Intersection Observer for video autoplay
         function setupIntersectionObserver() {
             const options = {
                 root: document.getElementById('feed'),
                 rootMargin: '0px',
-                threshold: 0.8
+                threshold: 0.6 // Only trigger when 60% of the video is visible
             };
-          
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
+                    const video = entry.target.querySelector('.video-player');
                   
                     if (entry.isIntersecting) {
                         currentVideoId = entry.target.id; // Store the current video's container ID
@@ -2774,6 +3039,7 @@
                         }
                     } else {
                         video.pause();
+                        // video.currentTime = 0; // Don't reset video to the beginning
                         if (currentVideoId === entry.target.id) {
                             currentVideoId = null;
                         }
@@ -2804,6 +3070,7 @@
         function toggleTheme() {
             currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('theme', currentTheme); // Save the theme preference
         }
         // Create like animation on double tap
         function createLikeAnimation(event) {
@@ -3023,12 +3290,8 @@
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data: comments, error } = await supabase
-                    .from('comments')
-                    .select(`
-                        *, profiles:user_id(username, avatar_url),
-                        profiles:user_id(username),
-                        parent_comment:parent_comment_id(profiles:user_id(username))
-                    `)
+                    .from('comments') // Fetch profile_photo for commenter
+                    .select(`*, profiles:user_id(username, profile_photo), parent_comment:parent_comment_id(profiles:user_id(username))`)
                     .eq('post_id', videoId)
                     .order('created_at', { ascending: true });
                 if (error) throw error;
@@ -3086,14 +3349,28 @@
             }
             const parentUsername = comment.parent_comment?.profiles?.username;
             const username = comment.profiles ? comment.profiles.username : 'user';
+            const profilePhoto = comment.profiles ? comment.profiles.profile_photo : null;
+            const initials = (username || 'U').substring(0, 2).toUpperCase();
+
+            const avatarImgHtml = profilePhoto
+                ? `<img src="${profilePhoto}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">`
+                : `<div class="comment-avatar-initials">${initials}</div>`;
+
+            const avatarHtml = `<a href="profile.html?userId=${comment.user_id}" style="text-decoration: none; color: inherit;">${avatarImgHtml}</a>`;
+
             // Build the HTML for the main comment part
             let commentHtml = `
                 ${parentUsername ? `<div class="reply-info">Replying to @${parentUsername}</div>` : ''}
                 <div class="comment-header-line">
-                    <div class="comment-user">@${username}</div>
-                    <div class="comment-time">${new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    ${avatarHtml}
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="comment-info">
+                            <div class="comment-user">@${username}</div>
+                            <div class="comment-time">${new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        <div class="comment-text">${comment.content}</div>
+                    </div>
                 </div>
-                <div class="comment-text">${comment.content}</div>
                 <div class="comment-actions">
                     <div class="comment-reaction-btn" onclick="showReactionPicker('${comment.id}', this)">
                         <i class="far fa-smile"></i> React
@@ -3875,6 +4152,12 @@
             }
         }
 
+        // Helper function to escape special characters for ILIKE
+        function escapeLike(string) {
+            // Escapes backslash, percent, and underscore
+            return string.replace(/[\\%_]/g, '\\$&');
+        }
+
         // Perform search and render results
         async function performSearch(query, sortOrder = currentSearchSort) {
             const searchResultsContainer = document.getElementById('searchResults');
@@ -3889,28 +4172,24 @@
             searchResultsContainer.innerHTML = '<div style="text-align: center; padding-top: 2rem;">Searching...</div>';
 
             try {
-                let queryBuilder = supabase
-                    .from('posts')
-                    .select('id, title, username, media_url, likes_count, created_at')
-                    // Enhanced search to include hashtags
-                    .or(`title.ilike.%${query}%,content.ilike.%${query}%,username.ilike.%${query}%,hashtags.ilike.%${query}%`);
+                // FIX: Escape the user's query to handle special characters like '%', '_', and '\'
+                const escapedQuery = escapeLike(query);
 
-                // Apply sorting based on the selected option
-                if (sortOrder === 'likes') {
-                    queryBuilder = queryBuilder.order('likes_count', { ascending: false });
-                } else if (sortOrder === 'recent') {
-                    queryBuilder = queryBuilder.order('created_at', { ascending: false });
-                }
-                // 'relevance' (the default) doesn't need a specific order clause,
-                // as Supabase's default ordering will suffice. We could also sort by `created_at` as a fallback.
-
-                const { data, error } = await queryBuilder
-                    .limit(20); // Limit results to avoid overwhelming the UI
+                // FIX: Use the new, simplified RPC function 'search_posts' which is more reliable.
+                const { data, error } = await supabase
+                    .rpc('search_posts', { search_term: escapedQuery })
+                    .limit(20); // It's good practice to limit results
 
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    renderSearchResults(data);
+                    // The data structure is slightly different, so we need to map it.
+                    const formattedData = data.map(post => ({
+                        ...post,
+                        username: post.username ?? 'unknown' // The view already flattens this
+                    }));
+                    // The simple search doesn't have a relevance score, so we sort client-side if needed.
+                    sortAndRenderResults(formattedData, sortOrder);
                 } else {
                     searchResultsContainer.innerHTML = `<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">No results found for "${query}"</div>`;
                 }
@@ -3919,6 +4198,20 @@
                 searchResultsContainer.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding-top: 2rem;">Error during search.</div>';
             }
         }
+
+        // New function to handle sorting and rendering
+        function sortAndRenderResults(results, sortOrder) {
+            if (sortOrder === 'likes') {
+                results.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+            } else if (sortOrder === 'recent') {
+                results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            }
+            // 'relevance' is the default from the DB which is now just 'created_at', so no extra sort is needed.
+            
+            // Now render the (potentially sorted) results
+            renderSearchResults(results);
+        }
+
 
         // Fetch and render trending hashtags
         async function fetchAndRenderTrendingHashtags() {
@@ -4015,6 +4308,8 @@
         window.updateCommentReactionsUI = updateCommentReactionsUI;
         window.goToDashboard = goToDashboard;
         window.showGuestLoginModal = showGuestLoginModal; // Add this line
+        window.toggleProfileDropdown = toggleProfileDropdown;
+        window.logout = logout;
         window.handleGuestAction = handleGuestAction; // Add this line to make the function globally available
     </script>
 </body>

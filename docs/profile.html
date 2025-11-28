@@ -2597,7 +2597,7 @@
                         media_url,
                         thumbnail_url,
                         likes_count,
-                        created_at,
+                        created_at, content,
                         user_id,
                         profiles:user_id (
                             full_name, username, profile_photo
@@ -2635,7 +2635,7 @@
                         media_url,
                         thumbnail_url,
                         likes_count,
-                        created_at,
+                        created_at, content,
                         user_id,
                         profiles:user_id (
                             full_name, username, profile_photo
@@ -2897,7 +2897,7 @@
             const author = post.profiles;
             if (author) {
                 viewerAuthorName.textContent = author.full_name;
-                viewerAuthorUsername.textContent = `@${author.username}`;
+                viewerAuthorUsername.textContent = `@${author.username || 'user'}`;
                 const authorAvatarHtml = author.avatar_url || author.profile_photo
                     ? `<img src="${author.profile_photo}" alt="${author.full_name}">`
                     : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:bold; background-color: var(--primary); color: white;">${getInitials(author.full_name)}</div>`;
