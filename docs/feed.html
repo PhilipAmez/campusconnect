@@ -3495,6 +3495,7 @@
             const { data: { user } } = await supabase.auth.getUser();
             const commentItem = document.createElement('div');
             commentItem.className = 'comment-item';
+            commentItem.id = `comment-item-${comment.id}`; // Add a unique ID to the comment container
             commentItem.style.marginLeft = `${depth * 20}px`; // Indent replies
             if (user && comment.user_id === user.id) {
                 commentItem.classList.add('current-user');
@@ -3650,6 +3651,12 @@
         // Function to update the UI with new reaction counts
         async function updateCommentReactionsUI(commentId) {
             const reactionSummaryDisplay = document.getElementById(`reaction-summary-${commentId}`);
+            // If the comment ID is temporary (from an optimistic update), don't query the DB.
+            if (typeof commentId === 'string' && commentId.startsWith('temp-')) {
+                if (reactionSummaryDisplay) reactionSummaryDisplay.innerHTML = ''; // Ensure it's empty
+                return;
+            }
+
             if (!reactionSummaryDisplay) return;
             const { data: reactions, error } = await supabase
                 .from('comment_reactions')
@@ -3744,6 +3751,7 @@
                     v_content: commentText,
                     v_parent_comment_id: replyingToCommentId // Pass the parent comment ID
                 });
+
                 if (rpcError) {
                     throw rpcError;
                 }
@@ -3752,20 +3760,23 @@
                 if (newCountValue && newCountValue.updated_comments_count != null) {
                     document.getElementById(`commentCount-${videoId}`).textContent = String(newCountValue.updated_comments_count);
                 }
+
+                const tempId = `temp-${Date.now()}`; // Store temp ID for later
                 // Clear input
                 commentInput.value = '';
                 cancelReply(videoId); // Clear reply state
                 // Optimistically render the new comment without a full reload
                 const commentsList = document.getElementById(`commentsList-${videoId}`);
                 const newComment = {
-                    id: `temp-${Date.now()}`, // Temporary ID
+                    id: tempId, // Use the stored temporary ID
                     post_id: videoId,
                     user_id: user.id,
                     content: commentText,
                     created_at: new Date().toISOString(),
                     parent_comment_id: replyingToCommentId,
                     profiles: {
-                        username: user.user_metadata.username || user.email.split('@')[0]
+                        username: currentUserProfile?.username || user.email.split('@')[0],
+                        profile_photo: currentUserProfile?.profile_photo || null
                     },
                     replies: []
                 };
@@ -3785,6 +3796,23 @@
                 }
                 commentsList.scrollTop = commentsList.scrollHeight; // Scroll to the new comment
               
+                // ** SWAP TEMPORARY ID WITH REAL ID FROM DATABASE **
+                if (newCountValue && newCountValue.new_comment_id) {
+                    const realId = newCountValue.new_comment_id;
+                    const tempCommentElement = document.getElementById(`comment-item-${tempId}`);
+                    if (tempCommentElement) {
+                        // Update the main element's ID
+                        tempCommentElement.id = `comment-item-${realId}`;
+
+                        // Update IDs of child elements that depend on the comment ID
+                        tempCommentElement.querySelector(`#reaction-summary-${tempId}`).id = `reaction-summary-${realId}`;
+                        // You can add more selectors here for other elements like reply buttons if they also have dynamic IDs
+
+                        // Now that the ID is real, fetch the (empty) reactions UI.
+                        await updateCommentReactionsUI(realId);
+                    }
+                }
+
                 showToast('Comment added');
                 commentInput.disabled = false; // Re-enable input
                 isAddingComment = false; // Reset flag
