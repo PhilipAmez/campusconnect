@@ -26,9 +26,11 @@
         }
         [data-theme="light"] {
             --text-color: #000000;
-            --background-dark: #F5F5F5;
-            --glass-bg: rgba(0, 0, 0, 0.1);
-            --glass-border: rgba(0, 0, 0, 0.2);
+            --background-dark: #FFFFFF; /* Use pure white for a cleaner look */
+            --glass-bg: rgba(240, 240, 240, 0.7); /* A more opaque, light glass */
+            --glass-border: rgba(0, 0, 0, 0.1); /* A subtle dark border */
+            --glass-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08); /* A softer shadow */
+            --modal-overlay-bg: rgba(0, 0, 0, 0.3); /* Lighter overlay */
         }
         * {
             margin: 0;
@@ -139,6 +141,10 @@
             transition: d 0.2s cubic-bezier(0.2, 0.8, 0.2, 1.5);
         }
 
+        .pull-to-refresh.snapping-back .liquid-path,
+        .pull-to-refresh.snapping-back .liquid-container {
+            transition: all 0.3s cubic-bezier(0.2, 1, 0.7, 1); /* Smooth snap-back transition */
+        }
         .pull-to-refresh-icon {
             transition: transform 0.3s ease, opacity 0.3s ease;
             color: white;
@@ -158,6 +164,12 @@
             justify-content: center;
             align-items: center;
         }
+        .video-container .video-player {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+            transform: scale(1);
+            opacity: 1;
+        }
+
         /* Video Element */
         .video-player {
             width: 100%;
@@ -300,27 +312,70 @@
             gap: 1rem;
             align-items: center;
             /* New styles for flexbox centering */
-            justify-content: flex-start; /* Align to start for scrolling */
+            justify-content: center;
             flex-grow: 1;
             margin: 0 1rem; /* Add some margin to not touch the side icons */
-            overflow-x: auto; /* Enable horizontal scrolling */
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            position: relative; /* For dropdown positioning */
         }
-        .feed-switcher::-webkit-scrollbar {
-            display: none; /* Hide scrollbar for Chrome, Safari, and Opera */
+        .feed-switcher-current {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: var(--text-color);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Add shadow for readability on video */
+            color: white; /* Always white regardless of theme */
+        }
+        /* Hide dropdown trigger on desktop by default */
+        .feed-switcher-current {
+            display: none;
+        }
+
+        .feed-switcher-current .fa-chevron-down {
+            transition: transform 0.2s ease;
+        }
+        .feed-switcher-options {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: var(--glass-shadow);
+            z-index: 200;
+            width: 150px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        }
+        .feed-switcher-options.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+        .feed-switcher-option {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
         }
         .feed-tab {
             font-size: 1.1rem;
             font-weight: bold;
-            color: rgba(255, 255, 255, 0.6);
+            color: white; /* Always white regardless of theme */
+            opacity: 0.7; /* Use opacity for inactive state */
             cursor: pointer;
             transition: color 0.3s ease, transform 0.3s ease;
             padding: 0.5rem;
         }
         .feed-tab.active {
             color: var(--text-color);
-            transform: scale(1.1);
+            color: white; /* Always white regardless of theme */
+            opacity: 1;
             position: relative;
         }
         .feed-tab.active::after {
@@ -352,6 +407,13 @@
         }
         .feed-tab.loading .feed-tab-text {
             opacity: 0.6; /* Dim the text while loading */
+        }
+        /* Hide tabs on mobile */
+        @media (max-width: 768px) {
+            .feed-tab { display: none; }
+            .feed-switcher-current {
+                display: flex; /* Show dropdown trigger on mobile */
+            }
         }
         .search-icon {
             background: var(--glass-bg);
@@ -572,6 +634,7 @@
         .action-count {
             font-size: 0.75rem;
             font-weight: bold;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Add shadow for readability */
             font-family: Arial Black, Arial, sans-serif;
         }
         .like-count {
@@ -613,6 +676,7 @@
             right: 80px; /* Add space on the right to avoid overlap with actions */
             z-index: 10;
             padding: var(--spacing-sm) 0;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Add shadow for readability */
             background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
         }
         .username {
@@ -2012,6 +2076,7 @@
             const liquidPath = document.getElementById('liquidPath');
             const liquidContainer = document.getElementById('liquidContainer');
             let readyToRefresh = false;
+            let isDragging = false;
 
             feedContainer.addEventListener('touchstart', (e) => {
                 if (feedContainer.scrollTop === 0 && !isRefreshing) {
@@ -2019,6 +2084,8 @@
                 } else {
                     touchStartY = 0;
                 }
+                isDragging = true;
+                pullToRefresh.classList.remove('snapping-back');
             }, { passive: true });
 
             feedContainer.addEventListener('touchmove', (e) => {
@@ -2027,14 +2094,16 @@
                 const currentY = e.touches[0].clientY;
                 const deltaY = currentY - touchStartY;
 
-                if (deltaY > 0) {
+                if (deltaY > 0 && isDragging) {
                     e.preventDefault(); // Prevent browser's default pull-to-refresh
-                    const pullDistance = Math.min(deltaY, pullThreshold + 20);
-                    const stretch = Math.max(0, deltaY - 20);
-                    const pathD = `M 25, 20 C 10, ${20 + stretch * 0.5} 40, ${20 + stretch * 0.5} 25, ${20 + stretch}`;
+                    // Apply damping to the pull distance for a more natural feel
+                    const dampedDelta = deltaY * 0.4;
+                    const stretch = Math.max(0, dampedDelta - 20);
+                    const pathD = `M 25, 20 C 10, ${20 + stretch * 0.5} 40, ${20 + stretch * 0.5} 25, ${20 + dampedDelta}`;
                     
                     liquidPath.setAttribute('d', pathD);
-                    liquidContainer.style.transform = `translateY(${stretch}px)`;
+                    // Use requestAnimationFrame for smoother rendering
+                    requestAnimationFrame(() => { liquidContainer.style.transform = `translateY(${dampedDelta}px)`; });
 
                     pullToRefresh.style.top = `-50px`; // Keep the SVG container static
 
@@ -2053,10 +2122,11 @@
             }, { passive: false });
 
             feedContainer.addEventListener('touchend', async (e) => {
+                isDragging = false;
                 if (touchStartY === 0 || isRefreshing) return;
 
                 const currentY = e.changedTouches[0].clientY;
-                const deltaY = currentY - touchStartY;
+                const deltaY = (currentY - touchStartY) * 0.4; // Use damped value for consistency
 
                 if (deltaY > pullThreshold) {
                     if (navigator.vibrate) {
@@ -2064,8 +2134,6 @@
                     }
                     isRefreshing = true;
                     liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
-                    liquidContainer.style.transform = 'translateY(0)';
-                    liquidContainer.style.transition = 'transform 0.4s cubic-bezier(0.2, 1.5, 0.7, 1)';
                     
                     pullToRefreshIcon.style.display = 'none';
                     pullToRefreshSpinner.style.display = 'block';
@@ -2073,6 +2141,7 @@
                     await refreshCurrentFeed(); // Refresh the current feed
                 } else {
                     // If not pulled far enough, just reset
+                    pullToRefresh.classList.add('snapping-back');
                     resetPullToRefresh();
                 }
                 readyToRefresh = false;
@@ -2763,11 +2832,11 @@
             const liquidContainer = document.getElementById('liquidContainer');
 
             // Add checks to ensure elements exist before manipulating them
-            if (pullToRefresh) pullToRefresh.classList.remove('ready');
+            if (pullToRefresh) pullToRefresh.classList.remove('ready', 'snapping-back');
             if (liquidPath) liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
             if (liquidContainer) {
                 liquidContainer.style.transform = 'translateY(0)';
-                liquidContainer.style.transition = 'transform 0.2s ease';
+                // The transition is now handled by the 'snapping-back' class
             }
             if (pullToRefreshIcon) pullToRefreshIcon.style.display = 'block';
             if (pullToRefreshSpinner) pullToRefreshSpinner.style.display = 'none';
@@ -2780,6 +2849,12 @@
         // Renders just the top bar, useful for empty feed states
         function renderTopBar() {
             const topBarContainer = document.getElementById('staticTopBar');
+            // Check if we are on a mobile-sized screen
+            const isMobile = window.innerWidth <= 768;
+            const feedNames = {
+                'for-you': 'For You', 'following': 'Following', 'saved': 'Saved'
+            };
+
             if (!topBarContainer) return;
 
             let profileIconHtml = '';
@@ -2792,6 +2867,24 @@
                 }
             }
 
+            let feedSwitcherHtml = '';
+            if (isMobile) {
+                // Render dropdown for mobile
+                feedSwitcherHtml = `
+                    <div class="feed-switcher-current" onclick="toggleFeedDropdown()">
+                        <span id="currentFeedName">${feedNames[currentFeedType]}</span>
+                        <i class="fas fa-chevron-down" id="feedDropdownIcon"></i>
+                    </div>
+                    <div class="feed-switcher-options" id="feedSwitcherOptions"></div>
+                `;
+            } else {
+                // Render tabs for desktop
+                feedSwitcherHtml = `
+                    <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you"><span class="feed-tab-text">For You</span><div class="tab-spinner"></div></span>
+                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'following' ? 'active' : ''}" data-feed-type="following"><span class="feed-tab-text">Following</span><div class="tab-spinner"></div></span>` : ''}
+                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved"><span class="feed-tab-text">Saved</span><div class="tab-spinner"></div></span>` : ''}
+                `;
+            }
             const topBarHTML = `
                 <div class="top-bar-left">
                     <div class="back-button" onclick="goToDashboard()">
@@ -2804,17 +2897,30 @@
                         <div class="profile-dropdown-item" onclick="logout()"><i class="fas fa-sign-out-alt" style="width: 16px;"></i> Log Out</div>
                     </div>
                 </div>
-                <div class="feed-switcher">
-                    <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you"><span class="feed-tab-text">For You</span><div class="tab-spinner"></div></span>
-                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'following' ? 'active' : ''}" data-feed-type="following"><span class="feed-tab-text">Following</span><div class="tab-spinner"></div></span>` : ''}
-                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved"><span class="feed-tab-text">Saved</span><div class="tab-spinner"></div></span>` : ''}
-                </div>
+                <div class="feed-switcher">${feedSwitcherHtml}</div>
                 <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
                     ${isLoggedIn ? `<div class="search-icon" id="searchIcon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>` : ''}
                     ${isLoggedIn ? `<div class="add-post-btn" onclick="openUploadModal()">+</div>` : ''}
                 </div>
             `;
             topBarContainer.innerHTML = topBarHTML;
+
+            // If on mobile, populate the dropdown options
+            if (isMobile) {
+                const optionsContainer = document.getElementById('feedSwitcherOptions');
+                if (optionsContainer) {
+                    optionsContainer.innerHTML = ''; // Clear previous options
+                    Object.keys(feedNames).forEach(feedType => {
+                        if (feedType !== currentFeedType && (isLoggedIn || feedType === 'for-you')) {
+                            const option = document.createElement('div');
+                            option.className = 'feed-switcher-option';
+                            option.textContent = feedNames[feedType];
+                            option.dataset.feedType = feedType;
+                            optionsContainer.appendChild(option);
+                        }
+                    });
+                }
+            }
         }
 
         // Toggle profile dropdown
@@ -2832,29 +2938,73 @@
                 }, { once: true });
             }
         }
+
+        // Toggle feed dropdown (for mobile)
+        function toggleFeedDropdown() {
+            const dropdown = document.getElementById('feedSwitcherOptions');
+            const icon = document.getElementById('feedDropdownIcon');
+            if (!dropdown || !icon) return;
+            dropdown.classList.toggle('active');
+            icon.style.transform = dropdown.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
+
+            // Add a listener to close the dropdown if user clicks outside
+            if (dropdown.classList.contains('active')) {
+                document.addEventListener('click', (e) => {
+                    // Close if the click is not on the dropdown or the current feed name
+                    if (!e.target.closest('.feed-switcher-options') && !e.target.closest('.feed-switcher-current')) {
+                        dropdown.classList.remove('active');
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                }, { once: true });
+            }
+        }
+
         // Set up event listeners
         function setupEventListeners() {
             // Use event delegation for feed tabs since they are re-rendered
             const feedContainer = document.getElementById('staticTopBar');
-            // Remove any old listener to prevent duplicates
+            // Remove any old listener to prevent duplicates - IMPORTANT
             feedContainer.removeEventListener('click', handleFeedTabClick); 
             feedContainer.addEventListener('click', handleFeedTabClick);
 
             // Handler function for feed tab clicks
             async function handleFeedTabClick(e) {
-                const clickedTab = e.target.closest('.feed-tab');
-                if (!clickedTab) return; // Exit if the click was not on a tab
+                const clickedElement = e.target.closest('.feed-tab, .feed-switcher-option');
+                if (!clickedElement) return;
 
-                const feedType = clickedTab.dataset.feedType;
-                if (feedType === currentFeedType || clickedTab.classList.contains('loading')) return;
+                const feedType = clickedElement.dataset.feedType;
 
-                clickedTab.classList.add('loading');
-                // This logic will now correctly handle clicks on newly created tabs
-                showSkeletonLoader(); // Show skeleton loader immediately 
+                // Handle dropdown option click
+                if (clickedElement.classList.contains('feed-switcher-option')) {
+                    const dropdown = document.getElementById('feedSwitcherOptions');
+                    const icon = document.getElementById('feedDropdownIcon');
+                    if (dropdown) dropdown.classList.remove('active');
+                    if (icon) icon.style.transform = 'rotate(0deg)';
+                }
+
+                // Common logic for both tabs and dropdown options
+                // Do nothing if the same tab is clicked or if it's already loading
+                if (feedType === currentFeedType || clickedElement.classList.contains('loading')) return;
+
+                // Handle guest attempts to access protected feeds
+                if (!isLoggedIn && (feedType === 'following' || feedType === 'saved')) {
+                    showGuestLoginModal();
+                    return;
+                }
+
+                // Show loading state
+                showSkeletonLoader();
+                // Add loading class to the specific tab that was clicked
+                const topBar = document.getElementById('staticTopBar');
+                topBar.querySelectorAll('.feed-tab, .feed-switcher-option').forEach(el => el.classList.remove('loading'));
+                clickedElement.classList.add('loading');
+
+                // Update state
                 currentFeedType = feedType;
-                localStorage.setItem('lastFeedType', feedType); // Save preference
+                localStorage.setItem('lastFeedType', currentFeedType);
+
+                // Fetch new feed data, which will re-render everything
                 await refreshCurrentFeed();
-                renderTopBar(); // Re-render top bar to update active tab
             }
 
             // --- The rest of your event listeners ---
@@ -3037,12 +3187,18 @@
                                 video.play().catch(e => console.log('Autoplay prevented:', e));
                             });
                         }
+                        // Add class for visible animation
+                        entry.target.querySelector('.video-player').style.transform = 'scale(1)';
+                        entry.target.querySelector('.video-player').style.opacity = '1';
                     } else {
                         video.pause();
                         // video.currentTime = 0; // Don't reset video to the beginning
                         if (currentVideoId === entry.target.id) {
                             currentVideoId = null;
                         }
+                        // Add class for scrolled-away animation
+                        entry.target.querySelector('.video-player').style.transform = 'scale(0.9)';
+                        entry.target.querySelector('.video-player').style.opacity = '0.7';
                     }
                 });
             }, options);
@@ -4309,6 +4465,7 @@
         window.goToDashboard = goToDashboard;
         window.showGuestLoginModal = showGuestLoginModal; // Add this line
         window.toggleProfileDropdown = toggleProfileDropdown;
+        window.toggleFeedDropdown = toggleFeedDropdown; // Add this line
         window.logout = logout;
         window.handleGuestAction = handleGuestAction; // Add this line to make the function globally available
     </script>
