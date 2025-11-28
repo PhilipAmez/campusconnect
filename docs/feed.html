@@ -4451,9 +4451,9 @@
             searchResultsContainer.innerHTML = ''; // Clear previous results
 
             results.forEach(post => {
-                const resultItem = document.createElement('a');
-                resultItem.href = `?videoId=${post.id}`; // Link to the video
+                const resultItem = document.createElement('div'); // Changed from 'a' to 'div'
                 resultItem.className = 'search-result-item';
+                resultItem.dataset.videoId = post.id; // Store video ID in a data attribute
 
                 resultItem.innerHTML = `
                     <video class="search-result-thumbnail" src="${post.media_url}#t=1" preload="metadata"></video>
@@ -4462,8 +4462,46 @@
                         <div class="username">@${post.username || 'user'} &bull; ❤️ ${post.likes_count || 0}</div>
                     </div>
                 `;
+
+                resultItem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateToVideo(post.id);
+                });
+
                 searchResultsContainer.appendChild(resultItem);
             });
+        }
+
+        // New function to handle navigation to a video without a page reload
+        async function navigateToVideo(videoId) {
+            // 1. Close the search overlay
+            document.getElementById('searchOverlay').classList.remove('active');
+            document.getElementById('searchIcon').classList.remove('active');
+
+            // 2. Check if the video element already exists in the feed
+            let videoElement = document.getElementById(`video-${videoId}`);
+
+            if (videoElement) {
+                // 3. If it exists, scroll to it smoothly
+                videoElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // 4. If it doesn't exist, fetch it and prepend it to the feed
+                try {
+                    showSkeletonLoader(); // Show loading state
+                    // Use the logic from handleSharedLink but without a full page reload
+                    await handleSharedLink(videoId);
+
+                    // After re-initialization, the element should exist
+                    videoElement = document.getElementById(`video-${videoId}`);
+                    if (videoElement) {
+                        videoElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    }
+                } catch (error) {
+                    console.error('Error navigating to video:', error);
+                    showToast('Could not load the selected video.');
+                    await refreshCurrentFeed(); // Fallback to refreshing the current feed on error
+                }
+            }
         }
 
 
