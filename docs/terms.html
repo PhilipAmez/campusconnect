@@ -33,6 +33,46 @@
             color: var(--text-dark);
         }
         
+        /* Header Navigation */
+        .header-nav {
+            margin-top: 2rem;
+            padding: 1rem 0;
+            position: relative;
+            z-index: 2;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+        
+        .nav-links a:hover {
+            opacity: 0.8;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        
         header {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: var(--white);
@@ -66,6 +106,7 @@
             font-size: 2.8rem;
             margin-bottom: 0.5rem;
             font-weight: 700;
+            color: var(--white);
         }
         
         .header-subtitle {
@@ -75,6 +116,7 @@
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
+            color: var(--white);
         }
         
         .header-icon {
@@ -87,6 +129,7 @@
             line-height: 100px;
             border-radius: 50%;
             animation: float 3s ease-in-out infinite;
+            color: var(--white);
         }
         
         @keyframes float {
@@ -102,6 +145,7 @@
             gap: 0.5rem;
             font-size: 0.9rem;
             margin-top: 1.5rem;
+            color: var(--white);
         }
         
         .breadcrumb a {
@@ -391,6 +435,20 @@
                 flex-direction: column;
                 gap: 1rem;
             }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
+                display: none;
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
         }
         
         @media (max-width: 480px) {
@@ -423,11 +481,20 @@
             </div>
             <h1>Terms of Service</h1>
             <p class="header-subtitle">Welcome to PeerLoom! Please read these terms carefully before using our platform.</p>
-            <div class="breadcrumb">
-                <a href="/index.html"><i class="fas fa-home"></i> Home</a>
-                <span class="separator">/</span>
-                <span>Terms of Service</span>
-            </div>
+           
+            
+            <!-- Navigation at the bottom of the header -->
+            <nav class="header-nav">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i> Menu
+                </button>
+                <div class="nav-links" id="navLinks">
+                    <a href="/index.html">Home</a>
+                    <a href="/privacy.html">Privacy Policy</a>
+                    <a href="/terms.html">Terms of Service</a>
+                    <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
+                </div>
+            </nav>
         </div>
     </header>
 
@@ -552,5 +619,15 @@
             <p class="copyright">© 2025 PeerLoom. All rights reserved. | Collaborative Learning Reimagined</p>
         </div>
     </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navLinks = document.getElementById('navLinks');
+        
+        mobileMenuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+    </script>
 </body>
 </html>
