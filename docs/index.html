@@ -140,7 +140,7 @@
             }
         }
 
-        /* Splash Screen Styles */
+        /* Splash Screen Styles - SLOWER ANIMATION */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -187,7 +187,7 @@
             }
         }
 
-        /* Animation Keyframes */
+        /* Animation Keyframes - SLOWER DURATIONS */
         @keyframes letterAppear {
             0% {
                 opacity: 0;
@@ -580,13 +580,17 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="nav-links" id="navLinks">
+                <!-- Added About and Privacy Policy links to navigation -->
+                <a href="about.html" class="nav-link">About</a>
+                <a href="privacy.html" class="nav-link">Privacy</a>
                 <a href="login.html" class="nav-link">Login</a>
                 <a href="support.html" class="nav-link">Support</a>
             </div>
             <div class="nav-links mobile" id="navLinksMobile">
+                <a href="about.html" class="nav-link">About</a>
+                <a href="privacy.html" class="nav-link">Privacy</a>
                 <a href="login.html" class="nav-link">Login</a>
                 <a href="signup.html" class="nav-link">Sign Up</a>
-                <a href="about.html" class="nav-link">About</a>
                 <a href="support.html" class="nav-link">Support</a>
             </div>
         </nav>
@@ -722,7 +726,7 @@
             }
         }
 
-        // Splash screen animation
+        // Splash screen animation - SLOWER TIMING
         document.addEventListener('DOMContentLoaded', () => {
             const splashScreen = document.getElementById('splash-screen');
             const mainContent = document.getElementById('main-content');
@@ -738,30 +742,30 @@
                 };
             }
             
-            // Animate each letter with delays
+            // Animate each letter with delays - SLOWER TIMING
             letters.forEach((letter, index) => {
-                // Set initial animation for appearance
+                // Set initial animation for appearance - SLOWER
                 setTimeout(() => {
-                    letter.style.animation = 'letterAppear 0.5s forwards';
+                    letter.style.animation = 'letterAppear 0.8s forwards';
                     
-                    // Add shake animation after appearance
+                    // Add shake animation after appearance - SLOWER
                     setTimeout(() => {
-                        letter.style.animation = 'letterShake 0.5s forwards';
+                        letter.style.animation = 'letterShake 0.8s forwards';
                         
-                        // Add explosion animation after shaking
+                        // Add explosion animation after shaking - SLOWER
                         setTimeout(() => {
                             const explosionValues = getRandomExplosionValues();
                             letter.style.setProperty('--tx', explosionValues.tx);
                             letter.style.setProperty('--ty', explosionValues.ty);
-                            letter.style.animation = 'letterExplode 0.8s forwards';
-                        }, 500);
-                    }, 500);
-                }, index * 200);
+                            letter.style.animation = 'letterExplode 1.2s forwards';
+                        }, 800); // Increased from 500 to 800
+                    }, 800); // Increased from 500 to 800
+                }, index * 300); // Increased from 200 to 300
             });
             
-            // Hide splash screen and show main content after animation completes
+            // Hide splash screen and show main content after animation completes - SLOWER
             setTimeout(() => {
-                splashScreen.style.animation = 'fadeOut 0.5s forwards';
+                splashScreen.style.animation = 'fadeOut 0.8s forwards';
                 setTimeout(() => {
                     splashScreen.style.display = 'none';
                     mainContent.style.display = 'block';
@@ -774,8 +778,8 @@
 
                     // Handle any SPA redirects
                     handleRedirect();
-                }, 500);
-            }, 3500);
+                }, 800); // Increased from 500 to 800
+            }, 5000); // Increased from 3500 to 5000
         });
 
         // Initialize main page functionality
