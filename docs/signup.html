@@ -268,8 +268,6 @@
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
         </a>
         <div class="nav-links">
-            <!-- Added Home link to navigation -->
-            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
             <a href="login.html" class="nav-link"><i class="fas fa-sign-in-alt"></i> Login</a>
             <a href="support.html" class="nav-link"><i class="fas fa-headset"></i> Support</a>
         </div>
@@ -543,7 +541,9 @@
                 profilePhotoUrl = generateInitialsAvatar(firstName, lastName);
             }
 
-            // 2. Add profilePhotoUrl to both signUp and profile insert
+            const fullName = `${firstName} ${lastName}`.trim();
+
+            // FIXED: Use upsert instead of update to handle both new profiles and existing ones
             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -580,25 +580,29 @@
                 return;
             }
 
-            const fullName = `${firstName} ${lastName}`.trim();
-
-            // UPDATE the existing profile instead of INSERT (since Supabase trigger already created it)
+            // FIXED: Use upsert to handle profile creation/update properly
+            // This ensures the profile is created with correct data mapping
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .update({
-                    full_name: fullName,
+                .upsert({
+                    id: newUser.id,
+                    full_name: fullName,        // Full name goes in full_name column
                     username: username,
                     contact: contact,
-                    email: newUser.email,
+                    email: email,               // Email goes in email column
                     profile_photo: profilePhotoUrl,
                     campus: campus,
                     department: department,
-                    level: level
-                })
-                .eq('id', newUser.id); // Update the profile for this specific user
+                    level: level,
+                    created_at: new Date().toISOString(),
+                    join_date: new Date().toISOString()
+                }, {
+                    onConflict: 'id',  // This ensures we update if profile already exists
+                    ignoreDuplicates: false
+                });
 
             if (profileError) {
-                console.error('Profile update error:', profileError);
+                console.error('Profile upsert error:', profileError);
                 // Show verification message even if profile update fails
                 userEmailSpan.textContent = email;
                 form.style.display = 'none';
