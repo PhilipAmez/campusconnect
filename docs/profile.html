@@ -2774,9 +2774,8 @@
             // Like buttons
             document.querySelectorAll('.post-stats .like-btn, .post-stats .like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
-                    const postId = this.getAttribute('data-post-id');
-                    const post = userPosts.find(p => p.id === postId);
-                    if (post) toggleLike(post, this);
+                    const id = this.getAttribute('data-post-id');
+                    toggleLike(id, this);
                 });
             });
 
@@ -2863,9 +2862,8 @@
             // Attach like handlers for saved posts
             savedPostsGrid.querySelectorAll('.like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
-                    const postId = this.getAttribute('data-post-id');
-                    const post = savedPosts.find(p => p.id === postId);
-                    if (post) toggleLike(post, this);
+                    const id = this.getAttribute('data-post-id');
+                    toggleLike(id, this);
                 });
             });
 
@@ -2975,7 +2973,7 @@
         viewerLikeBtn.addEventListener('click', function() {
             const postId = this.dataset.postId;
             if (postId) {
-                toggleLike(currentVideoList.find(p => p.id === postId), this);
+                toggleLike(postId, this);
             }
         });
 
@@ -3195,27 +3193,13 @@
               
                 if (error) throw error;
               
-                // NEW: Create a notification for the user who was followed
-                // Don't notify if a user follows themselves
-                if (currentUser.id !== userId) {
-                    const { error: notificationError } = await supabase
-                        .from('notifications')
-                        .insert({
-                            user_id: userId, // The person being followed
-                            sender_id: currentUser.id, // The person who followed
-                            type: 'new_follower',
-                            content: 'started following you.'
-                        });
-
-                    if (notificationError) console.error('Error creating follow notification:', notificationError);
-                }
-
+                // The real-time subscription will update the UI automatically
                 showError('User followed successfully!');
               
             } catch (error) {
                 console.error('Error following user:', error);
                 throw error;
-            } 
+            }
         }
         // Unfollow a user
         window.unfollowUser = async function(userId) {
@@ -3250,68 +3234,6 @@
                 followBtn.onclick = () => followUser(profileUserId);
                 followBtn.className = 'btn btn-primary';
             }
-        }
-        
-        // NEW: Toggle like on a post and send notification
-        async function toggleLike(post, likeButtonElement) {
-            if (!post || !currentUser) return;
-
-            const postId = post.id;
-            const isCurrentlyLiked = userLikes.has(postId);
-            const postAuthorId = post.user_id;
-
-            // Optimistically update UI
-            const originalLikesCount = post.likes_count || 0;
-            const newLikesCount = isCurrentlyLiked ? originalLikesCount - 1 : originalLikesCount + 1;
-
-            // Update all UI elements related to this post
-            document.querySelectorAll(`[data-post-id="${postId}"]`).forEach(el => {
-                if (el.classList.contains('like-btn')) {
-                    el.classList.toggle('liked', !isCurrentlyLiked);
-                    el.innerHTML = `<i class="fas fa-heart"></i> ${newLikesCount}`;
-                }
-            });
-            if (viewerLikeBtn.dataset.postId === postId) {
-                viewerLikeBtn.classList.toggle('liked', !isCurrentlyLiked);
-                viewerLikeCount.textContent = newLikesCount;
-            }
-
-            if (isCurrentlyLiked) {
-                // Unlike the post
-                userLikes.delete(postId);
-                const { error } = await supabase.from('likes').delete().match({ user_id: currentUser.id, post_id: postId });
-                if (error) {
-                    console.error("Error unliking post:", error);
-                    // Revert UI on error
-                    userLikes.add(postId); 
-                    // You might want to re-render the UI elements here to be safe
-                }
-            } else {
-                // Like the post
-                userLikes.add(postId);
-                const { error } = await supabase.from('likes').insert({ user_id: currentUser.id, post_id: postId });
-                if (error) {
-                    console.error("Error liking post:", error);
-                    // Revert UI on error
-                    userLikes.delete(postId);
-                } else {
-                    // NEW: Create a notification for the post author
-                    // Don't notify if a user likes their own post
-                    if (currentUser.id !== postAuthorId) {
-                        const { error: notificationError } = await supabase
-                            .from('notifications')
-                            .insert({
-                                user_id: postAuthorId, // The post author
-                                sender_id: currentUser.id, // The user who liked the post
-                                post_id: postId, // The post that was liked
-                                type: 'like_post',
-                                content: `liked your post: "${post.title || 'Untitled Post'}"`
-                            });
-                        if (notificationError) console.error('Error creating like notification:', notificationError);
-                    }
-                }
-            }
-            await loadSavedPosts(); // Refresh saved posts list
         }
 
         // Load user notifications from Supabase
@@ -3371,8 +3293,6 @@
                     message = `New post: "${postPreview}"`;
                 } else if (notification.type === 'new_follower') {
                     message = 'Started following you';
-                } else if (notification.type === 'like_post') {
-                    message = `Liked your post: "${notification.post?.title || 'Untitled Post'}"`;
                 } else {
                     message = notification.content;
                 }
@@ -3394,8 +3314,8 @@
 
         // NEW: Handle clicks on notifications
         async function handleNotificationClick(notification) {
-            // If the notification is about a post (new or liked), open it
-            if ((notification.type === 'new_post' || notification.type === 'like_post') && notification.post_id) {
+            // If the notification is about a new post and has a post associated, open it
+            if (notification.type === 'new_post' && notification.post_id) {
                 // You might need to fetch the full post list of the sender to provide context for next/prev
                 // For now, we'll just open the single video.
                 const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
@@ -3403,18 +3323,12 @@
             }
             // Mark the notification as read
             if (!notification.read) {
-                // Optimistically update the UI
-                const item = document.querySelector(`[data-notification-id="${notification.id}"]`);
-                if (item) item.classList.remove('unread');
-                notification.read = true;
-                updateNotificationsUI(); // Re-render to update bell icon
-
                 const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notification.id);
                 if (!error) {
                     notification.read = true;
                     updateNotificationsUI(); // Re-render to remove unread style
                 }
-            });
+            };
         }
         // Set up real-time notifications subscription
         function setupNotificationsSubscription() {
