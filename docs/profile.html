@@ -128,6 +128,19 @@
             color: white;
             transform: translateY(-2px);
         }
+        /* NEW: Notification badge on bell icon */
+        .nav-icon.has-notifications::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--danger);
+            border-radius: 50%;
+            border: 2px solid var(--bg-secondary);
+            animation: pulse 1.5s infinite;
+        }
         .theme-indicator {
             position: absolute;
             left: 50%;
@@ -145,6 +158,13 @@
         .header.swiping .theme-indicator {
             opacity: 1;
         }
+        @keyframes pulse {
+            0% { transform: scale(0.9); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(0.9); }
+        }
+
+
         /* Main content layout */
         .main-content {
             padding-top: 80px;
@@ -843,12 +863,17 @@
         .notification-item {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 8px;
+            cursor: pointer;
             padding: 1rem;
             transition: var(--transition);
         }
         .notification-item.unread {
             background: rgba(124, 58, 237, 0.1);
             border-left: 3px solid var(--primary);
+        }
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(4px);
         }
         .notification-header {
             display: flex;
@@ -2749,8 +2774,9 @@
             // Like buttons
             document.querySelectorAll('.post-stats .like-btn, .post-stats .like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
-                    const id = this.getAttribute('data-post-id');
-                    toggleLike(id, this);
+                    const postId = this.getAttribute('data-post-id');
+                    const post = userPosts.find(p => p.id === postId);
+                    if (post) toggleLike(post, this);
                 });
             });
 
@@ -2837,8 +2863,9 @@
             // Attach like handlers for saved posts
             savedPostsGrid.querySelectorAll('.like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
-                    const id = this.getAttribute('data-post-id');
-                    toggleLike(id, this);
+                    const postId = this.getAttribute('data-post-id');
+                    const post = savedPosts.find(p => p.id === postId);
+                    if (post) toggleLike(post, this);
                 });
             });
 
@@ -2948,7 +2975,7 @@
         viewerLikeBtn.addEventListener('click', function() {
             const postId = this.dataset.postId;
             if (postId) {
-                toggleLike(postId, this);
+                toggleLike(currentVideoList.find(p => p.id === postId), this);
             }
         });
 
@@ -3168,13 +3195,27 @@
               
                 if (error) throw error;
               
-                // The real-time subscription will update the UI automatically
+                // NEW: Create a notification for the user who was followed
+                // Don't notify if a user follows themselves
+                if (currentUser.id !== userId) {
+                    const { error: notificationError } = await supabase
+                        .from('notifications')
+                        .insert({
+                            user_id: userId, // The person being followed
+                            sender_id: currentUser.id, // The person who followed
+                            type: 'new_follower',
+                            content: 'started following you.'
+                        });
+
+                    if (notificationError) console.error('Error creating follow notification:', notificationError);
+                }
+
                 showError('User followed successfully!');
               
             } catch (error) {
                 console.error('Error following user:', error);
                 throw error;
-            }
+            } 
         }
         // Unfollow a user
         window.unfollowUser = async function(userId) {
@@ -3210,6 +3251,68 @@
                 followBtn.className = 'btn btn-primary';
             }
         }
+        
+        // NEW: Toggle like on a post and send notification
+        async function toggleLike(post, likeButtonElement) {
+            if (!post || !currentUser) return;
+
+            const postId = post.id;
+            const isCurrentlyLiked = userLikes.has(postId);
+            const postAuthorId = post.user_id;
+
+            // Optimistically update UI
+            const originalLikesCount = post.likes_count || 0;
+            const newLikesCount = isCurrentlyLiked ? originalLikesCount - 1 : originalLikesCount + 1;
+
+            // Update all UI elements related to this post
+            document.querySelectorAll(`[data-post-id="${postId}"]`).forEach(el => {
+                if (el.classList.contains('like-btn')) {
+                    el.classList.toggle('liked', !isCurrentlyLiked);
+                    el.innerHTML = `<i class="fas fa-heart"></i> ${newLikesCount}`;
+                }
+            });
+            if (viewerLikeBtn.dataset.postId === postId) {
+                viewerLikeBtn.classList.toggle('liked', !isCurrentlyLiked);
+                viewerLikeCount.textContent = newLikesCount;
+            }
+
+            if (isCurrentlyLiked) {
+                // Unlike the post
+                userLikes.delete(postId);
+                const { error } = await supabase.from('likes').delete().match({ user_id: currentUser.id, post_id: postId });
+                if (error) {
+                    console.error("Error unliking post:", error);
+                    // Revert UI on error
+                    userLikes.add(postId); 
+                    // You might want to re-render the UI elements here to be safe
+                }
+            } else {
+                // Like the post
+                userLikes.add(postId);
+                const { error } = await supabase.from('likes').insert({ user_id: currentUser.id, post_id: postId });
+                if (error) {
+                    console.error("Error liking post:", error);
+                    // Revert UI on error
+                    userLikes.delete(postId);
+                } else {
+                    // NEW: Create a notification for the post author
+                    // Don't notify if a user likes their own post
+                    if (currentUser.id !== postAuthorId) {
+                        const { error: notificationError } = await supabase
+                            .from('notifications')
+                            .insert({
+                                user_id: postAuthorId, // The post author
+                                sender_id: currentUser.id, // The user who liked the post
+                                post_id: postId, // The post that was liked
+                                type: 'like_post',
+                                content: `liked your post: "${post.title || 'Untitled Post'}"`
+                            });
+                        if (notificationError) console.error('Error creating like notification:', notificationError);
+                    }
+                }
+            }
+            await loadSavedPosts(); // Refresh saved posts list
+        }
 
         // Load user notifications from Supabase
         async function loadUserNotifications() {
@@ -3217,7 +3320,7 @@
                 const { data: notifications, error } = await supabase
                     .from('notifications')
                     .select(`
-                        *,
+                        id, type, content, read, created_at, sender_id, post_id,
                         sender:profiles!sender_id(full_name, username),
                         post:posts(id, content)
                     `)
@@ -3239,6 +3342,11 @@
         function updateNotificationsUI() {
             notificationsList.innerHTML = '';
           
+            // NEW: Check for unread notifications and update bell icon
+            const hasUnread = userNotifications.some(n => !n.read);
+            const notificationsBtnIcon = document.getElementById('notificationsBtn');
+            notificationsBtnIcon.classList.toggle('has-notifications', hasUnread);
+
             if (userNotifications.length === 0) {
                 notificationsList.innerHTML = `
                     <div class="empty-state">
@@ -3252,6 +3360,7 @@
             userNotifications.forEach(notification => {
                 const notificationItem = document.createElement('div');
                 notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                notificationItem.dataset.notificationId = notification.id;
               
                 // Format time
                 const time = new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -3262,6 +3371,8 @@
                     message = `New post: "${postPreview}"`;
                 } else if (notification.type === 'new_follower') {
                     message = 'Started following you';
+                } else if (notification.type === 'like_post') {
+                    message = `Liked your post: "${notification.post?.title || 'Untitled Post'}"`;
                 } else {
                     message = notification.content;
                 }
@@ -3275,6 +3386,34 @@
                 `;
               
                 notificationsList.appendChild(notificationItem);
+
+                // NEW: Add click listener to handle notification actions
+                notificationItem.addEventListener('click', () => handleNotificationClick(notification));
+            });
+        }
+
+        // NEW: Handle clicks on notifications
+        async function handleNotificationClick(notification) {
+            // If the notification is about a post (new or liked), open it
+            if ((notification.type === 'new_post' || notification.type === 'like_post') && notification.post_id) {
+                // You might need to fetch the full post list of the sender to provide context for next/prev
+                // For now, we'll just open the single video.
+                const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
+                if (post) openVideoViewer(post.id, [post]);
+            }
+            // Mark the notification as read
+            if (!notification.read) {
+                // Optimistically update the UI
+                const item = document.querySelector(`[data-notification-id="${notification.id}"]`);
+                if (item) item.classList.remove('unread');
+                notification.read = true;
+                updateNotificationsUI(); // Re-render to update bell icon
+
+                const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notification.id);
+                if (!error) {
+                    notification.read = true;
+                    updateNotificationsUI(); // Re-render to remove unread style
+                }
             });
         }
         // Set up real-time notifications subscription
