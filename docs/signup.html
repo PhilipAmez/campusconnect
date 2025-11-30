@@ -283,6 +283,8 @@
             <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
         </a>
         <div class="nav-links">
+            <!-- Added Home link to navigation -->
+            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
             <a href="login.html" class="nav-link"><i class="fas fa-sign-in-alt"></i> Login</a>
             <a href="support.html" class="nav-link"><i class="fas fa-headset"></i> Support</a>
         </div>
@@ -531,7 +533,6 @@
                     return;
                 }
 
-<<<<<<< HEAD
                 // Check if username and email are still available (double-check)
                 const [usernameCheck, emailCheck] = await Promise.all([
                     checkUsernameExists(username),
@@ -543,25 +544,6 @@
                     usernameError.style.display = 'flex';
                     document.getElementById('username').focus();
                     return;
-=======
-            const fullName = `${firstName} ${lastName}`.trim();
-
-            // FIXED: Use upsert instead of update to handle both new profiles and existing ones
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        firstName,
-                        lastName,
-                        username,
-                        contact,
-                        profilePhoto: profilePhotoUrl,
-                        campus,
-                        department,
-                        level
-                    }
->>>>>>> 1b4f7e22b95b179291d00fd2a8bc33e8be5e4118
                 }
 
                 if (emailCheck.exists) {
@@ -611,7 +593,6 @@
                     }
                 });
 
-<<<<<<< HEAD
                 if (signUpError) {
                     console.error('Sign up error:', signUpError);
                     if (signUpError.message.includes('already registered')) {
@@ -626,32 +607,6 @@
                 }
 
                 // Show verification message
-=======
-            // FIXED: Use upsert to handle profile creation/update properly
-            // This ensures the profile is created with correct data mapping
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: newUser.id,
-                    full_name: fullName,        // Full name goes in full_name column
-                    username: username,
-                    contact: contact,
-                    email: email,               // Email goes in email column
-                    profile_photo: profilePhotoUrl,
-                    campus: campus,
-                    department: department,
-                    level: level,
-                    created_at: new Date().toISOString(),
-                    join_date: new Date().toISOString()
-                }, {
-                    onConflict: 'id',  // This ensures we update if profile already exists
-                    ignoreDuplicates: false
-                });
-
-            if (profileError) {
-                console.error('Profile upsert error:', profileError);
-                // Show verification message even if profile update fails
->>>>>>> 1b4f7e22b95b179291d00fd2a8bc33e8be5e4118
                 userEmailSpan.textContent = email;
                 form.style.display = 'none';
                 verificationMessage.style.display = 'block';
