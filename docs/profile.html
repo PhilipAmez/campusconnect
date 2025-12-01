@@ -1524,6 +1524,7 @@
                 </div>
                 <div class="nav-icon" id="notificationsBtn">
                     <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="notificationCount"></span>
                 </div>
                 <div class="nav-icon" id="settingsBtn">
                     <i class="fas fa-cog"></i>
@@ -2084,6 +2085,7 @@
         const closeDrawer = document.getElementById('closeDrawer');
         const notificationsBtn = document.getElementById('notificationsBtn');
         const notificationsDrawer = document.getElementById('notificationsDrawer');
+        const notificationCount = document.getElementById('notificationCount');
         const closeNotifications = document.getElementById('closeNotifications');
         const notificationsList = document.getElementById('notificationsList');
         const markAllReadBtn = document.getElementById('markAllReadBtn');
@@ -2152,6 +2154,7 @@
         let followers = [];
         let following = [];
         let userPosts = [];
+        let currentUserFollowing = []; // NEW: Track logged-in user's following list
         let savedPosts = [];
         let userLikes = new Set(); // Track user's likes
 
@@ -2195,6 +2198,9 @@
                 // Load user profile
                 await loadUserProfile();
               
+                // NEW: Always load the logged-in user's following list for correct button states
+                await loadCurrentUserFollowing();
+
                 // Load user likes (which in turn loads saved posts)
                 await loadUserLikes();
 
@@ -2364,6 +2370,26 @@
                 showError('Error loading profile data');
             }
         }
+
+        // NEW: Load the list of users the logged-in user is following
+        async function loadCurrentUserFollowing() {
+            if (!currentUser) return;
+            try {
+                const { data, error } = await supabase
+                    .from('followers')
+                    .select('following_id')
+                    .eq('follower_id', currentUser.id);
+
+                if (error) throw error;
+
+                // Store just the IDs for quick lookups
+                currentUserFollowing = data.map(item => item.following_id);
+
+            } catch (error) {
+                console.error('Error loading current user following list:', error);
+            }
+        }
+
 
         // Load which posts the current user has liked
         async function loadUserLikes() {
@@ -2752,12 +2778,10 @@
 
             // NEW: Add click listener to open video viewer
             postsGrid.querySelectorAll('.post-card').forEach(postCard => {
-                postCard.addEventListener('click', function(e) {
+                postCard.addEventListener('click', function() {
                     const postId = this.dataset.postId;
-                    const post = userPosts.find(p => p.id === postId);
-                    if (post && post.media_url) { // Check if there is a video to play
-                        openVideoViewer(postId, userPosts);
-                    }
+                    // Navigate to the feed page, filtered by the current profile's user ID and starting at the clicked video.
+                    window.location.href = `feed.html?userId=${profileUserId}&videoId=${postId}`;
                 });
             });
             // Attach event listeners
@@ -2850,11 +2874,12 @@
 
             // NEW: Add click listener to open video viewer for saved posts
             document.querySelectorAll('#savedPostsGrid .post-card').forEach(postCard => {
-                postCard.addEventListener('click', function(e) {
+                postCard.addEventListener('click', function() {
                     const postId = this.dataset.postId;
-                    const post = savedPosts.find(p => p.post_id === postId);
-                    if (post && post.media_url) {
-                        openVideoViewer(postId, savedPosts);
+                    const post = savedPosts.find(p => p.id === postId);
+                    if (post) {
+                        // For saved posts, navigate to the original author's feed.
+                        window.location.href = `feed.html?userId=${post.user_id}&videoId=${post.id}`;
                     }
                 });
             });
@@ -2863,7 +2888,7 @@
             savedPostsGrid.querySelectorAll('.like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
                     const id = this.getAttribute('data-post-id');
-                    toggleLike(id, this);
+                    toggleLike(id, this); // This should have stopPropagation
                 });
             });
 
@@ -2877,6 +2902,70 @@
             
             // Ensure broken thumbnail images fall back to video previews
             addImageFallbackHandlers();
+        }
+
+        // NEW: Toggle like on a post
+        async function toggleLike(postId, buttonElement) {
+            if (!currentUser) {
+                showError("You must be logged in to like posts.");
+                return;
+            }
+
+            const isLiked = userLikes.has(postId);
+            const post = userPosts.find(p => p.id === postId) || savedPosts.find(p => p.id === postId);
+
+            try {
+                if (isLiked) {
+                    // Unlike the post
+                    userLikes.delete(postId);
+                    const { error } = await supabase.from('likes').delete().match({ user_id: currentUser.id, post_id: postId });
+                    if (error) throw error;
+
+                    // Decrement likes_count using an RPC call for atomicity
+                    await supabase.rpc('decrement_likes', { post_id_to_update: postId });
+
+                } else {
+                    // Like the post
+                    userLikes.add(postId);
+                    const { error } = await supabase.from('likes').insert({ user_id: currentUser.id, post_id: postId });
+                    if (error) throw error;
+
+                    // Increment likes_count
+                    await supabase.rpc('increment_likes', { post_id_to_update: postId });
+
+                    // Create a notification for the post author, but not if you like your own post
+                    if (post && post.user_id !== currentUser.id) {
+                        await supabase.from('notifications').insert({
+                            user_id: post.user_id, // The post author
+                            sender_id: currentUser.id, // The user who liked the post
+                            type: 'new_like',
+                            content: 'liked your post',
+                            post_id: postId
+                        });
+                    }
+                }
+
+                // Optimistically update the UI
+                const newLikesCount = isLiked ? (post.likes_count || 1) - 1 : (post.likes_count || 0) + 1;
+                if (post) post.likes_count = newLikesCount;
+
+                // Update all relevant like buttons on the page
+                document.querySelectorAll(`.like-btn[data-post-id="${postId}"], #viewerLikeBtn[data-post-id="${postId}"]`).forEach(btn => {
+                    btn.classList.toggle('liked', !isLiked);
+                    const countEl = btn.querySelector('span') || btn; // Handle grid and viewer buttons
+                    if (countEl.id === 'viewerLikeCount') {
+                        countEl.textContent = newLikesCount;
+                    } else {
+                        countEl.innerHTML = `<i class="fas fa-heart"></i> ${newLikesCount}`;
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                showError('Could not update like status.');
+                // Revert optimistic UI update on error
+                userLikes.has(postId) ? userLikes.delete(postId) : userLikes.add(postId);
+            }
         }
 
         // Small helper to avoid XSS when injecting titles
@@ -3120,7 +3209,7 @@
                     </div>
                     <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}"
                             onclick="toggleFollow('${follower.id}')"
-                            data-user-id="${follower.id}">
+                            data-user-id="${follower.id}" ${follower.id === currentUser.id ? 'style="display:none;"' : ''}>
                         ${isFollowing(follower.id) ? 'Following' : 'Follow Back'}
                     </button>
                 `;
@@ -3155,7 +3244,7 @@
                         <div class="following-name">${followedUser.full_name}</div>
                         <div class="following-username">@${followedUser.username}</div>
                     </div>
-                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')">
+                    <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')" ${profileUserId !== currentUser.id ? 'style="display:none;"' : ''}>
                         Unfollow
                     </button>
                 `;
@@ -3164,7 +3253,7 @@
         }
         // Check if current user is following a specific user
         function isFollowing(userId) {
-            return following.some(user => user.id === userId);
+            return currentUserFollowing.includes(userId);
         }
         // Toggle follow/unfollow
         window.toggleFollow = async function(userId) {
@@ -3182,7 +3271,7 @@
         // Follow a user
         async function followUser(userId) {
             try {
-                const { error } = await supabase
+                const { error: followError } = await supabase
                     .from('followers')
                     .insert([
                         {
@@ -3190,12 +3279,30 @@
                             following_id: userId
                         }
                     ]);
-              
-                if (error) throw error;
-              
-                // The real-time subscription will update the UI automatically
+
+                if (followError) throw followError;
+
+                // NEW: Create a notification for the user who was followed
+                // Don't create a notification if a user somehow follows themselves
+                if (currentUser.id !== userId) {
+                    const { error: notificationError } = await supabase
+                        .from('notifications')
+                        .insert([{
+                            user_id: userId, // The user being followed
+                            sender_id: currentUser.id, // The user who initiated the follow
+                            type: 'new_follower',
+                            content: 'started following you'
+                        }]);
+
+                    if (notificationError) {
+                        console.error('Error creating follow notification:', notificationError);
+                        // Don't block the UI for this, just log it.
+                    }
+                }
+
+                // Manually update local state for immediate UI feedback
+                if (!currentUserFollowing.includes(userId)) currentUserFollowing.push(userId);
                 showError('User followed successfully!');
-              
             } catch (error) {
                 console.error('Error following user:', error);
                 throw error;
@@ -3212,7 +3319,8 @@
               
                 if (error) throw error;
               
-                // The real-time subscription will update the UI automatically
+                // Manually update local state for immediate UI feedback
+                currentUserFollowing = currentUserFollowing.filter(id => id !== userId);
                 showError('User unfollowed');
               
             } catch (error) {
@@ -3242,9 +3350,9 @@
                 const { data: notifications, error } = await supabase
                     .from('notifications')
                     .select(`
-                        id, type, content, read, created_at, sender_id, post_id,
-                        sender:profiles!sender_id(full_name, username),
-                        post:posts(id, content)
+                        id, type, content, read, created_at, sender_id,
+                        sender:sender_id(full_name, username),
+                        post:post_id(id, content)
                     `)
                     .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false })
@@ -3263,11 +3371,15 @@
         // Update the UI with notifications data
         function updateNotificationsUI() {
             notificationsList.innerHTML = '';
-          
-            // NEW: Check for unread notifications and update bell icon
-            const hasUnread = userNotifications.some(n => !n.read);
-            const notificationsBtnIcon = document.getElementById('notificationsBtn');
-            notificationsBtnIcon.classList.toggle('has-notifications', hasUnread);
+
+            // NEW: Check for unread notifications and update bell icon with count
+            const unreadCount = userNotifications.filter(n => !n.read).length;
+            if (unreadCount > 0) {
+                notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                notificationCount.style.transform = 'scale(1)';
+            } else {
+                notificationCount.style.transform = 'scale(0)';
+            }
 
             if (userNotifications.length === 0) {
                 notificationsList.innerHTML = `
@@ -3292,7 +3404,9 @@
                     const postPreview = notification.post?.content?.substring(0, 50) + (notification.post?.content?.length > 50 ? '...' : '');
                     message = `New post: "${postPreview}"`;
                 } else if (notification.type === 'new_follower') {
-                    message = 'Started following you';
+                    message = 'started following you';
+                } else if (notification.type === 'new_like') {
+                    message = 'liked your post.';
                 } else {
                     message = notification.content;
                 }
@@ -3314,14 +3428,31 @@
 
         // NEW: Handle clicks on notifications
         async function handleNotificationClick(notification) {
-            // If the notification is about a new post and has a post associated, open it
-            if (notification.type === 'new_post' && notification.post_id) {
-                // You might need to fetch the full post list of the sender to provide context for next/prev
-                // For now, we'll just open the single video.
-                const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
-                if (post) openVideoViewer(post.id, [post]);
+            // Navigate based on notification type
+            switch (notification.type) {
+                case 'new_follower':
+                    if (notification.sender_id) {
+                        window.location.href = `profile.html?userId=${notification.sender_id}`;
+                    }
+                    break;
+                case 'new_post':
+                    if (notification.post_id) {
+                        // Fetch the post to open it in the viewer
+                        const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
+                        if (post) openVideoViewer(post.id, [post]);
+                    }
+                    break;
+                case 'new_like':
+                    if (notification.post_id) {
+                        // Fetch the post to open it in the viewer
+                        const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
+                        if (post) openVideoViewer(post.id, [post]);
+                    }
+                    break;
+                default:
+                    // For other types, do nothing for now
+                    console.log('Clicked notification with no defined action:', notification.type);
             }
-            // Mark the notification as read
             if (!notification.read) {
                 const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notification.id);
                 if (!error) {
@@ -3343,45 +3474,97 @@
                         filter: `user_id=eq.${currentUser.id}`
                     },
                     async (payload) => {
-                        // Add new notification to the beginning of the list
-                        userNotifications.unshift(payload.new);
-                        updateNotificationsUI();
+                        // The payload only contains the basic notification.
+                        // We need to fetch the full notification with sender details.
+                        const { data: newNotification, error } = await supabase
+                            .from('notifications')
+                            .select(`
+                                id, type, content, read, created_at, sender_id,
+                                sender:sender_id(full_name, username),
+                                post:post_id(id, content)
+                            `)
+                            .eq('id', payload.new.id)
+                            .single();
+
+                        if (newNotification && !error) {
+                            // Add the complete notification object to the beginning of the list
+                            userNotifications.unshift(newNotification);
+                            updateNotificationsUI();
+                        }
                     }
                 )
                 .subscribe();
         }
         // Set up real-time subscriptions for followers
         function setupFollowersRealtime() {
-            // Subscribe to followers changes
-            const followersChannel = supabase
-                .channel(`followers-${currentUser.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'followers',
-                        filter: `following_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        // Someone followed/unfollowed the logged-in user
-                        await loadFollowersData();
+            const channel = `followers-realtime-${currentUser.id}`;
+
+            const followersSubscription = supabase
+                .channel(channel)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'followers',
+                    filter: `following_id=eq.${profileUserId}` // When someone follows the profile being viewed
+                }, async (payload) => {
+                    // A new user has followed the profile on the screen.
+                    // We need to fetch their profile details to add to the list.
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, username, profile_photo')
+                        .eq('id', payload.new.follower_id)
+                        .single();
+
+                    if (profile && !followers.some(f => f.id === profile.id)) {
+                        followers.unshift(profile); // Add to the start of the array
+                        updateFollowersUI();
                     }
-                )
-                .on(
-                    // This subscription is for when the logged-in user follows/unfollows someone else
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'followers',
-                        filter: `follower_id=eq.${currentUser.id}`
-                    },
-                    async (payload) => {
-                        // The logged-in user's "following" list changed
-                        await loadFollowersData();
+                })
+                .on('postgres_changes', {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: 'followers',
+                    filter: `following_id=eq.${profileUserId}` // When someone unfollows the profile being viewed
+                }, (payload) => {
+                    // A user has unfollowed. We can remove them using the ID from the old record.
+                    followers = followers.filter(f => f.id !== payload.old.follower_id);
+                    updateFollowersUI();
+                })
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'followers',
+                    filter: `follower_id=eq.${profileUserId}` // When the profile user follows someone new
+                }, async (payload) => {
+                    // The profile user followed someone. Fetch their details.
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, username, profile_photo')
+                        .eq('id', payload.new.following_id)
+                        .single();
+
+                    if (profile && !following.some(f => f.id === profile.id)) {
+                        following.unshift(profile);
+                        updateFollowersUI();
                     }
-                )
+
+                    // If the logged-in user is the one who acted, update their follow button
+                    if (profileUserId === currentUser.id) {
+                        updateFollowButton();
+                    }
+                })
+                .on('postgres_changes', {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: 'followers',
+                    filter: `follower_id=eq.${profileUserId}` // When the profile user unfollows someone
+                }, (payload) => {
+                    following = following.filter(f => f.id !== payload.old.following_id);
+                    updateFollowersUI();
+                    if (profileUserId === currentUser.id) {
+                        updateFollowButton();
+                    }
+                })
                 .subscribe();
         }
         // Set up real-time subscriptions for posts
