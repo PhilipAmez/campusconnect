@@ -2238,62 +2238,77 @@
         // Handle shared link - FIXED VERSION
         async function handleSharedLink() {
             const urlParams = new URLSearchParams(window.location.search);
-            const sharedVideoId = urlParams.get('videoId');
-            
-            if (!sharedVideoId) return;
+            const videoId = urlParams.get('videoId');
+            const userId = urlParams.get('userId');
+
+            if (!videoId) return; // If there's no videoId, we don't need this special handling.
 
             try {
-                // Fetch the specific shared video
-                const { data: sharedVideoData, error: videoError } = await supabase
+                // 1. Fetch the specific video that was clicked/shared.
+                const { data: specificVideoData, error: videoError } = await supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
-                    .eq('id', sharedVideoId)
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .eq('id', videoId)
                     .single();
 
                 if (videoError) {
                     console.error('Error fetching shared video:', videoError);
+                    showToast('Could not load the requested video.');
+                    // Fallback to the normal feed if the specific video fails to load
+                    await fetchPostsFromDatabase();
                     return;
                 }
 
-                if (sharedVideoData) {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    
-                    // Mark if this video is liked by current user
-                    const sharedVideo = {
-                        ...sharedVideoData,
-                        is_liked: user ? sharedVideoData.likes.some(like => like.user_id === user.id) : false
-                    };
+                const { data: { user } } = await supabase.auth.getUser();
 
-                    // Fetch other posts (excluding the shared one)
-                    const { data: otherPosts, error: postsError } = await supabase
-                        .from('posts')
-                        .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
-                        .neq('id', sharedVideoId)
-                        .order('created_at', { ascending: false });
+                // Mark if this video is liked by the current user
+                const specificVideo = {
+                    ...specificVideoData,
+                    is_liked: user ? specificVideoData.likes.some(like => like.user_id === user.id) : false,
+                    is_saved: savedPosts.includes(specificVideoData.id)
+                };
 
-                    if (postsError) {
-                        console.error('Error fetching posts:', postsError);
-                        // Still show the shared video even if others fail to load
-                        initializeFeed([sharedVideo]);
-                        return;
-                    }
+                // 2. Fetch the rest of the posts.
+                let query = supabase
+                    .from('posts')
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .neq('id', videoId) // Exclude the one we already fetched
+                    .order('created_at', { ascending: false });
 
-                    // Combine: shared video first, then other posts
-                    const allPosts = otherPosts ? [sharedVideo, ...otherPosts.map(post => ({
-                        ...post,
-                        is_liked: user ? post.likes.some(like => like.user_id === user.id) : false
-                    }))] : [sharedVideo];
-
-                    initializeFeed(allPosts);
-
-                    // Scroll to shared video after render
-                    setTimeout(() => {
-                        const videoElement = document.getElementById(`video-${sharedVideoId}`);
-                        if (videoElement) {
-                            videoElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }, 300);
+                // If a userId is provided, filter the *rest* of the posts by that user.
+                if (userId) {
+                    query = query.eq('user_id', userId);
                 }
+
+                const { data: otherPostsData, error: postsError } = await query;
+
+                if (postsError) {
+                    console.error('Error fetching other posts:', postsError);
+                    // If fetching other posts fails, at least show the one we successfully loaded.
+                    initializeFeed([specificVideo]);
+                    return;
+                }
+
+                const otherPosts = otherPostsData.map(post => ({
+                    ...post,
+                    is_liked: user ? post.likes.some(like => like.user_id === user.id) : false,
+                    is_saved: savedPosts.includes(post.id)
+                }));
+
+                // 3. Combine the specific video with the others, ensuring it's first.
+                const allPosts = [specificVideo, ...otherPosts];
+
+                initializeFeed(allPosts);
+
+                // 4. Scroll to the specific video after it has been rendered.
+                // 'auto' is better than 'smooth' here for instant positioning.
+                setTimeout(() => {
+                    const videoElement = document.getElementById(`video-${videoId}`);
+                    if (videoElement) {
+                        videoElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    }
+                }, 100); // A small delay to ensure DOM is updated.
+
             } catch (error) {
                 console.error('handleSharedLink error:', error);
             }
@@ -2313,14 +2328,14 @@
             if (lastFeedType && isLoggedIn) {
                 currentFeedType = lastFeedType;
             }
-            
+
+            await fetchSavedPosts(); // Fetch saved posts early for UI state
+
             // Check if there's a shared video before fetching all posts
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('videoId')) {
-                // Let handleSharedLink load everything
                 await handleSharedLink();
             } else if (currentFeedType === 'saved' && isLoggedIn) {
-                await fetchSavedPosts();
                 await fetchSavedPostsFeed();
             } else if (isLoggedIn) {
                 // Fetch saved posts for the logged-in user
@@ -2410,50 +2425,24 @@
         // Fetch posts from database
         async function fetchPostsFromDatabase() {
             // If refreshing, show spinner
-            if (isRefreshing) {
-                const pullToRefresh = document.getElementById('pullToRefresh');
-                const pullToRefreshIcon = document.getElementById('pullToRefreshIcon');
-                const pullToRefreshSpinner = document.getElementById('pullToRefreshSpinner');
-                
-                // The spinner is already visible from the touchend event
-                pullToRefreshIcon.style.display = 'none';
-                pullToRefreshSpinner.style.display = 'block';
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const sharedVideoId = urlParams.get('videoId');
-            let sharedVideo = null;
+            // This function is now only for the generic "For You" feed.
+            // The handleSharedLink function will handle user-specific or video-specific loads.
 
             try {
                 const { data: { user } } = await supabase.auth.getUser();
 
-                // If a videoId is shared, fetch it first.
-                if (sharedVideoId) {
-                    const { data: videoData, error: videoError } = await supabase
-                        .from('posts')
-                        .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
-                        .eq('id', sharedVideoId);
-
-                    if (videoError) {
-                        console.error('Error fetching shared video:', videoError);
-                    } else if (videoData && videoData.length > 0) {
-                        const singleVideo = videoData[0];
-                        sharedVideo = {
-                            ...singleVideo,
-                            // If user is not logged, there are no likes
-                            is_liked: user ? singleVideo.likes.some(like => like.user_id === user.id) : false
-                        };
-                    }
-                }
-
-                // Fetch the rest of the posts, excluding the shared one if it was found.
+                // Fetch all posts for the "For You" feed.
                 let query = supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`) // Fetch profile_photo
+                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
                     .order('created_at', { ascending: false });
 
-                if (sharedVideoId) {
-                    query = query.neq('id', sharedVideoId);
+                // NEW: If a userId is in the URL, this function should filter by it.
+                // This acts as a fallback if videoId is not present.
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('userId');
+                if (userId) {
+                    query = query.eq('user_id', userId);
                 }
 
                 const { data, error } = await query;
@@ -2473,11 +2462,8 @@
                     }));
                 }
 
-                // Prepend the shared video to the feed if it exists.
-                const finalPosts = sharedVideo ? [sharedVideo, ...fetchedPosts] : fetchedPosts;
-
-                if (finalPosts.length > 0) {
-                    initializeFeed(finalPosts);
+                if (fetchedPosts.length > 0) {
+                    initializeFeed(fetchedPosts);
                 } else {
                     // If no posts, show empty state for the "For You" feed
                     document.getElementById('feed').innerHTML = `
@@ -2495,7 +2481,6 @@
             } catch (error) {
                 console.error('Error fetching posts:', error);
 
-                showToast('Error loading posts');
             } finally {
                 if (isRefreshing) {
                     resetPullToRefresh(); // This correctly resets the pull-to-refresh UI
