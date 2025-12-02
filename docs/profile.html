@@ -874,6 +874,30 @@
             cursor: pointer;
             padding: 1rem;
             transition: var(--transition);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .notification-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .notification-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .notification-body {
+            flex: 1;
         }
         .notification-item.unread {
             background: rgba(124, 58, 237, 0.1);
@@ -3399,6 +3423,21 @@
                 // Manually update local state for immediate UI feedback
                 currentUserFollowing = currentUserFollowing.filter(id => id !== userId);
                 showError('User unfollowed');
+
+                // Log the unfollow action in the notifications table for activity history.
+                // This won't create a visible notification unless you specifically handle the 'user_unfollowed' type.
+                if (currentUser.id !== userId) {
+                    const { error: notificationError } = await supabase
+                        .from('notifications')
+                        .insert([{
+                            user_id: userId, // The user who was unfollowed
+                            sender_id: currentUser.id, // The user who did the unfollowing
+                            type: 'user_unfollowed',
+                            content: 'unfollowed you'
+                        }]);
+
+                    if (notificationError) console.error('Error logging unfollow action:', notificationError);
+                }
               
             } catch (error) {
                 console.error('Error unfollowing user:', error);
@@ -3426,9 +3465,9 @@
             try {
                 const { data: notifications, error } = await supabase
                     .from('notifications')
-                    .select(`
-                        id, type, content, read, created_at, sender_id,
-                        sender:sender_id(full_name, username),
+                    .select(`*,
+                        sender:sender_id(full_name, username, profile_photo),
+                        sender_profile,
                         post:post_id(id, content)
                     `)
                     .eq('user_id', currentUser.id)
@@ -3489,12 +3528,23 @@
                     message = notification.content;
                 }
               
+                const sender = notification.sender;
+                const senderName = sender?.full_name || 'System';
+                const avatarUrl = sender?.profile_photo;
+
+                const avatarHtml = avatarUrl
+                    ? `<img src="${avatarUrl}" alt="${senderName}">`
+                    : `<span>${getInitials(senderName)}</span>`;
+
                 notificationItem.innerHTML = `
-                    <div class="notification-header">
-                        <div class="notification-sender">${notification.sender?.full_name || 'System'}</div>
-                        <div class="notification-time">${time}</div>
+                    <div class="notification-avatar">${avatarHtml}</div>
+                    <div class="notification-body">
+                        <div class="notification-header">
+                            <div class="notification-sender">${senderName}</div>
+                            <div class="notification-time">${time}</div>
+                        </div>
+                        <div class="notification-message">${message}</div>
                     </div>
-                    <div class="notification-message">${message}</div>
                 `;
               
                 notificationsList.appendChild(notificationItem);
@@ -3700,6 +3750,7 @@
                         const toastAction = () => window.location.href = `chatroom.html?groupId=${newMessage.group_id}`;
 
                         showToast(toastMessage, 'message', 8000, toastAction);
+                        playNotificationSound(); // Play sound for new chat messages
                     }
                 ).subscribe();
         }
@@ -4391,25 +4442,3 @@
     </script>
 </body>
 </html>
--- 1. Create a function to be called by the trigger
-create or replace function public.enrich_notification_payload()
-returns trigger
-language plpgsql
-as $$
-begin
-  -- Add the sender's profile information as a JSON object to the new notification row.
-  -- This will be included in the real-time payload sent to the client.
-  select to_jsonb(profiles.*)
-  into new.sender_profile
-  from public.profiles
-  where profiles.id = new.sender_id;
-
-  return new;
-end;
-$$;
-
--- 2. Create a trigger that calls the function before a new notification is inserted.
--- This ensures the payload is enriched before being broadcast.
-create trigger on_new_notification
-  before insert on public.notifications
-  for each row execute procedure public.enrich_notification_payload();
