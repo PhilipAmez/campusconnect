@@ -1611,6 +1611,39 @@
             cursor: default;
             opacity: 0.7;
         }
+
+        /* NEW: "Who Reacted" Modal Styles */
+        .reactions-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .reaction-user-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: var(--glass-bg);
+        }
+
+        .reaction-user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: var(--primary-color);
+        }
+
+        .reaction-user-info { flex: 1; }
+        .reaction-user-name { font-weight: bold; }
+        .reaction-emoji { font-size: 1.5rem; }
+
+
       
         /* Responsive Adjustments */
         @media (max-width: 768px) {
@@ -1922,6 +1955,17 @@
             <div class="modal-buttons">
                 <button class="btn-confirm" id="confirmLogout">Yes, Log Out</button>
                 <button class="btn-cancel" id="cancelLogout">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: "Who Reacted" Modal -->
+    <div id="whoReactedModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeWhoReactedModal">&times;</span>
+            <h3 id="whoReactedModalTitle">Reactions</h3>
+            <div class="reactions-list" id="whoReactedList">
+                <!-- User reaction items will be populated here -->
             </div>
         </div>
     </div>
@@ -2315,6 +2359,9 @@
         }
 
         async function initializePage() {
+            // Show the skeleton loader immediately while we fetch data.
+            showSkeletonLoader();
+
             // Apply theme from localStorage
             const savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
@@ -2490,6 +2537,7 @@
         // Create video feed
         function initializeFeed(posts) {
             const feed = document.getElementById('feed');
+            // Clear the feed, which will remove the skeleton loader or any previous content.
             feed.innerHTML = '';
           
             // Handle empty state for saved feed
@@ -3126,6 +3174,10 @@
                 const closeLogoutModal = document.getElementById('closeLogoutModal');
 
                 confirmLogoutButton.addEventListener('click', async () => {
+                    // NEW: Close the "Who Reacted" modal if it's open
+                    const whoReactedModal = document.getElementById('whoReactedModal');
+                    if (whoReactedModal) whoReactedModal.style.display = "none";
+
                     try {
                         const { error } = await supabase.auth.signOut();
                         if (error) throw error;
@@ -3144,6 +3196,21 @@
 
                 window.addEventListener('click', (event) => {
                     if (event.target == logoutModal) closeModal();
+                });
+            }
+
+            // NEW: "Who Reacted" Modal Interaction
+            const whoReactedModal = document.getElementById('whoReactedModal');
+            if (whoReactedModal) {
+                const closeWhoReactedModal = document.getElementById('closeWhoReactedModal');
+                const closeModal = () => whoReactedModal.style.display = "none";
+
+                closeWhoReactedModal.addEventListener('click', closeModal);
+
+                window.addEventListener('click', (event) => {
+                    if (event.target == whoReactedModal) {
+                        closeModal();
+                    }
                 });
             }
 
@@ -3530,6 +3597,12 @@
             // Update reactions UI
             await updateCommentReactionsUI(comment.id);
             // If there are replies, create a container for them and render them there
+            // Add a click listener to the reaction summary to show who reacted.
+            // We use an onclick attribute here because the element is created dynamically.
+            // The showWhoReacted function is attached to the window object to make it accessible.
+            const reactionSummary = commentItem.querySelector('.reaction-summary');
+            if (reactionSummary) reactionSummary.setAttribute('onclick', `showWhoReacted('${comment.id}')`);
+
             if (comment.replies && comment.replies.length > 0) {
                 const repliesContainer = document.createElement('div');
                 repliesContainer.className = 'replies-container';
@@ -3558,6 +3631,51 @@
                 });
             }
         }
+
+        // NEW: Function to show who reacted to a comment
+        async function showWhoReacted(commentId) {
+            const modal = document.getElementById('whoReactedModal');
+            const list = document.getElementById('whoReactedList');
+            const title = document.getElementById('whoReactedModalTitle');
+
+            if (!modal || !list || !title) return;
+
+            // Show modal with a loading state
+            title.textContent = 'Reactions';
+            list.innerHTML = '<div>Loading...</div>';
+            modal.style.display = 'block';
+
+            try {
+                const { data, error } = await supabase
+                    .from('comment_reactions')
+                    .select(`
+                        reaction_type,
+                        profiles ( username, profile_photo )
+                    `)
+                    .eq('comment_id', commentId);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    list.innerHTML = '<div>No reactions yet.</div>';
+                    return;
+                }
+
+                list.innerHTML = data.map(reaction => `
+                    <div class="reaction-user-item">
+                        <img src="${reaction.profiles.profile_photo || ''}" class="reaction-user-avatar" alt="${reaction.profiles.username}'s avatar">
+                        <div class="reaction-user-info">
+                            <div class="reaction-user-name">@${reaction.profiles.username}</div>
+                        </div>
+                        <div class="reaction-emoji">${reaction.reaction_type}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching who reacted:', error);
+                list.innerHTML = '<div>Could not load reactions.</div>';
+            }
+        }
+
         // Toggle visibility of replies
         function toggleReplies(commentId) {
             const repliesContainer = document.getElementById(`repliesContainer-${commentId}`);
@@ -4512,6 +4630,7 @@
         window.handleFileSelect = handleFileSelect;
         window.showReactionPicker = showReactionPicker;
         window.toggleCommentReaction = toggleCommentReaction;
+        window.showWhoReacted = showWhoReacted;
         window.updateCommentReactionsUI = updateCommentReactionsUI;
         window.goToDashboard = goToDashboard;
         window.showGuestLoginModal = showGuestLoginModal; // Add this line
