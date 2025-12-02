@@ -141,6 +141,14 @@
             border: 2px solid var(--bg-secondary);
             animation: pulse 1.5s infinite;
         }
+        /* NEW: Animation for when a new notification arrives */
+        .nav-icon.new-notification-pulse {
+            animation: newNotificationPulse 0.5s 2 ease-in-out;
+        }
+        @keyframes newNotificationPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
         .theme-indicator {
             position: absolute;
             left: 50%;
@@ -1501,6 +1509,63 @@
             font-weight: 600;
         }
     </style>
+    <!-- NEW: Toast Notification CSS -->
+    <style>
+        .toast-container {
+            position: fixed;
+            top: 80px; /* Below the header */
+            right: 1.5rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 320px;
+            max-width: 90vw;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            border-left: 4px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s cubic-bezier(0.21, 1.02, 0.73, 1);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Toast types */
+        .toast.success { border-left-color: var(--accent); }
+        .toast.success .toast-icon { color: var(--accent); }
+
+        .toast.error { border-left-color: var(--danger); }
+        .toast.error .toast-icon { color: var(--danger); }
+
+        .toast.info { border-left-color: var(--secondary); }
+        .toast.info .toast-icon { color: var(--secondary); }
+    </style>
 </head>
 <body data-theme="dark">
     <div class="app-container">
@@ -1997,11 +2062,16 @@
                     <div class="spinner"></div>
                 </div>
             </div>
-          
-            <button class="mark-all-read-btn" id="markAllReadBtn">
-                <i class="fas fa-check-double"></i>
-                Mark All as Read
-            </button>
+            <div class="drawer-footer" style="padding: 1rem 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <button class="mark-all-read-btn" id="markAllReadBtn" style="margin-top: 0; margin-bottom: 1rem;">
+                    <i class="fas fa-check-double"></i>
+                    Mark All as Read
+                </button>
+                <a href="notifications.html" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">
+                    <i class="fas fa-history"></i>
+                    View All Notifications
+                </a>
+            </div>
         </div>
     </div>
     <!-- Followers Drawer -->
@@ -2075,6 +2145,9 @@
     </div>
     <!-- Overlay for drawer -->
     <div class="overlay" id="overlay"></div>
+
+    <!-- NEW: Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
     <script type="module">
         // Import Supabase client
         import { supabase } from './js/supabaseClient.js';
@@ -2223,6 +2296,7 @@
                 setupNotificationsSubscription();
                 setupFollowersRealtime();
                 setupPostsRealtime();
+                setupGroupMessagesSubscription(); // NEW: Listen for group chat messages
               
                 // Initialize new settings
                 initializeNewSettings();
@@ -3380,6 +3454,7 @@
             } else {
                 notificationCount.style.transform = 'scale(0)';
             }
+            updateDocumentTitle(unreadCount); // NEW: Update the browser tab title
 
             if (userNotifications.length === 0) {
                 notificationsList.innerHTML = `
@@ -3429,6 +3504,7 @@
         // NEW: Handle clicks on notifications
         async function handleNotificationClick(notification) {
             // Navigate based on notification type
+            closeAllDrawers(); // Close the drawer after clicking
             switch (notification.type) {
                 case 'new_follower':
                     if (notification.sender_id) {
@@ -3461,39 +3537,162 @@
                 }
             };
         }
+
+        // Helper to close all drawers
+        function closeAllDrawers() {
+            notificationsDrawer.classList.remove('open');
+            settingsDrawer.classList.remove('open');
+            followersDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        }
         // Set up real-time notifications subscription
+        // NEW: Toast Notification Function
+        function showToast(message, type = 'info', duration = 5000, onClick = null) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                info: 'fas fa-info-circle',
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                follow: 'fas fa-user-plus',
+                like: 'fas fa-heart',
+                message: 'fas fa-comment-dots'
+            };
+
+            toast.innerHTML = `
+                <i class="toast-icon ${icons[type] || icons.info}"></i>
+                <div class="toast-message">${message}</div>
+            `;
+
+            // Add click handler if provided
+            if (onClick && typeof onClick === 'function') {
+                toast.addEventListener('click', () => {
+                    onClick();
+                    container.removeChild(toast);
+                });
+            }
+
+            container.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Automatically remove after duration
+            setTimeout(() => container.removeChild(toast), duration);
+        }
+
         function setupNotificationsSubscription() {
             const channel = supabase
                 .channel(`notifications-${currentUser.id}`)
                 .on(
                     'postgres_changes',
                     {
-                        event: 'INSERT',
+                        event: '*', // Listen for INSERT, UPDATE, DELETE
                         schema: 'public',
                         table: 'notifications',
                         filter: `user_id=eq.${currentUser.id}`
                     },
-                    async (payload) => {
-                        // The payload only contains the basic notification.
-                        // We need to fetch the full notification with sender details.
-                        const { data: newNotification, error } = await supabase
-                            .from('notifications')
-                            .select(`
-                                id, type, content, read, created_at, sender_id,
-                                sender:sender_id(full_name, username),
-                                post:post_id(id, content)
-                            `)
-                            .eq('id', payload.new.id)
-                            .single();
+                    (payload) => {
+                        if (payload.eventType === 'INSERT') {
+                            const newNotification = payload.new;
+                            newNotification.sender = newNotification.sender_profile;
 
-                        if (newNotification && !error) {
-                            // Add the complete notification object to the beginning of the list
                             userNotifications.unshift(newNotification);
+                            updateNotificationsUI();
+
+                            const bellIcon = document.getElementById('notificationsBtn');
+                            bellIcon.classList.add('new-notification-pulse');
+                            setTimeout(() => bellIcon.classList.remove('new-notification-pulse'), 1000);
+
+                            // NEW: Show a toast notification
+                            const senderName = newNotification.sender?.full_name || 'Someone';
+                            let toastMessage = '';
+                            let toastType = 'info';
+                            let toastAction = null;
+
+                            if (newNotification.type === 'new_follower') {
+                                toastMessage = `<strong>${senderName}</strong> started following you.`;
+                                toastType = 'follow';
+                                toastAction = () => window.location.href = `profile.html?userId=${newNotification.sender_id}`;
+                            } else if (newNotification.type === 'new_like') {
+                                toastMessage = `<strong>${senderName}</strong> liked your post.`;
+                                toastType = 'like';
+                                // Action to view the post
+                                toastAction = () => handleNotificationClick(newNotification);
+                            }
+
+                            if (toastMessage) {
+                                showToast(toastMessage, toastType, 5000, toastAction);
+                            }
+
+                        } else if (payload.eventType === 'UPDATE') {
+                            const updatedNotification = payload.new;
+                            const index = userNotifications.findIndex(n => n.id === updatedNotification.id);
+                            if (index > -1) {
+                                userNotifications[index] = { ...userNotifications[index], ...updatedNotification };
+                                updateNotificationsUI();
+                            }
+                        } else if (payload.eventType === 'DELETE') {
+                            const oldNotificationId = payload.old.id;
+                            userNotifications = userNotifications.filter(n => n.id !== oldNotificationId);
                             updateNotificationsUI();
                         }
                     }
                 )
                 .subscribe();
+        }
+
+        // NEW: Set up real-time subscription for new group messages to show toasts
+        function setupGroupMessagesSubscription() {
+            if (!currentUser || userGroups.length === 0) {
+                // If no groups, nothing to subscribe to. We can try again if groups are loaded later.
+                return;
+            }
+
+            // Create a filter for all the groups the user is a member of.
+            const groupIds = userGroups.map(g => g.groups.id);
+            const filterString = `group_id=in.(${groupIds.join(',')})`;
+
+            const channel = supabase
+                .channel('group-messages-toast-subscription')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'group_messages', // Listening to the existing group_messages table
+                        filter: filterString
+                    },
+                    async (payload) => {
+                        const newMessage = payload.new;
+
+                        // Don't show a toast for your own messages
+                        if (newMessage.sender_id === currentUser.id) {
+                            return;
+                        }
+
+                        // Find the group name from the already loaded userGroups
+                        const group = userGroups.find(g => g.groups.id === newMessage.group_id)?.groups;
+                        const groupName = group?.name || 'a group';
+
+                        const messageContent = escapeHtml(newMessage.content.substring(0, 50) + (newMessage.content.length > 50 ? '...' : ''));
+                        const toastMessage = `New message in <strong>${groupName}</strong>: "${messageContent}"`;
+                        const toastAction = () => window.location.href = `chatroom.html?groupId=${newMessage.group_id}`;
+
+                        showToast(toastMessage, 'message', 8000, toastAction);
+                    }
+                ).subscribe();
+        }
+
+        // Update document title with notification count
+        function updateDocumentTitle(count) {
+            if (count > 0) {
+                document.title = `(${count}) My Profile - Peerloom`;
+            } else {
+                document.title = 'My Profile - Peerloom';
+            }
         }
         // Set up real-time subscriptions for followers
         function setupFollowersRealtime() {
@@ -3620,8 +3819,14 @@
         // Show error message
         function showError(message) {
             // You could implement a toast notification system here
-            console.error(message);
-            alert(message);
+            // Let's use our new toast system for errors and success messages!
+            if (message.toLowerCase().includes('error')) {
+                console.error(message);
+                showToast(message, 'error');
+            } else {
+                console.log(message);
+                showToast(message, 'success');
+            }
         }
         // Theme toggle with swipe
         let startX;
@@ -4168,3 +4373,25 @@
     </script>
 </body>
 </html>
+-- 1. Create a function to be called by the trigger
+create or replace function public.enrich_notification_payload()
+returns trigger
+language plpgsql
+as $$
+begin
+  -- Add the sender's profile information as a JSON object to the new notification row.
+  -- This will be included in the real-time payload sent to the client.
+  select to_jsonb(profiles.*)
+  into new.sender_profile
+  from public.profiles
+  where profiles.id = new.sender_id;
+
+  return new;
+end;
+$$;
+
+-- 2. Create a trigger that calls the function before a new notification is inserted.
+-- This ensures the payload is enriched before being broadcast.
+create trigger on_new_notification
+  before insert on public.notifications
+  for each row execute procedure public.enrich_notification_payload();
