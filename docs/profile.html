@@ -2148,6 +2148,9 @@
 
     <!-- NEW: Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
+
+    <!-- NEW: Notification Sound -->
+    <audio id="notificationSound" src="/sounds/notification.mp3" preload="auto"></audio>
     <script type="module">
         // Import Supabase client
         import { supabase } from './js/supabaseClient.js';
@@ -3583,6 +3586,18 @@
             setTimeout(() => container.removeChild(toast), duration);
         }
 
+        // NEW: Play notification sound
+        function playNotificationSound() {
+            const sound = document.getElementById('notificationSound');
+            if (sound) {
+                // Browsers may return a promise that rejects if the user hasn't interacted with the page yet.
+                // We'll play it and catch any errors to prevent them from breaking the script.
+                sound.play().catch(error => {
+                    console.log("Could not play notification sound, possibly due to browser policy:", error);
+                });
+            }
+        }
+
         function setupNotificationsSubscription() {
             const channel = supabase
                 .channel(`notifications-${currentUser.id}`)
@@ -3605,6 +3620,9 @@
                             const bellIcon = document.getElementById('notificationsBtn');
                             bellIcon.classList.add('new-notification-pulse');
                             setTimeout(() => bellIcon.classList.remove('new-notification-pulse'), 1000);
+
+                            // NEW: Play notification sound
+                            playNotificationSound();
 
                             // NEW: Show a toast notification
                             const senderName = newNotification.sender?.full_name || 'Someone';
