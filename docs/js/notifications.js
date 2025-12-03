@@ -1,326 +1,392 @@
 // Import Supabase client
 import { supabase } from './supabaseClient.js';
 
-// DOM Elements
-const notificationsList = document.getElementById('notificationsList');
-const markAllReadBtn = document.getElementById('markAllReadBtn');
-const filterButtons = document.querySelectorAll('.filter-btn');
-
-// Video viewer elements
-const videoViewerOverlay = document.getElementById('videoViewerOverlay');
-const viewerVideo = document.getElementById('viewerVideo');
-const closeViewerBtn = document.getElementById('closeViewerBtn');
-const viewerPostTitle = document.getElementById('viewerPostTitle');
-const viewerLikeBtn = document.getElementById('viewerLikeBtn');
-const viewerLikeCount = document.getElementById('viewerLikeCount');
-const viewerAuthorAvatar = document.getElementById('viewerAuthorAvatar');
-const viewerAuthorName = document.getElementById('viewerAuthorName');
-
-const userProfileHeader = document.getElementById('userProfileHeader');
-
-
 // State
-let currentUser = null;
 let userProfile = null;
-let allNotifications = [];
-let currentFilter = 'all';
+let currentUser = null;
+let currentTab = 'all';
+let page = 1;
+const NOTIFICATIONS_PER_PAGE = 15;
 
-async function initializePage() {
-    // Apply theme from localStorage
-    const savedTheme = localStorage.getItem('peerloom-theme') || 'dark';
-    document.body.setAttribute('data-theme', savedTheme);
+// DOM Elements
+const notificationList = document.getElementById('notification-list');
+const tabsContainer = document.getElementById('tabs');
+const tabElements = document.querySelectorAll('.tab');
+const pill = document.getElementById('pill');
+const title = document.getElementById('title');
+const settingsPanel = document.getElementById('settings-panel');
 
-    try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-            window.location.href = 'login.html';
-            return;
-        }
-        currentUser = user;
+// --- Initialization ---
 
-        await loadUserProfile();
-        await loadAllNotifications();
-        setupEventListeners();
-        setupRealtimeUpdates(); // Add this line to start listening for changes
-
-    } catch (error) {
-        console.error('Error initializing notifications page:', error);
-        notificationsList.innerHTML = `<div class="empty-state"><p>Error loading notifications.</p></div>`;
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+        window.location.href = 'login.html';
+        return;
     }
-}
+    currentUser = user;
 
-async function loadUserProfile() {
-    try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('full_name, profile_photo')
-            .eq('id', currentUser.id)
-            .single();
+    initializeTabs();
+    await initializeSettings(); // Make this async to load settings
+    initializeTheme();
+    addEventListeners();
 
-        if (error) throw error;
-        userProfile = data;
-        renderUserProfile();
-    } catch (error) {
-        console.error('Error loading user profile:', error);
-    }
-}
+    await fetchNotifications(currentTab, true);
+    setupRealtimeUpdates();
+});
 
-function renderUserProfile() {
-    if (!userProfile || !userProfileHeader) return;
-
-    const avatarHtml = userProfile.profile_photo
-        ? `<img src="${userProfile.profile_photo}" alt="${userProfile.full_name}">`
-        : `<span>${getInitials(userProfile.full_name)}</span>`;
-
-    userProfileHeader.innerHTML = `<div class="user-avatar">${avatarHtml}</div> <div class="user-name">${userProfile.full_name}</div>`;
-}
-
-async function loadAllNotifications() {
-    try {
-        const { data, error } = await supabase
-            .from('notifications')
-            .select(`*,
-                sender:sender_id(full_name, username, profile_photo),
-                post:post_id(id, content)
-            `)
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        allNotifications = data || [];
-        renderNotifications();
-
-    } catch (error) {
-        console.error('Error loading notifications:', error);
-        notificationsList.innerHTML = `<div class="empty-state"><p>Could not fetch notifications.</p></div>`;
-    }
-}
-
-function renderNotifications() {
-    notificationsList.innerHTML = '';
-
-    const filteredNotifications = allNotifications.filter(n => {
-        if (currentFilter === 'all') return true;
-        if (currentFilter === 'unread') return !n.read;
-        if (currentFilter === 'follows') return n.type === 'new_follower';
-        if (currentFilter === 'likes') return n.type === 'new_like';
-        return true;
+function addEventListeners() {
+    document.getElementById('markAllReadBtn').addEventListener('click', markAllRead);
+    document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+    document.getElementById('openSettingsBtn').addEventListener('click', openSettings);
+    document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+    document.getElementById('settings-panel').addEventListener('click', (e) => {
+        if (e.target.id === 'settings-panel') closeSettings();
     });
+    document.getElementById('loadMoreBtn').addEventListener('click', () => fetchNotifications(currentTab));
+}
 
-    if (filteredNotifications.length === 0) {
-        notificationsList.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-bell-slash"></i>
-                <p>No notifications here.</p>
-            </div>
-        `;
+// --- Notification Logic ---
+
+async function fetchNotifications(tab, reset = false) {
+    if (reset) {
+        page = 1;
+        showSkeletonLoaders(); // Show loaders instead of clearing immediately
+    }
+
+    // Hide 'Load More' button during fetch
+    document.getElementById('loadMoreBtn').style.display = 'none';
+
+    const from = (page - 1) * NOTIFICATIONS_PER_PAGE;
+    const to = from + NOTIFICATIONS_PER_PAGE - 1;
+
+    let query = supabase
+        .from('notifications')
+        .select(`*, sender:sender_id(full_name, profile_photo), post_id, sender_id`) // Ensure we get post_id and sender_id
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+    if (tab !== 'all') {
+        query = query.eq('type', tab);
+    }
+
+    const { data, error } = await query;
+
+    // Always remove skeletons after fetch
+    removeSkeletonLoaders();
+
+    if (error) {
+        console.error('Error fetching notifications:', error);
+        if (reset) notificationList.innerHTML = '<p>Error loading notifications.</p>';
         return;
     }
 
-    filteredNotifications.forEach(notification => {
+    if (reset && data.length === 0) notificationList.innerHTML = ''; // Clear list if no results
+
+    if (data.length > 0) {
+        renderNotifications(data);
+        page++;
+    }
+
+    document.getElementById('loadMoreBtn').style.display = data.length < NOTIFICATIONS_PER_PAGE ? 'none' : 'block';
+}
+
+function showSkeletonLoaders() {
+    notificationList.innerHTML = ''; // Clear previous content
+    for (let i = 0; i < 5; i++) { // Show 5 skeleton items
         const item = document.createElement('div');
-        item.className = `notification-item ${notification.read ? '' : 'unread'}`;
-        item.dataset.notificationId = notification.id;
-
-        const timeAgo = getTimeAgo(new Date(notification.created_at));
-        const sender = notification.sender;
-        const senderName = sender?.full_name || 'System';
-        const avatarHtml = sender?.profile_photo
-            ? `<img src="${sender.profile_photo}" alt="${senderName}">`
-            : `<span>${getInitials(senderName)}</span>`;
-
-        let message = notification.content;
-        if (notification.type === 'new_follower') message = 'started following you.';
-        if (notification.type === 'new_like') message = 'liked your post.';
-        if (notification.type === 'new_comment') message = 'commented on your post.';
-        if (notification.type === 'new_group_message') message = 'New message in your group.';
-
+        item.className = 'notification-item skeleton';
         item.innerHTML = `
-            <div class="notification-avatar">${avatarHtml}</div>
-            <div class="notification-body">
-                <div class="notification-header">
-                    <div class="notification-sender">
-                        <a href="profile.html?userId=${notification.sender_id}" style="color: var(--primary); text-decoration: none; font-weight: 600;">${senderName}</a>
-                    </div>
-                    <div class="notification-time">${timeAgo}</div>
-                </div>
-                <div class="notification-message">${message}</div>
+            <div class="avatar"></div>
+            <div class="content">
+                <p></p>
+                <div class="timestamp"></div>
             </div>
         `;
+        notificationList.appendChild(item);
+    }
+}
 
-        item.addEventListener('click', () => handleNotificationClick(notification));
-        notificationsList.appendChild(item);
+function removeSkeletonLoaders() {
+    const skeletons = notificationList.querySelectorAll('.skeleton');
+    // If there are skeletons, it means this was a fresh load, so we clear the list before rendering real data.
+    if (skeletons.length > 0) {
+        notificationList.innerHTML = '';
+    }
+}
+
+function renderNotifications(data) {
+    data.forEach(notif => {
+        const item = document.createElement('div');
+        item.className = `notification-item ${!notif.read ? 'unread' : ''}`;
+        item.dataset.id = notif.id;
+
+        const avatarUrl = notif.sender?.profile_photo || 'https://via.placeholder.com/48';
+        const senderName = notif.sender?.full_name || 'System';
+
+        item.innerHTML = `
+            <img src="${avatarUrl}" alt="${senderName}" class="avatar">
+            <div class="content">
+                <p>${notif.content}</p>
+                <div class="timestamp">${new Date(notif.created_at).toLocaleString()}</div>
+            </div>
+        `;
+        item.onclick = () => handleNotificationClick(notif, item);
+        notificationList.appendChild(item);
     });
 }
 
-async function handleNotificationClick(notification) {
-    // Mark as read if unread
-    if (!notification.read) {
-        const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notification.id);
-        if (!error) {
-            notification.read = true;
-            renderNotifications(); // Re-render to update style
-        }
+async function handleNotificationClick(notif, element) {
+    // First, mark the notification as read
+    if (!notif.read) {
+        await markRead(notif.id, element);
+        notif.read = true; // Update local state
     }
 
-    // Navigate or show content
-    switch (notification.type) {
+    // Then, navigate based on the notification type
+    switch (notif.type) {
         case 'new_follower':
-            if (notification.sender_id) {
-                window.location.href = `profile.html?userId=${notification.sender_id}`;
+            if (notif.sender_id) {
+                window.location.href = `profile.html?userId=${notif.sender_id}`;
             }
             break;
         case 'new_like':
         case 'new_comment':
         case 'new_post':
-            if (notification.post_id) {
-                const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
-                if (post) openVideoViewer(post);
+            if (notif.post_id) {
+                // Navigate to the feed, focused on the specific video
+                window.location.href = `feed.html?videoId=${notif.post_id}`;
             }
             break;
         case 'new_group_message':
-            // The group_id is stored in the post_id column for this notification type
-            if (notification.post_id) {
-                window.location.href = `chatroom.html?groupId=${notification.post_id}`;
+            if (notif.post_id) { // We use post_id to store the group_id for this type
+                window.location.href = `chatroom.html?groupId=${notif.post_id}`;
             }
             break;
         default:
-            console.log('Clicked notification with no defined action:', notification.type);
+            console.log('Clicked notification with no defined action:', notif.type);
     }
 }
 
-function setupEventListeners() {
-    markAllReadBtn.addEventListener('click', async () => {
-        try {
-            const { error } = await supabase
-                .from('notifications')
-                .update({ read: true })
-                .eq('user_id', currentUser.id)
-                .eq('read', false);
-
-            if (error) throw error;
-
-            allNotifications.forEach(n => n.read = true);
-            renderNotifications();
-        } catch (error) {
-            console.error('Error marking all as read:', error);
-        }
-    });
-
-    filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            currentFilter = button.dataset.filter;
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            renderNotifications();
-        });
-    });
-
-    // Video viewer listeners
-    closeViewerBtn.addEventListener('click', closeVideoViewer);
-    videoViewerOverlay.addEventListener('click', (e) => {
-        if (e.target === videoViewerOverlay) closeVideoViewer();
-    });
+async function markRead(id, element) {
+    element.classList.remove('unread');
+    await supabase.from('notifications').update({ read: true }).eq('id', id);
 }
 
-// --- Real-time Updates ---
+async function markAllRead() {
+    document.querySelectorAll('.unread').forEach(el => el.classList.remove('unread'));
+    await supabase.from('notifications').update({ read: true }).eq('user_id', currentUser.id).eq('read', false);
+}
+
+async function clearAll() {
+    if (confirm('Are you sure you want to delete all notifications? This cannot be undone.')) {
+        notificationList.innerHTML = '';
+        await supabase.from('notifications').delete().eq('user_id', currentUser.id);
+    }
+}
 
 function setupRealtimeUpdates() {
-    const channel = supabase
+    supabase
         .channel(`public:notifications:user_id=eq.${currentUser.id}`)
-        .on(
-            'postgres_changes',
-            {
-                event: '*', // Listen for INSERT, UPDATE, DELETE
-                schema: 'public',
-                table: 'notifications',
-                filter: `user_id=eq.${currentUser.id}`
-            },
-            async (payload) => {
-                console.log('Real-time notification change received:', payload);
-
-                if (payload.eventType === 'INSERT') {
-                    // Fetch the full new notification with sender/post details
-                    const { data: newNotification, error } = await supabase
-                        .from('notifications')
-                        .select(`*, sender:sender_id(full_name, username, profile_photo), post:post_id(id, content)`)
-                        .eq('id', payload.new.id)
-                        .single();
-
-                    if (newNotification && !error) {
-                        // Add to the top of the list and re-render
-                        allNotifications.unshift(newNotification);
-                        renderNotifications();
-                    }
-                } else if (payload.eventType === 'UPDATE') {
-                    const updatedNotification = payload.new;
-                    const index = allNotifications.findIndex(n => n.id === updatedNotification.id);
-                    if (index > -1) {
-                        // Merge the changes into the existing notification object
-                        allNotifications[index] = { ...allNotifications[index], ...updatedNotification };
-                        renderNotifications();
-                    }
-                } else if (payload.eventType === 'DELETE') {
-                    const deletedNotificationId = payload.old.id;
-                    allNotifications = allNotifications.filter(n => n.id !== deletedNotificationId);
-                    renderNotifications();
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
+            (payload) => {
+                // Only add if on 'all' tab or the matching tab
+                if (currentTab === 'all' || currentTab === payload.new.type) {
+                    fetchNotifications(currentTab, true); // Simple refresh for now
                 }
             }
-        )
-        .subscribe();
+        ).subscribe();
 }
 
-// --- Helper & UI Functions (copied from profile.js) ---
+// --- Settings Panel ---
 
-function openVideoViewer(post) {
-    if (!post || !post.media_url) return;
+function openSettings() {
+    settingsPanel.style.display = 'flex';
+    setTimeout(() => settingsPanel.classList.add('visible'), 10);
+}
 
-    viewerVideo.src = post.media_url;
-    viewerVideo.play().catch(e => console.log("Autoplay prevented."));
+function closeSettings() {
+    settingsPanel.classList.remove('visible');
+    setTimeout(() => settingsPanel.style.display = 'none', 400);
+}
 
-    const author = post.profiles;
-    if (author) {
-        viewerAuthorName.textContent = author.full_name;
-        viewerAuthorAvatar.innerHTML = author.profile_photo
-            ? `<img src="${author.profile_photo}" alt="${author.full_name}">`
-            : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:bold; background-color: var(--primary); color: white;">${getInitials(author.full_name)}</div>`;
+async function initializeSettings() {
+    // 1. Load user profile to get current settings
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('notification_preferences')
+            .eq('id', currentUser.id)
+            .single();
+
+        if (error || !data) {
+            // If there's an error or no profile data is returned, we'll catch it.
+            console.error("Could not load notification preferences, proceeding with defaults.", error);
+            userProfile = { notification_preferences: {} }; // Use an empty object to prevent further errors
+        } else {
+            userProfile = data;
+        }
+
+        const prefs = userProfile.notification_preferences || {};
+
+        // 2. Set the toggles to match the saved preferences
+        document.querySelectorAll('.settings-item input[type="checkbox"]').forEach(toggle => {
+            const prefKey = toggle.dataset.pref;
+            // If a preference isn't set, default to 'checked' for most, 'unchecked' for a few.
+            const isEnabled = prefs[prefKey] ?? !['email', 'vibration', 'dnd'].includes(prefKey);
+            toggle.checked = isEnabled;
+        });
+
+    } catch (error) {
+        console.error("Could not load notification preferences, proceeding with defaults.", error);
     }
 
-    viewerPostTitle.textContent = post.title || 'Untitled Post';
-    viewerLikeCount.textContent = post.likes_count || 0;
-    // Note: Like button state/functionality would require more logic here
+    // 3. Add event listeners to save changes
+    document.querySelectorAll('.settings-item input[type="checkbox"]').forEach(toggle => {
+        toggle.addEventListener('change', () => {
+            togglePref(toggle.dataset.pref, toggle.checked);
+        });
+    });
+}
+async function togglePref(type, enabled) {
+    console.log(`Preference for '${type}' set to: ${enabled}`);
+    
+    const currentPrefs = userProfile.notification_preferences || {};
+    currentPrefs[type] = enabled;
 
-    videoViewerOverlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    // Update the single jsonb column
+    const { error } = await supabase.from('profiles').update({ notification_preferences: currentPrefs }).eq('id', currentUser.id);
+    if (error) {
+        console.error('Error saving preference:', error);
+    }
 }
 
-function closeVideoViewer() {
-    videoViewerOverlay.classList.remove('active');
-    viewerVideo.pause();
-    viewerVideo.src = "";
-    document.body.style.overflow = '';
+// --- Theme Logic ---
+
+function initializeTheme() {
+    const savedTheme = localStorage.getItem('peerloom-theme') || 'light';
+    document.body.classList.toggle('dark', savedTheme === 'dark');
+    title.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            const touchStartX = e.touches[0].clientX;
+            title.addEventListener('touchend', (e_end) => {
+                const touchEndX = e_end.changedTouches[0].clientX;
+                if (Math.abs(touchEndX - touchStartX) > 50) {
+                    toggleTheme();
+                }
+            }, { once: true });
+        }
+    });
 }
 
-function getInitials(fullName) {
-    if (!fullName) return 'U';
-    return fullName.split(' ').map(name => name[0]).join('').toUpperCase();
+function toggleTheme() {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('peerloom-theme', document.body.classList.contains('dark') ? 'dark' : 'light');
 }
 
-function getTimeAgo(date) {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + "y ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + "mo ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + "d ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + "h ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + "m ago";
-    return Math.floor(seconds) + "s ago";
+// --- Interactive Tabs Logic ---
+
+let tabPositions = [];
+let isDragging = false;
+let startX = 0;
+let currentLeft = 0;
+
+function initializeTabs() {
+    updateTabPositions();
+    window.addEventListener('resize', updateTabPositions);
+
+    tabElements.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    tabsContainer.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startX = e.touches[0].clientX;
+        const activeIndex = Array.from(tabElements).findIndex(t => t.dataset.tab === currentTab);
+        currentLeft = tabPositions[activeIndex].left;
+        pill.style.transition = 'none';
+    });
+
+    tabsContainer.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const mx = e.touches[0].clientX - startX;
+        const newLeft = currentLeft + mx;
+        const clampedLeft = Math.max(0, Math.min(newLeft, tabPositions[tabPositions.length - 1].left));
+        pill.style.left = `${clampedLeft}px`;
+    });
+
+    tabsContainer.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        const mx = e.changedTouches[0].clientX - startX;
+        const projectedCenter = tabPositions[Array.from(tabElements).findIndex(t => t.dataset.tab === currentTab)].center + mx;
+        const closestIndex = findClosestTab(projectedCenter);
+        switchTab(tabElements[closestIndex].dataset.tab);
+    });
+
+    // Ripple effect for buttons and tabs
+    document.querySelectorAll('button, .tab').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            const rect = btn.getBoundingClientRect();
+            ripple.style.left = `${e.clientX - rect.left}px`;
+            ripple.style.top = `${e.clientY - rect.top}px`;
+            btn.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 500);
+        });
+    });
 }
 
-// Initialize the page
-initializePage();
+function updateTabPositions() {
+    const containerRect = tabsContainer.getBoundingClientRect();
+    tabPositions = Array.from(tabElements).map(el => {
+        const rect = el.getBoundingClientRect();
+        return {
+            left: rect.left - containerRect.left,
+            width: rect.width,
+            center: rect.left - containerRect.left + rect.width / 2
+        };
+    });
+    const activeIndex = Array.from(tabElements).findIndex(t => t.dataset.tab === currentTab);
+    if (activeIndex !== -1) {
+        pill.style.left = `${tabPositions[activeIndex].left}px`;
+        pill.style.width = `${tabPositions[activeIndex].width}px`;
+    }
+}
+
+function findClosestTab(x) {
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    tabPositions.forEach((pos, index) => {
+        const distance = Math.abs(x - pos.center);
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestIndex = index;
+        }
+    });
+    return closestIndex;
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    tabElements.forEach(t => t.classList.remove('active'));
+    const activeTabEl = document.querySelector(`.tab[data-tab="${tab}"]`);
+    if (activeTabEl) {
+        activeTabEl.classList.add('active');
+    }
+
+    const index = Array.from(tabElements).findIndex(t => t.dataset.tab === tab);
+    if (index !== -1) {
+        animatePill(tabPositions[index].left, tabPositions[index].width);
+    }
+
+    fetchNotifications(tab, true);
+}
+
+function animatePill(toLeft, toWidth) {
+    pill.style.transition = 'left var(--transition), width var(--transition)';
+    pill.style.left = `${toLeft}px`;
+    pill.style.width = `${toWidth}px`;
+}
