@@ -73,20 +73,24 @@ async function fetchNotifications(tab, reset = false) {
 
     const { data, error } = await query;
 
-    // Always remove skeletons after fetch
-    removeSkeletonLoaders();
-
     if (error) {
         console.error('Error fetching notifications:', error);
+        // On error, clear the list and show an error message.
+        notificationList.innerHTML = '<p>Error loading notifications.</p>';
         if (reset) notificationList.innerHTML = '<p>Error loading notifications.</p>';
         return;
     }
 
-    if (reset && data.length === 0) notificationList.innerHTML = ''; // Clear list if no results
+    if (reset) {
+        notificationList.innerHTML = ''; // Clear the list (and skeletons) before rendering new data
+    }
 
     if (data.length > 0) {
         renderNotifications(data);
         page++;
+    } else if (reset) {
+        // If it's a fresh load and no data was returned, show an empty state message.
+        notificationList.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">No notifications here.</p>';
     }
 
     document.getElementById('loadMoreBtn').style.display = data.length < NOTIFICATIONS_PER_PAGE ? 'none' : 'block';
@@ -105,14 +109,6 @@ function showSkeletonLoaders() {
             </div>
         `;
         notificationList.appendChild(item);
-    }
-}
-
-function removeSkeletonLoaders() {
-    const skeletons = notificationList.querySelectorAll('.skeleton');
-    // If there are skeletons, it means this was a fresh load, so we clear the list before rendering real data.
-    if (skeletons.length > 0) {
-        notificationList.innerHTML = '';
     }
 }
 
