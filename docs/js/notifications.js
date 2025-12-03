@@ -222,13 +222,14 @@ async function initializeSettings() {
 
         if (error || !data) {
             // If there's an error or no profile data is returned, we'll catch it.
-            console.error("Could not load notification preferences, proceeding with defaults.", error);
-            userProfile = { notification_preferences: {} }; // Use an empty object to prevent further errors
+            // This can happen if the columns don't exist yet. We'll proceed with defaults.
+            console.warn("Could not load notification preferences, proceeding with defaults. The 'notification_preferences' column might be missing.", error);
+            userProfile = {}; // Use an empty object to prevent further errors
         } else {
             userProfile = data;
         }
 
-        const prefs = userProfile.notification_preferences || {};
+        const prefs = userProfile?.notification_preferences || {};
 
         // 2. Set the toggles to match the saved preferences
         document.querySelectorAll('.settings-item input[type="checkbox"]').forEach(toggle => {
@@ -239,7 +240,7 @@ async function initializeSettings() {
         });
 
     } catch (error) {
-        console.error("Could not load notification preferences, proceeding with defaults.", error);
+        console.error("Critical error loading notification preferences:", error);
     }
 
     // 3. Add event listeners to save changes
@@ -251,12 +252,13 @@ async function initializeSettings() {
 }
 async function togglePref(type, enabled) {
     console.log(`Preference for '${type}' set to: ${enabled}`);
-    
-    const currentPrefs = userProfile.notification_preferences || {};
-    currentPrefs[type] = enabled;
 
-    // Update the single jsonb column
-    const { error } = await supabase.from('profiles').update({ notification_preferences: currentPrefs }).eq('id', currentUser.id);
+    // Ensure userProfile and its preferences object exist
+    if (!userProfile) userProfile = {};
+    if (!userProfile.notification_preferences) userProfile.notification_preferences = {};
+    userProfile.notification_preferences[type] = enabled;
+
+    const { error } = await supabase.from('profiles').update({ notification_preferences: userProfile.notification_preferences }).eq('id', currentUser.id);
     if (error) {
         console.error('Error saving preference:', error);
     }
