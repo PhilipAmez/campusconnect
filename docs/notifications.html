@@ -1,698 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peerloom Notifications</title>
-  <style>
-    :root {
-      --bg-primary: #ffffff; /* Light theme */
-      --bg-secondary: rgba(255, 255, 255, 0.7); /* Enhanced glass bg */
-      --text-primary: #000000; /* Black in light mode */
-      --text-secondary: #555555;
-      --accent: #3498db;
-      --accent-secondary: #5dade2;
-      --border: rgba(0, 0, 0, 0.03);
-      --blur: 20px;
-      --unread-dot: #e74c3c;
-      --switch-bg: #bdc3c7;
-      --switch-thumb: #ffffff;
-      --transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      --shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-      --glass-gradient: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4)); /* Horizontal gradient, no diagonal */
-    }
-    body.dark {
-      --bg-primary: #2c3e50;
-      --bg-secondary: rgba(44, 62, 80, 0.7);
-      --text-primary: #ffffff;
-      --text-secondary: #bdc3c7;
-      --border: rgba(255, 255, 255, 0.03);
-      --switch-bg: #34495e;
-      --switch-thumb: #3498db;
-      --glass-gradient: linear-gradient(to right, rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.4));
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--bg-primary); /* Plain background, no lines or patterns */
-      color: var(--text-primary);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      transition: background var(--transition), color var(--transition);
-    }
-    .notifications-container {
-      max-width: 600px;
-      width: 100%;
-      background: transparent;
-      border-radius: 16px;
-      overflow: hidden;
-      margin: 20px 0;
-      box-shadow: var(--shadow);
-      transition: box-shadow var(--transition);
-    }
-    .header {
-      padding: 20px;
-      background: var(--glass-gradient);
-      backdrop-filter: blur(var(--blur));
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 12px;
-    }
-    .title {
-      margin: 0;
-      font-size: 24px;
-      user-select: none;
-      touch-action: pan-y;
-    }
-    .header-actions {
-      display: flex;
-      gap: 12px;
-    }
-    .header-actions button, .settings-btn {
-      background: transparent;
-      border: none;
-      color: var(--accent);
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      font-size: 14px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      transition: background var(--transition), transform 0.1s;
-    }
-    .header-actions button:hover, .settings-btn:hover {
-      background: rgba(var(--accent), 0.1);
-    }
-    .header-actions button:active {
-      transform: scale(0.95);
-    }
-    .tabs-wrapper {
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      width: 100%;
-      display: flex;
-      justify-content: flex-start;
-      touch-action: pan-x; /* Ensure horizontal swipe only */
-    }
-    .tabs-wrapper::-webkit-scrollbar {
-      display: none;
-    }
-    .tabs {
-      display: flex;
-      gap: 8px;
-      background: var(--glass-gradient);
-      border-radius: 24px;
-      padding: 4px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-      min-width: max-content;
-      position: relative;
-      user-select: none;
-    }
-    .tab {
-      cursor: pointer;
-      padding: 10px 20px;
-      border-radius: 20px;
-      background: transparent;
-      color: var(--text-secondary);
-      font-weight: 500;
-      transition: color var(--transition);
-      white-space: nowrap;
-      z-index: 1;
-    }
-    .tab.active {
-      color: white;
-    }
-    .pill {
-      position: absolute;
-      top: 4px;
-      bottom: 4px;
-      border-radius: 20px;
-      background: var(--accent);
-      box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
-      transition: left var(--transition), width var(--transition);
-    }
-    .ripple {
-      position: absolute;
-      background: var(--accent-secondary);
-      border-radius: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      pointer-events: none;
-      animation: ripple-effect 0.5s ease-out;
-      opacity: 0.3;
-    }
-    @keyframes ripple-effect {
-      to {
-        transform: translate(-50%, -50%) scale(10);
-        opacity: 0;
-      }
-    }
-    .notification-list {
-      padding: 20px;
-      overflow-y: auto;
-      scroll-behavior: smooth;
-    }
-    .notification-item {
-      display: flex;
-      align-items: center;
-      padding: 16px;
-      margin-bottom: 16px;
-      border-radius: 12px;
-      background: var(--glass-gradient);
-      backdrop-filter: blur(var(--blur));
-      border: 1px solid var(--border);
-      transition: transform var(--transition), box-shadow var(--transition);
-      cursor: pointer;
-    }
-    .notification-item:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow);
-    }
-    .notification-item:active {
-      transform: scale(0.98);
-    }
-    .notification-item.unread::before {
-      content: '';
-      width: 10px;
-      height: 10px;
-      background: var(--unread-dot);
-      border-radius: 50%;
-      margin-right: 12px;
-    }
-    .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      margin-right: 16px;
-      background: #bdc3c7;
-      object-fit: cover;
-    }
-    .content {
-      flex: 1;
-    }
-    .content p {
-      margin: 0;
-      font-size: 15px;
-      line-height: 1.4;
-      color: var(--text-primary);
-    }
-    .timestamp {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-    .load-more {
-      display: block;
-      margin: 0 auto 20px;
-      padding: 12px 24px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 24px;
-      cursor: pointer;
-      font-weight: 500;
-      position: relative;
-      overflow: hidden;
-      transition: background var(--transition), transform var(--transition);
-    }
-    .load-more:hover {
-      transform: scale(1.05);
-    }
-    .load-more:active {
-      transform: scale(0.95);
-    }
-    /* Settings Panel */
-    .settings-panel {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.4);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-      backdrop-filter: blur(8px);
-      transition: opacity var(--transition);
-      animation: fadeIn var(--transition);
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    .settings-content {
-      background: var(--glass-gradient);
-      backdrop-filter: blur(var(--blur));
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: var(--shadow);
-      transition: transform var(--transition), opacity var(--transition);
-      opacity: 0;
-      transform: scale(0.95) translateY(20px); /* Premium scale-in */
-    }
-    .settings-panel.visible .settings-content {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-    .settings-content:hover {
-      transform: scale(1.02);
-    }
-    .settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      font-size: 20px;
-      color: var(--text-primary);
-    }
-    .close-btn {
-      font-size: 24px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: color var(--transition), transform 0.1s;
-    }
-    .close-btn:hover {
-      color: var(--text-primary);
-    }
-    .close-btn:active {
-      transform: scale(0.9);
-    }
-    .settings-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-primary);
-      transition: background var(--transition);
-    }
-    .settings-item:hover {
-      background: rgba(var(--accent), 0.05);
-    }
-    .toggle {
-      position: relative;
-      display: inline-block;
-      width: 48px;
-      height: 24px;
-    }
-    .toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--switch-bg);
-      transition: var(--transition);
-      border-radius: 24px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 2px;
-      bottom: 2px;
-      background-color: var(--switch-thumb);
-      transition: var(--transition);
-      border-radius: 50%;
-    }
-    input:checked + .slider {
-      background-color: var(--accent);
-    }
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
-    /* Mobile */
-    @media (max-width: 600px) {
-      .header {
-        padding: 16px;
-      }
-      .tabs-wrapper {
-        justify-content: center;
-        overflow: hidden; /* Prevent cutting corners */
-      }
-      .tabs {
-        background: none;
-        padding: 0;
-        box-shadow: none;
-        width: 100%; /* Full width for mobile swipe */
-      }
-      .tab {
-        padding: 12px 16px;
-        flex: 1; /* Equal spacing */
-        text-align: center;
-      }
-      .header-actions {
-        justify-content: flex-end;
-      }
-      .notification-list {
-        padding: 16px;
-      }
-      .settings-panel {
-        align-items: flex-end;
-      }
-      .settings-content {
-        border-radius: 16px 16px 0 0;
-        width: 100%;
-        max-width: none;
-        transform: none;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="notifications-container">
-    <div class="header">
-      <div class="header-top">
-        <h2 class="title" id="title">Notifications</h2>
-        <div class="header-actions">
-          <button onclick="markAllRead()">Mark All Read</button>
-          <button onclick="clearAll()">Clear All</button>
-          <button class="settings-btn" onclick="openSettings()">⚙️</button>
-        </div>
-      </div>
-      <div class="tabs-wrapper" id="tabs-wrapper">
-        <div class="tabs" id="tabs">
-          <div class="tab active" data-tab="all">All</div>
-          <div class="tab" data-tab="messages">Messages</div>
-          <div class="tab" data-tab="followers">Followers</div>
-          <div class="tab" data-tab="posts">Posts</div>
-          <div class="tab" data-tab="comments">Comments</div>
-          <div class="pill" id="pill"></div>
-        </div>
-      </div>
-    </div>
-    <div class="notification-list" id="notif-list">
-      <!-- Dynamically populated -->
-    </div>
-    <button class="load-more" onclick="loadMore()">Load More</button>
-  </div>
-
-  <!-- Settings Panel -->
-  <div class="settings-panel" id="settings-panel" onclick="closeSettings(event)">
-    <div class="settings-content">
-      <div class="settings-header">
-        <h3>Notification Settings</h3>
-        <span class="close-btn" onclick="closeSettings()">×</span>
-      </div>
-      <div class="settings-item">
-        <span>Group Messages</span>
-        <label class="toggle">
-          <input type="checkbox" checked onchange="togglePref('group_message', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>New Followers</span>
-        <label class="toggle">
-          <input type="checkbox" checked onchange="togglePref('follower', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Follower Posts</span>
-        <label class="toggle">
-          <input type="checkbox" checked onchange="togglePref('follower_post', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Post Comments</span>
-        <label class="toggle">
-          <input type="checkbox" checked onchange="togglePref('comment', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Email Notifications</span>
-        <label class="toggle">
-          <input type="checkbox" onchange="togglePref('email', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Sound Alerts</span>
-        <label class="toggle">
-          <input type="checkbox" checked onchange="togglePref('sound', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Push Notifications</span>
-        <label class="toggle">
-          <input type="checkbox" checked onchange="togglePref('push', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Vibration on Alert</span>
-        <label class="toggle">
-          <input type="checkbox" onchange="togglePref('vibration', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="settings-item">
-        <span>Do Not Disturb Mode</span>
-        <label class="toggle">
-          <input type="checkbox" onchange="togglePref('dnd', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let currentTab = 'all';
-    let page = 1;
-    const tabs = ['all', 'messages', 'followers', 'posts', 'comments'];
-    const tabElements = document.querySelectorAll('.tab');
-    const pill = document.getElementById('pill');
-    const tabsContainer = document.getElementById('tabs');
-    let tabPositions = [];
-    let isDragging = false;
-    let startX = 0;
-    let currentLeft = 0;
-    let velocity = 0;
-    let lastMx = 0;
-    let lastTime = 0;
-
-    function updateTabPositions() {
-      tabPositions = Array.from(tabElements).map(el => {
-        const rect = el.getBoundingClientRect();
-        const containerRect = tabsContainer.getBoundingClientRect();
-        return {
-          left: rect.left - containerRect.left,
-          width: rect.width,
-          center: rect.left - containerRect.left + rect.width / 2
-        };
-      });
-      const activeIndex = tabs.indexOf(currentTab);
-      if (activeIndex !== -1) {
-        pill.style.left = `${tabPositions[activeIndex].left}px`;
-        pill.style.width = `${tabPositions[activeIndex].width}px`;
-      }
-    }
-
-    function findClosestTab(x) {
-      let closestIndex = 0;
-      let minDistance = Infinity;
-      tabPositions.forEach((pos, index) => {
-        const distance = Math.abs(x - pos.center);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestIndex = index;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Peerloom</title>
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Link to a shared CSS file would be ideal, but for now, we'll copy styles -->
+    <style>
+        :root {
+            --primary: #7c3aed; --primary-light: #8b5cf6; --primary-dark: #6d28d9; --secondary: #0ea5e9; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b; --text-primary: #1e293b; --text-secondary: #64748b; --text-light: #94a3b8; --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9; --border: #e2e8f0; --glass-bg: rgba(255, 255, 255, 0.7); --glass-border: rgba(255, 255, 255, 0.2); --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); --radius: 12px;
         }
-      });
-      return closestIndex;
-    }
+        [data-theme="dark"] {
+            --text-primary: #f1f5f9; --text-secondary: #cbd5e1; --text-light: #94a3b8; --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155; --border: #475569; --glass-bg: rgba(15, 23, 42, 0.7); --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: var(--transition); }
+        .app-container { max-width: 800px; margin: 0 auto; padding: 1rem; }
 
-    function animatePill(toLeft, toWidth) {
-      pill.style.transition = 'left var(--transition), width var(--transition)';
-      pill.style.left = `${toLeft}px`;
-      pill.style.width = `${toWidth}px`;
-    }
+        .header { padding: 1.5rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
+        .header-title { font-size: 1.75rem; font-weight: 700; }
+        .back-link { color: var(--primary); text-decoration: none; font-size: 1rem; }
+        .user-profile-header { display: flex; align-items: center; gap: 0.75rem; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-name { font-weight: 600; font-size: 1rem; }
 
-    tabsContainer.addEventListener('touchstart', (e) => {
-      isDragging = true;
-      startX = e.touches[0].clientX;
-      const activeIndex = tabs.indexOf(currentTab);
-      currentLeft = tabPositions[activeIndex].left;
-      velocity = 0;
-      lastMx = 0;
-      lastTime = Date.now();
-      pill.style.transition = 'none'; // Remove transition for smooth follow
-    });
 
-    tabsContainer.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      const mx = e.touches[0].clientX - startX;
-      const newLeft = currentLeft + mx;
-      const clampedLeft = Math.max(0, Math.min(newLeft, tabPositions[tabPositions.length - 1].left));
-      pill.style.left = `${clampedLeft}px`;
-      pill.style.width = `${tabPositions[tabs.indexOf(currentTab)].width + Math.abs(mx - lastMx) * 0.05}px`; // Subtle liquid stretch based on speed
+        .notifications-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .filter-buttons { display: flex; gap: 0.5rem; }
+        .filter-btn { background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; transition: var(--transition); }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .mark-all-read-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; }
+        .notifications-list { display: flex; flex-direction: column; gap: 1rem; }
+        .notification-item { background: var(--bg-secondary); border-radius: var(--radius); cursor: pointer; padding: 1rem 1.5rem; transition: var(--transition); display: flex; align-items: flex-start; gap: 1rem; border-left: 4px solid transparent; }
+        .notification-item.unread { background: var(--bg-tertiary); border-left-color: var(--primary); }
+        .notification-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+        .notification-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; overflow: hidden; }
+        .notification-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .notification-body { flex: 1; }
+        .notification-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+        .notification-sender { font-weight: 600; }
+        .notification-time { font-size: 0.8rem; color: var(--text-secondary); }
+        .notification-message { font-size: 0.9rem; line-height: 1.4; color: var(--text-primary); }
+        .loading, .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-left-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
 
-      // Calculate velocity with damping for finger-follow
-      const now = Date.now();
-      const dt = now - lastTime;
-      velocity = (mx - lastMx) / dt * 0.5; // Reduced factor for less fling
-      lastMx = mx;
-      lastTime = now;
-    });
+        /* Video Viewer Modal Styles (copied from profile.html) */
+        .video-viewer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px); z-index: 2000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .video-viewer-overlay.active { opacity: 1; visibility: visible; }
+        .video-viewer-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .viewer-content { width: auto; height: 100%; max-width: 100vw; max-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
+        #viewerVideo { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius); }
+        .close-viewer-btn { position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; z-index: 10; }
+        .viewer-info-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); color: white; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
+        .viewer-post-details { max-width: 80%; }
+        .viewer-author-info { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+        .viewer-author-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background-color: var(--bg-tertiary); }
+        .viewer-author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .viewer-author-name { font-weight: 600; }
+        #viewerPostTitle { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .viewer-actions { display: flex; flex-direction: column; align-items: center; gap: 1rem; pointer-events: auto; }
+        #viewerLikeBtn { background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+        #viewerLikeBtn.liked { color: var(--danger); }
+        #viewerLikeCount { font-size: 0.9rem; font-weight: 500; }
+    </style>
+</head>
+<body data-theme="dark">
 
-    tabsContainer.addEventListener('touchend', (e) => {
-      if (!isDragging) return;
-      isDragging = false;
-      const mx = e.changedTouches[0].clientX - startX;
-      const projected = tabPositions[tabs.indexOf(currentTab)].center + mx + velocity * 50; // Reduced velocity multiplier for minimal fling, more finger-follow snap
-      const closestIndex = findClosestTab(projected);
-      switchTab(tabs[closestIndex]);
-    });
+    <div class="app-container">
+        <header class="header">
+            <div class="user-profile-header" id="userProfileHeader">
+                <!-- Profile info will be injected here by JS -->
+                <div class="user-avatar"></div>
+                <div class="user-name">Loading...</div>
+            </div>
+            <h1 class="header-title">Notifications</h1>
+            <a href="profile.html" class="back-link">Back to Profile <i class="fas fa-arrow-right"></i></a>
+        </header>
 
-    tabElements.forEach(tab => {
-      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
+        <main>
+            <div class="notifications-toolbar">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="unread">Unread</button>
+                    <button class="filter-btn" data-filter="follows">Follows</button>
+                    <button class="filter-btn" data-filter="likes">Likes</button>
+                </div>
+                <button class="mark-all-read-btn" id="markAllReadBtn">
+                    <i class="fas fa-check-double"></i> Mark all as read
+                </button>
+            </div>
 
-    function switchTab(tab) {
-      currentTab = tab;
-      tabElements.forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-      const index = tabs.indexOf(tab);
-      animatePill(tabPositions[index].left, tabPositions[index].width);
-      fetchNotifications(tab, true);
-    }
+            <div class="notifications-list" id="notificationsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-    // Initial setup
-    updateTabPositions();
-    window.addEventListener('resize', updateTabPositions);
+    <!-- Video Viewer Modal -->
+    <div class="video-viewer-overlay" id="videoViewerOverlay">
+        <div class="video-viewer-container">
+            <button class="close-viewer-btn" id="closeViewerBtn">&times;</button>
+            <div class="viewer-content">
+                <video id="viewerVideo" src="" autoplay playsinline loop></video>
+                <div class="viewer-info-overlay">
+                    <div class="viewer-post-details">
+                        <div class="viewer-author-info">
+                            <div class="viewer-author-avatar" id="viewerAuthorAvatar"></div>
+                            <div>
+                                <div class="viewer-author-name" id="viewerAuthorName"></div>
+                            </div>
+                        </div>
+                        <h3 id="viewerPostTitle"></h3>
+                    </div>
+                    <div class="viewer-actions">
+                        <button id="viewerLikeBtn"><i class="fas fa-heart"></i><span id="viewerLikeCount">0</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    function fetchNotifications(tab, reset = false) {
-      if (reset) {
-        page = 1;
-        document.getElementById('notif-list').innerHTML = '';
-      }
-      const mockData = [
-        { id: '1', type: 'group_message', content: 'New message in Group X: "Hello!"', sender: 'UserA', timestamp: '2 min ago', read: false },
-        { id: '2', type: 'follower', content: '@UserB started following you!', sender: 'UserB', timestamp: '10 min ago', read: true },
-        { id: '3', type: 'follower_post', content: '@UserC posted: "New update!"', sender: 'UserC', timestamp: '1 hour ago', read: false },
-        { id: '4', type: 'comment', content: '@UserD commented on your post: "Great idea!"', sender: 'UserD', timestamp: '30 min ago', read: false }
-      ].filter(n => tab === 'all' || (tab === 'messages' && n.type === 'group_message') || (tab === 'followers' && n.type === 'follower') || (tab === 'posts' && n.type === 'follower_post') || (tab === 'comments' && n.type === 'comment'));
+    <script type="module" src="./js/notifications.js"></script>
 
-      renderNotifications(mockData);
-      page++;
-    }
-
-    function renderNotifications(data) {
-      const list = document.getElementById('notif-list');
-      data.forEach(notif => {
-        const item = document.createElement('div');
-        item.className = `notification-item ${notif.read ? '' : 'unread'}`;
-        item.innerHTML = `
-          <div class="avatar"></div>
-          <div class="content">
-            <p>${notif.content}</p>
-            <div class="timestamp">${notif.timestamp}</div>
-          </div>
-        `;
-        item.onclick = () => markRead(notif.id, item);
-        list.appendChild(item);
-      });
-    }
-
-    function markRead(id, element) {
-      element.classList.remove('unread');
-      // API call
-    }
-
-    function markAllRead() {
-      document.querySelectorAll('.unread').forEach(el => el.classList.remove('unread'));
-      // API call
-    }
-
-    function clearAll() {
-      document.getElementById('notif-list').innerHTML = '';
-      // API call
-    }
-
-    function loadMore() {
-      fetchNotifications(currentTab);
-    }
-
-    // Initial load
-    fetchNotifications('all');
-
-    // Theme Toggle with Swipe on Title
-    const title = document.getElementById('title');
-    let touchStartX = 0;
-    title.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX;
-    });
-    title.addEventListener('touchend', (e) => {
-      const touchEndX = e.changedTouches[0].clientX;
-      if (Math.abs(touchEndX - touchStartX) > 50) {
-        toggleTheme();
-      }
-    });
-
-    function toggleTheme() {
-      document.body.classList.toggle('dark');
-      // Save pref
-    }
-
-    // Settings
-    function openSettings() {
-      const panel = document.getElementById('settings-panel');
-      panel.style.display = 'flex';
-      setTimeout(() => panel.classList.add('visible'), 10);
-    }
-
-    function closeSettings(event) {
-      if (event && (event.target.id === 'settings-panel' || event.target.classList.contains('close-btn'))) {
-        const panel = document.getElementById('settings-panel');
-        panel.classList.remove('visible');
-        setTimeout(() => panel.style.display = 'none', 400);
-      }
-    }
-
-    function togglePref(type, enabled) {
-      console.log(`${type} notifications: ${enabled}`);
-      // API call
-    }
-
-    // Ripple on buttons and tabs
-    document.querySelectorAll('button, .tab').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const ripple = document.createElement('span');
-        ripple.classList.add('ripple');
-        const rect = btn.getBoundingClientRect();
-        ripple.style.left = `${e.clientX - rect.left}px`;
-        ripple.style.top = `${e.clientY - rect.top}px`;
-        btn.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 500);
-      });
-    });
-  </script>
 </body>
 </html>

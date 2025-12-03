@@ -1608,16 +1608,16 @@
             </div>
           
             <div class="nav-actions">
-                <div class="nav-icon" id="followersBtn">
+                <button class="nav-icon" id="followersBtn" aria-label="Followers and Following">
                     <i class="fas fa-users"></i>
-                </div>
-                <div class="nav-icon" id="notificationsBtn">
+                </button>
+                <a href="notifications.html" class="nav-icon" id="notificationsBtn" aria-label="Notifications">
                     <i class="fas fa-bell"></i>
                     <span class="notification-count" id="notificationCount"></span>
-                </div>
-                <div class="nav-icon" id="settingsBtn">
+                </a>
+                <button class="nav-icon" id="settingsBtn" aria-label="Settings">
                     <i class="fas fa-cog"></i>
-                </div>
+                </button>
             </div>
         </header>
         <!-- Main Content -->
@@ -2071,33 +2071,6 @@
             </div>
         </div>
     </div>
-    <!-- Notifications Drawer with Glassmorphism -->
-    <div class="notifications-drawer" id="notificationsDrawer">
-        <div class="notifications-header">
-            <h2 class="notifications-title">Notifications</h2>
-            <button class="close-notifications" id="closeNotifications">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-      
-        <div class="notifications-content">
-            <div class="notifications-list" id="notificationsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-            <div class="drawer-footer" style="padding: 1rem 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <button class="mark-all-read-btn" id="markAllReadBtn" style="margin-top: 0; margin-bottom: 1rem;">
-                    <i class="fas fa-check-double"></i>
-                    Mark All as Read
-                </button>
-                <a href="notifications.html" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">
-                    <i class="fas fa-history"></i>
-                    View All Notifications
-                </a>
-            </div>
-        </div>
-    </div>
     <!-- Followers Drawer -->
     <div class="followers-drawer" id="followersDrawer">
         <div class="drawer-header">
@@ -2182,13 +2155,7 @@
         const header = document.getElementById('header');
         const themeIndicator = document.getElementById('themeIndicator');
         const settingsDrawer = document.getElementById('settingsDrawer');
-        const closeDrawer = document.getElementById('closeDrawer');
         const notificationsBtn = document.getElementById('notificationsBtn');
-        const notificationsDrawer = document.getElementById('notificationsDrawer');
-        const notificationCount = document.getElementById('notificationCount');
-        const closeNotifications = document.getElementById('closeNotifications');
-        const notificationsList = document.getElementById('notificationsList');
-        const markAllReadBtn = document.getElementById('markAllReadBtn');
         const followersBtn = document.getElementById('followersBtn');
         const followersDrawer = document.getElementById('followersDrawer');
         const closeFollowersDrawer = document.getElementById('closeFollowersDrawer');
@@ -2200,6 +2167,8 @@
         const twoFactorModal = document.getElementById('twoFactorModal');
         const cancel2FA = document.getElementById('cancel2FA');
         const confirm2FA = document.getElementById('confirm2FA');
+        const closeDrawer = document.getElementById('closeDrawer');
+        const notificationCount = document.getElementById('notificationCount');
         const darkModeToggle = document.getElementById('darkModeToggle');
         const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
         const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
@@ -3460,30 +3429,6 @@
             }
         }
 
-        // Load user notifications from Supabase
-        async function loadUserNotifications() {
-            try {
-                const { data: notifications, error } = await supabase
-                    .from('notifications')
-                    .select(`*,
-                        sender:sender_id(full_name, username, profile_photo),
-                        sender_profile,
-                        post:post_id(id, content)
-                    `)
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-              
-                if (error) throw error;
-              
-                userNotifications = notifications || [];
-                updateNotificationsUI();
-              
-            } catch (error) {
-                console.error('Error loading notifications:', error);
-                showError('Error loading notifications');
-            }
-        }
         // Update the UI with notifications data
         function updateNotificationsUI() {
             notificationsList.innerHTML = '';
@@ -3554,49 +3499,33 @@
             });
         }
 
-        // NEW: Handle clicks on notifications
-        async function handleNotificationClick(notification) {
-            // Navigate based on notification type
-            closeAllDrawers(); // Close the drawer after clicking
-            switch (notification.type) {
-                case 'new_follower':
-                    if (notification.sender_id) {
-                        window.location.href = `profile.html?userId=${notification.sender_id}`;
-                    }
-                    break;
-                case 'new_post':
-                    if (notification.post_id) {
-                        // Fetch the post to open it in the viewer
-                        const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
-                        if (post) openVideoViewer(post.id, [post]);
-                    }
-                    break;
-                case 'new_like':
-                    if (notification.post_id) {
-                        // Fetch the post to open it in the viewer
-                        const { data: post, error } = await supabase.from('posts').select('*, profiles:user_id(*)').eq('id', notification.post_id).single();
-                        if (post) openVideoViewer(post.id, [post]);
-                    }
-                    break;
-                default:
-                    // For other types, do nothing for now
-                    console.log('Clicked notification with no defined action:', notification.type);
-            }
-            if (!notification.read) {
-                const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notification.id);
-                if (!error) {
-                    notification.read = true;
-                    updateNotificationsUI(); // Re-render to remove unread style
-                }
-            };
-        }
-
         // Helper to close all drawers
         function closeAllDrawers() {
             notificationsDrawer.classList.remove('open');
             settingsDrawer.classList.remove('open');
             followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
+        }
+        // Load user notifications from Supabase (simplified for just the count)
+        async function loadUserNotifications() {
+            try {
+                // We only need the count of unread notifications for the badge
+                const { count, error } = await supabase
+                    .from('notifications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', currentUser.id)
+                    .eq('read', false);
+
+                if (error) throw error;
+
+                if (count > 0) {
+                    notificationCount.textContent = count > 9 ? '9+' : count;
+                    notificationCount.style.transform = 'scale(1)';
+                } else {
+                    notificationCount.style.transform = 'scale(0)';
+                }
+                updateDocumentTitle(count);
+            } catch (error) { console.error('Error loading notification count:', error); }
         }
         // Set up real-time notifications subscription
         // NEW: Toast Notification Function
@@ -3662,19 +3591,14 @@
                     (payload) => {
                         if (payload.eventType === 'INSERT') {
                             const newNotification = payload.new;
-                            newNotification.sender = newNotification.sender_profile;
-
-                            userNotifications.unshift(newNotification);
-                            updateNotificationsUI();
+                            // Just reload the count when a new notification arrives
+                            loadUserNotifications();
 
                             const bellIcon = document.getElementById('notificationsBtn');
                             bellIcon.classList.add('new-notification-pulse');
                             setTimeout(() => bellIcon.classList.remove('new-notification-pulse'), 1000);
 
-                            // NEW: Play notification sound
                             playNotificationSound();
-
-                            // NEW: Show a toast notification
                             const senderName = newNotification.sender?.full_name || 'Someone';
                             let toastMessage = '';
                             let toastType = 'info';
@@ -3688,24 +3612,12 @@
                                 toastMessage = `<strong>${senderName}</strong> liked your post.`;
                                 toastType = 'like';
                                 // Action to view the post
-                                toastAction = () => handleNotificationClick(newNotification);
+                                toastAction = () => window.location.href = 'notifications.html';
                             }
 
                             if (toastMessage) {
                                 showToast(toastMessage, toastType, 5000, toastAction);
                             }
-
-                        } else if (payload.eventType === 'UPDATE') {
-                            const updatedNotification = payload.new;
-                            const index = userNotifications.findIndex(n => n.id === updatedNotification.id);
-                            if (index > -1) {
-                                userNotifications[index] = { ...userNotifications[index], ...updatedNotification };
-                                updateNotificationsUI();
-                            }
-                        } else if (payload.eventType === 'DELETE') {
-                            const oldNotificationId = payload.old.id;
-                            userNotifications = userNotifications.filter(n => n.id !== oldNotificationId);
-                            updateNotificationsUI();
                         }
                     }
                 )
@@ -3996,19 +3908,6 @@
             settingsDrawer.classList.add('open');
             overlay.classList.add('active');
         });
-        closeDrawer.addEventListener('click', () => {
-            settingsDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-        // Notifications drawer functionality
-        notificationsBtn.addEventListener('click', () => {
-            notificationsDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
-        closeNotifications.addEventListener('click', () => {
-            notificationsDrawer.classList.remove('open');
-            overlay.classList.remove('active');
-        });
         // Followers drawer functionality
         followersBtn.addEventListener('click', () => {
             followersDrawer.classList.add('open');
@@ -4016,6 +3915,10 @@
         });
         closeFollowersDrawer.addEventListener('click', () => {
             followersDrawer.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+        closeDrawer.addEventListener('click', () => {
+            settingsDrawer.classList.remove('open');
             overlay.classList.remove('active');
         });
         // Posts drawer functionality
@@ -4079,7 +3982,6 @@
         });
         overlay.addEventListener('click', () => {
             settingsDrawer.classList.remove('open');
-            notificationsDrawer.classList.remove('open');
             followersDrawer.classList.remove('open');
             postsDrawer.classList.remove('open');
             overlay.classList.remove('active');
@@ -4091,7 +3993,6 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 settingsDrawer.classList.remove('open');
-                notificationsDrawer.classList.remove('open');
                 followersDrawer.classList.remove('open');
                postsDrawer.classList.remove('open');
                 overlay.classList.remove('active');
@@ -4105,32 +4006,6 @@
                 if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') showPrevVideo();
             } else if (e.key === 'ArrowRight') {
                 // Could add logic to switch main page tabs here
-            }
-        });
-        // Mark all notifications as read
-        markAllReadBtn.addEventListener('click', async () => {
-            try {
-                const unreadNotifications = userNotifications.filter(n => !n.read);
-                if (unreadNotifications.length === 0) return;
-              
-                const { error } = await supabase
-                    .from('notifications')
-                    .update({ read: true })
-                    .eq('user_id', currentUser.id)
-                    .eq('read', false);
-                  
-                if (error) throw error;
-              
-                // Update local state
-                userNotifications.forEach(n => {
-                    n.read = true;
-                });
-              
-                updateNotificationsUI();
-              
-            } catch (error) {
-                console.error('Error marking notifications as read:', error);
-                showError('Error marking notifications as read');
             }
         });
         // 2FA functionality
