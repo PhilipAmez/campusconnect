@@ -401,267 +401,275 @@
         <span>Support</span>
     </a>
 
-    <script type="module" src="js/supabaseClient.js"></script>
     <script type="module">
-        import { supabase } from './js/supabaseClient.js'
+    import { supabase } from './js/supabaseClient.js'
+    
+    console.log('Signup script loaded, Supabase:', supabase ? 'Loaded' : 'Not loaded')
 
-        // Preview selected profile photo
-        const profilePhotoInput = document.getElementById('profilePhoto');
-        const profilePhotoPreview = document.getElementById('profilePhotoPreview');
+    // Preview selected profile photo
+    const profilePhotoInput = document.getElementById('profilePhoto');
+    const profilePhotoPreview = document.getElementById('profilePhotoPreview');
 
-        profilePhotoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                profilePhotoPreview.src = evt.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
+    profilePhotoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            profilePhotoPreview.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
 
-        // Auto-generate initials avatar if no photo is uploaded
-        function generateInitialsAvatar(firstName, lastName) {
-            const initials = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase();
-            // Use ui-avatars.com for a circular avatar with initials
-            return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random&rounded=true`;
+    // Auto-generate initials avatar if no photo is uploaded
+    function generateInitialsAvatar(firstName, lastName) {
+        const initials = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase();
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random&rounded=true`;
+    }
+
+    const form = document.getElementById('signupForm');
+    const verificationMessage = document.getElementById('verificationMessage');
+    const userEmailSpan = document.getElementById('userEmailSpan');
+    const usernameError = document.getElementById('usernameError');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    const formError = document.getElementById('formError');
+
+    // Check if username already exists
+    async function checkUsernameExists(username) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('username', username)
+            .maybeSingle();
+        
+        return { exists: !!data, error };
+    }
+
+    // Check if email already exists
+    async function checkEmailExists(email) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle();
+        
+        return { exists: !!data, error };
+    }
+
+    // Real-time validation for username
+    document.getElementById('username').addEventListener('blur', async function() {
+        const username = this.value.trim();
+        if (username.length < 3) return;
+        
+        const { exists, error } = await checkUsernameExists(username);
+        
+        if (error) {
+            console.error('Error checking username:', error);
+            return;
         }
-
-        const form = document.getElementById('signupForm');
-        const verificationMessage = document.getElementById('verificationMessage');
-        const userEmailSpan = document.getElementById('userEmailSpan');
-        const usernameError = document.getElementById('usernameError');
-        const emailError = document.getElementById('emailError');
-        const passwordError = document.getElementById('passwordError');
-        const formError = document.getElementById('formError');
-
-        // Check if username already exists
-        async function checkUsernameExists(username) {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('username', username)
-                .maybeSingle();
-            
-            return { exists: !!data, error };
+        
+        if (exists) {
+            usernameError.textContent = 'Username already taken. Please choose another one.';
+            usernameError.style.display = 'flex';
+        } else {
+            usernameError.style.display = 'none';
         }
+    });
 
-        // Check if email already exists
-        async function checkEmailExists(email) {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('email')
-                .eq('email', email)
-                .maybeSingle();
-            
-            return { exists: !!data, error };
+    // Real-time validation for email
+    document.getElementById('email').addEventListener('blur', async function() {
+        const email = this.value.trim();
+        if (!email) return;
+        
+        const { exists, error } = await checkEmailExists(email);
+        
+        if (error) {
+            console.error('Error checking email:', error);
+            return;
         }
+        
+        if (exists) {
+            emailError.textContent = 'Email already registered. Please use a different email or login.';
+            emailError.style.display = 'flex';
+        } else {
+            emailError.style.display = 'none';
+        }
+    });
 
-        // Real-time validation for username
-        document.getElementById('username').addEventListener('blur', async function() {
-            const username = this.value.trim();
-            if (username.length < 3) return;
-            
-            const { exists, error } = await checkUsernameExists(username);
-            
-            if (error) {
-                console.error('Error checking username:', error);
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('Signup form submitted');
+        
+        const submitButton = form.querySelector('.btn');
+        submitButton.classList.add('loading');
+        submitButton.disabled = true;
+
+        // Hide any previous error messages
+        usernameError.style.display = 'none';
+        emailError.style.display = 'none';
+        passwordError.style.display = 'none';
+        formError.style.display = 'none';
+
+        try {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const campusSelect = document.getElementById('campus');
+            const customCampusInput = document.getElementById('customCampus');
+            const campus = campusSelect.value === 'Other' ? customCampusInput.value.trim() : campusSelect.value;
+            const departmentSelect = document.getElementById('department');
+            const customDepartmentInput = document.getElementById('customDepartment');
+            const department = departmentSelect.value === 'Other' ? customDepartmentInput.value.trim() : departmentSelect.value;
+            const levelSelect = document.getElementById('level');
+            const customLevelInput = document.getElementById('customLevel');
+            const level = levelSelect.value === 'Other' ? customLevelInput.value.trim() : levelSelect.value;
+
+            // Validation
+            if (!firstName || !lastName || !username || !contact || !email || !password || !confirmPassword || !campus || !department || !level) {
+                formError.textContent = 'Please fill in all required fields';
+                formError.style.display = 'block';
                 return;
             }
-            
-            if (exists) {
+
+            if (password !== confirmPassword) {
+                passwordError.textContent = 'Passwords do not match.';
+                passwordError.style.display = 'flex';
+                document.getElementById('confirmPassword').focus();
+                return;
+            }
+
+            // Check if username and email are still available (double-check)
+            const [usernameCheck, emailCheck] = await Promise.all([
+                checkUsernameExists(username),
+                checkEmailExists(email)
+            ]);
+
+            if (usernameCheck.exists) {
                 usernameError.textContent = 'Username already taken. Please choose another one.';
                 usernameError.style.display = 'flex';
-            } else {
-                usernameError.style.display = 'none';
-            }
-        });
-
-        // Real-time validation for email
-        document.getElementById('email').addEventListener('blur', async function() {
-            const email = this.value.trim();
-            if (!email) return;
-            
-            const { exists, error } = await checkEmailExists(email);
-            
-            if (error) {
-                console.error('Error checking email:', error);
+                document.getElementById('username').focus();
                 return;
             }
-            
-            if (exists) {
+
+            if (emailCheck.exists) {
                 emailError.textContent = 'Email already registered. Please use a different email or login.';
                 emailError.style.display = 'flex';
-            } else {
-                emailError.style.display = 'none';
+                document.getElementById('email').focus();
+                return;
             }
-        });
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = form.querySelector('.btn');
-            submitButton.classList.add('loading');
-            submitButton.disabled = true;
-
-            // Hide any previous error messages
-            usernameError.style.display = 'none';
-            emailError.style.display = 'none';
-            passwordError.style.display = 'none';
-            formError.style.display = 'none';
-
-            try {
-                const firstName = document.getElementById('firstName').value.trim();
-                const lastName = document.getElementById('lastName').value.trim();
-                const username = document.getElementById('username').value.trim();
-                const contact = document.getElementById('contact').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const password = document.getElementById('password').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                const campusSelect = document.getElementById('campus');
-                const customCampusInput = document.getElementById('customCampus');
-                const campus = campusSelect.value === 'Other' ? customCampusInput.value.trim() : campusSelect.value;
-                const departmentSelect = document.getElementById('department');
-                const customDepartmentInput = document.getElementById('customDepartment');
-                const department = departmentSelect.value === 'Other' ? customDepartmentInput.value.trim() : departmentSelect.value;
-                const levelSelect = document.getElementById('level');
-                const customLevelInput = document.getElementById('customLevel');
-                const level = levelSelect.value === 'Other' ? customLevelInput.value.trim() : levelSelect.value;
-
-                if (password !== confirmPassword) {
-                    passwordError.textContent = 'Passwords do not match.';
-                    passwordError.style.display = 'flex';
-                    document.getElementById('confirmPassword').focus();
+            let profilePhotoUrl = '';
+            if (profilePhotoInput.files.length > 0) {
+                const file = profilePhotoInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const filePath = `avatars/${Date.now()}_${Math.random().toString(36).substr(2, 8)}.${fileExt}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+                if (uploadError) {
+                    formError.textContent = 'Profile photo upload failed: ' + uploadError.message;
+                    formError.style.display = 'block';
                     return;
                 }
+                const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                profilePhotoUrl = urlData.publicUrl;
+            } else {
+                profilePhotoUrl = generateInitialsAvatar(firstName, lastName);
+            }
 
-                // Check if username and email are still available (double-check)
-                const [usernameCheck, emailCheck] = await Promise.all([
-                    checkUsernameExists(username),
-                    checkEmailExists(email)
-                ]);
-
-                if (usernameCheck.exists) {
-                    usernameError.textContent = 'Username already taken. Please choose another one.';
-                    usernameError.style.display = 'flex';
-                    document.getElementById('username').focus();
-                    return;
+            console.log('Attempting to sign up user...');
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        firstName,
+                        lastName,
+                        username,
+                        contact,
+                        profilePhoto: profilePhotoUrl,
+                        campus,
+                        department,
+                        level
+                    }
                 }
+            });
 
-                if (emailCheck.exists) {
+            if (signUpError) {
+                console.error('Sign up error:', signUpError);
+                if (signUpError.message.includes('already registered')) {
                     emailError.textContent = 'Email already registered. Please use a different email or login.';
                     emailError.style.display = 'flex';
                     document.getElementById('email').focus();
-                    return;
-                }
-
-                // 1. Upload profile photo to Supabase Storage (if selected)
-                let profilePhotoUrl = '';
-                if (profilePhotoInput.files.length > 0) {
-                    const file = profilePhotoInput.files[0];
-                    const fileExt = file.name.split('.').pop();
-                    const filePath = `avatars/${Date.now()}_${Math.random().toString(36).substr(2, 8)}.${fileExt}`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('avatars')
-                        .upload(filePath, file, { cacheControl: '3600', upsert: false });
-                    if (uploadError) {
-                        formError.textContent = 'Profile photo upload failed: ' + uploadError.message;
-                        formError.style.display = 'block';
-                        return;
-                    }
-                    // Get public URL
-                    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-                    profilePhotoUrl = urlData.publicUrl;
                 } else {
-                    // No photo uploaded, use initials avatar
-                    profilePhotoUrl = generateInitialsAvatar(firstName, lastName);
+                    formError.textContent = 'Sign up failed: ' + signUpError.message;
+                    formError.style.display = 'block';
                 }
-
-                // 2. Add profilePhotoUrl to both signUp and profile insert
-                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            firstName,
-                            lastName,
-                            username,
-                            contact,
-                            profilePhoto: profilePhotoUrl,
-                            campus,
-                            department,
-                            level
-                        }
-                    }
-                });
-
-                if (signUpError) {
-                    console.error('Sign up error:', signUpError);
-                    if (signUpError.message.includes('already registered')) {
-                        emailError.textContent = 'Email already registered. Please use a different email or login.';
-                        emailError.style.display = 'flex';
-                        document.getElementById('email').focus();
-                    } else {
-                        formError.textContent = 'Sign up failed: ' + signUpError.message;
-                        formError.style.display = 'block';
-                    }
-                    return;
-                }
-
-                // Show verification message
-                userEmailSpan.textContent = email;
-                form.style.display = 'none';
-                verificationMessage.style.display = 'block';
-                
-                // Scroll to verification message
-                verificationMessage.scrollIntoView({ behavior: 'smooth' });
-
-            } catch (error) {
-                console.error('An unexpected error occurred:', error);
-                formError.textContent = 'An unexpected error occurred. Please try again.';
-                formError.style.display = 'block';
-            } finally {
-                submitButton.classList.remove('loading');
-                submitButton.disabled = false;
+                return;
             }
-        });
 
-        // Show/hide custom campus input
-        const campusSelect = document.getElementById('campus');
-        const customCampusInput = document.getElementById('customCampus');
-        campusSelect.addEventListener('change', function() {
-            if (this.value === 'Other') {
-                customCampusInput.style.display = '';
-                customCampusInput.required = true;
-            } else {
-                customCampusInput.style.display = 'none';
-                customCampusInput.required = false;
-            }
-        });
+            console.log('Signup successful:', signUpData);
+            
+            // Show verification message
+            userEmailSpan.textContent = email;
+            form.style.display = 'none';
+            verificationMessage.style.display = 'block';
+            
+            // Scroll to verification message
+            verificationMessage.scrollIntoView({ behavior: 'smooth' });
 
-        // Show/hide custom department input
-        const departmentSelect = document.getElementById('department');
-        const customDepartmentInput = document.getElementById('customDepartment');
-        departmentSelect.addEventListener('change', function() {
-            if (this.value === 'Other') {
-                customDepartmentInput.style.display = '';
-                customDepartmentInput.required = true;
-            } else {
-                customDepartmentInput.style.display = 'none';
-                customDepartmentInput.required = false;
-            }
-        });
+        } catch (error) {
+            console.error('An unexpected error occurred:', error);
+            formError.textContent = 'An unexpected error occurred. Please try again.';
+            formError.style.display = 'block';
+        } finally {
+            submitButton.classList.remove('loading');
+            submitButton.disabled = false;
+        }
+    });
 
-        // Show/hide custom level input
-        const levelSelect = document.getElementById('level');
-        const customLevelInput = document.getElementById('customLevel');
-        levelSelect.addEventListener('change', function() {
-            if (this.value === 'Other') {
-                customLevelInput.style.display = '';
-                customLevelInput.required = true;
-            } else {
-                customLevelInput.style.display = 'none';
-                customLevelInput.required = false;
-            }
-        });
-    </script>
+    // Show/hide custom campus input
+    const campusSelect = document.getElementById('campus');
+    const customCampusInput = document.getElementById('customCampus');
+    campusSelect.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            customCampusInput.style.display = '';
+            customCampusInput.required = true;
+        } else {
+            customCampusInput.style.display = 'none';
+            customCampusInput.required = false;
+        }
+    });
+
+    // Show/hide custom department input
+    const departmentSelect = document.getElementById('department');
+    const customDepartmentInput = document.getElementById('customDepartment');
+    departmentSelect.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            customDepartmentInput.style.display = '';
+            customDepartmentInput.required = true;
+        } else {
+            customDepartmentInput.style.display = 'none';
+            customDepartmentInput.required = false;
+        }
+    });
+
+    // Show/hide custom level input
+    const levelSelect = document.getElementById('level');
+    const customLevelInput = document.getElementById('customLevel');
+    levelSelect.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            customLevelInput.style.display = '';
+            customLevelInput.required = true;
+        } else {
+            customLevelInput.style.display = 'none';
+            customLevelInput.required = false;
+        }
+    });
+</script>
 </body>
 </html>
