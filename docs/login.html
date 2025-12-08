@@ -163,23 +163,6 @@
             background: rgba(255, 255, 255, 0.5);
         }
 
-        .home-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            padding: 0.5rem;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .home-link:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: translateY(-2px);
-        }
-
         @media (max-width: 768px) {
             .auth-card {
                 padding: 1.5rem;
@@ -247,15 +230,6 @@
                 <p class="text-center text-sm text-gray-600 mt-2">
                     Forgot your password? <a href="forgotpassword.html" class="text-purple-600 hover:underline">Reset it</a>
                 </p>
-                
-                <!-- Added "Want to go back?" message with home link -->
-                <div class="text-center text-sm text-gray-600 mt-4">
-                    <p class="mb-2">Want to go back🥹?</p>
-                    <a href="index.html" class="home-link text-purple-600 font-medium">
-                        <i class="fas fa-home"></i>
-                        <span>Go Home</span>
-                    </a>
-                </div>
             </div>
         </div>
     </div>
@@ -265,46 +239,77 @@
         <span>Support</span>
     </a>
 
-    <script type="module" src="js/supabaseClient.js"></script>
     <script type="module">
-        import { supabase } from './js/supabaseClient.js'
+    import { supabase } from './js/supabaseClient.js'
 
-        const form     = document.getElementById('loginForm')
-        const emailEl  = document.getElementById('username')
-        const passEl   = document.getElementById('password')
-        const button   = document.querySelector('.auth-button')
-        const errorEl  = document.getElementById('errorMessage')
-        const okEl     = document.getElementById('successMessage')
+    const form = document.getElementById('loginForm')
+    const emailEl = document.getElementById('username')
+    const passEl = document.getElementById('password')
+    const button = document.querySelector('.auth-button')
+    const errorEl = document.getElementById('errorMessage')
+    const okEl = document.getElementById('successMessage')
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault()
-            errorEl.textContent = okEl.textContent = ''
-            button.classList.add('loading')
+    console.log('Login script loaded, Supabase:', supabase ? 'Loaded' : 'Not loaded')
 
-            const email    = emailEl.value.trim()
-            const password = passEl.value
-
-            const { error } = await supabase.auth.signInWithPassword({ email, password })
-
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        console.log('Login form submitted')
+        
+        errorEl.textContent = okEl.textContent = ''
+        button.classList.add('loading')
+        
+        const email = emailEl.value.trim()
+        const password = passEl.value
+        
+        if (!email || !password) {
+            errorEl.textContent = 'Please fill in all fields'
+            button.classList.remove('loading')
+            return
+        }
+        
+        try {
+            console.log('Attempting to sign in...')
+            const { data, error } = await supabase.auth.signInWithPassword({ 
+                email: email, 
+                password: password 
+            })
+            
             if (error) {
-                errorEl.textContent = error.message
+                console.error('Login error:', error)
+                errorEl.textContent = error.message || 'Login failed. Please check your credentials.'
                 button.classList.remove('loading')
                 return
             }
-            okEl.textContent = 'Login successful! Loading…'
+            
+            console.log('Login successful:', data)
+            okEl.textContent = 'Login successful! Redirecting...'
+            
+            // Redirect immediately instead of waiting 10 seconds
             setTimeout(() => {
-                window.location = 'dashboard.html'
-            }, 10000) // 10-second delay
-        })
+                window.location.href = 'dashboard.html'
+            }, 1000)
+            
+        } catch (err) {
+            console.error('Unexpected error:', err)
+            errorEl.textContent = 'An unexpected error occurred. Please try again.'
+            button.classList.remove('loading')
+        }
+    })
 
-        // Auto-redirect if already signed in
+    // Auto-redirect if already signed in (with better error handling)
+    try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
+            console.log('Already logged in, redirecting...')
             button.classList.add('loading')
             setTimeout(() => {
-                window.location = 'dashboard.html'
-            }, 10000) // 10-second delay
+                window.location.href = 'dashboard.html'
+            }, 1000)
         }
-    </script>
+    } catch (err) {
+        console.warn('Could not check session:', err)
+        // Continue without auto-redirect
+    }
+</script>
 </body>
 </html>
