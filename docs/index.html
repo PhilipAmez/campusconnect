@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#ffffff">
-   
+  
     <!-- SEO -->
     <meta name="description" content="PeerLoom is a student-first platform like WhatsApp but with powerful learning features and AI built in. Create study groups, share knowledge, and grow together.">
     <meta name="keywords" content="PeerLoom, student app, study groups, university chat, AI learning, PeerPal">
@@ -124,56 +124,93 @@
                 transform: translateX(-50%) translateY(-20px);
             }
         }
-        /* Splash Screen Styles - SLOWER ANIMATION */
+        /* Splash Screen Styles - Updated Background */
         #splash-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, #000428 0%, #004e92 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 9999;
             overflow: hidden;
+            will-change: opacity;
         }
         .splash-content {
             text-align: center;
             color: white;
+            position: relative;
         }
         .logo-container {
             display: flex;
             justify-content: center;
             margin-bottom: 2rem;
         }
+        #particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
         .letter {
             font-size: 4rem;
             font-weight: 800;
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(50vh);
             display: inline-block;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.5),
+                0 0 20px #7c3aed,
+                0 0 30px #4f46e5,
+                0 0 40px rgba(255, 255, 255, 0.3);
+            transition: none;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+        }
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            opacity: 0.8;
+            will-change: transform, opacity;
         }
         @media (max-width: 768px) {
             .letter {
-                font-size: 3rem;
+                font-size: 2.8rem;
+            }
+            .particle {
+                width: 2px;
+                height: 2px;
             }
         }
         @media (max-width: 480px) {
             .letter {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
+            }
+            .particle {
+                width: 1.5px;
+                height: 1.5px;
             }
         }
-        /* Animation Keyframes - SLOWER DURATIONS */
+        /* Animation Keyframes - Slightly Slower Durations */
         @keyframes letterAppear {
             0% {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(50vh) scale(0.5);
             }
             100% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
         @keyframes letterShake {
@@ -195,6 +232,16 @@
             100% {
                 transform: translate(var(--tx), var(--ty)) scale(0);
                 opacity: 0;
+            }
+        }
+        @keyframes particleFly {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0);
             }
         }
         @keyframes fadeOut {
@@ -485,6 +532,12 @@
     </style>
 </head>
 <body>
+    <!-- Splash Sound -->
+    <audio id="splashSound" preload="auto" loop="false">
+        <source src="splash-effect.mp3" type="audio/mpeg">
+        <source src="splash-effect.ogg" type="audio/ogg">
+        Your browser does not support the audio element.
+    </audio>
     <!-- Notification Container -->
     <div id="notification" class="notification">
         <i class="notification-icon"></i>
@@ -506,6 +559,7 @@
                 <span class="letter" id="letter-o2">o</span>
                 <span class="letter" id="letter-m">m</span>
             </div>
+            <div id="particles"></div>
             <p class="text-xl">Connecting students, learning together</p>
         </div>
     </div>
@@ -573,17 +627,16 @@
         </footer>
     </div>
     <script type="module">
-        import { supabase } from './js/supabaseClient.js';
         // Notification system
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
             const notificationIcon = notification.querySelector('.notification-icon');
             const notificationMessage = notification.querySelector('.notification-message');
-           
+          
             // Set notification content and type
             notificationMessage.textContent = message;
             notification.className = `notification ${type}`;
-           
+          
             // Set appropriate icon based on type
             switch(type) {
                 case 'success':
@@ -600,10 +653,10 @@
                     notificationIcon.className = 'notification-icon fas fa-info-circle';
                     break;
             }
-           
+          
             // Show notification
             notification.classList.add('show');
-           
+          
             // Auto-hide after 5 seconds
             setTimeout(() => {
                 hideNotification();
@@ -613,7 +666,7 @@
             const notification = document.getElementById('notification');
             notification.classList.remove('show');
             notification.classList.add('hide');
-           
+          
             // Remove hide class after animation completes
             setTimeout(() => {
                 notification.classList.remove('hide');
@@ -654,12 +707,48 @@
                 }
             }
         }
-        // Splash screen animation - SLOWER TIMING
+        // Particle creation function - Reduced for mobile
+        function createParticles(x, y, num = window.innerWidth < 768 ? 5 : 8) {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < num; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                const angle = (i / num) * Math.PI * 2 + Math.random() * 0.5;
+                const dist = 80 + Math.random() * 120;
+                const dx = Math.cos(angle) * dist;
+                const dy = Math.sin(angle) * dist;
+                particle.style.setProperty('--dx', dx + 'px');
+                particle.style.setProperty('--dy', dy + 'px');
+                container.appendChild(particle);
+                // Start animation immediately
+                requestAnimationFrame(() => {
+                    particle.style.animation = 'particleFly 1.2s ease-out forwards';
+                });
+                setTimeout(() => {
+                    if (container.contains(particle)) {
+                        container.removeChild(particle);
+                    }
+                }, 1300);
+            }
+        }
+        // Splash screen animation - Slightly Slower Timing
         document.addEventListener('DOMContentLoaded', () => {
             const splashScreen = document.getElementById('splash-screen');
             const mainContent = document.getElementById('main-content');
             const letters = document.querySelectorAll('.letter');
-           
+            const splashSound = document.getElementById('splashSound');
+          
+            // Play sound on first letter appearance (with fallback for mobile autoplay restrictions)
+            const playSound = () => {
+                splashSound.currentTime = 0;
+                splashSound.play().catch(e => {
+                    console.log('Autoplay prevented:', e);
+                    // Optionally, you could add a user gesture trigger, but for splash, we'll just skip
+                });
+            };
+          
             // Function to generate random values for explosion
             function getRandomExplosionValues() {
                 const angle = Math.random() * Math.PI * 2;
@@ -669,45 +758,53 @@
                     ty: Math.sin(angle) * distance + 'px'
                 };
             }
-           
-            // Animate each letter with delays - SLOWER TIMING
+          
+            // Animate each letter with slightly increased delays
             letters.forEach((letter, index) => {
-                // Set initial animation for appearance - SLOWER
+                // Set initial animation for appearance - Slightly slower
                 setTimeout(() => {
-                    letter.style.animation = 'letterAppear 0.8s forwards';
-                   
-                    // Add shake animation after appearance - SLOWER
+                    letter.style.animation = 'letterAppear 1s forwards';
+                    if (index === 0) {
+                        playSound();
+                    }
+                  
+                    // Add shake animation after appearance - Slightly slower
                     setTimeout(() => {
-                        letter.style.animation = 'letterShake 0.8s forwards';
-                       
-                        // Add explosion animation after shaking - SLOWER
+                        letter.style.animation = 'letterShake 1s forwards';
+                      
+                        // Add explosion animation after shaking - Slightly slower
                         setTimeout(() => {
+                            const rect = letter.getBoundingClientRect();
+                            const centerX = rect.left + rect.width / 2;
+                            const centerY = rect.top + rect.height / 2;
                             const explosionValues = getRandomExplosionValues();
                             letter.style.setProperty('--tx', explosionValues.tx);
                             letter.style.setProperty('--ty', explosionValues.ty);
-                            letter.style.animation = 'letterExplode 1.2s forwards';
-                        }, 800); // Increased from 500 to 800
-                    }, 800); // Increased from 500 to 800
-                }, index * 300); // Increased from 200 to 300
+                            letter.style.animation = 'letterExplode 1.5s forwards';
+                            // Create particles during explosion
+                            createParticles(centerX, centerY);
+                        }, 150); // Increased from 100
+                    }, 1000); // Increased from 800
+                }, index * 350); // Increased from 300
             });
-           
-            // Hide splash screen and show main content after animation completes - SLOWER
+          
+            // Hide splash screen and show main content after animations (adjusted for slower timing ~6000ms + margin)
             setTimeout(() => {
-                splashScreen.style.animation = 'fadeOut 0.8s forwards';
+                splashScreen.style.animation = 'fadeOut 1s forwards';
                 setTimeout(() => {
                     splashScreen.style.display = 'none';
                     mainContent.style.display = 'block';
                     window.scrollTo(0, 0);
-                   
+                  
                     // Initialize main page functionality
                     initMainPage();
-                   
+                  
                     // Check for URL parameters after page loads
                     checkUrlParameters();
                     // Handle any SPA redirects
                     handleRedirect();
-                }, 800); // Increased from 500 to 800
-            }, 5000); // Increased from 3500 to 5000
+                }, 1000); // Increased from 800
+            }, 7000); // Increased from 6000
         });
         // Initialize main page functionality
         function initMainPage() {
