@@ -1,1 +1,1825 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Active Groups - PeerLoom</title>
+    <style>
+        :root {
+            /* iOS 26 Color Palette */
+            --primary: #007AFF;
+            --primary-light: rgba(0, 122, 255, 0.1);
+            --secondary: #5AC8FA;
+            --accent: #5856D6;
+            --purple-border: #8A2BE2;
+            --purple-glow: rgba(138, 43, 226, 0.3);
+            --background: #F2F2F7;
+            --surface: rgba(255, 255, 255, 0.85);
+            --surface-solid: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #8E8E93;
+            --text-tertiary: #C7C7CC;
+            --border: rgba(0, 0, 0, 0.1);
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            
+            /* iOS 26 Glassmorphism */
+            --glass-surface: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --glass-blur: blur(20px);
+            --liquid-glass: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.9) 0%,
+                rgba(255, 255, 255, 0.7) 50%,
+                rgba(255, 255, 255, 0.9) 100%);
+            
+            /* iOS 26 Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            
+            /* iOS 26 Typography */
+            --font-sf: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-size-xs: 12px;
+            --font-size-sm: 14px;
+            --font-size-md: 16px;
+            --font-size-lg: 20px;
+            --font-size-xl: 24px;
+            --font-size-2xl: 28px;
+            
+            /* iOS 26 Border Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+            
+            /* iOS 26 Transitions */
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --background: #000000;
+            --surface: rgba(28, 28, 30, 0.85);
+            --surface-solid: #1C1C1E;
+            --text-primary: #F5F5F7;
+            --text-secondary: #98989D;
+            --text-tertiary: #47474A;
+            --border: rgba(255, 255, 255, 0.1);
+            --glass-surface: rgba(28, 28, 30, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --liquid-glass: linear-gradient(135deg, 
+                rgba(40, 40, 42, 0.9) 0%,
+                rgba(28, 28, 30, 0.7) 50%,
+                rgba(40, 40, 42, 0.9) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sf);
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color var(--transition-normal);
+            overflow-x: hidden;
+        }
+
+        /* iOS 26 Liquid Glass Navigation */
+        .ios-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 12px var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            height: 60px;
+            touch-action: pan-x;
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-full);
+            color: var(--primary);
+            border: none;
+            cursor: pointer;
+            transition: transform var(--transition-fast);
+        }
+
+        .back-button:hover {
+            transform: scale(1.08);
+            border-color: var(--purple-border);
+        }
+
+        .nav-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            flex: 1;
+        }
+
+        /* Progress Tracking Container */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-left: auto;
+        }
+
+        .progress-bar-wrapper {
+            width: 120px;
+            height: 6px;
+            background: var(--background);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .progress-bar-wrapper:hover {
+            transform: scale(1.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: var(--radius-full);
+            width: 65%;
+            position: relative;
+            overflow: hidden;
+            transition: width var(--transition-slow);
+        }
+
+        .progress-percent {
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            color: var(--primary);
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Breadcrumb for Mobile */
+        .breadcrumb {
+            display: none;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            padding: var(--space-sm) var(--space-md);
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            z-index: 999;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-tertiary);
+        }
+
+        /* Active Groups Container */
+        .active-groups-container {
+            max-width: 800px;
+            margin: 80px auto var(--space-2xl);
+            padding: 0 var(--space-md);
+        }
+
+        /* Stats Header */
+        .stats-header {
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-md);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .stat-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        /* Search and Filters */
+        .search-filters-container {
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .ios-search {
+            width: 100%;
+            padding: var(--space-sm) var(--space-lg);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-md);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            transition: all var(--transition-normal);
+            margin-bottom: var(--space-md);
+        }
+
+        .ios-search:focus-within {
+            border-color: var(--purple-border);
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        .ios-search i {
+            color: var(--text-tertiary);
+        }
+
+        .ios-search input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: var(--font-size-md);
+            color: var(--text-primary);
+            padding: var(--space-sm) 0;
+        }
+
+        .ios-search input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .filters-row {
+            display: flex;
+            gap: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .ios-select {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-md);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .ios-select:focus {
+            border-color: var(--purple-border);
+            box-shadow: 0 0 15px var(--purple-glow);
+        }
+
+        /* Groups List */
+        .groups-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            position: relative;
+        }
+
+        .section-title {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .sort-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-full);
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--font-size-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .sort-toggle:hover {
+            border-color: var(--purple-border);
+            box-shadow: 0 0 15px var(--purple-glow);
+        }
+
+        /* CREATE GROUP BUTTON - Small Circle with Plus */
+        .create-group-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--purple-border);
+            color: var(--purple-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .create-group-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 var(--purple-glow);
+                border-color: var(--purple-border);
+            }
+            70% {
+                box-shadow: 0 0 0 10px transparent;
+                border-color: var(--purple-border);
+            }
+            100% {
+                box-shadow: 0 0 0 0 transparent;
+                border-color: var(--purple-border);
+            }
+        }
+
+        .create-group-btn:active {
+            animation: pulse 0.3s ease;
+            transform: scale(0.95);
+        }
+
+        /* Liquid Glass Buttons */
+        .ios-btn {
+            padding: 8px 16px;
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--purple-border);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            height: 40px;
+            min-height: 40px;
+        }
+
+        .ios-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px var(--purple-glow);
+        }
+
+        .ios-btn:active {
+            animation: pulse 0.3s ease;
+            transform: scale(0.98);
+        }
+
+        .ios-btn.secondary {
+            border-color: var(--text-tertiary);
+        }
+
+        .ios-btn.secondary:hover {
+            border-color: var(--purple-border);
+            box-shadow: 0 5px 20px var(--purple-glow);
+        }
+
+        .ios-btn.danger {
+            border-color: var(--danger);
+        }
+
+        .ios-btn.danger:hover {
+            box-shadow: 0 5px 20px rgba(255, 59, 48, 0.3);
+        }
+
+        /* Group Card */
+        .group-card {
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            margin-bottom: var(--space-md);
+            transition: all var(--transition-normal);
+        }
+
+        .group-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glass-shadow);
+            border-color: var(--purple-border);
+        }
+
+        .group-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-sm);
+        }
+
+        .group-info {
+            flex: 1;
+        }
+
+        .group-name {
+            font-size: var(--font-size-md);
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .group-category {
+            display: inline-block;
+            padding: 3px 8px;
+            background: var(--liquid-glass);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--purple-border);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+            color: var(--purple-border);
+        }
+
+        .group-description {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--space-sm);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .group-meta {
+            display: flex;
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+        }
+
+        .meta-item i {
+            color: var(--text-tertiary);
+        }
+
+        .group-actions {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            margin-left: var(--space-xs);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-md);
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-lg);
+        }
+
+        .empty-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        .empty-description {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-lg);
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: var(--space-md);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+        }
+
+        .modal-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-lg);
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: var(--space-xs);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            border-color: var(--purple-border);
+            transform: scale(1.1);
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .form-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-md);
+            color: var(--text-primary);
+            transition: all var(--transition-normal);
+        }
+
+        .form-input:focus {
+            border-color: var(--purple-border);
+            box-shadow: 0 0 20px var(--purple-glow);
+            outline: none;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Progress Tracking Modal */
+        .progress-modal {
+            max-width: 600px;
+        }
+
+        .progress-tracker {
+            background: var(--liquid-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .tracker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .tracker-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+        }
+
+        .tracker-stats {
+            display: flex;
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .tracker-stat {
+            text-align: center;
+            flex: 1;
+        }
+
+        .tracker-value {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .tracker-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .progress-steps {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-normal);
+        }
+
+        .progress-step.completed {
+            border-color: var(--success);
+        }
+
+        .progress-step.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--purple-glow);
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            background: var(--background);
+            color: var(--text-secondary);
+        }
+
+        .progress-step.completed .step-number {
+            background: var(--success);
+            color: white;
+        }
+
+        .progress-step.active .step-number {
+            background: var(--primary);
+            color: white;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+
+        .step-description {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.6s var(--transition-slow);
+        }
+
+        /* Swipe Indicator */
+        .swipe-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--liquid-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--purple-border);
+            border-radius: var(--radius-full);
+            padding: var(--space-sm) var(--space-lg);
+            font-size: var(--font-size-sm);
+            color: var(--purple-border);
+            display: none;
+            z-index: 1001;
+            pointer-events: none;
+            box-shadow: 0 0 30px var(--purple-glow);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-header {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-md);
+                padding: var(--space-md);
+            }
+            
+            .stat-value {
+                font-size: var(--font-size-xl);
+            }
+            
+            .group-actions {
+                flex-direction: column;
+            }
+            
+            .ios-btn {
+                width: 100%;
+                padding: 10px 16px;
+                font-size: var(--font-size-sm);
+            }
+            
+            .group-card-header {
+                flex-direction: column;
+                gap: var(--space-sm);
+            }
+            
+            .group-meta {
+                gap: var(--space-sm);
+                flex-wrap: wrap;
+            }
+            
+            .meta-item {
+                font-size: var(--font-size-xs);
+            }
+            
+            .progress-container {
+                display: none;
+            }
+            
+            .progress-percent {
+                display: none;
+            }
+            
+            .breadcrumb {
+                display: flex;
+            }
+            
+            .active-groups-container {
+                margin-top: 100px;
+                padding: 0 var(--space-sm);
+            }
+            
+            .search-filters-container {
+                padding: var(--space-md);
+                margin-bottom: var(--space-md);
+            }
+            
+            .filters-row {
+                flex-direction: column;
+                gap: var(--space-sm);
+            }
+            
+            .filter-group {
+                min-width: 100%;
+            }
+            
+            .ios-select {
+                padding: 10px var(--space-md);
+            }
+            
+            .groups-list-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-md);
+                margin-bottom: var(--space-md);
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .section-title {
+                font-size: var(--font-size-lg);
+            }
+            
+            .create-group-btn {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .sort-toggle {
+                padding: 8px 12px;
+                font-size: var(--font-size-xs);
+            }
+            
+            .group-card {
+                padding: var(--space-sm);
+                margin-bottom: var(--space-sm);
+            }
+            
+            .group-name {
+                font-size: var(--font-size-sm);
+            }
+            
+            .group-description {
+                font-size: var(--font-size-xs);
+                -webkit-line-clamp: 3;
+            }
+            
+            .modal-content {
+                padding: var(--space-lg);
+                margin: var(--space-sm);
+            }
+            
+            .modal-close {
+                top: 15px;
+                right: 15px;
+                width: 32px;
+                height: 32px;
+            }
+            
+            .modal-title {
+                font-size: var(--font-size-lg);
+                padding-right: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-header {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-sm);
+                padding: var(--space-sm);
+            }
+            
+            .stat-value {
+                font-size: var(--font-size-lg);
+            }
+            
+            .stat-label {
+                font-size: var(--font-size-xs);
+            }
+            
+            .ios-search {
+                padding: 10px var(--space-md);
+            }
+            
+            .ios-search input {
+                font-size: var(--font-size-sm);
+            }
+            
+            .group-actions {
+                flex-direction: column;
+                gap: var(--space-xs);
+            }
+            
+            .header-actions {
+                gap: var(--space-sm);
+            }
+            
+            .create-group-btn {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .create-group-btn i {
+                font-size: var(--font-size-sm);
+            }
+            
+            .sort-toggle {
+                padding: 6px 10px;
+            }
+            
+            .breadcrumb {
+                font-size: 11px;
+                padding: 8px var(--space-sm);
+            }
+            
+            .modal-content {
+                padding: var(--space-md);
+            }
+        }
+
+        @media (min-width: 769px) {
+            .progress-bar-wrapper {
+                cursor: pointer;
+            }
+            
+            .progress-bar-wrapper:hover .progress-bar {
+                transform: scaleY(1.2);
+            }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- iOS 26 Liquid Glass Navigation -->
+    <nav class="ios-nav" id="navBar">
+        <button class="back-button" id="backButton">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="nav-title">My Active Groups</div>
+        
+        <!-- Progress Tracking -->
+        <div class="progress-container">
+            <div class="progress-bar-wrapper" id="progressBar" title="Tap to view progress">
+                <div class="progress-bar" id="progressFill"></div>
+            </div>
+            <div class="progress-percent" id="progressPercent">0%</div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb for Mobile -->
+    <div class="breadcrumb" id="mobileBreadcrumb">
+        <div class="breadcrumb-item">
+            <span>Groups</span>
+        </div>
+        <div class="breadcrumb-separator">›</div>
+        <div class="breadcrumb-item">
+            <span>Active Groups</span>
+        </div>
+    </div>
+
+    <!-- Swipe Indicator -->
+    <div class="swipe-indicator" id="swipeIndicator">
+        Swipe to toggle theme
+    </div>
+
+    <!-- Main Content -->
+    <main class="active-groups-container">
+        <!-- Stats Header -->
+        <div class="stats-header animate-fade-in">
+            <div class="stat-item">
+                <div class="stat-value" id="totalGroups">0</div>
+                <div class="stat-label">Total Groups</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="adminGroups">0</div>
+                <div class="stat-label">You Admin</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="activeNow">0</div>
+                <div class="stat-label">Active Now</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="unreadMessages">0</div>
+                <div class="stat-label">Unread</div>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="search-filters-container animate-fade-in">
+            <div class="ios-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="groupSearch" placeholder="Search your active groups...">
+            </div>
+            
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label class="filter-label">Sort By</label>
+                    <select class="ios-select" id="sortSelect">
+                        <option value="recent">Most Recent</option>
+                        <option value="active">Most Active</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="members">Most Members</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">Category</label>
+                    <select class="ios-select" id="categoryFilter">
+                        <option value="all">All Categories</option>
+                        <option value="course">Course</option>
+                        <option value="academic">Academic</option>
+                        <option value="fun">Fun</option>
+                        <option value="sports">Sports</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">Role</label>
+                    <select class="ios-select" id="roleFilter">
+                        <option value="all">All Roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="member">Member</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups List Header with Create Group Button -->
+        <div class="groups-list-header animate-fade-in">
+            <h2 class="section-title">Active Groups</h2>
+            <div class="header-actions">
+                <button class="sort-toggle" id="toggleSort">
+                    <i class="fas fa-sort-amount-down"></i>
+                    <span>Recent</span>
+                </button>
+                <button class="create-group-btn" id="createGroupBtn" title="Create New Group">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Groups List -->
+        <div id="groupsList">
+            <!-- Groups will be dynamically populated here from Supabase -->
+        </div>
+
+        <!-- Empty State (Initially hidden) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">
+                <i class="fas fa-users-slash"></i>
+            </div>
+            <h3 class="empty-title">No Active Groups</h3>
+            <p class="empty-description">
+                You haven't joined any groups yet. Start by discovering new groups or create your own.
+            </p>
+            <button class="ios-btn" id="discoverGroupsBtn">
+                <i class="fas fa-compass"></i>
+                Discover Groups
+            </button>
+        </div>
+    </main>
+
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="createGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create New Group</h3>
+                <button class="modal-close" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form class="modal-form" id="createGroupForm">
+                <div class="form-group">
+                    <label class="form-label">Group Name</label>
+                    <input type="text" class="form-input" id="groupName" placeholder="Enter group name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Course/Subject</label>
+                    <input type="text" class="form-input" id="groupCourse" placeholder="Enter course or subject" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input form-textarea" id="groupDescription" placeholder="What's this group about?"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Privacy</label>
+                    <select class="form-input" id="groupPrivacy">
+                        <option value="public">Public - Anyone can join</option>
+                        <option value="private">Private - Invite only</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="flex-direction: row; gap: var(--space-md); margin-top: var(--space-lg);">
+                    <button type="button" class="ios-btn secondary" id="cancelCreate" style="flex: 1;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="ios-btn" style="flex: 1;">
+                        <i class="fas fa-plus"></i>
+                        Create Group
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Font Awesome Icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    
+    <!-- Supabase Client -->
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+        
+        // DOM Elements
+        const groupsList = document.getElementById('groupsList');
+        const emptyState = document.getElementById('emptyState');
+        const searchInput = document.getElementById('groupSearch');
+        const sortSelect = document.getElementById('sortSelect');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const roleFilter = document.getElementById('roleFilter');
+        const createGroupModal = document.getElementById('createGroupModal');
+        const createGroupForm = document.getElementById('createGroupForm');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const navBar = document.getElementById('navBar');
+        const swipeIndicator = document.getElementById('swipeIndicator');
+        const createGroupBtn = document.getElementById('createGroupBtn');
+        
+        // User data
+        let currentUser = null;
+        let userGroups = [];
+        
+        // Initialize the page
+        async function init() {
+            // Check authentication
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = 'index.html?message=session_expired';
+                return;
+            }
+            
+            currentUser = user;
+            await loadUserGroups();
+            setupEventListeners();
+            updateStats();
+            setupSwipeThemeToggle();
+        }
+        
+        // Load user's groups from Supabase
+        async function loadUserGroups() {
+            try {
+                // Get groups the user is a member of
+                const { data: userGroupMemberships, error: membersError } = await supabase
+                    .from('group_members')
+                    .select('group_id, role, joined_at')
+                    .eq('user_id', currentUser.id);
+                
+                if (membersError) {
+                    console.error('Error loading group memberships:', membersError);
+                    showNotification('Error loading your groups. Please try again.');
+                    return;
+                }
+                
+                if (!userGroupMemberships || userGroupMemberships.length === 0) {
+                    emptyState.style.display = 'block';
+                    groupsList.style.display = 'none';
+                    return;
+                }
+                
+                // Get group details for each membership
+                const groupIds = userGroupMemberships.map(m => m.group_id);
+                const { data: groupsData, error: groupsError } = await supabase
+                    .from('groups')
+                    .select('id, name, course_code, description, created_by, is_public, created_at')
+                    .in('id', groupIds);
+                
+                if (groupsError) {
+                    console.error('Error loading group details:', groupsError);
+                    showNotification('Error loading group details. Please try again.');
+                    return;
+                }
+                
+                // Get member counts for each group
+                const memberCounts = {};
+                for (const groupId of groupIds) {
+                    const { count, error: countError } = await supabase
+                        .from('group_members')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('group_id', groupId);
+                    
+                    if (!countError) {
+                        memberCounts[groupId] = count;
+                    }
+                }
+                
+                // Format the data
+                userGroups = groupsData.map(group => {
+                    const membership = userGroupMemberships.find(m => m.group_id === group.id);
+                    return {
+                        id: group.id,
+                        name: group.name,
+                        category: group.course_code || 'General',
+                        description: group.description || 'No description',
+                        members: memberCounts[group.id] || 1,
+                        online: Math.floor(Math.random() * 10) + 1, // Random for demo
+                        unread: Math.floor(Math.random() * 5), // Random for demo
+                        lastActive: formatTimeAgo(group.created_at),
+                        role: membership?.role || 'member',
+                        isMuted: false,
+                        created_at: group.created_at,
+                        is_public: group.is_public,
+                        created_by: group.created_by
+                    };
+                });
+                
+                renderGroups(userGroups);
+                updateStats();
+                
+            } catch (error) {
+                console.error('Unexpected error loading groups:', error);
+                showNotification('An unexpected error occurred while loading groups.');
+            }
+        }
+        
+        // Format time ago
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return 'Over a week ago';
+        }
+        
+        // Render groups to the DOM
+        function renderGroups(groups) {
+            groupsList.innerHTML = '';
+            
+            if (groups.length === 0) {
+                emptyState.style.display = 'block';
+                groupsList.style.display = 'none';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            groupsList.style.display = 'block';
+            
+            groups.forEach((group, index) => {
+                const groupCard = createGroupCard(group, index);
+                groupsList.appendChild(groupCard);
+            });
+        }
+        
+        // Create a group card element
+        function createGroupCard(group, index) {
+            const card = document.createElement('div');
+            card.className = 'group-card animate-fade-in';
+            card.style.animationDelay = `${index * 0.1}s`;
+            
+            // Role badge HTML
+            const roleBadge = group.role === 'admin' ? '<span class="admin-badge">Admin</span>' : '';
+            
+            // Unread badge
+            const unreadBadge = group.unread > 0 ? 
+                `<span style="background: var(--primary); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 1px solid var(--purple-border);">
+                    ${group.unread}
+                </span>` : '';
+            
+            card.innerHTML = `
+                <div class="group-card-header">
+                    <div class="group-info">
+                        <div class="group-name">
+                            ${group.name}
+                            ${roleBadge}
+                        </div>
+                        <span class="group-category">${group.category}</span>
+                    </div>
+                    ${unreadBadge}
+                </div>
+                
+                <p class="group-description">${group.description}</p>
+                
+                <div class="group-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-users"></i>
+                        <span>${group.members} members</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-circle" style="color: var(--success); font-size: 8px;"></i>
+                        <span>${group.online} online</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${group.lastActive}</span>
+                    </div>
+                </div>
+                
+                <div class="group-actions">
+                    <button class="ios-btn open-chat-btn" data-group-id="${group.id}">
+                        <i class="fas fa-comment"></i>
+                        ${group.unread > 0 ? 'Open Chat' : 'View Group'}
+                    </button>
+                    ${group.role === 'admin' ? `
+                        <button class="ios-btn secondary manage-members-btn" data-group-id="${group.id}">
+                            <i class="fas fa-user-friends"></i>
+                            Manage
+                        </button>
+                    ` : ''}
+                    <button class="ios-btn danger leave-group-btn" data-group-id="${group.id}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Leave
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        // Setup swipe theme toggle
+        function setupSwipeThemeToggle() {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const swipeThreshold = 50;
+            
+            navBar.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+            }, { passive: true });
+            
+            navBar.addEventListener('touchmove', (e) => {
+                if (touchStartX === 0) return;
+                
+                touchEndX = e.touches[0].clientX;
+                const swipeDistance = Math.abs(touchEndX - touchStartX);
+                
+                if (swipeDistance > 20 && swipeDistance < 100) {
+                    swipeIndicator.style.display = 'flex';
+                    const direction = touchEndX > touchStartX ? 'right' : 'left';
+                    swipeIndicator.innerHTML = direction === 'right' ? 
+                        '<i class="fas fa-sun"></i> Swipe right for light mode' : 
+                        '<i class="fas fa-moon"></i> Swipe left for dark mode';
+                }
+            }, { passive: true });
+            
+            navBar.addEventListener('touchend', () => {
+                if (touchStartX === 0) return;
+                
+                const swipeDistance = touchEndX - touchStartX;
+                
+                // Hide swipe indicator
+                setTimeout(() => {
+                    swipeIndicator.style.display = 'none';
+                }, 300);
+                
+                // Check if swipe distance meets threshold
+                if (Math.abs(swipeDistance) > swipeThreshold) {
+                    if (swipeDistance > 0) {
+                        // Swipe right - light mode
+                        setTheme('light');
+                    } else {
+                        // Swipe left - dark mode
+                        setTheme('dark');
+                    }
+                }
+                
+                // Reset values
+                touchStartX = 0;
+                touchEndX = 0;
+            }, { passive: true });
+            
+            // Also support mouse drag for desktop
+            let mouseDownX = 0;
+            let mouseUpX = 0;
+            
+            navBar.addEventListener('mousedown', (e) => {
+                mouseDownX = e.clientX;
+            });
+            
+            navBar.addEventListener('mouseup', (e) => {
+                mouseUpX = e.clientX;
+                const swipeDistance = mouseUpX - mouseDownX;
+                
+                if (Math.abs(swipeDistance) > swipeThreshold) {
+                    if (swipeDistance > 0) {
+                        setTheme('light');
+                    } else {
+                        setTheme('dark');
+                    }
+                }
+            });
+        }
+        
+        // Set theme
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            // Show confirmation
+            const originalContent = swipeIndicator.innerHTML;
+            swipeIndicator.innerHTML = theme === 'dark' ? 
+                '<i class="fas fa-moon"></i> Dark Mode Activated' : 
+                '<i class="fas fa-sun"></i> Light Mode Activated';
+            swipeIndicator.style.display = 'flex';
+            
+            setTimeout(() => {
+                swipeIndicator.style.display = 'none';
+            }, 1000);
+        }
+        
+        // Filter and sort groups
+        function filterAndSortGroups() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const category = categoryFilter.value;
+            const role = roleFilter.value;
+            const sortBy = sortSelect.value;
+            
+            let filtered = userGroups.filter(group => {
+                // Search filter
+                const matchesSearch = 
+                    group.name.toLowerCase().includes(searchTerm) ||
+                    group.description.toLowerCase().includes(searchTerm) ||
+                    group.category.toLowerCase().includes(searchTerm);
+                
+                // Category filter
+                const matchesCategory = category === 'all' || group.category.toLowerCase().includes(category);
+                
+                // Role filter
+                const matchesRole = role === 'all' || group.role === role;
+                
+                return matchesSearch && matchesCategory && matchesRole;
+            });
+            
+            // Sort groups
+            filtered.sort((a, b) => {
+                switch(sortBy) {
+                    case 'active':
+                        return b.online - a.online;
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'members':
+                        return b.members - a.members;
+                    case 'recent':
+                    default:
+                        return new Date(b.created_at) - new Date(a.created_at);
+                }
+            });
+            
+            renderGroups(filtered);
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const totalGroups = userGroups.length;
+            const adminGroups = userGroups.filter(g => g.role === 'admin').length;
+            const activeNow = userGroups.reduce((sum, group) => sum + group.online, 0);
+            const unreadMessages = userGroups.reduce((sum, group) => sum + group.unread, 0);
+            
+            document.getElementById('totalGroups').textContent = totalGroups;
+            document.getElementById('adminGroups').textContent = adminGroups;
+            document.getElementById('activeNow').textContent = activeNow;
+            document.getElementById('unreadMessages').textContent = unreadMessages;
+            
+            // Update progress bar based on group activity
+            const progress = Math.min(Math.floor((userGroups.length / 10) * 100), 100);
+            progressFill.style.width = `${progress}%`;
+            progressPercent.textContent = `${progress}%`;
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search input
+            searchInput.addEventListener('input', filterAndSortGroups);
+            
+            // Filter selects
+            sortSelect.addEventListener('change', filterAndSortGroups);
+            categoryFilter.addEventListener('change', filterAndSortGroups);
+            roleFilter.addEventListener('change', filterAndSortGroups);
+            
+            // Back button
+            document.getElementById('backButton').addEventListener('click', () => {
+                window.history.back();
+            });
+            
+            // Create group button (small circle with plus)
+            createGroupBtn.addEventListener('click', () => {
+                createGroupModal.classList.add('active');
+            });
+            
+            // Close modal buttons
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('cancelCreate').addEventListener('click', closeModal);
+            
+            // Create group form
+            createGroupForm.addEventListener('submit', handleCreateGroup);
+            
+            // Discover groups button
+            document.getElementById('discoverGroupsBtn').addEventListener('click', () => {
+                window.location.href = 'dashboard.html';
+            });
+            
+            // Toggle sort
+            document.getElementById('toggleSort').addEventListener('click', () => {
+                const currentSort = sortSelect.value;
+                const options = ['recent', 'active', 'name', 'members'];
+                const currentIndex = options.indexOf(currentSort);
+                const nextIndex = (currentIndex + 1) % options.length;
+                sortSelect.value = options[nextIndex];
+                
+                // Update toggle button text
+                const toggleBtn = document.getElementById('toggleSort');
+                const sortText = toggleBtn.querySelector('span');
+                sortText.textContent = options[nextIndex].charAt(0).toUpperCase() + options[nextIndex].slice(1);
+                
+                filterAndSortGroups();
+            });
+            
+            // Click outside modal to close
+            document.addEventListener('click', (e) => {
+                if (e.target === createGroupModal) {
+                    closeModal();
+                }
+            });
+        }
+        
+        // Close modal
+        function closeModal() {
+            createGroupModal.classList.remove('active');
+            createGroupForm.reset();
+        }
+        
+        // Handle create group form submission
+        async function handleCreateGroup(e) {
+            e.preventDefault();
+            
+            const groupName = document.getElementById('groupName').value.trim();
+            const groupCourse = document.getElementById('groupCourse').value.trim();
+            const groupDescription = document.getElementById('groupDescription').value.trim();
+            const groupPrivacy = document.getElementById('groupPrivacy').value;
+            
+            if (!groupName || !groupCourse) {
+                showNotification('Please fill in all required fields.');
+                return;
+            }
+            
+            try {
+                // Create the group in Supabase
+                const { data: newGroup, error: groupError } = await supabase
+                    .from('groups')
+                    .insert({
+                        name: groupName,
+                        course_code: groupCourse,
+                        description: groupDescription || null,
+                        created_by: currentUser.id,
+                        is_public: groupPrivacy === 'public'
+                    })
+                    .select()
+                    .single();
+                
+                if (groupError) {
+                    console.error('Error creating group:', groupError);
+                    showNotification('Failed to create group. Please try again.');
+                    return;
+                }
+                
+                // Add creator as admin member
+                const { error: memberError } = await supabase
+                    .from('group_members')
+                    .insert({
+                        group_id: newGroup.id,
+                        user_id: currentUser.id,
+                        role: 'admin',
+                        joined_at: new Date().toISOString()
+                    });
+                
+                if (memberError) {
+                    console.error('Error adding creator as member:', memberError);
+                    showNotification('Group created but failed to add you as admin.');
+                    // Continue anyway
+                }
+                
+                // Show success message
+                showNotification(`Group "${groupName}" created successfully!`);
+                
+                // Reload groups
+                await loadUserGroups();
+                
+                // Close modal and reset form
+                closeModal();
+                
+            } catch (error) {
+                console.error('Unexpected error creating group:', error);
+                showNotification('An unexpected error occurred.');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'group-card';
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: var(--success);
+                color: white;
+                padding: var(--space-md) var(--space-lg);
+                z-index: 9999;
+                animation: fadeIn 0.3s ease;
+                max-width: 300px;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            `;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'fadeIn 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Delegate event listeners for dynamic buttons
+        document.addEventListener('click', async (e) => {
+            // Open chat button
+            if (e.target.closest('.open-chat-btn')) {
+                const button = e.target.closest('.open-chat-btn');
+                button.style.animation = 'pulse 0.3s ease';
+                setTimeout(() => {
+                    button.style.animation = '';
+                }, 300);
+                
+                const groupId = button.dataset.groupId;
+                const group = userGroups.find(g => g.id == groupId);
+                if (group) {
+                    window.location.href = `chatroom.html?groupId=${groupId}`;
+                }
+            }
+            
+            // Manage members button
+            if (e.target.closest('.manage-members-btn')) {
+                const button = e.target.closest('.manage-members-btn');
+                button.style.animation = 'pulse 0.3s ease';
+                setTimeout(() => {
+                    button.style.animation = '';
+                }, 300);
+                
+                const groupId = button.dataset.groupId;
+                const group = userGroups.find(g => g.id == groupId);
+                showNotification(`Managing members for "${group.name}"...`);
+            }
+            
+            // Leave group button
+            if (e.target.closest('.leave-group-btn')) {
+                const button = e.target.closest('.leave-group-btn');
+                button.style.animation = 'pulse 0.3s ease';
+                setTimeout(() => {
+                    button.style.animation = '';
+                }, 300);
+                
+                const groupId = button.dataset.groupId;
+                const group = userGroups.find(g => g.id == groupId);
+                
+                if (confirm(`Are you sure you want to leave "${group.name}"?`)) {
+                    try {
+                        const { error } = await supabase
+                            .from('group_members')
+                            .delete()
+                            .eq('group_id', groupId)
+                            .eq('user_id', currentUser.id);
+                        
+                        if (error) {
+                            console.error('Error leaving group:', error);
+                            showNotification('Failed to leave group. Please try again.');
+                            return;
+                        }
+                        
+                        // Remove from local array
+                        const index = userGroups.findIndex(g => g.id == groupId);
+                        userGroups.splice(index, 1);
+                        
+                        filterAndSortGroups();
+                        updateStats();
+                        showNotification(`You left "${group.name}"`);
+                        
+                    } catch (error) {
+                        console.error('Unexpected error leaving group:', error);
+                        showNotification('An unexpected error occurred.');
+                    }
+                }
+            }
+        });
+        
+        // Load saved theme on page load
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
