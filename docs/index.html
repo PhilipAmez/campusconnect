@@ -184,6 +184,154 @@
             opacity: 0.8;
             will-change: transform, opacity;
         }
+        /* Identity Selection Overlay */
+        .identity-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+        .identity-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+        }
+        .identity-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .identity-overlay.active .identity-backdrop {
+            opacity: 1;
+        }
+        .identity-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 4rem;
+            opacity: 0;
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+        }
+        .identity-overlay.active .identity-container {
+            opacity: 1;
+        }
+        .identity-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            user-select: none;
+        }
+        .identity-circle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 100%
+            );
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .identity-circle:hover {
+            transform: translateY(-10px) scale(1.05);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 15px 40px rgba(124, 58, 237, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .identity-circle:hover::before {
+            opacity: 1;
+        }
+        .identity-circle i {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+        .identity-circle h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+        .identity-circle p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        /* Selection Animations */
+        .identity-circle.selected {
+            animation: circleSelect 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            z-index: 10;
+        }
+        .identity-circle.fade-out {
+            animation: circleFadeOut 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            pointer-events: none;
+        }
+        .identity-overlay.exiting .identity-backdrop {
+            background: rgba(0, 0, 0, 0.95);
+        }
+        @keyframes circleSelect {
+            0% {
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                transform: translateY(-100px) scale(1.05);
+            }
+            100% {
+                transform: translateY(-200px) scale(1.1);
+                opacity: 0;
+            }
+        }
+        @keyframes circleFadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+                filter: blur(4px);
+            }
+        }
         @media (max-width: 768px) {
             .letter {
                 font-size: 2.8rem;
@@ -191,6 +339,20 @@
             .particle {
                 width: 2px;
                 height: 2px;
+            }
+            .identity-container {
+                flex-direction: column;
+                gap: 2.5rem;
+            }
+            .identity-circle {
+                width: 180px;
+                height: 180px;
+            }
+            .identity-circle i {
+                font-size: 3rem;
+            }
+            .identity-circle h3 {
+                font-size: 1.3rem;
             }
         }
         @media (max-width: 480px) {
@@ -200,6 +362,14 @@
             .particle {
                 width: 1.5px;
                 height: 1.5px;
+            }
+            .identity-circle {
+                width: 160px;
+                height: 160px;
+                padding: 1.5rem;
+            }
+            .identity-circle i {
+                font-size: 2.5rem;
             }
         }
         /* Animation Keyframes - Slightly Slower Durations */
@@ -373,6 +543,10 @@
             padding: 2rem;
             position: relative;
             overflow: hidden;
+            transition: filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .hero.blurred {
+            filter: blur(10px);
         }
         .hero::before {
             content: '';
@@ -409,6 +583,9 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
         }
         .cta-button:hover {
             transform: translateY(-3px);
@@ -546,6 +723,22 @@
             <i class="fas fa-times"></i>
         </button>
     </div>
+    <!-- Identity Selection Overlay -->
+    <div id="identity-overlay" class="identity-overlay">
+        <div class="identity-backdrop"></div>
+        <div class="identity-container">
+            <div class="identity-circle" data-identity="student">
+                <i class="fas fa-user-graduate"></i>
+                <h3>Student</h3>
+                
+            </div>
+            <div class="identity-circle" data-identity="lecturer">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <h3>Lecturer</h3>
+                
+            </div>
+        </div>
+    </div>
     <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="splash-content">
@@ -587,14 +780,14 @@
                 <a href="support.html" class="nav-link">Support</a>
             </div>
         </nav>
-        <section class="hero">
+        <section class="hero" id="hero">
             <div class="hero-content">
                 <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
                 <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
-                <a href="signup.html" class="cta-button water-glass">
+                <button class="cta-button water-glass" id="get-started-button">
                     <span>Get Started</span>
                     <i class="fas fa-glass-water"></i>
-                </a>
+                </button>
             </div>
         </section>
         <section class="features" id="features">
@@ -622,7 +815,7 @@
                 <a href="/about.html">About</a> |
                 <a href="/privacy.html">Privacy Policy</a> |
                 <a href="/terms.html">Terms of Service</a> |
-                <a href="mailto:peerloomonline@gmail.com">Contact</a>
+                <a href="/support.html">Contact</a>
             </p>
         </footer>
     </div>
@@ -806,6 +999,83 @@
                 }, 1000); // Increased from 800
             }, 7000); // Increased from 6000
         });
+        // Identity Selection Overlay Logic
+        function initIdentityOverlay() {
+            const overlay = document.getElementById('identity-overlay');
+            const hero = document.getElementById('hero');
+            const getStartedButton = document.getElementById('get-started-button');
+            const identityCircles = document.querySelectorAll('.identity-circle');
+            
+            if (!getStartedButton) return;
+            
+            // Show overlay when Get Started is clicked
+            getStartedButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Add blur to hero section
+                hero.classList.add('blurred');
+                
+                // Show overlay
+                overlay.classList.add('active');
+                
+                // Prevent body scroll
+                document.body.style.overflow = 'hidden';
+            });
+            
+            // Handle identity selection
+            identityCircles.forEach(circle => {
+                circle.addEventListener('click', function() {
+                    const identity = this.getAttribute('data-identity');
+                    
+                    // Mark this circle as selected and fade out the other
+                    this.classList.add('selected');
+                    identityCircles.forEach(otherCircle => {
+                        if (otherCircle !== this) {
+                            otherCircle.classList.add('fade-out');
+                        }
+                    });
+                    
+                    // Darken background
+                    overlay.classList.add('exiting');
+                    
+                    // Redirect after animation completes
+                    setTimeout(() => {
+                        if (identity === 'student') {
+                            window.location.href = 'signup.html';
+                        } else if (identity === 'lecturer') {
+                            window.location.href = 'signuplecturer.html';
+                        }
+                    }, 1200); // Match animation duration
+                });
+            });
+            
+            // Close overlay when clicking on backdrop (except circles)
+            overlay.addEventListener('click', (e) => {
+                if (e.target.classList.contains('identity-backdrop')) {
+                    closeOverlay();
+                }
+            });
+            
+            // Handle escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && overlay.classList.contains('active')) {
+                    closeOverlay();
+                }
+            });
+            
+            function closeOverlay() {
+                overlay.classList.remove('active');
+                overlay.classList.remove('exiting');
+                hero.classList.remove('blurred');
+                document.body.style.overflow = '';
+                
+                // Reset circles
+                identityCircles.forEach(circle => {
+                    circle.classList.remove('selected');
+                    circle.classList.remove('fade-out');
+                });
+            }
+        }
         // Initialize main page functionality
         function initMainPage() {
             // Mobile nav toggle
@@ -837,6 +1107,9 @@
                     navbar.classList.toggle('scrolled', window.scrollY > 50);
                 }
             });
+            
+            // Initialize identity overlay
+            initIdentityOverlay();
         }
     </script>
 </body>
