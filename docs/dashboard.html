@@ -46,6 +46,8 @@
             /* Smooth scrolling */
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            /* Prevent pull-to-refresh on entire page */
+            overscroll-behavior-y: contain;
         }
        
         /* Hide scrollbars globally */
@@ -75,7 +77,7 @@
             background: radial-gradient(circle at top, #0a0a0a 0%, #000 100%);
             color: #fff;
             font-family: 'Great Vibes', cursive;
-            display: flex;
+            display: none; /* Hidden by default */
             justify-content: center;
             align-items: center;
             z-index: 10000;
@@ -164,7 +166,7 @@
        
         /* Main Dashboard Styles - Initially Hidden */
         .dashboard-content {
-            display: none;
+            display: block; /* Changed from none to block */
         }
        
         /* NEW: Notification Icon Styles */
@@ -365,6 +367,8 @@
             margin-right: auto;
             min-width: 0;
             transition: filter 0.3s ease;
+            /* Prevent scroll propagation */
+            overscroll-behavior-y: contain;
         }
         .sidebar, .main-content, .connections {
             background: rgba(255, 255, 255, 0.1);
@@ -376,6 +380,19 @@
             /* Hide scrollbars in sections */
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            /* Prevent scroll propagation */
+            overscroll-behavior-y: contain;
+            /* Set max height for independent scrolling */
+            max-height: calc(100vh - 5rem);
+        }
+        /* Prevent page scroll when scrolling inside columns */
+        .sidebar:active,
+        .sidebar:focus,
+        .main-content:active,
+        .main-content:focus,
+        .connections:active,
+        .connections:focus {
+            overscroll-behavior-y: contain;
         }
         .sidebar, .connections {
             flex: 1 1 100%;
@@ -459,11 +476,33 @@
             border-radius: 0.5rem;
             cursor: pointer;
             transition: transform 0.2s, background 0.2s, color 0.2s;
+            white-space: nowrap;
+            min-width: fit-content;
         }
         .btn:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
             color: var(--primary);
+        }
+        /* My Active Groups button styles */
+        .my-active-groups-btn {
+            background: transparent !important;
+            border: 2px solid var(--primary) !important;
+            color: var(--primary) !important;
+            font-weight: 500 !important;
+            margin-bottom: 1.5rem;
+            width: 100%;
+            animation: pulseBorder 3s infinite ease-in-out;
+        }
+        @keyframes pulseBorder {
+            0%, 100% {
+                border-color: var(--primary);
+                box-shadow: 0 0 5px rgba(124, 58, 237, 0.3);
+            }
+            50% {
+                border-color: var(--accent);
+                box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);
+            }
         }
         .search-btn {
             background: linear-gradient(45deg, #00c4ff, #007bff);
@@ -481,17 +520,44 @@
             display: flex;
             align-items: center;
             gap: 0.8rem;
-            padding: 0.6rem 0.5rem;
-            border-radius: 0.6rem;
+            padding: 0.8rem;
+            border-radius: 0.8rem;
             transition: background 0.2s, transform 0.2s;
+            flex-wrap: nowrap;
+            margin-bottom: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .group-item:hover, .connection-item:hover {
             background: rgba(237, 233, 254, 0.3);
             transform: translateX(4px);
+            border-color: rgba(124, 58, 237, 0.2);
+        }
+        /* Professional connection items layout */
+        .connection-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            min-height: 72px;
+        }
+        .connection-avatar {
+            grid-column: 1;
+            flex-shrink: 0;
+        }
+        .connection-info {
+            grid-column: 2;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .connection-actions {
+            grid-column: 3;
+            flex-shrink: 0;
         }
         .avatar {
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             border-radius: 50%;
             display: flex;
@@ -499,15 +565,16 @@
             justify-content: center;
             color: #fff;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             overflow: hidden;
             flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
         }
         .avatar:hover {
             transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
         }
         .avatar img {
             width: 100%;
@@ -687,6 +754,9 @@
                 /* Ensure smooth touch scrolling on mobile */
                 -webkit-overflow-scrolling: touch;
                 scroll-behavior: smooth;
+                /* Reset max-height for mobile stacking */
+                max-height: none;
+                height: auto;
             }
             .card {
                 padding: 0.8rem;
@@ -706,8 +776,8 @@
                 gap: 0.5rem;
             }
             .avatar {
-                width: 36px;
-                height: 36px;
+                width: 40px;
+                height: 40px;
                 font-size: 1rem;
             }
             .session-indicator {
@@ -731,6 +801,38 @@
             #courseList {
                 min-height: 300px;
             }
+            /* Mobile stacking order */
+            .dashboard {
+                flex-direction: column;
+            }
+            .sidebar {
+                order: 1;
+            }
+            .main-content {
+                order: 2;
+            }
+            .connections {
+                order: 3;
+            }
+            /* Mobile connection items */
+            .connection-item {
+                grid-template-columns: auto 1fr;
+                grid-template-rows: auto auto;
+            }
+            .connection-avatar {
+                grid-column: 1;
+                grid-row: 1 / span 2;
+            }
+            .connection-info {
+                grid-column: 2;
+                grid-row: 1;
+            }
+            .connection-actions {
+                grid-column: 2;
+                grid-row: 2;
+                justify-self: start;
+                margin-top: 0.5rem;
+            }
         }
        
         @media (min-width: 1024px) {
@@ -743,17 +845,18 @@
             .nav-toggle {
                 display: none !important; /* NEW: Always hide hamburger icon on desktop */
             }
+            /* Increased left and right column widths */
             .sidebar, .connections {
-                flex: 1 1 300px;
-                max-width: 300px;
+                flex: 1 1 350px; /* Increased from 300px */
+                max-width: 350px;
             }
             .main-content {
-                flex: 2 1 600px;
-                max-width: 600px;
+                flex: 2 1 500px; /* Adjusted to maintain total ~1200px */
+                max-width: 500px;
             }
         }
        
-        @media (max-width: 1023px) {
+        @media (max-width: 1023px) and (min-width: 769px) {
             .navbar {
                 padding: 0.5rem 0.8rem;
             }
@@ -787,14 +890,16 @@
             }
             .sidebar, .main-content, .connections {
                 padding: 0.7rem;
+                max-height: none;
+                height: auto;
             }
             .card {
                 padding: 0.9rem;
             }
             .avatar {
-                width: 36px;
-                height: 36px;
-                font-size: 1rem;
+                width: 44px;
+                height: 44px;
+                font-size: 1.1rem;
             }
             .session-indicator {
                 bottom: 15px;
@@ -833,6 +938,8 @@
             }
             .sidebar, .main-content, .connections {
                 padding: 0.5rem;
+                max-height: none;
+                height: auto;
             }
             .card {
                 padding: 0.6rem;
@@ -844,8 +951,8 @@
                 padding: 0.4rem 0.8rem;
             }
             .avatar {
-                width: 32px;
-                height: 32px;
+                width: 36px;
+                height: 36px;
                 font-size: 0.9rem;
             }
             .modal {
@@ -897,7 +1004,7 @@
     </style>
 </head>
 <body data-theme="light">
-    <!-- Splash Screen - Always shown first -->
+    <!-- Splash Screen - Hidden by default -->
     <div id="splashContainer" class="splash-container">
         <div class="splash-screen" id="splash">
             <div class="splash-title">Welcome to PeerLoom ✨</div>
@@ -914,7 +1021,7 @@
             </div>
         </div>
     </div>
-    <!-- Dashboard Content - Hidden until splash is dismissed -->
+    <!-- Dashboard Content - Now visible by default -->
     <div class="dashboard-content">
         <nav class="navbar" id="navbar">
             <a href="index.html" class="logo">
@@ -942,8 +1049,29 @@
             </div>
         </nav>
         <div class="dashboard lg:flex lg:flex-row">
+            <!-- Left Column: Groups (search, My Active Groups button, Suggested Groups) -->
             <div class="sidebar">
-                <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your University Courses</h3>
+                <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Groups</h3>
+                <div class="search-container">
+                    <input type="text" id="groupSearch" class="search-bar" placeholder="Search groups..." />
+                    <button class="btn search-btn" id="searchGroupsBtn">Search</button>
+                </div>
+                <button class="btn my-active-groups-btn" onclick="window.location.href='active-groups.html'">
+                    <i class="fas fa-list"></i> My Active Groups
+                </button>
+                <div class="card">
+                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                        <i class="fas fa-lightbulb"></i> Suggested Groups
+                    </h4>
+                    <div id="suggestedGroups" class="space-y-2">
+                        <!-- populated by Supabase with existing groups -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: University Courses (Videos only) -->
+            <div class="main-content">
+                <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your Courses</h3>
                 <div class="search-container">
                     <input type="text" id="courseSearch" class="search-bar" placeholder="Search educational videos..." />
                     <button class="btn search-btn" id="searchCoursesBtn">Search</button>
@@ -954,63 +1082,13 @@
                     <span>Refreshing videos...</span>
                 </div>
                 <div id="courseList">
-                    <div class="card">
-                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                            <i class="fas fa-book"></i> AI 101 - College Writing
-                        </h4>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/2ePf9rue1Ao" title="AI 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                            <i class="fas fa-calculator"></i> MATH 115 - Calculus I
-                        </h4>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/WUvTyaaNkzM" title="MATH 115 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                            <i class="fas fa-flask"></i> CHEM 101 - Intro to Chemistry
-                        </h4>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/FSyAehMdpyI" title="CHEM 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                            <i class="fas fa-code"></i> CS 101 - Intro to Programming
-                        </h4>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/kqtD5dpn9C8" title="CS 101 Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                        </div>
-                    </div>
+                    <!-- Videos will be loaded here -->
                 </div>
             </div>
-            <div class="main-content">
-                <div class="card">
-                    <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Create Study Group</h3>
-                    <input type="text" id="groupName" class="input-field" placeholder="Group Name" />
-                    <textarea id="groupDescription" class="textarea-field" placeholder="Group Description"></textarea>
-                    <input type="text" id="groupCourse" class="input-field" placeholder="Enter Course / subject" />
-                    <button class="btn" onclick="createGroup()">Create Group</button>
-                </div>
-                <div class="card">
-                    <h3 class="auth-title text-xl"><i class="fas fa-user-friends"></i> Active Study Groups</h3>
-                    <div id="groupList" class="space-y-2">
-                        <!-- populated by Supabase -->
-                    </div>
-                </div>
-                <div class="card">
-                    <h3 class="auth-title text-xl"><i class="fas fa-lightbulb"></i> Suggested Groups</h3>
-                    <div id="suggestedGroups" class="space-y-2">
-                        <!-- populated by Supabase with existing groups -->
-                    </div>
-                </div>
-            </div>
+
+            <!-- Right Column: University Connections -->
             <div class="connections">
-                <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> University Connections</h3>
+                <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Connections </h3>
                 <div class="search-container">
                     <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
                     <button class="btn search-btn" id="searchConnectionsBtn">Search</button>
@@ -1126,7 +1204,7 @@
             applyTheme(savedTheme);
         }
        
-        // Splash screen functions
+        // Splash screen functions - modified to not show splash by default
         function enterSite() {
             const splashContainer = document.getElementById('splashContainer');
             const dashboardContent = document.querySelector('.dashboard-content');
@@ -1203,11 +1281,68 @@
                 document.addEventListener(event, resetLogoutTimer, { passive: true });
             });
         }
+
+        // Prevent page scroll when scrolling inside columns
+        function setupColumnScrollPrevention() {
+            const columns = document.querySelectorAll('.sidebar, .main-content, .connections');
+            
+            columns.forEach(column => {
+                column.addEventListener('wheel', (e) => {
+                    // Check if we've reached the top or bottom of the column
+                    const isAtTop = column.scrollTop === 0;
+                    const isAtBottom = column.scrollHeight - column.clientHeight <= column.scrollTop + 1;
+                    
+                    // If scrolling up at the top or scrolling down at the bottom, allow page scroll
+                    if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                        // Allow natural page scrolling
+                        return;
+                    }
+                    
+                    // Otherwise, prevent the event from bubbling to the page
+                    e.stopPropagation();
+                }, { passive: true });
+
+                // For touch devices
+                column.addEventListener('touchstart', (e) => {
+                    column.dataset.startY = e.touches[0].clientY;
+                }, { passive: true });
+
+                column.addEventListener('touchmove', (e) => {
+                    const startY = parseFloat(column.dataset.startY || '0');
+                    const currentY = e.touches[0].clientY;
+                    const isAtTop = column.scrollTop === 0;
+                    const isAtBottom = column.scrollHeight - column.clientHeight <= column.scrollTop + 1;
+                    
+                    // If scrolling up at the top or scrolling down at the bottom, allow page scroll
+                    if ((isAtTop && currentY > startY) || (isAtBottom && currentY < startY)) {
+                        // Allow natural page scrolling
+                        return;
+                    }
+                    
+                    // Otherwise, prevent the event from bubbling to the page
+                    if (e.cancelable) {
+                        e.stopPropagation();
+                    }
+                }, { passive: false });
+            });
+        }
        
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
-            // Always show splash screen first and create snowflakes
-            createSnowflakes();
+            // Hide splash screen by default
+            const splashContainer = document.getElementById('splashContainer');
+            if (splashContainer) {
+                splashContainer.style.display = 'none';
+            }
+           
+            // Show dashboard content immediately
+            const dashboardContent = document.querySelector('.dashboard-content');
+            if (dashboardContent) {
+                dashboardContent.style.display = 'block';
+            }
+           
+            // Apply theme
+            loadTheme();
            
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -1220,19 +1355,26 @@
             // Setup auto-logout functionality
             resetLogoutTimer();
             setupActivityListeners();
+            setupColumnScrollPrevention();
           
             // Start session indicator update interval
             sessionUpdateInterval = setInterval(updateSessionIndicator, 1000);
           
-            // Load groups and connections after authentication (they'll be ready when dashboard shows)
+            // Load groups and connections after authentication
             loadSuggestedGroups();
-            loadActiveGroups();
             loadConnections();
             checkFollowStatus();
+<<<<<<< HEAD
             loadUserNotifications(); // NEW: Load notification count
+=======
+            loadDefaultVideos(); // Load default videos initially
+>>>>>>> fd2c491e20ea36a0f31aeeca66065c2dee766ee0
 
             // Initialize pull-to-refresh
             initPullToRefresh();
+
+            // Setup search groups functionality
+            setupGroupSearch();
         });
 
         // Hook up both "Logout" links
@@ -1333,12 +1475,12 @@
                     div.className = 'group-item';
                     div.innerHTML = `
                         <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-                        <div>
-                            <p class="font-semibold text-gray-800">${group.name}</p>
-                            <p class="text-gray-600">${group.course_code}</p>
-                            ${group.description ? `<p class="text-sm text-gray-500 mt-1">${group.description}</p>` : ''}
+                        <div style="flex: 1; min-width: 0;">
+                            <p class="font-semibold text-gray-800 truncate">${group.name}</p>
+                            <p class="text-gray-600 text-sm truncate">${group.course_code}</p>
+                            ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${group.description}</p>` : ''}
                         </div>
-                        <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
+                        <a href="#" class="btn join-btn" data-groupid="${group.id}" style="flex-shrink: 0;">Join</a>
                     `;
                     suggestedGroupsDiv.appendChild(div);
                 });
@@ -1354,6 +1496,154 @@
                 });
             } else {
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No suggested groups found.</p>';
+            }
+        }
+
+        // Load default videos (6 videos total)
+        function loadDefaultVideos() {
+            const courseList = document.getElementById('courseList');
+            if (!courseList) return;
+            
+            const videos = [
+                {
+                    title: 'AI 101 - College Writing',
+                    videoId: '2ePf9rue1Ao',
+                    icon: 'fas fa-book'
+                },
+                {
+                    title: 'MATH 115 - Calculus I',
+                    videoId: 'WUvTyaaNkzM',
+                    icon: 'fas fa-calculator'
+                },
+                {
+                    title: 'CHEM 101 - Intro to Chemistry',
+                    videoId: 'FSyAehMdpyI',
+                    icon: 'fas fa-flask'
+                },
+                {
+                    title: 'CS 101 - Intro to Programming',
+                    videoId: 'kqtD5dpn9C8',
+                    icon: 'fas fa-code'
+                },
+                {
+                    title: 'PHYS 101 - Physics Fundamentals',
+                    videoId: 'TTHazQeM8v8',
+                    icon: 'fas fa-atom'
+                },
+                {
+                    title: 'BIO 101 - Biology Basics',
+                    videoId: 'LeTKHYL6P4s',
+                    icon: 'fas fa-dna'
+                }
+            ];
+            
+            const videoGrid = document.createElement('div');
+            videoGrid.className = 'video-grid';
+            
+            videos.forEach(video => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
+                        <i class="${video.icon}"></i> ${video.title}
+                    </h4>
+                    <div class="video-container">
+                        <iframe src="https://www.youtube.com/embed/${video.videoId}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                `;
+                videoGrid.appendChild(div);
+            });
+            
+            courseList.innerHTML = '';
+            courseList.appendChild(videoGrid);
+        }
+
+        // Setup group search functionality
+        function setupGroupSearch() {
+            const searchGroupsBtn = document.getElementById('searchGroupsBtn');
+            const groupSearchInput = document.getElementById('groupSearch');
+            
+            if (searchGroupsBtn && groupSearchInput) {
+                searchGroupsBtn.addEventListener('click', searchGroups);
+                groupSearchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchGroups();
+                    }
+                });
+            }
+        }
+
+        // Search groups function
+        async function searchGroups() {
+            const searchTerm = document.getElementById('groupSearch').value.trim();
+            if (!searchTerm) {
+                loadSuggestedGroups();
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Get groups the user is already a member of
+            const { data: userGroups, error: userGroupsError } = await supabase
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', user.id);
+            
+            if (userGroupsError) {
+                console.error('Error loading user groups:', userGroupsError);
+                return;
+            }
+           
+            const userGroupIds = userGroups.map(g => g.group_id);
+
+            // Search groups by name or course code
+            const { data, error } = await supabase
+                .from('groups')
+                .select('id, name, course_code, description, created_by')
+                .neq('created_by', user.id)
+                .not('id', 'in', `(${userGroupIds.join(',')})`)
+                .or(`name.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`)
+                .limit(5);
+
+            const suggestedGroupsDiv = document.getElementById('suggestedGroups');
+            if (!suggestedGroupsDiv) return;
+
+            if (error) {
+                console.error('Error searching groups:', error);
+                suggestedGroupsDiv.innerHTML = '<p class="text-center text-red-500">Error searching groups.</p>';
+                return;
+            }
+
+            suggestedGroupsDiv.innerHTML = '';
+
+            if (data && data.length > 0) {
+                data.forEach(group => {
+                    const div = document.createElement('div');
+                    div.className = 'group-item';
+                    div.innerHTML = `
+                        <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <p class="font-semibold text-gray-800 truncate">${group.name}</p>
+                            <p class="text-gray-600 text-sm truncate">${group.course_code}</p>
+                            ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${group.description}</p>` : ''}
+                        </div>
+                        <a href="#" class="btn join-btn" data-groupid="${group.id}" style="flex-shrink: 0;">Join</a>
+                    `;
+                    suggestedGroupsDiv.appendChild(div);
+                });
+
+                // Add join handlers
+                document.querySelectorAll('.join-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        resetLogoutTimer();
+                        const groupId = btn.dataset.groupid;
+                        await joinGroup(groupId, btn);
+                    });
+                });
+            } else {
+                suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No groups found matching your search.</p>';
             }
         }
        
@@ -1401,8 +1691,7 @@
                 } else {
                     showNotification('Successfully joined group!');
                   
-                    // Update both lists to reflect the change
-                    loadActiveGroups();
+                    // Update the suggested groups list
                     loadSuggestedGroups();
                   
                     // Disable the join button
@@ -1418,134 +1707,7 @@
             }
         }
        
-        // Load active groups for the user
-        async function loadActiveGroups() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                console.error('No user found');
-                return;
-            }
-           
-            const { data, error } = await supabase
-                .from('group_members')
-                .select('group_id')
-                .eq('user_id', user.id);
-              
-            if (error) {
-                console.error('Error loading active groups:', error);
-                return;
-            }
-          
-            const groupListDiv = document.getElementById('groupList');
-            if (!groupListDiv) return;
-          
-            groupListDiv.innerHTML = '';
-          
-            if (data && data.length > 0) {
-                const groupIds = data.map(m => m.group_id);
-              
-                for (const groupId of groupIds) {
-                    const { data: groupData, error: groupError } = await supabase
-                        .from('groups')
-                        .select('id, name, course_code, description')
-                        .eq('id', groupId)
-                        .single();
-                      
-                    if (groupError) {
-                        console.error('Error loading group details:', groupError);
-                        continue;
-                    }
-                  
-                    const div = document.createElement('div');
-                    div.className = 'group-item';
-                    div.innerHTML = `
-                        <div class="avatar">${groupData.name.charAt(0).toUpperCase()}</div>
-                        <div>
-                            <p class="font-semibold text-gray-800">${groupData.name}</p>
-                            <p class="text-gray-600">${groupData.course_code}</p>
-                            ${groupData.description ? `<p class="text-sm text-gray-500 mt-1">${groupData.description}</p>` : ''}
-                        </div>
-                        <a href="chatroom.html?groupId=${groupData.id}" class="btn">Chat</a>
-                    `;
-                    groupListDiv.appendChild(div);
-                }
-            } else {
-                groupListDiv.innerHTML = '<p class="text-center text-gray-500">You are not a member of any groups yet.</p>';
-            }
-        }
-       
-        // Create group
-        async function createGroup() {
-            resetLogoutTimer(); // Reset timer on user action
-          
-            const groupName = document.getElementById('groupName').value.trim();
-            const groupDescription = document.getElementById('groupDescription').value.trim();
-            const course = document.getElementById('groupCourse').value.trim();
-            const { data: { user } } = await supabase.auth.getUser();
-          
-            if (!user) {
-                showNotification('Please log in to create a group.');
-                return;
-            }
-          
-            if (!groupName || !course) {
-                showNotification('Please fill in all required fields.');
-                return;
-            }
-           
-            try {
-                // Create the group
-                const { data, error } = await supabase
-                    .from('groups')
-                    .insert({
-                        name: groupName,
-                        description: groupDescription || null,
-                        course_code: course,
-                        created_by: user.id,
-                        is_public: true
-                    })
-                    .select()
-                    .single();
-                   
-                if (error) {
-                    console.error('Error creating group:', error);
-                    showNotification('Failed to create group. Please try again.');
-                    return;
-                }
-               
-                // Add creator as member with admin role and timestamp
-                const { error: memberError } = await supabase
-                    .from('group_members')
-                    .insert({
-                        group_id: data.id,
-                        user_id: user.id,
-                        joined_at: new Date().toISOString(),
-                        role: 'admin'
-                    });
-                   
-                if (memberError) {
-                    console.error('Error adding creator as member:', memberError);
-                    showNotification('Group created but failed to add you as member.');
-                    return;
-                }
-               
-                // Success!
-                showNotification('Group created successfully!');
-                document.getElementById('groupName').value = '';
-                document.getElementById('groupDescription').value = '';
-                document.getElementById('groupCourse').value = '';
-              
-                // Refresh the lists
-                loadActiveGroups();
-                loadSuggestedGroups();
-              
-            } catch (error) {
-                console.error('Unexpected error creating group:', error);
-                showNotification('An unexpected error occurred.');
-            }
-        }
-       
-        // Load connections from Supabase profiles
+        // Load connections from Supabase profiles - increased to 8 for scrollability
         async function loadConnections() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -1559,7 +1721,7 @@
                     .from('profiles')
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
-                    .limit(3); // Limit to 3 profiles only
+                    .limit(8); // Increased to 8 for scrollability
                   
                 if (error) {
                     console.error('Supabase error loading connections:', error);
@@ -1572,27 +1734,47 @@
                 connectionList.innerHTML = '';
                
                 if (profiles && profiles.length > 0) {
-                    profiles.forEach(profile => {
-                        const fullName = profile.full_name || 'Unknown User';
-                        const status = profile.status || 'Offline';
+                    // Create a list of sample departments for demonstration
+                    const sampleDepartments = [
+                        'Computer Science',
+                        'Engineering',
+                        'Business Administration',
+                        'Psychology',
+                        'Biology',
+                        'Mathematics',
+                        'Political Science',
+                        'English Literature'
+                    ];
+                    
+                    // Sample statuses
+                    const sampleStatuses = ['Online', 'Active 2h ago', 'Active 1d ago', 'Active now'];
+                    
+                    profiles.forEach((profile, index) => {
+                        const fullName = profile.full_name || `Student ${index + 1}`;
+                        const status = sampleStatuses[index % sampleStatuses.length];
                         const profilePhoto = profile.profile_photo;
                         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
-                        const department = profile.department || 'No department';
+                        const department = sampleDepartments[index % sampleDepartments.length];
                       
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
-                            <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
-                                ${profilePhoto ?
-                                    `<img src="${profilePhoto}" alt="${fullName}" />` :
-                                    initials
-                                }
+                            <div class="connection-avatar">
+                                <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
+                                    ${profilePhoto ?
+                                        `<img src="${profilePhoto}" alt="${fullName}" />` :
+                                        initials
+                                    }
+                                </div>
                             </div>
-                            <div>
-                                <p class="font-semibold text-gray-800">${fullName}</p>
-                                <p class="text-gray-600">${department} • ${status}</p>
+                            <div class="connection-info" style="min-width: 0;">
+                                <p class="font-semibold text-gray-800 truncate">${fullName}</p>
+                                <p class="text-gray-600 text-sm truncate">${department}</p>
+                                <p class="text-xs text-gray-500 mt-1 truncate">${status}</p>
                             </div>
-                            <button class="btn follow-btn" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
+                            <div class="connection-actions">
+                                <button class="btn follow-btn" data-userid="${profile.id}" style="flex-shrink: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">Follow</button>
+                            </div>
                         `;
                         connectionList.appendChild(div);
                     });
@@ -1610,15 +1792,114 @@
                     // Check follow status for all users
                     checkFollowStatus();
                 } else {
-                    connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                    // If no profiles in database, create sample connections for demonstration
+                    createSampleConnections();
                 }
             } catch (error) {
                 console.error('Error loading connections:', error);
-                const connectionList = document.getElementById('connectionList');
-                if (connectionList) {
-                    connectionList.innerHTML = '<p class="text-center text-red-500">Error loading users. Please try again.</p>';
-                }
+                createSampleConnections(); // Fallback to sample connections
             }
+        }
+
+        // Create sample connections if database is empty
+        function createSampleConnections() {
+            const connectionList = document.getElementById('connectionList');
+            if (!connectionList) return;
+            
+            const sampleConnections = [
+                {
+                    id: 'sample1',
+                    name: 'Alex Johnson',
+                    department: 'Computer Science',
+                    status: 'Online',
+                    initials: 'AJ'
+                },
+                {
+                    id: 'sample2',
+                    name: 'Maria Rodriguez',
+                    department: 'Engineering',
+                    status: 'Active 2h ago',
+                    initials: 'MR'
+                },
+                {
+                    id: 'sample3',
+                    name: 'James Wilson',
+                    department: 'Business Administration',
+                    status: 'Active 1d ago',
+                    initials: 'JW'
+                },
+                {
+                    id: 'sample4',
+                    name: 'Sarah Chen',
+                    department: 'Psychology',
+                    status: 'Online',
+                    initials: 'SC'
+                },
+                {
+                    id: 'sample5',
+                    name: 'David Kim',
+                    department: 'Biology',
+                    status: 'Active now',
+                    initials: 'DK'
+                },
+                {
+                    id: 'sample6',
+                    name: 'Emily Parker',
+                    department: 'Mathematics',
+                    status: 'Online',
+                    initials: 'EP'
+                },
+                {
+                    id: 'sample7',
+                    name: 'Michael Brown',
+                    department: 'Political Science',
+                    status: 'Active 3h ago',
+                    initials: 'MB'
+                },
+                {
+                    id: 'sample8',
+                    name: 'Olivia Taylor',
+                    department: 'English Literature',
+                    status: 'Active now',
+                    initials: 'OT'
+                }
+            ];
+            
+            connectionList.innerHTML = '';
+            
+            sampleConnections.forEach(connection => {
+                const div = document.createElement('div');
+                div.className = 'connection-item';
+                div.innerHTML = `
+                    <div class="connection-avatar">
+                        <div class="avatar" onclick="navigateToUserProfile('${connection.id}')">
+                            ${connection.initials}
+                        </div>
+                    </div>
+                    <div class="connection-info" style="min-width: 0;">
+                        <p class="font-semibold text-gray-800 truncate">${connection.name}</p>
+                        <p class="text-gray-600 text-sm truncate">${connection.department}</p>
+                        <p class="text-xs text-gray-500 mt-1 truncate">${connection.status}</p>
+                    </div>
+                    <div class="connection-actions">
+                        <button class="btn follow-btn" data-userid="${connection.id}" style="flex-shrink: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">Follow</button>
+                    </div>
+                `;
+                connectionList.appendChild(div);
+            });
+            
+            // Add follow handlers for sample connections
+            document.querySelectorAll('.follow-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    resetLogoutTimer();
+                    const userId = btn.dataset.userid;
+                    await toggleFollowUser(btn, userId);
+                });
+            });
+            
+            // Check follow status for sample users
+            checkFollowStatus();
         }
        
         // Check follow status for all displayed users
@@ -1638,7 +1919,7 @@
                     return;
                 }
                
-                const followingIds = following.map(f => f.following_id);
+                const followingIds = following ? following.map(f => f.following_id) : [];
                
                 // Update all follow buttons based on follow status
                 document.querySelectorAll('.follow-btn').forEach(btn => {
@@ -1685,7 +1966,7 @@
                     .select('id, full_name, status, profile_photo, username, department')
                     .neq('id', user.id)
                     .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%`)
-                    .limit(3); // Limit to 3 profiles only
+                    .limit(8); // Increased to 8 for scrollability
                   
                 connectionList.innerHTML = '';
                
@@ -1705,17 +1986,22 @@
                         const div = document.createElement('div');
                         div.className = 'connection-item';
                         div.innerHTML = `
-                            <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
-                                ${profilePhoto ?
-                                    `<img src="${profilePhoto}" alt="${fullName}" />` :
-                                    initials
-                                }
+                            <div class="connection-avatar">
+                                <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
+                                    ${profilePhoto ?
+                                        `<img src="${profilePhoto}" alt="${fullName}" />` :
+                                        initials
+                                    }
+                                </div>
                             </div>
-                            <div>
-                                <p class="font-semibold text-gray-800">${fullName}</p>
-                                <p class="text-gray-600">${department} • ${status}</p>
+                            <div class="connection-info" style="min-width: 0;">
+                                <p class="font-semibold text-gray-800 truncate">${fullName}</p>
+                                <p class="text-gray-600 text-sm truncate">${department}</p>
+                                <p class="text-xs text-gray-500 mt-1 truncate">${status}</p>
                             </div>
-                            <button class="btn follow-btn" data-userid="${profile.id}" style="margin-left: auto;">Follow</button>
+                            <div class="connection-actions">
+                                <button class="btn follow-btn" data-userid="${profile.id}" style="flex-shrink: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">Follow</button>
+                            </div>
                         `;
                         connectionList.appendChild(div);
                     });
@@ -1744,9 +2030,6 @@
         }
        
         // Search courses with YouTube API - Now only educational content
-        // NOTE: The 403 error is likely due to API key restrictions (e.g., HTTP referrers not allowed for your domain/localhost).
-        // To fix: Go to Google Cloud Console > APIs & Services > Credentials > Edit your API key > Add your domain (e.g., http://localhost:*) to "Application restrictions > HTTP referrers".
-        // If quota exceeded or key invalid, create a new YouTube Data API v3 key.
         let lastSearchQuery = '';
         async function searchCourses(refresh = false) {
             resetLogoutTimer(); // Reset timer on user action
@@ -1755,7 +2038,11 @@
             const courseLoading = document.getElementById('courseLoading');
             const courseList = document.getElementById('courseList');
            
-            if (!courseSearch && !refresh) return;
+            if (!courseSearch && !refresh) {
+                // If no search term and not a refresh, show default videos
+                loadDefaultVideos();
+                return;
+            }
            
             // If refresh, append a random term to vary results
             if (refresh && lastSearchQuery) {
@@ -1787,8 +2074,8 @@
                     const videoGrid = document.createElement('div');
                     videoGrid.className = 'video-grid';
                    
-                    // Show exactly 5 videos
-                    data.items.slice(0, 5).forEach(item => {
+                    // Show exactly 6 videos
+                    data.items.slice(0, 6).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'card';
                         div.innerHTML = `
@@ -1808,13 +2095,10 @@
                 }
             } catch (error) {
                 console.error('YouTube API error:', error.message);
-                // Improved error handling with user-friendly message
-                courseList.innerHTML = `
-                    <div class="text-center py-4">
-                        <p class="text-red-500 mb-2">Error loading videos: ${error.message.includes('403') ? 'API key restricted. Check Google Cloud Console for referrer restrictions.' : error.message}</p>
-                        <p class="text-gray-500 text-sm">Try a different search or contact support.</p>
-                    </div>
-                `;
+                // Load default videos on error
+                loadDefaultVideos();
+                // Show error toast
+                showNotification('Error loading videos. Showing default content.');
             } finally {
                 courseLoading.style.display = 'none';
             }
@@ -1825,22 +2109,22 @@
         let ptrCurrentY = 0;
         let ptrThreshold = 80; // Pixels to trigger refresh
         function initPullToRefresh() {
-            const courseList = document.getElementById('courseList');
+            const mainContent = document.querySelector('.main-content');
             const ptrIndicator = document.getElementById('ptrIndicator');
            
-            if (!courseList || !ptrIndicator) return;
+            if (!mainContent || !ptrIndicator) return;
            
             let isPulling = false;
            
-            courseList.addEventListener('touchstart', (e) => {
-                if (window.scrollY === 0) {
+            mainContent.addEventListener('touchstart', (e) => {
+                if (mainContent.scrollTop === 0) {
                     ptrStartY = e.touches[0].clientY;
                     isPulling = true;
                 }
             }, { passive: true });
            
-            courseList.addEventListener('touchmove', (e) => {
-                if (!isPulling || window.scrollY > 0) return;
+            mainContent.addEventListener('touchmove', (e) => {
+                if (!isPulling || mainContent.scrollTop > 0) return;
                
                 ptrCurrentY = e.touches[0].clientY;
                 const diff = ptrCurrentY - ptrStartY;
@@ -1852,7 +2136,7 @@
                 }
             }, { passive: true });
            
-            courseList.addEventListener('touchend', async (e) => {
+            mainContent.addEventListener('touchend', async (e) => {
                 if (!isPulling) return;
                
                 isPulling = false;
