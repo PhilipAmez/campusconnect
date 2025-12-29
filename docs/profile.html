@@ -106,45 +106,6 @@
             justify-content: center;
             color: white;
         }
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .nav-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .nav-icon:hover {
-            background: var(--primary);
-            color: white;
-            transform: translateY(-2px);
-        }
-        /* NEW: Notification badge on bell icon */
-        .nav-icon.has-notifications::after {
-            content: '';
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
-            background-color: var(--danger);
-            border-radius: 50%;
-            border: 2px solid var(--bg-secondary);
-            animation: pulse 1.5s infinite;
-        }
-        /* NEW: Animation for when a new notification arrives */
-        .nav-icon.new-notification-pulse {
-            animation: newNotificationPulse 0.5s 2 ease-in-out;
-        }
         @keyframes newNotificationPulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.2); }
@@ -165,6 +126,30 @@
         }
         .header.swiping .theme-indicator {
             opacity: 1;
+        }
+        /* UPDATED: Modern notification badge */
+        .nav-icon {
+            position: relative; /* Needed for badge positioning */
+        }
+        .notification-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 10px;
+            height: 10px;
+            background-color: var(--danger);
+            border-radius: 50%;
+            border: 2px solid var(--bg-primary);
+            transform: scale(0);
+            transition: transform 0.2s ease-in-out;
+            animation: pulse 2s infinite;
+        }
+        .notification-badge.visible {
+            transform: scale(1);
+        }
+        /* Animation for when a new notification arrives */
+        .nav-icon.new-notification-pulse {
+            animation: newNotificationPulse 0.5s 2 ease-in-out;
         }
         @keyframes pulse {
             0% { transform: scale(0.9); }
@@ -1532,6 +1517,75 @@
         .viewer-author-name {
             font-weight: 600;
         }
+
+        /* Mobile Bottom Nav Styles */
+        .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid var(--glass-border);
+            display: none;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0));
+            z-index: 1001;
+        }
+        .mobile-bottom-nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            opacity: 0.7;
+            transition: opacity 0.2s ease, color 0.2s ease;
+        }
+        .mobile-bottom-nav a i { font-size: 1.1rem; margin-bottom: 0.1rem; }
+        .mobile-bottom-nav a:hover,
+        .mobile-bottom-nav a.active {
+            opacity: 1;
+            color: var(--primary);
+        }
+        .mobile-bottom-nav a.active i {
+            transform: scale(1.1);
+        }
+        .mobile-bottom-nav a.active span {
+            font-weight: 600;
+        }
+        .mobile-bottom-nav button {
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            opacity: 0.7;
+            transition: opacity 0.2s ease, color 0.2s ease;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .mobile-bottom-nav button:hover {
+            opacity: 1;
+            color: var(--primary);
+        }
+        .mobile-bottom-nav button i {
+            font-size: 1.1rem;
+            margin-bottom: 0.1rem;
+        }
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                display: flex;
+            }
+            .floating-buttons {
+                bottom: 5rem; /* Move up to avoid nav bar */
+            }
+        }
     </style>
     <!-- NEW: Toast Notification CSS -->
     <style>
@@ -1595,29 +1649,9 @@
     <div class="app-container">
         <!-- Header with swipe functionality -->
         <header class="header" id="header">
-            <a href="index.html" class="logo">
-                   <div class="logo-icon">
-                    <i class="fas fa-users"></i>
-                </div>
-                <span>Peerloom</span>
-            </a>
-          
             <div class="theme-indicator" id="themeIndicator">
                 <i class="fas fa-moon"></i>
                 <span>Swipe to toggle theme</span>
-            </div>
-          
-            <div class="nav-actions">
-                <button class="nav-icon" id="followersBtn" aria-label="Followers and Following">
-                    <i class="fas fa-users"></i>
-                </button>
-                <a href="notifications.html" class="nav-icon" id="notificationsBtn" aria-label="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-count" id="notificationCount"></span>
-                </a>
-                <button class="nav-icon" id="settingsBtn" aria-label="Settings">
-                    <i class="fas fa-cog"></i>
-                </button>
             </div>
         </header>
         <!-- Main Content -->
@@ -1659,11 +1693,11 @@
                             <div class="stat-value" id="postsCount">0</div>
                             <div class="stat-label">Posts</div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" id="followersStat">
                             <div class="stat-value" id="followersCount">0</div>
                             <div class="stat-label">Followers</div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" id="followingStat">
                             <div class="stat-value" id="followingCount">0</div>
                             <div class="stat-label">Following</div>
                         </div>
@@ -2146,6 +2180,31 @@
     <!-- NEW: Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-bottom-nav">
+        <a href="dashboard.html">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="feed.html">
+            <i class="fas fa-scroll"></i>
+            <span>Skrolz</span>
+        </a>
+        <a href="notifications.html" class="nav-icon">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge"></span>
+            <span>Activity</span>
+        </a>
+        <a href="profile.html" class="active">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+        <button id="mobileSettingsBtn">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </button>
+    </div>
+
     <!-- NEW: Notification Sound -->
     <audio id="notificationSound" src="/sounds/notification.mp3" preload="auto"></audio>
     <script type="module">
@@ -2155,8 +2214,6 @@
         const header = document.getElementById('header');
         const themeIndicator = document.getElementById('themeIndicator');
         const settingsDrawer = document.getElementById('settingsDrawer');
-        const notificationsBtn = document.getElementById('notificationsBtn');
-        const followersBtn = document.getElementById('followersBtn');
         const followersDrawer = document.getElementById('followersDrawer');
         const closeFollowersDrawer = document.getElementById('closeFollowersDrawer');
         const followersList = document.getElementById('followersList');
@@ -2168,7 +2225,6 @@
         const cancel2FA = document.getElementById('cancel2FA');
         const confirm2FA = document.getElementById('confirm2FA');
         const closeDrawer = document.getElementById('closeDrawer');
-        const notificationCount = document.getElementById('notificationCount');
         const darkModeToggle = document.getElementById('darkModeToggle');
         const emailNotificationsToggle = document.getElementById('emailNotificationsToggle');
         const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
@@ -2236,7 +2292,6 @@
         const showGroupsCountToggle = document.getElementById('showGroupsCountToggle');
         const editAcademicBtn = document.getElementById('editAcademicBtn');
         const editBioBtn = document.getElementById('editBioBtn');
-        const settingsBtn = document.getElementById('settingsBtn');
         const avatarLabel = document.getElementById('avatar');
 
 
@@ -3509,7 +3564,7 @@
         // Load user notifications from Supabase (simplified for just the count)
         async function loadUserNotifications() {
             try {
-                // We only need the count of unread notifications for the badge
+                // We only need the count of unread notifications for the badge and title
                 const { count, error } = await supabase
                     .from('notifications')
                     .select('*', { count: 'exact', head: true })
@@ -3517,12 +3572,10 @@
                     .eq('read', false);
 
                 if (error) throw error;
-
                 if (count > 0) {
-                    notificationCount.textContent = count > 9 ? '9+' : count;
-                    notificationCount.style.transform = 'scale(1)';
+                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.add('visible'));
                 } else {
-                    notificationCount.style.transform = 'scale(0)';
+                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.remove('visible'));
                 }
                 updateDocumentTitle(count);
             } catch (error) { console.error('Error loading notification count:', error); }
@@ -3593,10 +3646,6 @@
                             const newNotification = payload.new;
                             // Just reload the count when a new notification arrives
                             loadUserNotifications();
-
-                            const bellIcon = document.getElementById('notificationsBtn');
-                            bellIcon.classList.add('new-notification-pulse');
-                            setTimeout(() => bellIcon.classList.remove('new-notification-pulse'), 1000);
 
                             playNotificationSound();
                             const senderName = newNotification.sender?.full_name || 'Someone';
@@ -3903,16 +3952,6 @@
         // Initialize theme
         const savedTheme = localStorage.getItem('peerloom-theme') || (userProfile?.theme_preference || 'dark');
         applyTheme(savedTheme);
-        // Settings drawer functionality
-        settingsBtn.addEventListener('click', () => {
-            settingsDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
-        // Followers drawer functionality
-        followersBtn.addEventListener('click', () => {
-            followersDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
         closeFollowersDrawer.addEventListener('click', () => {
             followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
@@ -3920,6 +3959,18 @@
         closeDrawer.addEventListener('click', () => {
             settingsDrawer.classList.remove('open');
             overlay.classList.remove('active');
+        });
+        // Mobile settings button
+        const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+        mobileSettingsBtn.addEventListener('click', () => {
+            settingsDrawer.classList.add('open');
+            overlay.classList.add('active');
+        });
+
+        // Back button functionality
+        const backBtn = document.getElementById('backBtn');
+        backBtn.addEventListener('click', () => {
+            window.history.back();
         });
         // Posts drawer functionality
         postsStat.addEventListener('click', () => {
@@ -3937,6 +3988,33 @@
         document.getElementById('createPostBtn').addEventListener('click', () => {
             // Redirect to a create post page
             window.location.href = 'create-post.html';
+        });
+
+        // Followers and Following stat click functionality
+        const followersStat = document.getElementById('followersStat');
+        followersStat.addEventListener('click', () => {
+            followersDrawer.classList.add('open');
+            overlay.classList.add('active');
+            // Switch to followers tab
+            const tabButtons = document.querySelectorAll('#followersDrawer .tab-button');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector('#followersDrawer .tab-button[data-tab="followers"]').classList.add('active');
+            // Show followers list
+            followersList.style.display = 'block';
+            followingList.style.display = 'none';
+        });
+
+        const followingStat = document.getElementById('followingStat');
+        followingStat.addEventListener('click', () => {
+            followersDrawer.classList.add('open');
+            overlay.classList.add('active');
+            // Switch to following tab
+            const tabButtons = document.querySelectorAll('#followersDrawer .tab-button');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector('#followersDrawer .tab-button[data-tab="following"]').classList.add('active');
+            // Show following list
+            followersList.style.display = 'none';
+            followingList.style.display = 'block';
         });
 
         // Tab switching for posts/saved
@@ -4314,6 +4392,11 @@
         });
         // Initialize the page
         initializePage();
+
+        // Placeholder for openUploadModal
+        if (typeof window.openUploadModal === 'undefined') {
+            window.openUploadModal = function() { alert('Create post functionality is not available on this page.'); }
+        }
     </script>
 </body>
 </html>

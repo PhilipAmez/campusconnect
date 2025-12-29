@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Peerloom Notifications</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
       --bg-primary: #ffffff; /* Light theme */
@@ -20,6 +21,7 @@
       --transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
       --shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
       --glass-gradient: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4)); /* Horizontal gradient, no diagonal */
+      --glass-bg: rgba(255, 255, 255, 0.8);
     }
     body.dark {
       --bg-primary: #2c3e50;
@@ -30,6 +32,7 @@
       --switch-bg: #34495e;
       --switch-thumb: #3498db;
       --glass-gradient: linear-gradient(to right, rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.4));
+      --glass-bg: rgba(44, 62, 80, 0.8);
     }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -70,6 +73,27 @@
       align-items: center;
       width: 100%;
       margin-bottom: 12px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-btn {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background var(--transition), transform 0.1s;
+    }
+    .back-btn:hover {
+      background: rgba(var(--accent), 0.1);
+    }
+    .back-btn:active {
+      transform: scale(0.95);
     }
     .title {
       margin: 0;
@@ -347,6 +371,56 @@
     input:checked + .slider:before {
       transform: translateX(24px);
     }
+
+    /* Mobile Bottom Nav Styles */
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: var(--glass-bg);
+        backdrop-filter: blur(15px);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        display: none;
+        justify-content: space-evenly;
+        align-items: center;
+        padding: 0.3rem 0 calc(0.3rem + env(safe-area-inset-bottom, 0));
+        z-index: 1001;
+    }
+    .mobile-bottom-nav a {
+        color: var(--text-primary);
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        opacity: 0.7;
+        transition: opacity 0.2s ease, color 0.2s ease;
+    }
+    .mobile-bottom-nav a i { font-size: 1.1rem; margin-bottom: 0.1rem; }
+    .mobile-bottom-nav a:hover,
+    .mobile-bottom-nav a.active {
+        opacity: 1;
+        color: var(--accent);
+    }
+    .mobile-bottom-nav a.active i {
+        transform: scale(1.1);
+    }
+    .mobile-bottom-nav a.active span {
+        font-weight: 600;
+    }
+    .nav-icon { position: relative; }
+    .notification-badge {
+        position: absolute;
+        top: -2px; right: -4px;
+        width: 8px; height: 8px;
+        background: var(--unread-dot);
+        border-radius: 50%;
+        display: none;
+    }
+    .notification-badge.visible { display: block; }
+
     /* Mobile */
     @media (max-width: 600px) {
       .header {
@@ -382,6 +456,9 @@
         max-width: none;
         transform: none;
       }
+      .mobile-bottom-nav {
+          display: flex;
+      }
     }
 
     @keyframes shimmer {
@@ -398,7 +475,10 @@
   <div class="notifications-container">
     <div class="header">
       <div class="header-top">
-        <h2 class="title" id="title">Notifications</h2>
+        <div class="header-left">
+          <button class="back-btn" onclick="window.history.back()"><i class="fas fa-arrow-left"></i></button>
+          <h2 class="title" id="title">Notifications</h2>
+        </div>
         <div class="header-actions">
           <button id="markAllReadBtn">Mark All Read</button>
           <button id="clearAllBtn">Clear All</button>
@@ -420,6 +500,27 @@
       <!-- Dynamically populated -->
     </div>
     <button class="load-more" id="loadMoreBtn">Load More</button>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <div class="mobile-bottom-nav">
+      <a href="dashboard.html">
+          <i class="fas fa-home"></i>
+          <span>Home</span>
+      </a>
+      <a href="feed.html">
+          <i class="fas fa-scroll"></i>
+          <span>Skrolz</span>
+      </a>
+      <a href="notifications.html" class="nav-icon active">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge"></span>
+          <span>Activity</span>
+      </a>
+      <a href="profile.html">
+          <i class="fas fa-user"></i>
+          <span>Profile</span>
+      </a>
   </div>
 
 <!-- Settings Panel -->
@@ -496,5 +597,10 @@
   </div>
 
   <script type="module" src="./js/notifications.js"></script>
+  <script>
+      if (typeof window.openUploadModal === 'undefined') {
+          window.openUploadModal = function() { alert('Create post functionality is not available on this page.'); }
+      }
+  </script>
 </body>
 </html>
