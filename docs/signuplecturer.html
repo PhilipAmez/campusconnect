@@ -1,1 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeerLoom - Lecturer Registration</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --secondary: #8b5cf6;
+            --accent: #a78bfa;
+            --text-dark: #1f2937;
+            --text-light: #f9fafb;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --glass-highlight: rgba(255, 255, 255, 0.2);
+            --glass-inner-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0.03;
+            filter: blur(40px);
+        }
+        
+        .shape-1 { width: 300px; height: 300px; top: 10%; left: 5%; }
+        .shape-2 { width: 200px; height: 200px; bottom: 20%; right: 10%; }
+        .shape-3 { width: 150px; height: 150px; top: 50%; left: 80%; }
+        
+        .navigation {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 0.8rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .nav-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            z-index: 10;
+            margin-top: 80px;
+        }
+        
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 
+                var(--glass-shadow),
+                var(--glass-inner-shadow),
+                0 1px 0 rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 100%
+            );
+            border-radius: 24px;
+            pointer-events: none;
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        
+        .form-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 1.8rem;
+            color: white;
+            box-shadow: 
+                0 10px 30px rgba(99, 102, 241, 0.3),
+                0 1px 0 rgba(255, 255, 255, 0.2) inset;
+        }
+        
+        .form-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .form-subtitle {
+            opacity: 0.8;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            color: white;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 0 0 3px var(--primary-glow),
+                inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .form-select-wrapper {
+            position: relative;
+        }
+        
+        .form-select-wrapper::after {
+            content: '▾';
+            position: absolute;
+            right: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            pointer-events: none;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            color: white;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            appearance: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 0 0 3px var(--primary-glow),
+                inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-select option {
+            background: #1e293b;
+            color: white;
+            padding: 10px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 4px 20px rgba(99, 102, 241, 0.3),
+                0 1px 0 rgba(255, 255, 255, 0.1) inset;
+        }
+        
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            transition: left 0.5s ease;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 30px rgba(99, 102, 241, 0.4),
+                0 1px 0 rgba(255, 255, 255, 0.1) inset;
+        }
+        
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success-panel {
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.6s ease;
+        }
+        
+        .success-icon {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, #10b981, #34d399);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 2.5rem;
+            color: white;
+            box-shadow: 
+                0 15px 40px rgba(16, 185, 129, 0.3),
+                0 0 0 10px rgba(16, 185, 129, 0.1);
+            animation: successPulse 2s ease-in-out infinite;
+        }
+        
+        .success-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 0.8rem 1.5rem;
+            position: relative;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.1),
+                0 0 20px var(--primary-glow);
+        }
+        
+        .lecturer-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 140%;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+            border-radius: 50px;
+            z-index: -1;
+            filter: blur(10px);
+        }
+        
+        .lecturer-check {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            color: white;
+            font-size: 0.9rem;
+            box-shadow: 
+                0 4px 15px rgba(99, 102, 241, 0.4),
+                0 1px 0 rgba(255, 255, 255, 0.2) inset;
+            animation: checkFloat 3s ease-in-out infinite;
+        }
+        
+        .success-text {
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        .email-animation {
+            margin: 2rem 0;
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.9);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        .action-btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .action-btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .action-btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .error-message {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        
+        /* Custom select styling for type option */
+        .custom-option {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes successPulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 
+                    0 15px 40px rgba(16, 185, 129, 0.3),
+                    0 0 0 10px rgba(16, 185, 129, 0.1);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 
+                    0 20px 50px rgba(16, 185, 129, 0.4),
+                    0 0 0 15px rgba(16, 185, 129, 0.15);
+            }
+        }
+        
+        @keyframes checkFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .navigation {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 0.6rem 1rem;
+                border-radius: 12px;
+            }
+            
+            .container {
+                margin: 70px auto 30px;
+            }
+            
+            .glass-panel {
+                padding: 1.5rem;
+                border-radius: 20px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .form-title {
+                font-size: 1.6rem;
+            }
+            
+            .success-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .nav-left, .nav-right {
+                gap: 8px;
+            }
+            
+            .nav-link {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+                border-radius: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .navigation {
+                padding: 0.5rem 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+                gap: 4px;
+            }
+            
+            .nav-link i {
+                font-size: 0.8rem;
+            }
+            
+            .glass-panel {
+                padding: 1.2rem;
+                border-radius: 18px;
+            }
+            
+            .container {
+                margin: 60px auto 20px;
+            }
+            
+            .form-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                margin-bottom: 1rem;
+            }
+            
+            .form-title {
+                font-size: 1.4rem;
+            }
+            
+            .form-subtitle {
+                font-size: 0.85rem;
+            }
+            
+            .success-title {
+                font-size: 1.4rem;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .user-badge {
+                padding: 0.6rem 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    
+    <nav class="navigation">
+        <div class="nav-left">
+            <a href="index.html" class="nav-link">
+                <i class="fas fa-home"></i>
+                Home
+            </a>
+        </div>
+        <div class="nav-right">
+            <a href="login.html" class="nav-link">
+                <i class="fas fa-sign-in-alt"></i>
+                Login
+            </a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="glass-panel" id="signupPanel">
+            <div class="form-header">
+                <div class="form-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h1 class="form-title">Lecturer Registration</h1>
+                <p class="form-subtitle">
+                    Join our academic community with verified lecturer credentials
+                </p>
+            </div>
+            
+            <form id="lecturerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="firstName">
+                            First Name
+                        </label>
+                        <input type="text" 
+                               id="firstName" 
+                               class="form-input" 
+                               placeholder="Enter first name"
+                               required>
+                        <div class="error-message" id="firstNameError">
+                            Please enter your first name
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="lastName">
+                            Last Name
+                        </label>
+                        <input type="text" 
+                               id="lastName" 
+                               class="form-input" 
+                               placeholder="Enter last name"
+                               required>
+                        <div class="error-message" id="lastNameError">
+                            Please enter your last name
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="school">
+                        Institution
+                    </label>
+                    <div class="form-select-wrapper">
+                        <select id="school" class="form-select" required>
+                            <option value="">Select your institution or type below</option>
+                            <option value="type" class="custom-option">Type my institution...</option>
+                            <optgroup label="Ghana">
+                                <option>Central University</option>
+                                <option>University of Ghana</option>
+                                <option>Kwame Nkrumah University of Science and Technology</option>
+                                <option>University of Cape Coast</option>
+                                <option>University of Professional Studies</option>
+                                <option>Ghana Institute of Management and Public Administration</option>
+                                <option>Ashesi University</option>
+                                <option>Regent University College</option>
+                                <option>Wisconsin International University College</option>
+                                <option>Valley View University</option>
+                            </optgroup>
+                            <optgroup label="Nigeria">
+                                <option>University of Lagos</option>
+                                <option>University of Ibadan</option>
+                                <option>University of Nigeria, Nsukka</option>
+                                <option>Ahmadu Bello University</option>
+                                <option>University of Benin</option>
+                                <option>University of Port Harcourt</option>
+                                <option>Obafemi Awolowo University</option>
+                                <option>University of Ilorin</option>
+                                <option>Covenant University</option>
+                                <option>University of Abuja</option>
+                            </optgroup>
+                            <optgroup label="United States">
+                                <option>Harvard University</option>
+                                <option>Massachusetts Institute of Technology</option>
+                                <option>Stanford University</option>
+                                <option>University of California, Berkeley</option>
+                                <option>Columbia University</option>
+                            </optgroup>
+                            <optgroup label="United Kingdom">
+                                <option>University of Oxford</option>
+                                <option>University of Cambridge</option>
+                                <option>Imperial College London</option>
+                                <option>London School of Economics</option>
+                                <option>University College London</option>
+                            </optgroup>
+                            <optgroup label="Asia">
+                                <option>National University of Singapore</option>
+                                <option>University of Tokyo</option>
+                                <option>Tsinghua University</option>
+                                <option>University of Hong Kong</option>
+                                <option>Seoul National University</option>
+                            </optgroup>
+                            <optgroup label="UAE">
+                                <option>University of Sharjah</option>
+                                <option>American University of Sharjah</option>
+                                <option>University of Dubai</option>
+                                <option>Abu Dhabi University</option>
+                                <option>Al Ain University</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <input type="text" 
+                           id="schoolCustom" 
+                           class="form-input" 
+                           style="display: none; margin-top: 10px;"
+                           placeholder="Enter your institution name">
+                    <div class="error-message" id="schoolError">
+                        Please select or enter your institution
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="department">
+                        Department
+                    </label>
+                    <input type="text" 
+                           id="department" 
+                           class="form-input" 
+                           placeholder="e.g., Computer Science, Engineering"
+                           required>
+                    <div class="error-message" id="departmentError">
+                        Please enter your department
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="phone">
+                        Phone Number
+                    </label>
+                    <input type="tel" 
+                           id="phone" 
+                           class="form-input" 
+                           placeholder="+233 20 123 4567"
+                           required>
+                    <div class="error-message" id="phoneError">
+                        Please enter a valid phone number
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="email">
+                        Academic Email
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           class="form-input" 
+                           placeholder="name@institution.edu"
+                           required>
+                    <div class="error-message" id="emailError">
+                        Please enter a valid academic email
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="password">
+                            Password
+                        </label>
+                        <input type="password" 
+                               id="password" 
+                               class="form-input" 
+                               placeholder="Create a password"
+                               required>
+                        <div class="error-message" id="passwordError">
+                            Password must be at least 6 characters
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">
+                            Confirm Password
+                        </label>
+                        <input type="password" 
+                               id="confirmPassword" 
+                               class="form-input" 
+                               placeholder="Confirm your password"
+                               required>
+                        <div class="error-message" id="confirmPasswordError">
+                            Passwords do not match
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Register as Lecturer</span>
+                </button>
+            </form>
+        </div>
+        
+        <div class="glass-panel success-panel" id="successPanel">
+            <div class="success-icon">
+                <i class="fas fa-envelope-open-text"></i>
+            </div>
+            
+            <h2 class="success-title">
+                Registration Complete!
+                <div class="user-badge" id="displayBadge">
+                    <span id="fullName">Dr. John Smith</span>
+                    <div class="lecturer-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="lecturer-glow"></div>
+                </div>
+            </h2>
+            
+            <p class="success-text">
+                Welcome to the PeerLoom academic community! Your lecturer account has been created with a 
+                <strong>verified lecturer status</strong>. 
+                A verification email has been sent to your academic email address.
+            </p>
+            
+            <div class="email-animation">
+                <i class="fas fa-paper-plane"></i>
+            </div>
+            
+            <p class="success-text">
+                Please check your inbox and click the verification link to activate your account 
+                and access all lecturer features. The verification link expires in 24 hours.
+            </p>
+            
+            <div class="action-buttons">
+                <a href="login.html" class="action-btn action-btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Proceed to Login
+                </a>
+                <a href="index.html" class="action-btn action-btn-secondary">
+                    <i class="fas fa-home"></i>
+                    Return Home
+                </a>
+            </div>
+        </div>
+    </div>
 
+<script type="module">
+    // Import Supabase client
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/+esm'
+
+    const supabaseUrl = 'https://mdofjippejpqylwuzsqp.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kb2ZqaXBwZWpwcXlsd3V6c3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NjcyNzAsImV4cCI6MjA2ODI0MzI3MH0.PKtUqmGKciAQH3f_kz2q9VeYSdOcYHQDCJFu6UHcAw4'
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
+
+    // Toast function
+    function showToast(message, type = 'success') {
+        console.log(`${type}: ${message}`);
+        // You can implement actual toast notifications here
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('lecturerForm');
+        const successPanel = document.getElementById('successPanel');
+        const signupPanel = document.getElementById('signupPanel');
+        const submitBtn = document.getElementById('submitBtn');
+        const fullNameDisplay = document.getElementById('fullName');
+        const schoolSelect = document.getElementById('school');
+        const schoolCustomInput = document.getElementById('schoolCustom');
+        
+        // Handle custom school input
+        schoolSelect.addEventListener('change', function() {
+            if (this.value === 'type') {
+                schoolCustomInput.style.display = 'block';
+                schoolCustomInput.required = true;
+                schoolSelect.required = false;
+            } else if (this.value !== '') {
+                schoolCustomInput.style.display = 'none';
+                schoolCustomInput.required = false;
+                schoolSelect.required = true;
+            }
+        });
+        
+        // Allow user to type in the select box
+        schoolSelect.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                const typedValue = this.value.trim();
+                if (typedValue && typedValue !== 'type') {
+                    let optionExists = false;
+                    for (let option of this.options) {
+                        if (option.text === typedValue) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    if (!optionExists && typedValue !== 'Select your institution or type below') {
+                        const newOption = new Option(typedValue, typedValue);
+                        this.add(newOption);
+                        this.value = typedValue;
+                    }
+                }
+            }
+        });
+        
+        // Check if email already exists
+        async function checkEmailExists(email) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('email', email)
+                .maybeSingle();
+            
+            return { exists: !!data, error };
+        }
+
+        // Real-time validation for email
+        document.getElementById('email').addEventListener('blur', async function() {
+            const email = this.value.trim();
+            if (!email) return;
+            
+            const { exists, error } = await checkEmailExists(email);
+            
+            if (error) {
+                console.error('Error checking email:', error);
+                return;
+            }
+            
+            if (exists) {
+                document.getElementById('emailError').textContent = 'Email already registered. Please use a different email or login.';
+                document.getElementById('emailError').style.display = 'block';
+            } else {
+                document.getElementById('emailError').style.display = 'none';
+            }
+        });
+
+        // Password validation
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            
+            if (confirmPassword && password !== confirmPassword) {
+                document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
+                document.getElementById('confirmPasswordError').style.display = 'block';
+            } else {
+                document.getElementById('confirmPasswordError').style.display = 'none';
+            }
+        });
+
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password && password.length < 6) {
+                document.getElementById('passwordError').textContent = 'Password must be at least 6 characters';
+                document.getElementById('passwordError').style.display = 'block';
+            } else {
+                document.getElementById('passwordError').style.display = 'none';
+            }
+        });
+        
+        // Form validation
+        function validateForm() {
+            let isValid = true;
+            
+            // Clear previous errors
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Validate first name
+            const firstName = document.getElementById('firstName').value.trim();
+            if (!firstName) {
+                document.getElementById('firstNameError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate last name
+            const lastName = document.getElementById('lastName').value.trim();
+            if (!lastName) {
+                document.getElementById('lastNameError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate school
+            const school = schoolSelect.value;
+            const customSchool = schoolCustomInput.value.trim();
+            if (school === 'type' && !customSchool) {
+                schoolCustomInput.style.borderColor = '#f87171';
+                document.getElementById('schoolError').style.display = 'block';
+                isValid = false;
+            } else if (school === '' || school === 'Select your institution or type below') {
+                schoolSelect.style.borderColor = '#f87171';
+                document.getElementById('schoolError').style.display = 'block';
+                isValid = false;
+            } else {
+                schoolSelect.style.borderColor = '';
+                schoolCustomInput.style.borderColor = '';
+            }
+            
+            // Validate department
+            const department = document.getElementById('department').value.trim();
+            if (!department) {
+                document.getElementById('departmentError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate phone
+            const phone = document.getElementById('phone').value.trim();
+            if (!phone || phone.length < 10) {
+                document.getElementById('phoneError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate email
+            const email = document.getElementById('email').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                document.getElementById('emailError').textContent = 'Please enter a valid academic email';
+                document.getElementById('emailError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate password
+            const password = document.getElementById('password').value;
+            if (!password || password.length < 6) {
+                document.getElementById('passwordError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate confirm password
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            if (!confirmPassword) {
+                document.getElementById('confirmPasswordError').textContent = 'Please confirm your password';
+                document.getElementById('confirmPasswordError').style.display = 'block';
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
+                document.getElementById('confirmPasswordError').style.display = 'block';
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+        
+        // Form submission handler
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Account...</span>';
+            
+            try {
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const school = schoolSelect.value === 'type' 
+                    ? schoolCustomInput.value.trim() 
+                    : schoolSelect.value;
+                const department = document.getElementById('department').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+                
+                // Double-check email availability
+                const { exists: emailExists } = await checkEmailExists(email);
+                if (emailExists) {
+                    document.getElementById('emailError').textContent = 'Email already registered. Please use a different email or login.';
+                    document.getElementById('emailError').style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i><span>Register as Lecturer</span>';
+                    return;
+                }
+                
+                console.log('Attempting to sign up lecturer...');
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            firstName,
+                            lastName,
+                            school,
+                            department,
+                            phone,
+                            role: 'lecturer',
+                            userType: 'lecturer',
+                            isLecturer: true
+                        },
+                        emailRedirectTo: `${window.location.origin}/login.html`
+                    }
+                });
+
+                if (signUpError) {
+                    console.error('Sign up error:', signUpError);
+                    if (signUpError.message.includes('already registered')) {
+                        document.getElementById('emailError').textContent = 'Email already registered. Please use a different email or login.';
+                        document.getElementById('emailError').style.display = 'block';
+                    } else {
+                        showToast('Sign up failed: ' + signUpError.message, 'error');
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i><span>Register as Lecturer</span>';
+                    return;
+                }
+
+                console.log('Lecturer signup successful:', signUpData);
+                
+                // Insert lecturer profile into profiles table
+                if (signUpData.user) {
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert({
+                            id: signUpData.user.id,
+                            first_name: firstName,
+                            last_name: lastName,
+                            full_name: `${firstName} ${lastName}`,
+                            email: email,
+                            phone: phone,
+                            institution: school,
+                            department: department,
+                            role: 'lecturer',
+                            user_type: 'lecturer',
+                            is_lecturer: true,
+                            lecturer_badge: true,
+                            verified: false,
+                            created_at: new Date().toISOString()
+                        });
+
+                    if (profileError) {
+                        console.error('Error creating lecturer profile:', profileError);
+                        showToast('Profile creation failed: ' + profileError.message, 'error');
+                    } else {
+                        console.log('Lecturer profile created successfully');
+                    }
+                }
+                
+                // Display success message with user's name
+                fullNameDisplay.textContent = `${firstName} ${lastName}`;
+                
+                // Add lecturer glow animation
+                const glow = document.querySelector('.lecturer-glow');
+                glow.style.animation = 'checkFloat 2s ease-in-out infinite';
+                
+                // Show success panel with animation
+                signupPanel.style.opacity = '0';
+                signupPanel.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    signupPanel.style.display = 'none';
+                    successPanel.style.display = 'block';
+                    requestAnimationFrame(() => {
+                        successPanel.style.opacity = '1';
+                        successPanel.style.transform = 'translateY(0)';
+                    });
+                }, 300);
+                
+                showToast('Lecturer account created successfully! Please check your email to verify your account.', 'success');
+                
+            } catch (error) {
+                console.error('An unexpected error occurred:', error);
+                showToast('An unexpected error occurred. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i><span>Register as Lecturer</span>';
+            }
+        });
+        
+        // Real-time validation for phone number
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 0) {
+                if (value.startsWith('233')) {
+                    value = value.replace(/(\d{3})(\d{2})(\d{3})(\d{4})/, '+$1 $2 $3 $4');
+                } else if (value.startsWith('1')) {
+                    value = value.replace(/(\d{1})(\d{3})(\d{3})(\d{4})/, '+$1 ($2) $3-$4');
+                } else {
+                    value = '+' + value;
+                }
+                e.target.value = value;
+            }
+        });
+        
+        // Add floating animation to shapes
+        const shapes = document.querySelectorAll('.shape');
+        shapes.forEach((shape, index) => {
+            shape.style.animation = `float ${6 + index * 2}s ease-in-out infinite`;
+            shape.style.animationDelay = `${index}s`;
+        });
+        
+        // Simulate email animation
+        const emailIcon = document.querySelector('.email-animation i');
+        setInterval(() => {
+            emailIcon.style.transform = 'rotateY(20deg)';
+            setTimeout(() => {
+                emailIcon.style.transform = 'rotateY(0deg)';
+            }, 300);
+        }, 4000);
+        
+        // Add 3D effect to glass panel (only on desktop)
+        const glassPanel = document.querySelector('.glass-panel');
+        const isMobile = window.innerWidth <= 768;
+        
+        if (!isMobile) {
+            glassPanel.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateY = (x - centerX) / 80;
+                const rotateX = (centerY - y) / 80;
+                
+                this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            
+            glassPanel.addEventListener('mouseleave', function() {
+                this.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+                this.style.transition = 'transform 0.5s ease';
+            });
+            
+            glassPanel.addEventListener('mouseenter', function() {
+                this.style.transition = 'transform 0.2s ease';
+            });
+        }
+    });
+</script>
+</body>
+</html>
