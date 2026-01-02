@@ -127,6 +127,22 @@
         .header.swiping .theme-indicator {
             opacity: 1;
         }
+        /* Back Button */
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            z-index: 101;
+        }
+        .back-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--primary);
+        }
         /* UPDATED: Modern notification badge */
         .nav-icon {
             position: relative; /* Needed for badge positioning */
@@ -1582,9 +1598,40 @@
             .mobile-bottom-nav {
                 display: flex;
             }
+            .desktop-nav {
+                display: none;
+            }
             .floating-buttons {
                 bottom: 5rem; /* Move up to avoid nav bar */
             }
+        }
+
+        /* Desktop Navigation */
+        .desktop-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            position: relative;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+        .nav-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--primary);
         }
     </style>
     <!-- NEW: Toast Notification CSS -->
@@ -1649,9 +1696,25 @@
     <div class="app-container">
         <!-- Header with swipe functionality -->
         <header class="header" id="header">
+            <button class="back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+            </button>
             <div class="theme-indicator" id="themeIndicator">
                 <i class="fas fa-moon"></i>
                 <span>Swipe to toggle theme</span>
+            </div>
+            <!-- Desktop Navigation -->
+            <div class="desktop-nav">
+                <a href="dashboard.html" class="nav-btn" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="notifications.html" class="nav-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge"></span>
+                </a>
+                <button class="nav-btn" id="desktopSettingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
             </div>
         </header>
         <!-- Main Content -->
@@ -2286,6 +2349,23 @@
         // NEW: Video viewer state
         let currentVideoList = [];
         let currentVideoIndex = -1;
+
+        // Helper to handle image errors (fallback to video)
+        function addImageFallbackHandlers() {
+            document.querySelectorAll('img.post-video-element').forEach(img => {
+                img.onerror = function() {
+                    const mediaUrl = this.getAttribute('data-media-url');
+                    if (mediaUrl) {
+                        const video = document.createElement('video');
+                        video.src = mediaUrl;
+                        video.className = 'post-video-element';
+                        video.muted = true;
+                        video.playsInline = true;
+                        this.parentNode.replaceChild(video, this);
+                    }
+                };
+            });
+        }
         // Initialize the page
         const showFullNameToggle = document.getElementById('showFullNameToggle');
         const showAcademicInfoToggle = document.getElementById('showAcademicInfoToggle');
@@ -3573,9 +3653,9 @@
 
                 if (error) throw error;
                 if (count > 0) {
-                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.add('visible'));
+                    document.querySelectorAll('.notification-badge').forEach(el => el.classList.add('visible'));
                 } else {
-                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.remove('visible'));
+                    document.querySelectorAll('.notification-badge').forEach(el => el.classList.remove('visible'));
                 }
                 updateDocumentTitle(count);
             } catch (error) { console.error('Error loading notification count:', error); }
@@ -3962,16 +4042,28 @@
         });
         // Mobile settings button
         const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
-        mobileSettingsBtn.addEventListener('click', () => {
-            settingsDrawer.classList.add('open');
-            overlay.classList.add('active');
-        });
+        if (mobileSettingsBtn) {
+            mobileSettingsBtn.addEventListener('click', () => {
+                settingsDrawer.classList.add('open');
+                overlay.classList.add('active');
+            });
+        }
+        // Desktop settings button
+        const desktopSettingsBtn = document.getElementById('desktopSettingsBtn');
+        if (desktopSettingsBtn) {
+            desktopSettingsBtn.addEventListener('click', () => {
+                settingsDrawer.classList.add('open');
+                overlay.classList.add('active');
+            });
+        }
 
         // Back button functionality
         const backBtn = document.getElementById('backBtn');
-        backBtn.addEventListener('click', () => {
-            window.history.back();
-        });
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                window.history.back();
+            });
+        }
         // Posts drawer functionality
         postsStat.addEventListener('click', () => {
             postsDrawer.classList.add('open');
