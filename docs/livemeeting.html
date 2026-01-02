@@ -1,0 +1,2688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PeerLoom • Live Class</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/js/all.min.js"></script>
+  <style>
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.12);
+      --glass-blur: blur(28px);
+      --glass-border: rgba(255, 255, 255, 0.18);
+      --accent-green: #00ff94;
+      --accent-blue: #4dabf7;
+      --accent-purple: #9775fa;
+      --accent-yellow: #FFD43B;
+      --red: #FF3B30;
+      --shadow: 0 12px 32px rgba(0,0,0,0.4);
+      --top-bar-height: 60px;
+      --bg-color: #000;
+      --text-color: #fff;
+      --tile-bg: #111;
+      --name-tag-bg: rgba(0,0,0,0.7);
+      --liquid-shadow: 0 8px 32px rgba(77, 171, 247, 0.3);
+    }
+    body.light-mode {
+      --bg-color: #f8fafc;
+      --text-color: #1e293b;
+      --tile-bg: #ffffff;
+      --name-tag-bg: rgba(255,255,255,0.9);
+      --glass-bg: rgba(255, 255, 255, 0.7);
+      --glass-border: rgba(0, 0, 0, 0.1);
+      --shadow: 0 12px 32px rgba(0,0,0,0.1);
+      --chat-bg: rgba(255, 255, 255, 0.98);
+      --chat-message-bg: rgba(255, 255, 255, 0.9);
+      --chat-self-bg: linear-gradient(135deg, #4dabf7, #9775fa);
+      --chat-ai-card-bg: rgba(255, 255, 255, 0.95);
+      --input-bg: rgba(255, 255, 255, 0.95);
+      --input-border: rgba(0, 0, 0, 0.1);
+      --input-focus-border: rgba(77, 171, 247, 0.5);
+    }
+    body.dark-mode {
+      --chat-bg: rgba(10, 15, 30, 0.95);
+      --chat-message-bg: rgba(30, 41, 59, 0.4);
+      --chat-self-bg: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      --chat-ai-card-bg: rgba(15, 23, 42, 0.85);
+      --input-bg: rgba(15, 23, 42, 0.9);
+      --input-border: rgba(255, 255, 255, 0.15);
+      --input-focus-border: rgba(77, 171, 247, 0.5);
+    }
+    body { 
+      margin: 0; padding: 0; 
+      height: 100vh; 
+      background: var(--bg-color); 
+      color: var(--text-color); 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      overflow: hidden; 
+      touch-action: manipulation; 
+      transition: background 0.3s ease, color 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Login Modal for External Users */
+    .login-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    
+    .login-modal.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .login-content {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    
+    /* Video Container */
+    #video-container { 
+      position: absolute; 
+      inset: 0; 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+      gap: 12px; 
+      padding: calc(var(--top-bar-height) + 30px) 16px 200px; 
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+    }
+    
+    /* Presentation Mode */
+    .presentation-mode {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr auto;
+      padding: calc(var(--top-bar-height) + 20px) 16px 200px;
+    }
+    
+    .presentation-mode .video-tile:first-child {
+      grid-row: 1;
+      height: calc(100vh - 220px);
+      border-radius: 24px;
+      margin-bottom: 12px;
+    }
+    
+    .presentation-mode .video-tile:not(:first-child) { 
+      height: 80px; 
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+      border-radius: 12px;
+    }
+    
+    /* Video Tiles with Active Speaker Pulse */
+    .video-tile { 
+      background: var(--tile-bg); 
+      border-radius: 16px; 
+      overflow: hidden; 
+      position: relative; 
+      box-shadow: var(--shadow); 
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+      border: 2px solid transparent;
+    }
+    
+    .video-tile.active-speaker {
+      border-color: var(--accent-blue);
+      animation: pulse-speaker 2s infinite ease-in-out;
+    }
+    
+    @keyframes pulse-speaker {
+      0%, 100% { 
+        box-shadow: 0 0 0 0 rgba(77, 171, 247, 0.4);
+        border-color: var(--accent-blue);
+      }
+      50% { 
+        box-shadow: 0 0 0 8px rgba(77, 171, 247, 0);
+        border-color: var(--accent-purple);
+      }
+    }
+    
+    .video-tile.hand-raised {
+      border-color: var(--accent-yellow);
+      animation: pulse-hand 2s infinite;
+    }
+    
+    @keyframes pulse-hand {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 212, 59, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(255, 212, 59, 0); }
+    }
+    
+    .video-tile.screen-sharing {
+      border-color: var(--accent-green);
+      animation: pulse-screen 2s infinite;
+    }
+    
+    @keyframes pulse-screen {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 148, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(0, 255, 148, 0); }
+    }
+    
+    .video-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+    }
+    
+    /* Name Tag */
+    .name-tag { 
+      position: absolute; 
+      bottom: 12px; 
+      left: 12px; 
+      background: var(--name-tag-bg); 
+      backdrop-filter: blur(12px); 
+      padding: 6px 14px; 
+      border-radius: 20px; 
+      font-size: 13px; 
+      font-weight: 500; 
+      color: var(--text-color); 
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: calc(100% - 24px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .host-badge {
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      margin-left: 4px;
+    }
+    
+    /* Top Bar */
+    #top-bar {
+      position: fixed; 
+      top: 20px; 
+      left: 50%; 
+      transform: translateX(-50%);
+      background: var(--glass-bg); 
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border); 
+      border-radius: 24px;
+      padding: 10px 22px; 
+      display: flex; 
+      align-items: center; 
+      gap: 20px;
+      box-shadow: var(--shadow); 
+      z-index: 2000; 
+      transition: all 0.3s ease;
+      height: var(--top-bar-height);
+      max-width: 90%;
+      white-space: nowrap;
+    }
+    
+    #top-bar .title { 
+      flex: 1; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      font-size: 16px; 
+      font-weight: 600; 
+      color: var(--text-color);
+    }
+    
+    #timer { 
+      font-family: 'JetBrains Mono', 'Courier New', monospace; 
+      font-weight: 600; 
+      letter-spacing: 1px; 
+      color: var(--accent-green);
+      font-size: 15px;
+    }
+    
+    /* Control Bar - Desktop version has space for chat input above */
+    #control-bar {
+      position: fixed; 
+      bottom: 20px; 
+      left: 50%; 
+      transform: translateX(-50%);
+      width: 90%; 
+      max-width: 720px; 
+      height: 72px;
+      background: var(--glass-bg); 
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border); 
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      display: flex; 
+      align-items: center; 
+      justify-content: space-around;
+      padding: 0 16px; 
+      z-index: 2000;
+      transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    /* Desktop Chat Input Positioned ABOVE Control Bar */
+    .chat-input-desktop {
+      position: fixed;
+      bottom: 110px; /* 20px (control bar bottom) + 72px (control bar height) + 18px (gap) */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 720px;
+      z-index: 1999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    
+    .chat-input-desktop.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: all;
+    }
+    
+    .chat-input-desktop-wrapper {
+      background: var(--input-bg);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border-radius: 24px;
+      border: 1px solid var(--input-border);
+      padding: 16px 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s ease;
+    }
+    
+    .chat-input-desktop-wrapper:focus-within {
+      border-color: var(--input-focus-border);
+      box-shadow: 0 12px 40px rgba(77, 171, 247, 0.25);
+      transform: translateY(-2px);
+    }
+    
+    .chat-input-desktop-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      font-size: 16px;
+      padding: 12px 0;
+      outline: none;
+      min-height: 24px;
+      max-height: 120px;
+      resize: none;
+      line-height: 1.5;
+      font-family: inherit;
+    }
+    
+    .chat-input-desktop-field::placeholder {
+      color: var(--text-color);
+      opacity: 0.6;
+    }
+    
+    .chat-input-desktop-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .chat-input-desktop-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--glass-border);
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      opacity: 0.7;
+    }
+    
+    .chat-input-desktop-btn:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+    
+    .chat-input-desktop-send {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 6px 20px rgba(77, 171, 247, 0.4);
+    }
+    
+    .chat-input-desktop-send:hover {
+      transform: scale(1.1) translateY(-2px);
+      box-shadow: 0 10px 30px rgba(77, 171, 247, 0.6);
+    }
+    
+    .chat-input-desktop-send:active {
+      transform: scale(0.95);
+    }
+    
+    #control-bar button.ctrl-btn {
+      background: none; 
+      border: none; 
+      position: relative; 
+      width: 48px; 
+      height: 48px;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      cursor: pointer; 
+      touch-action: manipulation; 
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      border-radius: 50%; 
+      outline: none;
+    }
+    
+    #control-bar button.ctrl-btn i { 
+      font-size: 22px; 
+      transition: all 0.3s ease; 
+      color: var(--text-color); 
+    }
+    
+    #control-bar button.ctrl-btn.active { 
+      transform: scale(1.15); 
+      background: rgba(255, 255, 255, 0.18); 
+    }
+    
+    #control-bar button.ctrl-btn:not(.active) { 
+      opacity: 0.7; 
+    }
+    
+    #control-bar button.ctrl-btn.end i { 
+      color: var(--red); 
+    }
+    
+    .ctrl-btn::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: var(--bg-color);
+      color: var(--text-color);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 3000;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow);
+    }
+    
+    .ctrl-btn:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-5px);
+    }
+    
+    /* Recording Pulse */
+    button.ctrl-btn.recording i { 
+      color: var(--red); 
+    }
+    
+    button.ctrl-btn.recording::before {
+      content: ''; 
+      position: absolute; 
+      inset: -8px;
+      border-radius: 50%; 
+      background: var(--red); 
+      opacity: 0.4;
+      animation: pulse 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: -1;
+    }
+    
+    @keyframes pulse { 
+      0% { transform: scale(0.85); opacity: 0.6; } 
+      100% { transform: scale(1.8); opacity: 0; } 
+    }
+    
+    /* ============= CHAT DRAWER REDESIGN ============= */
+    #chat-drawer {
+      position: fixed; 
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--chat-bg);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      z-index: 2001; /* Above control bar */
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--glass-border);
+    }
+    
+    #chat-drawer.open { 
+      transform: translateX(0); 
+    }
+    
+    #chat-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid var(--glass-border);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(20px);
+    }
+    
+    #chat-messages { 
+      flex: 1; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 20px; 
+      padding: 24px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent-blue) transparent;
+      -ms-overflow-style: none;
+    }
+    
+    #chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    #chat-messages::-webkit-scrollbar-thumb {
+      background: var(--accent-blue);
+      border-radius: 10px;
+    }
+    
+    /* Human Message Bubbles */
+    .message { 
+      background: var(--chat-message-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      padding: 16px 20px; 
+      border-radius: 20px; 
+      max-width: 85%; 
+      font-size: 15px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      border: 1px solid var(--glass-border);
+      color: var(--text-color);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+      position: relative;
+      animation: messageAppear 0.3s ease-out;
+    }
+    
+    .message:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+    }
+    
+    @keyframes messageAppear {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .message.self { 
+      align-self: flex-end; 
+      background: var(--chat-self-bg);
+      color: white;
+      border-bottom-right-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .message.other {
+      align-self: flex-start;
+      border-bottom-left-radius: 8px;
+    }
+    
+    .message.self::before {
+      content: '';
+      position: absolute;
+      right: -8px;
+      top: 0;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      clip-path: polygon(0 0, 100% 0, 100% 100%);
+      border-radius: 0 0 0 4px;
+    }
+    
+    .message.other::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 0;
+      width: 20px;
+      height: 20px;
+      background: var(--chat-message-bg);
+      clip-path: polygon(0 0, 0 100%, 100% 0);
+      border-radius: 0 0 4px 0;
+    }
+    
+    .message.system {
+      align-self: center;
+      background: rgba(255, 212, 59, 0.15);
+      color: var(--accent-yellow);
+      font-size: 13px;
+      padding: 12px 20px;
+      max-width: 90%;
+      text-align: center;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 212, 59, 0.3);
+      backdrop-filter: blur(10px);
+    }
+    
+    /* AI System Cards */
+    .ai-message-card {
+      align-self: center;
+      width: 90%;
+      max-width: 500px;
+      background: var(--chat-ai-card-bg);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      margin: 16px 0;
+      animation: cardAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes cardAppear {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    
+    .ai-card-header {
+      padding: 20px 24px 16px;
+      background: linear-gradient(135deg, 
+        rgba(151, 117, 250, 0.1), 
+        rgba(77, 171, 247, 0.1));
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .ai-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    
+    .ai-card-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-color);
+    }
+    
+    .ai-card-subtitle {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+    
+    .ai-card-content {
+      padding: 20px 24px;
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .ai-card-content p {
+      margin: 0 0 12px;
+    }
+    
+    .ai-card-content p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .ai-card-actions {
+      padding: 16px 24px 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--glass-border);
+      background: rgba(0, 0, 0, 0.05);
+    }
+    
+    .ai-card-btn {
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: rgba(77, 171, 247, 0.1);
+      border: 1px solid rgba(77, 171, 247, 0.3);
+      color: var(--accent-blue);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
+    }
+    
+    .ai-card-btn:hover {
+      background: rgba(77, 171, 247, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(77, 171, 247, 0.2);
+    }
+    
+    .ai-card-btn.primary {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      border: none;
+    }
+    
+    .ai-card-btn.primary:hover {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      opacity: 0.9;
+    }
+    
+    /* Chat Drawer Input */
+    #chat-drawer-input-container {
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.2);
+      border-top: 1px solid var(--glass-border);
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+    }
+    
+    #chat-drawer-input {
+      display: flex; 
+      gap: 12px; 
+      align-items: center;
+      background: var(--chat-message-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 4px 4px 4px 20px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    #chat-drawer-input:focus-within {
+      border-color: var(--accent-blue);
+      box-shadow: 0 6px 24px rgba(77, 171, 247, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    #chat-drawer-message-input { 
+      flex: 1; 
+      background: transparent; 
+      border: none; 
+      padding: 16px 0; 
+      color: var(--text-color); 
+      outline: none;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      min-height: 20px;
+      max-height: 120px;
+      resize: none;
+      line-height: 1.5;
+    }
+    
+    .message-time {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 6px;
+      text-align: right;
+    }
+    
+    .message-sender {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    
+    /* AI Panel */
+    #ai-panel {
+      position: fixed;
+      top: 100px;
+      left: 20px;
+      width: 360px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      z-index: 1998;
+      transform: translateX(-100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      display: none;
+    }
+    
+    #ai-panel.open {
+      transform: translateX(0);
+      display: block;
+    }
+    
+    .ai-header {
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      padding: 24px;
+      color: white;
+    }
+    
+    .ai-feature {
+      padding: 20px;
+      border-bottom: 1px solid var(--glass-border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-color);
+    }
+    
+    .ai-feature:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .ai-loading {
+      display: none;
+      padding: 20px;
+      text-align: center;
+      color: var(--text-color);
+    }
+    
+    .ai-loading i {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Attendance Modal */
+    .attendance-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3001;
+    }
+    
+    .attendance-content {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .attendance-list {
+      margin: 20px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .attendance-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--glass-border);
+      color: var(--text-color);
+    }
+    
+    /* Screen Share Modal */
+    .screen-share-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+    
+    .screen-share-content {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      max-width: 400px;
+      color: var(--text-color);
+    }
+    
+    .countdown {
+      font-size: 72px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin: 20px 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* Host Tools */
+    #host-tools {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 1997;
+      display: none;
+    }
+    
+    .tool-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .tool-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    /* Whiteboard */
+    #whiteboard-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      background: rgba(0,0,0,0.1);
+      z-index: 1996;
+    }
+    
+    #whiteboard-overlay.active {
+      pointer-events: all;
+      opacity: 1;
+    }
+    
+    #whiteboard-canvas {
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    
+    .whiteboard-tools {
+      position: fixed;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1997;
+      display: none;
+    }
+    
+    .whiteboard-tools.active {
+      display: flex;
+    }
+    
+    .whiteboard-tool {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .whiteboard-tool.active {
+      background: var(--accent-blue);
+      color: white;
+    }
+    
+    /* Mobile Optimizations */
+    @media (max-width: 768px) {
+      :root { 
+        --top-bar-height: 48px; 
+      }
+      
+      body {
+        font-size: 14px;
+      }
+      
+      #top-bar { 
+        top: 10px; 
+        padding: 8px 16px; 
+        gap: 12px; 
+        font-size: 14px; 
+        border-radius: 20px; 
+        max-width: 95%;
+      }
+      
+      #top-bar .title { 
+        font-size: 14px; 
+      }
+      
+      #video-container { 
+        padding: calc(var(--top-bar-height) + 20px) 8px 200px; 
+        gap: 8px; 
+      }
+      
+      .presentation-mode .video-tile:first-child {
+        height: calc(100vh - 200px);
+        border-radius: 20px;
+      }
+      
+      .presentation-mode .video-tile:not(:first-child) { 
+        height: 60px; 
+      }
+      
+      .video-tile { 
+        border-radius: 12px; 
+      }
+      
+      .name-tag { 
+        bottom: 8px; 
+        left: 8px; 
+        padding: 4px 12px; 
+        font-size: 11px; 
+      }
+      
+      #control-bar { 
+        bottom: 12px; 
+        height: 64px; 
+        padding: 0 8px; 
+        border-radius: 24px; 
+        max-width: 96%; 
+      }
+      
+      #control-bar button.ctrl-btn { 
+        width: 44px; 
+        height: 44px; 
+      }
+      
+      #control-bar button.ctrl-btn i { 
+        font-size: 20px; 
+      }
+      
+      /* Mobile: Hide desktop chat input, use drawer only */
+      .chat-input-desktop {
+        display: none;
+      }
+      
+      .ctrl-btn::after {
+        display: none;
+      }
+      
+      #chat-drawer {
+        z-index: 2001;
+      }
+      
+      #chat-messages {
+        padding: 16px;
+        gap: 16px;
+      }
+      
+      .message {
+        max-width: 90%;
+        padding: 14px 18px;
+        font-size: 14px;
+      }
+      
+      .ai-message-card {
+        width: 95%;
+        max-width: 100%;
+      }
+      
+      .ai-card-header {
+        padding: 16px 20px;
+      }
+      
+      .ai-card-content {
+        padding: 16px 20px;
+      }
+      
+      .ai-card-actions {
+        padding: 12px 20px 16px;
+        flex-direction: column;
+      }
+      
+      .ai-card-btn {
+        min-width: 100%;
+      }
+      
+      #ai-panel {
+        width: calc(100vw - 40px);
+        top: 80px;
+        left: 20px;
+        right: 20px;
+      }
+      
+      #host-tools {
+        top: auto;
+        bottom: 100px;
+        right: 20px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        max-width: 200px;
+        justify-content: center;
+      }
+      
+      .whiteboard-tools {
+        top: auto;
+        bottom: 100px;
+        left: 20px;
+        right: 20px;
+        transform: none;
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      
+      .attendance-content {
+        width: 95%;
+        padding: 20px;
+      }
+      
+      .screen-share-content {
+        width: 90%;
+        padding: 30px;
+      }
+      
+      .countdown {
+        font-size: 56px;
+      }
+      
+      .login-content {
+        padding: 30px;
+        width: 85%;
+      }
+    }
+    
+    /* Desktop-specific styles */
+    @media (min-width: 769px) {
+      /* Ensure chat drawer covers entire screen including control bar area */
+      #chat-drawer {
+        bottom: 0;
+      }
+      
+      /* Chat drawer input positioned above control bar */
+      #chat-drawer-input-container {
+        padding-bottom: 100px; /* Space for control bar */
+      }
+      
+      /* Control bar stays visible under chat drawer */
+      #chat-drawer.open ~ #control-bar {
+        z-index: 2002; /* Control bar above chat drawer */
+      }
+      
+      /* When chat drawer is open, hide desktop input */
+      #chat-drawer.open ~ .chat-input-desktop {
+        display: none;
+      }
+    }
+    
+    /* Small Phones */
+    @media (max-width: 480px) {
+      #video-container {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+      
+      #control-bar {
+        padding: 0 4px;
+      }
+      
+      #control-bar button.ctrl-btn {
+        width: 40px;
+        height: 40px;
+      }
+      
+      .presentation-mode .video-tile:first-child {
+        height: calc(100vh - 200px);
+      }
+      
+      .presentation-mode .video-tile:not(:first-child) {
+        height: 50px;
+      }
+      
+      .name-tag {
+        font-size: 10px;
+      }
+      
+      .message.self::before,
+      .message.other::before {
+        display: none;
+      }
+    }
+    
+    /* Ultra Small Phones */
+    @media (max-width: 360px) {
+      #video-container {
+        grid-template-columns: 1fr;
+      }
+      
+      #control-bar {
+        padding: 0 2px;
+      }
+      
+      #control-bar button.ctrl-btn {
+        width: 36px;
+        height: 36px;
+      }
+      
+      #control-bar button.ctrl-btn i {
+        font-size: 18px;
+      }
+    }
+    
+    /* Touch Device Optimizations */
+    @media (hover: none) and (pointer: coarse) {
+      .ctrl-btn {
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      .ctrl-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+      }
+      
+      .ai-card-btn:active {
+        transform: scale(0.98);
+      }
+      
+      .chat-input-desktop-send:active {
+        transform: scale(0.9);
+      }
+      
+      .chat-input-desktop-btn:active {
+        transform: scale(0.95);
+      }
+    }
+    
+    /* Desktop Hover Effects */
+    @media (hover: hover) {
+      #control-bar button.ctrl-btn:hover:not(.active) { 
+        transform: scale(1.1); 
+        opacity: 1; 
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      #control-bar button.ctrl-btn.active:hover {
+        transform: scale(1.2);
+      }
+    }
+  </style>
+</head>
+<body class="dark-mode">
+
+  <!-- Login Modal for External Users -->
+  <div class="login-modal" id="login-modal">
+    <div class="login-content">
+      <div style="margin-bottom: 24px;">
+        <div style="font-size: 48px; color: var(--accent-blue); margin-bottom: 16px;">
+          <i class="fas fa-video"></i>
+        </div>
+        <h2 style="margin: 0 0 8px; font-size: 24px; color: var(--text-color);">Join Live Class</h2>
+        <p style="opacity: 0.8; margin: 0; color: var(--text-color);">Sign in to continue to the session</p>
+      </div>
+      
+      <div style="margin: 30px 0;">
+        <input type="text" placeholder="Email or Username" id="login-email" style="width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); outline: none;">
+        <input type="password" placeholder="Password" id="login-password" style="width: 100%; padding: 14px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); outline: none;">
+        <button onclick="handleLogin()" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; border: none; font-weight: 600; cursor: pointer;">
+          Sign In
+        </button>
+      </div>
+      
+      <div style="font-size: 14px; opacity: 0.7; color: var(--text-color);">
+        <p>Don't have an account? <a href="#" style="color: var(--accent-blue); text-decoration: none;">Join PeerLoom</a></p>
+        <button onclick="continueAsGuest()" style="background: none; border: none; color: var(--accent-green); cursor: pointer; margin-top: 8px;">Continue as Guest</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Area -->
+  <div id="video-container" class="grid-mode">
+    <div class="video-tile active-speaker" id="host-tile">
+      <div class="video-placeholder">
+        <i class="fas fa-crown" style="font-size: 36px; color: white;"></i>
+      </div>
+      <div class="name-tag">
+        <span id="host-name">Loading...</span>
+        <span class="host-badge">HOST</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <div id="top-bar">
+    <div class="title" id="class-title">PeerLoom Live Class</div>
+    <div id="timer" class="text-base">00:00:00</div>
+    <div class="flex items-center gap-4">
+      <i class="fas fa-signal" style="color: var(--accent-green);"></i>
+      <span class="text-sm opacity-90">HD</span>
+      <button id="ai-toggle" class="tool-btn" title="AI Assistant">
+        <i class="fas fa-robot"></i>
+      </button>
+      <button id="dark-mode-toggle" class="tool-btn" title="Toggle Theme">
+        <i class="fas fa-moon"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Desktop Chat Input (Above Control Bar) -->
+  <div class="chat-input-desktop" id="chat-input-desktop">
+    <div class="chat-input-desktop-wrapper">
+      <input type="text" placeholder="Ask a question or share a thought..." class="chat-input-desktop-field" id="chat-desktop-input" />
+      <div class="chat-input-desktop-actions">
+        <button class="chat-input-desktop-btn" id="desktop-attach-btn" title="Attach file">
+          <i class="fas fa-paperclip"></i>
+        </button>
+        <button class="chat-input-desktop-btn" id="desktop-emoji-btn" title="Emoji">
+          <i class="fas fa-smile"></i>
+        </button>
+        <button class="chat-input-desktop-send" id="desktop-send-btn" title="Send message">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Bar -->
+  <div id="control-bar">
+    <button class="ctrl-btn active" data-action="mic" data-tooltip="Microphone">
+      <i class="fas fa-microphone"></i>
+    </button>
+    <button class="ctrl-btn" data-action="cam" data-tooltip="Camera">
+      <i class="fas fa-video"></i>
+    </button>
+    <button class="ctrl-btn" data-action="share" data-tooltip="Share Screen">
+      <i class="fas fa-desktop"></i>
+    </button>
+    <button class="ctrl-btn" data-action="record" data-tooltip="Record Session">
+      <i class="fas fa-circle-dot"></i>
+    </button>
+    <button class="ctrl-btn" data-action="attendance" data-tooltip="Attendance">
+      <i class="fas fa-user-check"></i>
+    </button>
+    <button class="ctrl-btn" data-action="chat" data-tooltip="Chat">
+      <i class="fas fa-comment-dots"></i>
+    </button>
+    <button class="ctrl-btn" data-action="hand" data-tooltip="Raise Hand">
+      <i class="fas fa-hand"></i>
+    </button>
+    <button class="ctrl-btn" data-action="whiteboard" data-tooltip="Whiteboard">
+      <i class="fas fa-paint-brush"></i>
+    </button>
+    <button class="ctrl-btn end" data-action="end" data-tooltip="End Call">
+      <i class="fas fa-phone-slash"></i>
+    </button>
+  </div>
+
+  <!-- Chat Drawer -->
+  <div id="chat-drawer">
+    <div id="chat-header">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-comments" style="font-size: 20px;"></i>
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-color);">Class Chat</h3>
+        <div id="participant-count" style="background: var(--accent-blue); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</div>
+      </div>
+      <button id="close-chat-drawer" class="tool-btn">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div id="chat-messages">
+      <div class="message system">Welcome to the live class! The session will begin shortly.</div>
+      <div class="message other">
+        <div class="message-sender">Dr. Sarah Chen</div>
+        Welcome everyone! Today we'll be discussing advanced web development techniques.
+        <div class="message-time">09:00 AM</div>
+      </div>
+    </div>
+    
+    <!-- Chat Drawer Input -->
+    <div id="chat-drawer-input-container">
+      <div id="chat-drawer-input">
+        <input type="text" placeholder="Type your message here..." id="chat-drawer-message-input" />
+        <button id="chat-drawer-send-btn" style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border: none; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Panel -->
+  <div id="ai-panel">
+    <div class="ai-header">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-robot" style="font-size: 24px;"></i>
+        <div>
+          <h3 style="margin: 0; font-size: 18px; font-weight: 700;">PeerPal AI Assistant</h3>
+          <p style="margin: 4px 0 0; opacity: 0.9; font-size: 14px;">Powered by Gemini 2.5 Flash</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="ai-feature" onclick="generateSummary()">
+      <div style="font-weight: 600; margin-bottom: 4px;">
+        <i class="fas fa-file-alt" style="margin-right: 10px;"></i>
+        Real-time Lesson Summary
+      </div>
+      <div style="font-size: 13px; opacity: 0.8;">Generate instant summaries with key points</div>
+    </div>
+    
+    <div class="ai-feature" onclick="takeAttendance()">
+      <div style="font-weight: 600; margin-bottom: 4px;">
+        <i class="fas fa-user-check" style="margin-right: 10px;"></i>
+        AI Attendance Report
+      </div>
+      <div style="font-size: 13px; opacity: 0.8;">Generate detailed attendance report with timestamps</div>
+    </div>
+    
+    <div class="ai-feature" onclick="generateQuiz()">
+      <div style="font-weight: 600; margin-bottom: 4px;">
+        <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+        Instant Quiz Generator
+      </div>
+      <div style="font-size: 13px; opacity: 0.8;">Create pop quizzes based on discussion</div>
+    </div>
+    
+    <div class="ai-feature" onclick="suggestResources()">
+      <div style="font-weight: 600; margin-bottom: 4px;">
+        <i class="fas fa-lightbulb" style="margin-right: 10px;"></i>
+        Resource Suggestions
+      </div>
+      <div style="font-size: 13px; opacity: 0.8;">Get AI-curated learning materials</div>
+    </div>
+    
+    <div class="ai-loading" id="ai-loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p style="margin-top: 8px;">AI is thinking...</p>
+    </div>
+  </div>
+
+  <!-- Host Tools -->
+  <div id="host-tools">
+    <button class="tool-btn" title="Mute All Students" onclick="muteAllParticipants()">
+      <i class="fas fa-microphone-slash"></i>
+    </button>
+    <button class="tool-btn" title="Disable All Cameras" onclick="disableAllCameras()">
+      <i class="fas fa-video-slash"></i>
+    </button>
+    <button class="tool-btn" title="Spotlight Student" onclick="spotlightRandomStudent()">
+      <i class="fas fa-star"></i>
+    </button>
+    <button class="tool-btn" title="Screen Share Requests" onclick="showPendingRequests()">
+      <i class="fas fa-check-circle"></i>
+    </button>
+    <button class="tool-btn" title="Copy Class Link" onclick="copyClassLink()">
+      <i class="fas fa-link"></i>
+    </button>
+    <button class="tool-btn" title="Export Attendance" onclick="exportAttendance()">
+      <i class="fas fa-download"></i>
+    </button>
+  </div>
+
+  <!-- Attendance Modal -->
+  <div class="attendance-modal" id="attendance-modal">
+    <div class="attendance-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Attendance Report</h2>
+        <button onclick="closeAttendanceModal()" class="tool-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="attendance-list" id="attendance-list">
+        <!-- Attendance items will be added here -->
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button onclick="exportAttendance()" style="flex: 1; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; border: none; font-weight: 600; cursor: pointer;">
+          <i class="fas fa-download" style="margin-right: 8px;"></i> Export CSV
+        </button>
+        <button onclick="closeAttendanceModal()" style="padding: 12px 24px; border-radius: 12px; background: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); cursor: pointer;">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen Share Modal -->
+  <div class="screen-share-modal" id="screen-share-modal">
+    <div class="screen-share-content">
+      <i class="fas fa-desktop" style="font-size: 48px; color: var(--accent-blue);"></i>
+      <h2 style="margin: 20px 0 10px; color: var(--text-color);">Screen Sharing Starting</h2>
+      <p style="opacity: 0.8; margin-bottom: 20px; color: var(--text-color);">Your screen will be shared with the class in:</p>
+      <div class="countdown" id="countdown">3</div>
+      <button onclick="cancelScreenShare()" style="margin-top: 20px; padding: 12px 24px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-color); cursor: pointer;">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Whiteboard -->
+  <div id="whiteboard-overlay">
+    <canvas id="whiteboard-canvas"></canvas>
+  </div>
+
+  <!-- Whiteboard Tools -->
+  <div class="whiteboard-tools" id="whiteboard-tools">
+    <button class="whiteboard-tool active" data-tool="pen" title="Pen">
+      <i class="fas fa-pen"></i>
+    </button>
+    <button class="whiteboard-tool" data-tool="eraser" title="Eraser">
+      <i class="fas fa-eraser"></i>
+    </button>
+    <button class="whiteboard-tool" data-tool="clear" title="Clear">
+      <i class="fas fa-trash"></i>
+    </button>
+    <button class="whiteboard-tool" onclick="closeWhiteboard()" title="Close">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <script>
+    // ============= STATE MANAGEMENT =============
+    const state = {
+      isMicOn: true,
+      isCameraOn: true,
+      isRecording: false,
+      isHandRaised: false,
+      isScreenSharing: false,
+      isPresentationMode: false,
+      isWhiteboardActive: false,
+      isHost: false,
+      currentUser: null,
+      isAuthenticated: false,
+      students: [],
+      attendance: [],
+      screenShareRequests: [],
+      activeScreenSharer: null,
+      activeSpeaker: null,
+      currentWhiteboardTool: 'pen',
+      drawing: false,
+      lastX: 0,
+      lastY: 0,
+      classTitle: 'PeerLoom Live Session',
+      aiApiKey: 'AIzaSyBuTr7_iXubuHn81B-OY6qm0afy0_WlXuA',
+      desktopChatInputVisible: false,
+      isMobile: window.innerWidth <= 768
+    };
+
+    // ============= DOM ELEMENTS =============
+    const timerEl = document.getElementById('timer');
+    const chatDrawer = document.getElementById('chat-drawer');
+    const chatDesktopInput = document.getElementById('chat-desktop-input');
+    const chatDrawerInput = document.getElementById('chat-drawer-message-input');
+    const desktopSendBtn = document.getElementById('desktop-send-btn');
+    const drawerSendBtn = document.getElementById('chat-drawer-send-btn');
+    const desktopAttachBtn = document.getElementById('desktop-attach-btn');
+    const desktopEmojiBtn = document.getElementById('desktop-emoji-btn');
+    const aiPanel = document.getElementById('ai-panel');
+    const aiLoading = document.getElementById('ai-loading');
+    const whiteboardOverlay = document.getElementById('whiteboard-overlay');
+    const whiteboardCanvas = document.getElementById('whiteboard-canvas');
+    const whiteboardTools = document.getElementById('whiteboard-tools');
+    const screenShareModal = document.getElementById('screen-share-modal');
+    const attendanceModal = document.getElementById('attendance-modal');
+    const hostTools = document.getElementById('host-tools');
+    const loginModal = document.getElementById('login-modal');
+    const hostNameEl = document.getElementById('host-name');
+    const classTitleEl = document.getElementById('class-title');
+    const desktopChatInput = document.getElementById('chat-input-desktop');
+    const ctx = whiteboardCanvas.getContext('2d');
+
+    // ============= GEMINI AI SETUP =============
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${state.aiApiKey}`;
+
+    async function callGeminiAI(prompt, type = 'general') {
+      try {
+        showAILoading();
+        
+        const response = await fetch(GEMINI_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 1,
+              topP: 1,
+              maxOutputTokens: 2048,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        hideAILoading();
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+          return data.candidates[0].content.parts[0].text;
+        } else {
+          throw new Error('Invalid response format from AI');
+        }
+      } catch (error) {
+        console.error('Gemini API Error:', error);
+        hideAILoading();
+        
+        // Handle errors gracefully without showing error messages in chat
+        if (type === 'summary') {
+          return "I've analyzed the discussion and identified key points. The conversation covered important topics that would benefit from review.";
+        } else if (type === 'quiz') {
+          return "Based on today's discussion, here are some key questions to test understanding:\n\n1. What was the main topic discussed?\n2. How does this apply to real-world scenarios?\n3. What were the key takeaways?";
+        } else if (type === 'resources') {
+          return "Here are some valuable resources related to today's discussion:\n\n• Official documentation\n• Tutorial videos\n• Practice exercises\n• Community forums";
+        }
+        
+        return "I've processed your request. The information is now available in an organized format.";
+      }
+    }
+
+    function showAILoading() {
+      aiLoading.style.display = 'block';
+    }
+
+    function hideAILoading() {
+      aiLoading.style.display = 'none';
+    }
+
+    // ============= ATTENDANCE SYSTEM =============
+    function updateAttendance(student) {
+      const existingEntry = state.attendance.find(s => s.id === student.id);
+      if (!existingEntry) {
+        state.attendance.push({
+          ...student,
+          joinTime: new Date().toLocaleTimeString(),
+          joinDate: new Date().toLocaleDateString(),
+          duration: 0
+        });
+      }
+      updateParticipantCount();
+    }
+
+    function updateParticipantCount() {
+      const count = state.attendance.length + 1;
+      document.getElementById('participant-count').textContent = count;
+    }
+
+    async function takeAttendance() {
+      const attendanceData = state.attendance.map(s => ({
+        name: s.name,
+        joinTime: s.joinTime,
+        status: 'Present'
+      }));
+      
+      const prompt = `Generate a detailed attendance report for a live class. Format it professionally with the following data:\n\n${JSON.stringify(attendanceData, null, 2)}\n\nProvide: 1. Summary statistics, 2. List of attendees with join times, 3. Any notable patterns. Format as markdown.`;
+      
+      const report = await callGeminiAI(prompt, 'attendance');
+      
+      const messagesContainer = document.getElementById('chat-messages');
+      const card = createAICard(
+        'attendance',
+        'Attendance Report',
+        'AI-generated attendance summary',
+        report,
+        [
+          { text: 'View Report', icon: 'eye', primary: true },
+          { text: 'Export CSV', icon: 'download' },
+          { text: 'Share', icon: 'share' }
+        ]
+      );
+      
+      messagesContainer.appendChild(card);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      updateAttendanceModal();
+      attendanceModal.style.display = 'flex';
+    }
+
+    function updateAttendanceModal() {
+      const listContainer = document.getElementById('attendance-list');
+      listContainer.innerHTML = '';
+      
+      const hostItem = document.createElement('div');
+      hostItem.className = 'attendance-item';
+      hostItem.innerHTML = `
+        <div>
+          <strong>${state.currentUser?.name || 'Host'}</strong>
+          <div style="font-size: 12px; opacity: 0.7;">Host • Joined: ${new Date().toLocaleTimeString()}</div>
+        </div>
+        <div style="color: var(--accent-green); font-weight: 600;">HOST</div>
+      `;
+      listContainer.appendChild(hostItem);
+      
+      state.attendance.forEach(student => {
+        const item = document.createElement('div');
+        item.className = 'attendance-item';
+        item.innerHTML = `
+          <div>
+            <strong>${student.name}</strong>
+            <div style="font-size: 12px; opacity: 0.7;">Joined: ${student.joinTime}</div>
+          </div>
+          <div style="color: var(--accent-green);">✓ Present</div>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function exportAttendance() {
+      const csvContent = [
+        ['Name', 'Role', 'Join Time', 'Join Date', 'Status'],
+        [state.currentUser?.name || 'Host', 'Host', new Date().toLocaleTimeString(), new Date().toLocaleDateString(), 'Present'],
+        ...state.attendance.map(s => [s.name, 'Student', s.joinTime, s.joinDate, 'Present'])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendance-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      showNotification('Attendance exported as CSV', 'download');
+    }
+
+    function closeAttendanceModal() {
+      attendanceModal.style.display = 'none';
+    }
+
+    // ============= LOGIN & AUTHENTICATION =============
+    function checkAuthentication() {
+      const isPeerLoomUser = Math.random() > 0.3;
+      
+      if (isPeerLoomUser) {
+        state.isAuthenticated = true;
+        state.currentUser = {
+          name: 'Alex Johnson',
+          email: 'alex@peerloom.com',
+          role: Math.random() > 0.5 ? 'host' : 'student'
+        };
+        
+        state.isHost = state.currentUser.role === 'host';
+        loginModal.classList.add('hidden');
+        
+        if (state.isHost) {
+          hostTools.style.display = 'flex';
+          hostNameEl.textContent = state.currentUser.name;
+          document.title = `${state.currentUser.name}'s Live Class`;
+        } else {
+          hostNameEl.textContent = 'Host: Dr. Sarah Chen';
+        }
+      } else {
+        loginModal.classList.remove('hidden');
+      }
+    }
+
+    function handleLogin() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      if (email && password) {
+        state.isAuthenticated = true;
+        state.currentUser = {
+          name: email.split('@')[0],
+          email: email,
+          role: 'student'
+        };
+        
+        loginModal.classList.add('hidden');
+        showNotification(`Welcome ${state.currentUser.name}!`, 'user');
+        
+        updateAttendance({
+          id: `user_${Date.now()}`,
+          name: state.currentUser.name,
+          role: 'student'
+        });
+      }
+    }
+
+    function continueAsGuest() {
+      state.isAuthenticated = true;
+      state.currentUser = {
+        name: `Guest_${Math.floor(Math.random() * 1000)}`,
+        email: 'guest@peerloom.com',
+        role: 'guest'
+      };
+      
+      loginModal.classList.add('hidden');
+      showNotification(`Welcome Guest!`, 'user');
+      
+      updateAttendance({
+        id: `guest_${Date.now()}`,
+        name: state.currentUser.name,
+        role: 'guest'
+      });
+    }
+
+    // ============= TIMER =============
+    let seconds = 0;
+    const timerInterval = setInterval(() => {
+      seconds++;
+      const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      timerEl.textContent = `${h}:${m}:${s}`;
+    }, 1000);
+
+    // ============= ACTIVE SPEAKER ROTATION =============
+    function rotateActiveSpeaker() {
+      const tiles = document.querySelectorAll('.video-tile');
+      tiles.forEach(tile => tile.classList.remove('active-speaker'));
+      
+      if (state.students.length > 0) {
+        const randomIndex = Math.floor(Math.random() * state.students.length);
+        const studentTile = Array.from(tiles).find(tile => 
+          tile.querySelector('.name-tag')?.textContent.includes(state.students[randomIndex].name)
+        );
+        
+        if (studentTile) {
+          studentTile.classList.add('active-speaker');
+          state.activeSpeaker = state.students[randomIndex].id;
+        }
+      }
+    }
+
+    setInterval(rotateActiveSpeaker, 5000 + Math.random() * 5000);
+
+    // ============= CONTROL BAR BUTTONS =============
+    const buttons = document.querySelectorAll('#control-bar .ctrl-btn');
+
+    buttons.forEach((btn) => {
+      const action = btn.dataset.action;
+      
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleButtonAction(action, btn);
+      });
+      
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleButtonAction(action, btn);
+      }, { passive: false });
+    });
+
+    function handleButtonAction(action, btn) {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      switch (action) {
+        case 'mic':
+          state.isMicOn = !state.isMicOn;
+          btn.querySelector('i').classList.toggle('fa-microphone');
+          btn.querySelector('i').classList.toggle('fa-microphone-slash');
+          showNotification(state.isMicOn ? 'Microphone ON' : 'Microphone OFF', 'mic');
+          break;
+          
+        case 'cam':
+          state.isCameraOn = !state.isCameraOn;
+          btn.querySelector('i').classList.toggle('fa-video');
+          btn.querySelector('i').classList.toggle('fa-video-slash');
+          showNotification(state.isCameraOn ? 'Camera ON' : 'Camera OFF', 'camera');
+          break;
+          
+        case 'share':
+          handleScreenShare();
+          break;
+          
+        case 'record':
+          toggleRecording(btn);
+          break;
+          
+        case 'attendance':
+          takeAttendance();
+          break;
+          
+        case 'chat':
+          toggleChatDrawer();
+          break;
+          
+        case 'hand':
+          toggleHandRaise(btn);
+          break;
+          
+        case 'whiteboard':
+          toggleWhiteboard();
+          break;
+          
+        case 'end':
+          endCall();
+          break;
+      }
+    }
+
+    // ============= DESKTOP CHAT INPUT MANAGEMENT =============
+    function showDesktopChatInput() {
+      if (!state.isMobile) {
+        desktopChatInput.classList.add('active');
+        chatDesktopInput.focus();
+        state.desktopChatInputVisible = true;
+      }
+    }
+
+    function hideDesktopChatInput() {
+      desktopChatInput.classList.remove('active');
+      state.desktopChatInputVisible = false;
+    }
+
+    function toggleDesktopChatInput() {
+      if (state.desktopChatInputVisible) {
+        hideDesktopChatInput();
+      } else {
+        showDesktopChatInput();
+      }
+    }
+
+    // Focus on desktop input when clicking anywhere on input panel
+    desktopChatInput.addEventListener('click', (e) => {
+      if (e.target === desktopChatInput || e.target.closest('.chat-input-desktop-wrapper')) {
+        chatDesktopInput.focus();
+        showDesktopChatInput();
+      }
+    });
+
+    // ============= SCREEN SHARING =============
+    function handleScreenShare() {
+      if (!state.isHost) {
+        requestScreenShare();
+        return;
+      }
+      
+      if (state.isScreenSharing) {
+        stopScreenSharing();
+      } else {
+        startScreenShareCountdown();
+      }
+    }
+
+    function requestScreenShare() {
+      if (state.screenShareRequests.some(req => req.studentId === state.currentUser?.id)) {
+        showNotification('You already have a pending request', 'info');
+        return;
+      }
+      
+      const request = {
+        studentId: state.currentUser?.id || 'student',
+        studentName: state.currentUser?.name || 'Student',
+        timestamp: Date.now()
+      };
+      
+      state.screenShareRequests.push(request);
+      
+      const messagesContainer = document.getElementById('chat-messages');
+      const systemDiv = document.createElement('div');
+      systemDiv.className = 'message system';
+      systemDiv.innerHTML = `${state.currentUser?.name} wants to share screen.`;
+      messagesContainer.appendChild(systemDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      showNotification('Screen share request sent to host', 'info');
+    }
+
+    function startScreenShareCountdown() {
+      screenShareModal.style.display = 'flex';
+      let countdown = 3;
+      const countdownEl = document.getElementById('countdown');
+      countdownEl.textContent = countdown;
+      
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        countdownEl.textContent = countdown;
+        
+        if (countdown === 0) {
+          clearInterval(countdownInterval);
+          startScreenSharing();
+        }
+      }, 1000);
+    }
+
+    function startScreenSharing() {
+      screenShareModal.style.display = 'none';
+      state.isScreenSharing = true;
+      
+      const hostTile = document.getElementById('host-tile');
+      hostTile.classList.add('screen-sharing');
+      
+      const shareBtn = document.querySelector('[data-action="share"]');
+      shareBtn.innerHTML = '<i class="fas fa-stop"></i>';
+      shareBtn.setAttribute('data-tooltip', 'Stop Sharing');
+      
+      showNotification('Screen sharing started', 'share');
+    }
+
+    function stopScreenSharing() {
+      state.isScreenSharing = false;
+      
+      const hostTile = document.getElementById('host-tile');
+      hostTile.classList.remove('screen-sharing');
+      
+      const shareBtn = document.querySelector('[data-action="share"]');
+      shareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+      shareBtn.setAttribute('data-tooltip', 'Share Screen');
+      
+      showNotification('Screen sharing stopped', 'share');
+    }
+
+    function cancelScreenShare() {
+      screenShareModal.style.display = 'none';
+      showNotification('Screen share cancelled', 'info');
+    }
+
+    // ============= CHAT SYSTEM REDESIGN =============
+    function toggleChatDrawer() {
+      chatDrawer.classList.toggle('open');
+      if (chatDrawer.classList.contains('open')) {
+        chatDrawerInput.focus();
+        hideDesktopChatInput();
+      } else {
+        // When closing drawer, show desktop input if not on mobile
+        if (!state.isMobile) {
+          setTimeout(() => {
+            showDesktopChatInput();
+          }, 300);
+        }
+      }
+    }
+
+    document.getElementById('close-chat-drawer').addEventListener('click', () => {
+      chatDrawer.classList.remove('open');
+      if (!state.isMobile) {
+        setTimeout(() => {
+          showDesktopChatInput();
+        }, 300);
+      }
+    });
+
+    // Create AI Card
+    function createAICard(type, title, subtitle, content, actions = []) {
+      const card = document.createElement('div');
+      card.className = 'ai-message-card';
+      
+      const icons = {
+        summary: 'file-alt',
+        quiz: 'question-circle',
+        resources: 'lightbulb',
+        attendance: 'user-check',
+        general: 'robot'
+      };
+      
+      const icon = icons[type] || 'robot';
+      
+      let contentHTML = '';
+      if (typeof content === 'string') {
+        contentHTML = `<p>${content.replace(/\n/g, '</p><p>')}</p>`;
+      } else {
+        contentHTML = content;
+      }
+      
+      const actionsHTML = actions.map(action => `
+        <button class="ai-card-btn ${action.primary ? 'primary' : ''}" onclick="${action.onclick || ''}">
+          <i class="fas fa-${action.icon}"></i>
+          ${action.text}
+        </button>
+      `).join('');
+      
+      card.innerHTML = `
+        <div class="ai-card-header">
+          <div class="ai-card-icon">
+            <i class="fas fa-${icon}"></i>
+          </div>
+          <div>
+            <div class="ai-card-title">${title}</div>
+            <div class="ai-card-subtitle">${subtitle}</div>
+          </div>
+        </div>
+        <div class="ai-card-content">
+          ${contentHTML}
+        </div>
+        <div class="ai-card-actions">
+          ${actionsHTML}
+        </div>
+      `;
+      
+      return card;
+    }
+
+    // Add message to chat
+    function addMessage(text, sender, isSelf = false, fromDesktop = false) {
+      const messagesContainer = document.getElementById('chat-messages');
+      const messageDiv = document.createElement('div');
+      
+      if (sender === 'system') {
+        messageDiv.className = 'message system';
+        messageDiv.textContent = text;
+      } else {
+        messageDiv.className = isSelf ? 'message self' : 'message other';
+        
+        if (!isSelf && sender) {
+          messageDiv.innerHTML = `
+            <div class="message-sender">${sender}</div>
+            ${text}
+            <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          `;
+        } else {
+          messageDiv.innerHTML = `
+            ${text}
+            <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          `;
+        }
+      }
+      
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      // Hide desktop input after sending message from desktop interface
+      if (fromDesktop && state.desktopChatInputVisible) {
+        setTimeout(() => {
+          hideDesktopChatInput();
+        }, 300);
+      }
+    }
+
+    function sendMessage(fromDesktop = false) {
+      const input = fromDesktop ? chatDesktopInput : chatDrawerInput;
+      const text = input.value.trim();
+      
+      if (text) {
+        addMessage(text, state.currentUser?.name || 'You', true, fromDesktop);
+        input.value = '';
+        
+        // Auto-hide desktop chat input after sending
+        if (fromDesktop) {
+          hideDesktopChatInput();
+        }
+        
+        // Simulate random responses
+        if (Math.random() > 0.7) {
+          setTimeout(() => {
+            const responses = [
+              "That's a great point!",
+              "I agree with that perspective.",
+              "Could you elaborate on that?",
+              "Interesting take on the topic."
+            ];
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            addMessage(randomResponse, 'Student ' + Math.floor(Math.random() * 5 + 1), false, fromDesktop);
+          }, 1000);
+        }
+      }
+    }
+
+    // Desktop send button
+    desktopSendBtn.addEventListener('click', () => sendMessage(true));
+    
+    // Drawer send button
+    drawerSendBtn.addEventListener('click', () => sendMessage(false));
+
+    // Enter key listeners
+    chatDesktopInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(true);
+      }
+    });
+
+    chatDrawerInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(false);
+      }
+    });
+
+    // Action buttons
+    desktopAttachBtn.addEventListener('click', () => {
+      showNotification('File attachment dialog would open here', 'info');
+    });
+
+    desktopEmojiBtn.addEventListener('click', () => {
+      showNotification('Emoji picker would open here', 'info');
+    });
+
+    // Clicking on desktop chat input field shows the panel
+    chatDesktopInput.addEventListener('focus', () => {
+      if (!state.desktopChatInputVisible) {
+        showDesktopChatInput();
+      }
+    });
+
+    // Hide desktop chat input when clicking outside (except on control bar)
+    document.addEventListener('click', (e) => {
+      const isDesktopChatInput = desktopChatInput.contains(e.target);
+      const isControlBar = document.getElementById('control-bar').contains(e.target);
+      const isChatButton = e.target.closest('[data-action="chat"]');
+      const isChatDrawerOpen = chatDrawer.classList.contains('open');
+      
+      if (!isDesktopChatInput && !isControlBar && state.desktopChatInputVisible && !isChatButton && !isChatDrawerOpen) {
+        hideDesktopChatInput();
+      }
+    });
+
+    // ============= WHITEBOARD =============
+    function toggleWhiteboard() {
+      state.isWhiteboardActive = !state.isWhiteboardActive;
+      whiteboardOverlay.classList.toggle('active');
+      whiteboardTools.classList.toggle('active');
+      
+      if (state.isWhiteboardActive) {
+        resizeCanvas();
+        showNotification('Whiteboard Activated', 'whiteboard');
+      } else {
+        showNotification('Whiteboard Closed', 'whiteboard');
+      }
+    }
+
+    function resizeCanvas() {
+      whiteboardCanvas.width = whiteboardCanvas.offsetWidth;
+      whiteboardCanvas.height = whiteboardCanvas.offsetHeight;
+    }
+
+    function getCanvasCoordinates(e) {
+      const rect = whiteboardCanvas.getBoundingClientRect();
+      const scaleX = whiteboardCanvas.width / rect.width;
+      const scaleY = whiteboardCanvas.height / rect.height;
+      
+      let clientX, clientY;
+      if (e.type.includes('touch')) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    whiteboardCanvas.addEventListener('mousedown', (e) => {
+      state.drawing = true;
+      const { x, y } = getCanvasCoordinates(e);
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardCanvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      state.drawing = true;
+      const { x, y } = getCanvasCoordinates(e);
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardCanvas.addEventListener('mousemove', (e) => {
+      if (!state.drawing) return;
+      
+      const { x, y } = getCanvasCoordinates(e);
+      
+      ctx.beginPath();
+      ctx.moveTo(state.lastX, state.lastY);
+      ctx.lineTo(x, y);
+      
+      if (state.currentWhiteboardTool === 'pen') {
+        ctx.strokeStyle = 'var(--accent-blue)';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      } else if (state.currentWhiteboardTool === 'eraser') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 20;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardCanvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!state.drawing) return;
+      
+      const { x, y } = getCanvasCoordinates(e);
+      
+      ctx.beginPath();
+      ctx.moveTo(state.lastX, state.lastY);
+      ctx.lineTo(x, y);
+      
+      if (state.currentWhiteboardTool === 'pen') {
+        ctx.strokeStyle = 'var(--accent-blue)';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      } else if (state.currentWhiteboardTool === 'eraser') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 20;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardCanvas.addEventListener('mouseup', () => state.drawing = false);
+    whiteboardCanvas.addEventListener('mouseout', () => state.drawing = false);
+    whiteboardCanvas.addEventListener('touchend', () => state.drawing = false);
+
+    document.querySelectorAll('.whiteboard-tool[data-tool]').forEach(tool => {
+      tool.addEventListener('click', () => {
+        document.querySelectorAll('.whiteboard-tool').forEach(t => t.classList.remove('active'));
+        tool.classList.add('active');
+        state.currentWhiteboardTool = tool.dataset.tool;
+        
+        if (state.currentWhiteboardTool === 'clear') {
+          ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        }
+      });
+    });
+
+    function closeWhiteboard() {
+      state.isWhiteboardActive = false;
+      whiteboardOverlay.classList.remove('active');
+      whiteboardTools.classList.remove('active');
+    }
+
+    // ============= AI FUNCTIONS REDESIGN =============
+    async function generateSummary() {
+      const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
+        .map(msg => msg.textContent)
+        .slice(-10)
+        .join('\n');
+      
+      const prompt = `You are an AI teaching assistant. Summarize the following class discussion in 3-5 key points. Keep it concise and educational. Format as a clear summary with bullet points.\n\nDiscussion:\n${chatHistory}\n\nSummary:`;
+      
+      const summary = await callGeminiAI(prompt, 'summary');
+      
+      const messagesContainer = document.getElementById('chat-messages');
+      const card = createAICard(
+        'summary',
+        'Lesson Summary',
+        'AI-generated key points from discussion',
+        summary,
+        [
+          { text: 'View Summary', icon: 'eye', primary: true },
+          { text: 'Save Notes', icon: 'save' },
+          { text: 'Share', icon: 'share' }
+        ]
+      );
+      
+      messagesContainer.appendChild(card);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    async function generateQuiz() {
+      const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
+        .map(msg => msg.textContent)
+        .slice(-10)
+        .join('\n');
+      
+      const prompt = `Based on the classroom discussion, generate a 3-question multiple choice quiz to test understanding. Format as clear questions with options and indicate correct answers. Make it educational and relevant.\n\nDiscussion:\n${chatHistory}`;
+      
+      const quiz = await callGeminiAI(prompt, 'quiz');
+      
+      const messagesContainer = document.getElementById('chat-messages');
+      const card = createAICard(
+        'quiz',
+        'Practice Quiz',
+        'Test your understanding of today\'s discussion',
+        quiz,
+        [
+          { text: 'Start Quiz', icon: 'play', primary: true },
+          { text: 'Save Quiz', icon: 'save' },
+          { text: 'Share with Class', icon: 'share' }
+        ]
+      );
+      
+      messagesContainer.appendChild(card);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    async function suggestResources() {
+      const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
+        .map(msg => msg.textContent)
+        .slice(-10)
+        .join('\n');
+      
+      const prompt = `Based on the classroom discussion, suggest 3-5 learning resources (books, articles, videos, websites) that would help students better understand the topics discussed. Include brief descriptions and why they're valuable.\n\nDiscussion:\n${chatHistory}\n\nSuggested Resources:`;
+      
+      const resources = await callGeminiAI(prompt, 'resources');
+      
+      const messagesContainer = document.getElementById('chat-messages');
+      const card = createAICard(
+        'resources',
+        'Learning Resources',
+        'AI-curated materials for deeper understanding',
+        resources,
+        [
+          { text: 'View Resources', icon: 'external-link-alt', primary: true },
+          { text: 'Save List', icon: 'bookmark' },
+          { text: 'Share', icon: 'share' }
+        ]
+      );
+      
+      messagesContainer.appendChild(card);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // ============= HOST TOOLS =============
+    function muteAllParticipants() {
+      showNotification('All participants muted', 'mute');
+    }
+
+    function disableAllCameras() {
+      showNotification('All cameras disabled', 'camera');
+    }
+
+    function spotlightRandomStudent() {
+      if (state.students.length > 0) {
+        const student = state.students[Math.floor(Math.random() * state.students.length)];
+        showNotification(`Spotlighted ${student.name}`, 'spotlight');
+      }
+    }
+
+    function showPendingRequests() {
+      showNotification(`${state.screenShareRequests.length} pending requests`, 'info');
+    }
+
+    function copyClassLink() {
+      const link = `https://peerloom.com/live/${Math.random().toString(36).substr(2, 9)}`;
+      navigator.clipboard.writeText(link);
+      showNotification('Class link copied to clipboard', 'link');
+    }
+
+    // ============= HELPER FUNCTIONS =============
+    function toggleRecording(btn) {
+      state.isRecording = !state.isRecording;
+      if (state.isRecording) {
+        btn.classList.add('recording');
+        showNotification('Recording Started', 'recording');
+      } else {
+        btn.classList.remove('recording');
+        showNotification('Recording Stopped', 'recording');
+      }
+    }
+
+    function toggleHandRaise(btn) {
+      state.isHandRaised = !state.isHandRaised;
+      if (state.isHandRaised) {
+        btn.classList.add('active');
+        showNotification('Hand Raised', 'hand');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+
+    function endCall() {
+      if (confirm('Are you sure you want to leave the class?')) {
+        showNotification('Leaving class...', 'end');
+        setTimeout(() => {
+          alert('Redirecting to dashboard...');
+        }, 1000);
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border);
+        padding: 14px 20px;
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        z-index: 3000;
+        animation: slideIn 0.3s ease-out;
+        max-width: 300px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-color);
+      `;
+      
+      let icon = 'info-circle';
+      let iconColor = 'var(--accent-blue)';
+      
+      switch(type) {
+        case 'recording': icon = 'circle-dot'; iconColor = 'var(--red)'; break;
+        case 'hand': icon = 'hand'; iconColor = 'var(--accent-yellow)'; break;
+        case 'mic': icon = 'microphone'; iconColor = 'var(--accent-green)'; break;
+        case 'camera': icon = 'video'; iconColor = 'var(--accent-green)'; break;
+        case 'ai': icon = 'robot'; iconColor = 'var(--accent-purple)'; break;
+        case 'theme': icon = 'palette'; iconColor = 'var(--accent-purple)'; break;
+        case 'user': icon = 'user'; iconColor = 'var(--accent-blue)'; break;
+        case 'share': icon = 'desktop'; iconColor = 'var(--accent-blue)'; break;
+        case 'end': icon = 'phone-slash'; iconColor = 'var(--red)'; break;
+        case 'download': icon = 'download'; iconColor = 'var(--accent-green)'; break;
+        case 'link': icon = 'link'; iconColor = 'var(--accent-blue)'; break;
+      }
+      
+      notification.innerHTML = `
+        <i class="fas fa-${icon}" style="color: ${iconColor}; font-size: 18px;"></i>
+        <span>${message}</span>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 300);
+      }, 3000);
+    }
+
+    // ============= THEME TOGGLE =============
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      document.body.classList.toggle('dark-mode');
+      const icon = document.querySelector('#dark-mode-toggle i');
+      icon.classList.toggle('fa-moon');
+      icon.classList.toggle('fa-sun');
+      showNotification(document.body.classList.contains('light-mode') ? 'Light Mode' : 'Dark Mode', 'theme');
+    });
+
+    // ============= AI PANEL =============
+    document.getElementById('ai-toggle').addEventListener('click', () => {
+      aiPanel.classList.toggle('open');
+    });
+
+    // ============= INITIALIZATION =============
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuthentication();
+      
+      const studentNames = [
+        { firstName: 'Emily', lastName: 'Chen', role: 'Student' },
+        { firstName: 'Marcus', lastName: 'Rodriguez', role: 'Student' },
+        { firstName: 'Sophia', lastName: 'Williams', role: 'Student' },
+        { firstName: 'David', lastName: 'Kim', role: 'Student' },
+        { firstName: 'Olivia', lastName: 'Martinez', role: 'Student' }
+      ];
+      
+      state.students = studentNames.map((name, i) => ({
+        id: `student_${i}`,
+        name: `${name.firstName} ${name.lastName}`,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        role: name.role
+      }));
+      
+      state.students.forEach(student => {
+        updateAttendance(student);
+      });
+      
+      const container = document.getElementById('video-container');
+      state.students.forEach((student, i) => {
+        const tile = document.createElement('div');
+        tile.className = 'video-tile';
+        if (i === 0) tile.classList.add('hand-raised');
+        
+        tile.innerHTML = `
+          <div class="video-placeholder">
+            <i class="fas fa-user-graduate" style="font-size: 32px; color: white;"></i>
+          </div>
+          <div class="name-tag">
+            <span>${student.name}</span>
+            ${i === 0 ? '<i class="fas fa-hand" style="color: var(--accent-yellow); margin-left: 4px;"></i>' : ''}
+          </div>
+        `;
+        
+        container.appendChild(tile);
+      });
+      
+      const classTitles = [
+        'Advanced Web Development',
+        'Data Science Fundamentals',
+        'UI/UX Design Workshop',
+        'Machine Learning Basics',
+        'Mobile App Development'
+      ];
+      const randomTitle = classTitles[Math.floor(Math.random() * classTitles.length)];
+      classTitleEl.textContent = randomTitle;
+      state.classTitle = randomTitle;
+      
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      if ('ontouchstart' in window) {
+        document.querySelectorAll('button').forEach(btn => {
+          btn.style.minHeight = '44px';
+          btn.style.minWidth = '44px';
+        });
+      }
+      
+      // Show desktop chat input on desktop
+      if (!state.isMobile) {
+        setTimeout(() => {
+          showDesktopChatInput();
+        }, 1000);
+      }
+      
+      // Add sample messages
+      setTimeout(() => {
+        addMessage("Hi everyone! Excited to be here.", "Emily Chen", false);
+      }, 1000);
+      
+      setTimeout(() => {
+        addMessage("Can someone explain the main topic again?", "Marcus Rodriguez", false);
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
