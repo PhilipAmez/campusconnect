@@ -1001,6 +1001,70 @@
                 padding: 3rem 0.2rem 0.5rem;
             }
         }
+
+        /* Skeleton Loader Styles */
+        .skeleton-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem;
+            border-radius: 0.8rem;
+            margin-bottom: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        [data-theme="dark"] .skeleton-item {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .skeleton-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--hover-bg);
+            flex-shrink: 0;
+        }
+
+        .skeleton-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .skeleton-line {
+            height: 1rem;
+            background-color: var(--hover-bg);
+            border-radius: 0.25rem;
+        }
+
+        .skeleton-line.short { width: 60%; }
+
+        .skeleton-button {
+            width: 60px;
+            height: 36px;
+            background-color: var(--hover-bg);
+            border-radius: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Shimmer Animation */
+        .skeleton-item::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        [data-theme="dark"] .skeleton-item::after {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -1433,6 +1497,25 @@
 
         // Load suggested groups (excluding your own and groups you're already in)
         async function loadSuggestedGroups() {
+            const suggestedGroupsDiv = document.getElementById('suggestedGroups');
+            if (!suggestedGroupsDiv) return;
+
+            // Show skeleton loader
+            let skeletonHTML = '';
+            for (let i = 0; i < 3; i++) { // Show 3 skeleton items
+                skeletonHTML += `
+                    <div class="skeleton-item">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-info">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line short"></div>
+                        </div>
+                        <div class="skeleton-button"></div>
+                    </div>
+                `;
+            }
+            suggestedGroupsDiv.innerHTML = skeletonHTML;
+
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 console.error('No user found');
@@ -1452,20 +1535,21 @@
             const userGroupIds = userGroups.map(g => g.group_id);
            
             // Get groups not created by the user and not already joined
-            const { data, error } = await supabase
+            let query = supabase
                 .from('groups')
                 .select('id, name, course_code, description, created_by')
-                .neq('created_by', user.id)
-                .not('id', 'in', `(${userGroupIds.join(',')})`)
-                .limit(5);
+                .neq('created_by', user.id);
+            
+            if (userGroupIds.length > 0) {
+                query = query.not('id', 'in', `(${userGroupIds.join(',')})`);
+            }
+
+            const { data, error } = await query.limit(5);
               
             if (error) {
                 console.error('Error loading suggested groups:', error);
                 return;
             }
-          
-            const suggestedGroupsDiv = document.getElementById('suggestedGroups');
-            if (!suggestedGroupsDiv) return;
           
             suggestedGroupsDiv.innerHTML = '';
           
@@ -2264,7 +2348,6 @@
         });
        
         // Make functions globally available
-        window.createGroup = createGroup;
         window.joinGroup = joinGroup;
         window.toggleFollowUser = toggleFollowUser;
         window.navigateToUserProfile = navigateToUserProfile;
