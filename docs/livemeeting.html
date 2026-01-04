@@ -6,6 +6,8 @@
   <title>PeerLoom • Live Class</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/js/all.min.js"></script>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
+  <script type="module" src="js/supabaseClient.js"></script>
   <style>
     :root {
       --glass-bg: rgba(255, 255, 255, 0.12);
@@ -1295,33 +1297,72 @@
         transform: scale(1.2);
       }
     }
+
+    /* Waiting Room Styles */
+    #waiting-room-overlay {
+      position: fixed; inset: 0; background: var(--bg-color); z-index: 5000;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    #waiting-room-overlay.hidden { display: none; }
+    .waiting-content { text-align: center; color: var(--text-color); }
+    .waiting-list-item { 
+      display: flex; justify-content: space-between; align-items: center; 
+      padding: 12px; border-bottom: 1px solid var(--glass-border); 
+      color: var(--text-color);
+    }
+    .waiting-actions { display: flex; gap: 8px; }
+    .approve-btn { 
+      background: rgba(0,255,148,0.2); color: var(--accent-green); 
+      border: 1px solid var(--accent-green); padding: 6px 12px; border-radius: 8px; cursor: pointer; 
+    }
+    .reject-btn { 
+      background: rgba(255,59,48,0.2); color: var(--red); 
+      border: 1px solid var(--red); padding: 6px 12px; border-radius: 8px; cursor: pointer; 
+    }
+    .waiting-badge {
+      position: absolute; top: -5px; right: -5px; 
+      background: var(--red); color: white; 
+      border-radius: 50%; width: 18px; height: 18px; 
+      font-size: 10px; display: flex; align-items: center; justify-content: center;
+    }
+    
+    /* Loading Overlay */
+    #loading-overlay {
+      position: fixed; inset: 0; background: var(--bg-color); z-index: 9999; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.5s ease;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    
+    /* Critical Error Modal */
+    #error-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000;
+      display: none; align-items: center; justify-content: center;
+    }
+    .error-content {
+      background: var(--glass-bg); border: 1px solid var(--red);
+      padding: 30px; border-radius: 20px; text-align: center; max-width: 400px;
+    }
   </style>
 </head>
 <body class="dark-mode">
 
-  <!-- Login Modal for External Users -->
-  <div class="login-modal" id="login-modal">
-    <div class="login-content">
-      <div style="margin-bottom: 24px;">
-        <div style="font-size: 48px; color: var(--accent-blue); margin-bottom: 16px;">
-          <i class="fas fa-video"></i>
-        </div>
-        <h2 style="margin: 0 0 8px; font-size: 24px; color: var(--text-color);">Join Live Class</h2>
-        <p style="opacity: 0.8; margin: 0; color: var(--text-color);">Sign in to continue to the session</p>
-      </div>
-      
-      <div style="margin: 30px 0;">
-        <input type="text" placeholder="Email or Username" id="login-email" style="width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); outline: none;">
-        <input type="password" placeholder="Password" id="login-password" style="width: 100%; padding: 14px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-color); outline: none;">
-        <button onclick="handleLogin()" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; border: none; font-weight: 600; cursor: pointer;">
-          Sign In
-        </button>
-      </div>
-      
-      <div style="font-size: 14px; opacity: 0.7; color: var(--text-color);">
-        <p>Don't have an account? <a href="#" style="color: var(--accent-blue); text-decoration: none;">Join PeerLoom</a></p>
-        <button onclick="continueAsGuest()" style="background: none; border: none; color: var(--accent-green); cursor: pointer; margin-top: 8px;">Continue as Guest</button>
-      </div>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <i class="fas fa-circle-notch fa-spin" style="font-size: 48px; color: var(--accent-blue); margin-bottom: 20px;"></i>
+    <h2 style="margin: 0; color: var(--text-color);">Joining Class...</h2>
+    <p id="loading-status" style="margin-top: 10px; opacity: 0.7;">Initializing secure session</p>
+  </div>
+
+  <!-- Critical Error Modal -->
+  <div id="error-modal">
+    <div class="error-content">
+      <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--red); margin-bottom: 20px;"></i>
+      <h2 style="margin: 0 0 10px;">Connection Failed</h2>
+      <p id="error-message" style="opacity: 0.8; margin-bottom: 20px;">Unable to connect to the live session.</p>
+      <button onclick="window.location.reload()" style="padding: 10px 20px; background: var(--accent-blue); border: none; border-radius: 8px; color: white; cursor: pointer;">Try Again</button>
+      <button onclick="window.location.href='dashboard.html'" style="padding: 10px 20px; background: transparent; border: 1px solid var(--text-color); border-radius: 8px; color: var(--text-color); cursor: pointer; margin-left: 10px;">Go Back</button>
     </div>
   </div>
 
@@ -1417,12 +1458,7 @@
     </div>
     
     <div id="chat-messages">
-      <div class="message system">Welcome to the live class! The session will begin shortly.</div>
-      <div class="message other">
-        <div class="message-sender">Dr. Sarah Chen</div>
-        Welcome everyone! Today we'll be discussing advanced web development techniques.
-        <div class="message-time">09:00 AM</div>
-      </div>
+      <!-- Messages will be loaded here -->
     </div>
     
     <!-- Chat Drawer Input -->
@@ -1486,6 +1522,18 @@
     </div>
   </div>
 
+  <!-- Waiting Room Overlay for Students -->
+  <div id="waiting-room-overlay" class="hidden">
+    <div class="waiting-content">
+      <i class="fas fa-clock" style="font-size: 48px; color: var(--accent-yellow); margin-bottom: 20px;"></i>
+      <h2 style="margin: 0 0 10px;">Waiting for Host</h2>
+      <p style="opacity: 0.8;">Please wait while the host admits you to the class.</p>
+      <div style="margin-top: 20px; font-size: 24px; letter-spacing: 4px;">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+    </div>
+  </div>
+
   <!-- Host Tools -->
   <div id="host-tools">
     <button class="tool-btn" title="Mute All Students" onclick="muteAllParticipants()">
@@ -1505,6 +1553,10 @@
     </button>
     <button class="tool-btn" title="Export Attendance" onclick="exportAttendance()">
       <i class="fas fa-download"></i>
+    </button>
+    <button class="tool-btn" title="Waiting Room" onclick="openWaitingRoom()" style="position: relative;">
+      <i class="fas fa-user-clock"></i>
+      <div id="waiting-room-badge" class="waiting-badge" style="display: none;">0</div>
     </button>
   </div>
 
@@ -1529,6 +1581,19 @@
         <button onclick="closeAttendanceModal()" style="padding: 12px 24px; border-radius: 12px; background: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); cursor: pointer;">
           Close
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Host Waiting Room Modal -->
+  <div class="attendance-modal" id="waiting-room-modal">
+    <div class="attendance-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Waiting Room</h2>
+        <button onclick="closeWaitingRoomModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="waiting-list" class="attendance-list">
+        <!-- Items go here -->
       </div>
     </div>
   </div>
@@ -1560,12 +1625,17 @@
     <button class="whiteboard-tool" data-tool="clear" title="Clear">
       <i class="fas fa-trash"></i>
     </button>
+    <button class="whiteboard-tool" onclick="saveWhiteboard()" title="Save">
+      <i class="fas fa-save"></i>
+    </button>
     <button class="whiteboard-tool" onclick="closeWhiteboard()" title="Close">
       <i class="fas fa-times"></i>
     </button>
   </div>
 
-  <script>
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
     // ============= STATE MANAGEMENT =============
     const state = {
       isMicOn: true,
@@ -1588,9 +1658,16 @@
       lastX: 0,
       lastY: 0,
       classTitle: 'PeerLoom Live Session',
-      aiApiKey: 'AIzaSyBuTr7_iXubuHn81B-OY6qm0afy0_WlXuA',
+      aiApiKey: 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88', // Matched with chatroom.html key
       desktopChatInputVisible: false,
-      isMobile: window.innerWidth <= 768
+      isMobile: window.innerWidth <= 768,
+      // Agora State
+      agoraAppId: '6f87382c37b444d2806c74bb889a598f', // Get this from console.agora.io
+      client: null,
+      localAudioTrack: null,
+      localVideoTrack: null,
+      remoteUsers: {},
+      waitingStudents: []
     };
 
     // ============= DOM ELEMENTS =============
@@ -1609,12 +1686,14 @@
     const whiteboardTools = document.getElementById('whiteboard-tools');
     const screenShareModal = document.getElementById('screen-share-modal');
     const attendanceModal = document.getElementById('attendance-modal');
+    const waitingRoomModal = document.getElementById('waiting-room-modal');
     const hostTools = document.getElementById('host-tools');
-    const loginModal = document.getElementById('login-modal');
     const hostNameEl = document.getElementById('host-name');
     const classTitleEl = document.getElementById('class-title');
     const desktopChatInput = document.getElementById('chat-input-desktop');
     const ctx = whiteboardCanvas.getContext('2d');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingStatus = document.getElementById('loading-status');
 
     // ============= GEMINI AI SETUP =============
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${state.aiApiKey}`;
@@ -1783,74 +1862,6 @@
       attendanceModal.style.display = 'none';
     }
 
-    // ============= LOGIN & AUTHENTICATION =============
-    function checkAuthentication() {
-      const isPeerLoomUser = Math.random() > 0.3;
-      
-      if (isPeerLoomUser) {
-        state.isAuthenticated = true;
-        state.currentUser = {
-          name: 'Alex Johnson',
-          email: 'alex@peerloom.com',
-          role: Math.random() > 0.5 ? 'host' : 'student'
-        };
-        
-        state.isHost = state.currentUser.role === 'host';
-        loginModal.classList.add('hidden');
-        
-        if (state.isHost) {
-          hostTools.style.display = 'flex';
-          hostNameEl.textContent = state.currentUser.name;
-          document.title = `${state.currentUser.name}'s Live Class`;
-        } else {
-          hostNameEl.textContent = 'Host: Dr. Sarah Chen';
-        }
-      } else {
-        loginModal.classList.remove('hidden');
-      }
-    }
-
-    function handleLogin() {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      
-      if (email && password) {
-        state.isAuthenticated = true;
-        state.currentUser = {
-          name: email.split('@')[0],
-          email: email,
-          role: 'student'
-        };
-        
-        loginModal.classList.add('hidden');
-        showNotification(`Welcome ${state.currentUser.name}!`, 'user');
-        
-        updateAttendance({
-          id: `user_${Date.now()}`,
-          name: state.currentUser.name,
-          role: 'student'
-        });
-      }
-    }
-
-    function continueAsGuest() {
-      state.isAuthenticated = true;
-      state.currentUser = {
-        name: `Guest_${Math.floor(Math.random() * 1000)}`,
-        email: 'guest@peerloom.com',
-        role: 'guest'
-      };
-      
-      loginModal.classList.add('hidden');
-      showNotification(`Welcome Guest!`, 'user');
-      
-      updateAttendance({
-        id: `guest_${Date.now()}`,
-        name: state.currentUser.name,
-        role: 'guest'
-      });
-    }
-
     // ============= TIMER =============
     let seconds = 0;
     const timerInterval = setInterval(() => {
@@ -1899,21 +1910,35 @@
     });
 
     function handleButtonAction(action, btn) {
+      if (!btn) return;
       buttons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
       switch (action) {
         case 'mic':
-          state.isMicOn = !state.isMicOn;
-          btn.querySelector('i').classList.toggle('fa-microphone');
-          btn.querySelector('i').classList.toggle('fa-microphone-slash');
+          if (state.localAudioTrack) {
+            state.isMicOn = !state.isMicOn;
+            state.localAudioTrack.setEnabled(state.isMicOn);
+          }
+          const micIcon = btn.querySelector('i');
+          if (micIcon) {
+            micIcon.classList.toggle('fa-microphone');
+            micIcon.classList.toggle('fa-microphone-slash');
+          }
           showNotification(state.isMicOn ? 'Microphone ON' : 'Microphone OFF', 'mic');
           break;
           
         case 'cam':
+          if (state.localVideoTrack) {
+            state.isCameraOn = !state.isCameraOn;
+            state.localVideoTrack.setEnabled(state.isCameraOn);
+          }
           state.isCameraOn = !state.isCameraOn;
-          btn.querySelector('i').classList.toggle('fa-video');
-          btn.querySelector('i').classList.toggle('fa-video-slash');
+          const camIcon = btn.querySelector('i');
+          if (camIcon) {
+            camIcon.classList.toggle('fa-video');
+            camIcon.classList.toggle('fa-video-slash');
+          }
           showNotification(state.isCameraOn ? 'Camera ON' : 'Camera OFF', 'camera');
           break;
           
@@ -2140,10 +2165,11 @@
     }
 
     // Add message to chat
-    function addMessage(text, sender, isSelf = false, fromDesktop = false) {
+    function addMessage(text, sender, isSelf = false, fromDesktop = false, time = null) {
       const messagesContainer = document.getElementById('chat-messages');
       const messageDiv = document.createElement('div');
-      
+      const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       if (sender === 'system') {
         messageDiv.className = 'message system';
         messageDiv.textContent = text;
@@ -2154,12 +2180,12 @@
           messageDiv.innerHTML = `
             <div class="message-sender">${sender}</div>
             ${text}
-            <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="message-time">${timeStr}</div>
           `;
         } else {
           messageDiv.innerHTML = `
             ${text}
-            <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="message-time">${timeStr}</div>
           `;
         }
       }
@@ -2175,31 +2201,32 @@
       }
     }
 
-    function sendMessage(fromDesktop = false) {
+    async function sendMessage(fromDesktop = false) {
       const input = fromDesktop ? chatDesktopInput : chatDrawerInput;
       const text = input.value.trim();
+      const gid = new URLSearchParams(window.location.search).get('groupId');
       
       if (text) {
-        addMessage(text, state.currentUser?.name || 'You', true, fromDesktop);
-        input.value = '';
-        
-        // Auto-hide desktop chat input after sending
-        if (fromDesktop) {
-          hideDesktopChatInput();
-        }
-        
-        // Simulate random responses
-        if (Math.random() > 0.7) {
-          setTimeout(() => {
-            const responses = [
-              "That's a great point!",
-              "I agree with that perspective.",
-              "Could you elaborate on that?",
-              "Interesting take on the topic."
-            ];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            addMessage(randomResponse, 'Student ' + Math.floor(Math.random() * 5 + 1), false, fromDesktop);
-          }, 1000);
+        try {
+          const { error } = await supabase
+            .from('group_messages')
+            .insert({
+              group_id: gid,
+              sender_id: state.currentUser.id,
+              sender_name: state.currentUser.name,
+              content: text
+            });
+
+          if (error) throw error;
+          
+          input.value = '';
+          // Auto-hide desktop chat input after sending
+          if (fromDesktop) {
+            hideDesktopChatInput();
+          }
+        } catch (error) {
+          console.error('Error sending message:', error);
+          showNotification('Failed to send message', 'info');
         }
       }
     }
@@ -2382,6 +2409,16 @@
       whiteboardTools.classList.remove('active');
     }
 
+    function saveWhiteboard() {
+      const link = document.createElement('a');
+      link.download = `whiteboard-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+      link.href = whiteboardCanvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showNotification('Whiteboard saved to downloads', 'download');
+    }
+
     // ============= AI FUNCTIONS REDESIGN =============
     async function generateSummary() {
       const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
@@ -2515,6 +2552,14 @@
     function endCall() {
       if (confirm('Are you sure you want to leave the class?')) {
         showNotification('Leaving class...', 'end');
+        
+        // Leave Agora Channel
+        if (state.client) {
+          state.client.leave();
+          if (state.localAudioTrack) state.localAudioTrack.close();
+          if (state.localVideoTrack) state.localVideoTrack.close();
+        }
+
         setTimeout(() => {
           alert('Redirecting to dashboard...');
         }, 1000);
@@ -2589,63 +2634,467 @@
       aiPanel.classList.toggle('open');
     });
 
-    // ============= INITIALIZATION =============
-    document.addEventListener('DOMContentLoaded', () => {
-      checkAuthentication();
+    // ============= AGORA VIDEO LOGIC =============
+    async function initAgora(channelName, uid, userName) {
+      updateLoadingStatus("Checking system requirements...");
       
-      const studentNames = [
-        { firstName: 'Emily', lastName: 'Chen', role: 'Student' },
-        { firstName: 'Marcus', lastName: 'Rodriguez', role: 'Student' },
-        { firstName: 'Sophia', lastName: 'Williams', role: 'Student' },
-        { firstName: 'David', lastName: 'Kim', role: 'Student' },
-        { firstName: 'Olivia', lastName: 'Martinez', role: 'Student' }
-      ];
+      if (!state.agoraAppId) {
+        showCriticalError("Configuration Error: Agora App ID is missing.");
+        return;
+      }
+
+      // 0. Check System Requirements (Crucial for production apps)
+      if (!AgoraRTC.checkSystemRequirements()) {
+        showNotification("Your browser does not support video calling.", "end");
+        return;
+      }
+
+      // 1. Create Client
+      state.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+      // 2. Add Event Listeners
+      state.client.on("user-published", handleUserPublished);
+      state.client.on("user-unpublished", handleUserUnpublished);
       
-      state.students = studentNames.map((name, i) => ({
-        id: `student_${i}`,
-        name: `${name.firstName} ${name.lastName}`,
-        firstName: name.firstName,
-        lastName: name.lastName,
-        role: name.role
-      }));
-      
-      state.students.forEach(student => {
-        updateAttendance(student);
+      // Handle user leaving (explicit leave or timeout)
+      state.client.on("user-left", (user, reason) => {
+        const tile = document.getElementById(`tile-${user.uid}`);
+        if (tile) tile.remove();
+        if (reason === "ServerTimeOut") {
+           showNotification("User dropped due to network timeout", "info");
+        }
+      });
+
+      // Handle connection state changes (Reconnecting logic)
+      state.client.on("connection-state-change", (curState, prevState) => {
+        if (curState === "RECONNECTING") {
+          showNotification("Connection lost. Reconnecting...", "info");
+          document.getElementById('video-container').style.opacity = "0.5";
+        } else if (curState === "CONNECTED" && prevState === "RECONNECTING") {
+          showNotification("Connection restored", "info");
+          document.getElementById('video-container').style.opacity = "1";
+        }
+      });
+
+      // Handle network quality updates
+      state.client.on("network-quality", (stats) => {
+        const uid = state.currentUser.id;
+        const quality = Math.max(stats.downlinkNetworkQuality, stats.uplinkNetworkQuality);
+        updateNetworkUI(quality);
       });
       
-      const container = document.getElementById('video-container');
-      state.students.forEach((student, i) => {
-        const tile = document.createElement('div');
-        tile.className = 'video-tile';
-        if (i === 0) tile.classList.add('hand-raised');
+      // Handle exceptions
+      state.client.on("exception", (event) => {
+        if (event.code === 1003) { // Input device error
+           showNotification("Microphone/Camera error. Check devices.", "end");
+        }
+      });
+      
+      // Handle token expiration (Best Practice: Renew 30s before expiry)
+      state.client.on("token-privilege-will-expire", async () => {
+        console.log("Token expiring soon, renewing...");
+        await renewToken(channelName, uid);
+      });
+
+      try {
+        // 3. Join Channel
+        // PRODUCTION UPDATE: Token Authentication
+        updateLoadingStatus("Authenticating...");
+        // Since this is a launched app, you must use tokens to prevent unauthorized access.
+        // We attempt to fetch a token from Supabase Edge Functions.
+        let token = null;
         
-        tile.innerHTML = `
-          <div class="video-placeholder">
-            <i class="fas fa-user-graduate" style="font-size: 32px; color: white;"></i>
-          </div>
-          <div class="name-tag">
-            <span>${student.name}</span>
-            ${i === 0 ? '<i class="fas fa-hand" style="color: var(--accent-yellow); margin-left: 4px;"></i>' : ''}
+        console.log("Agora App ID:", state.agoraAppId)
+        
+        // [TEMP FIX] Paste your temp token from Agora Console here:
+        // token = "YOUR_LONG_TOKEN_STRING_HERE";
+
+        try {
+          // [PRODUCTION] Uncomment this when you have the Edge Function deployed
+          const { data, error } = await supabase.functions.invoke('generate-agora-token', {
+            body: { channelName, uid }
+          });
+          if (error) throw error;
+          if (data?.token) token = data.token;
+        } catch (error) {
+          console.error("Token fetch failed:", error);
+          // Show warning if token generation fails (likely due to deployment issue)
+          if (error) {
+             showNotification("Warning: Token server unreachable. Video may fail.", "end");
+          }
+        }
+
+        updateLoadingStatus("Connecting to media server...");
+        await state.client.join(state.agoraAppId, channelName, token, uid);
+
+        // 4. Create & Publish Local Tracks
+        // Handle permissions gracefully for real users
+        try {
+          updateLoadingStatus("Accessing camera and microphone...");
+          [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        } catch (permError) {
+          if (permError.name === 'NotAllowedError') {
+            showNotification("Microphone/Camera access denied. Please check browser settings.", "end");
+            return;
+          }
+          throw permError;
+        }
+        
+        // Render Local Video
+        const container = document.getElementById('video-container');
+        // Remove placeholder host tile if it exists and we are the host, or just append
+        const hostTile = document.getElementById('host-tile');
+        if (hostTile && state.isHost) hostTile.remove();
+
+        const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
+        container.appendChild(localPlayerDiv);
+        
+        state.localVideoTrack.play(`player-${uid}`);
+
+        // Publish
+        await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
+        showNotification("Connected to video stream", "camera");
+        
+        // Hide loading screen on success
+        loadingOverlay.classList.add('hidden');
+
+      } catch (error) {
+        console.error("Agora Error:", error);
+        loadingOverlay.classList.add('hidden'); // Hide loading to show error
+        if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
+          showCriticalError("Security Error: Invalid App ID or Token. Please contact support.");
+        } else {
+          showCriticalError("Connection failed: " + error.message);
+        }
+      }
+    }
+
+    async function renewToken(channelName, uid) {
+      try {
+        // Call Supabase Edge Function to get new token
+        const { data, error } = await supabase.functions.invoke('generate-agora-token', {
+          body: { channelName, uid }
+        });
+        
+        if (!error && data?.token) {
+          await state.client.renewToken(data.token);
+          console.log("Token renewed successfully");
+        }
+      } catch (error) {
+        console.error("Token renewal failed:", error);
+      }
+    }
+
+    function createVideoTile(uid, name, isLocal = false) {
+      const div = document.createElement('div');
+      div.className = 'video-tile';
+      div.id = `tile-${uid}`;
+      
+      // The actual video element container that Agora will target
+      const playerContainer = document.createElement('div');
+      playerContainer.id = `player-${uid}`;
+      playerContainer.style.width = '100%';
+      playerContainer.style.height = '100%';
+      playerContainer.style.position = 'absolute';
+      playerContainer.style.top = '0';
+      playerContainer.style.left = '0';
+      // Fix for local video mirroring
+      if (isLocal) playerContainer.style.transform = 'scaleX(-1)';
+      
+      div.appendChild(playerContainer);
+
+      // Name Tag
+      const nameTag = document.createElement('div');
+      nameTag.className = 'name-tag';
+      nameTag.innerHTML = `<span>${name}</span>`;
+      div.appendChild(nameTag);
+
+      return div;
+    }
+
+    async function handleUserPublished(user, mediaType) {
+      await state.client.subscribe(user, mediaType);
+
+      if (mediaType === 'video') {
+        const container = document.getElementById('video-container');
+        // Check if tile exists
+        let tile = document.getElementById(`tile-${user.uid}`);
+        if (!tile) {
+          // Try to find name from Supabase list, fallback to UID
+          const student = state.students.find(s => s.id === user.uid);
+          const name = student ? student.name : `User ${user.uid}`;
+          tile = createVideoTile(user.uid, name);
+          container.appendChild(tile);
+
+        // Check for bandwidth
+        if (state.lowBandwidthMode && quality > 4) {
+          let videoPlaceholder = document.createElement('div');
+          videoPlaceholder.className = 'video-placeholder';
+          videoPlaceholder.innerHTML = `
+              <i class="fas fa-wifi" style="font-size: 32px; color: white;"></i>
+          `;
+          tile.innerHTML = '';
+          tile.appendChild(videoPlaceholder);
+        } else {
+          tile.innerHTML = ''; // Clear existing content
+        }
+
+        }
+        user.videoTrack.play(`player-${user.uid}`);
+      }
+
+      if (mediaType === 'audio') {
+        user.audioTrack.play();
+      }
+    }
+
+
+    async function handleUserUnpublished(user, mediaType) {
+      if (mediaType === 'video') {
+        const tile = document.getElementById(`tile-${user.uid}`);
+        if (tile) tile.remove();
+      }
+    }
+
+    function updateNetworkUI(quality) {
+      const icon = document.querySelector('.fa-signal');
+      const text = document.querySelector('.fa-signal + span');
+      
+      // 0: unknown, 1: excellent, 2: good, 3: poor, 4: bad, 5: vbad, 6: down
+      if (quality <= 2) {
+        icon.style.color = 'var(--accent-green)';
+        text.textContent = 'HD';
+      } else if (quality <= 4) {
+        icon.style.color = 'var(--accent-yellow)';
+        text.textContent = 'Weak';
+      } else {
+        icon.style.color = 'var(--red)';
+        text.textContent = 'Bad';
+      }
+    }
+
+    // Function to enable/disable low bandwidth mode
+    function setLowBandwidthMode(enabled) {
+      state.lowBandwidthMode = enabled;
+    }
+
+    // ============= WAITING ROOM LOGIC =============
+    async function checkWaitingRoom(gid, user, onApproved) {
+      // Check if request exists
+      const { data: request } = await supabase
+        .from('meeting_requests')
+        .select('*')
+        .eq('group_id', gid)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (request?.status === 'approved') {
+        onApproved();
+        return true;
+      }
+      
+      if (request?.status === 'rejected') {
+        alert("The host has denied your request to join.");
+        window.location.href = 'dashboard.html';
+        return false;
+      }
+
+      // Show waiting screen
+      document.getElementById('waiting-room-overlay').classList.remove('hidden');
+
+      if (!request) {
+        await supabase.from('meeting_requests').insert({
+          group_id: gid,
+          user_id: user.id,
+          user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
+          status: 'pending'
+        });
+      }
+
+      // Listen for approval
+      supabase.channel(`waiting_${user.id}`)
+        .on('postgres_changes', { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'meeting_requests', 
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          if (payload.new.status === 'approved') {
+            document.getElementById('waiting-room-overlay').classList.add('hidden');
+            onApproved();
+          } else if (payload.new.status === 'rejected') {
+            alert("Access denied.");
+            window.location.href = 'dashboard.html';
+          }
+        })
+        .subscribe();
+
+      return false;
+    }
+
+    function setupHostWaitingRoom(gid) {
+      fetchPendingRequests(gid);
+      
+      supabase.channel('host_waiting_room')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_requests',
+          filter: `group_id=eq.${gid}`
+        }, () => fetchPendingRequests(gid))
+        .subscribe();
+    }
+
+    async function fetchPendingRequests(gid) {
+      const { data } = await supabase
+        .from('meeting_requests')
+        .select('*')
+        .eq('group_id', gid)
+        .eq('status', 'pending');
+      
+      state.waitingStudents = data || [];
+      updateWaitingRoomUI();
+    }
+
+    function updateWaitingRoomUI() {
+      const badge = document.getElementById('waiting-room-badge');
+      const list = document.getElementById('waiting-list');
+      
+      if (state.waitingStudents.length > 0) {
+        badge.textContent = state.waitingStudents.length;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      list.innerHTML = state.waitingStudents.length === 0 ? '<div style="padding:20px; text-align:center; opacity:0.7;">No pending requests</div>' : '';
+
+      state.waitingStudents.forEach(req => {
+        const div = document.createElement('div');
+        div.className = 'waiting-list-item';
+        div.innerHTML = `
+          <span>${req.user_name}</span>
+          <div class="waiting-actions">
+            <button class="approve-btn" onclick="approveStudent('${req.id}')"><i class="fas fa-check"></i></button>
+            <button class="reject-btn" onclick="rejectStudent('${req.id}')"><i class="fas fa-times"></i></button>
           </div>
         `;
-        
-        container.appendChild(tile);
+        list.appendChild(div);
       });
-      
-      const classTitles = [
-        'Advanced Web Development',
-        'Data Science Fundamentals',
-        'UI/UX Design Workshop',
-        'Machine Learning Basics',
-        'Mobile App Development'
-      ];
-      const randomTitle = classTitles[Math.floor(Math.random() * classTitles.length)];
-      classTitleEl.textContent = randomTitle;
-      state.classTitle = randomTitle;
+    }
+
+    async function approveStudent(id) {
+      await supabase.from('meeting_requests').update({ status: 'approved' }).eq('id', id);
+    }
+
+    async function rejectStudent(id) {
+      await supabase.from('meeting_requests').update({ status: 'rejected' }).eq('id', id);
+    }
+
+    function openWaitingRoom() { waitingRoomModal.style.display = 'flex'; }
+    function closeWaitingRoomModal() { waitingRoomModal.style.display = 'none'; }
+
+    function updateLoadingStatus(text) {
+      if (loadingStatus) loadingStatus.textContent = text;
+    }
+
+    function showCriticalError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      document.getElementById('error-modal').style.display = 'flex';
+    }
+
+    // ============= SESSION SETUP =============
+    async function completeSessionSetup(gid, user) {
+        // 3. Load Participants (Group Members)
+        const { data: members } = await supabase
+          .from('group_members')
+          .select('user_id, profiles(full_name, username)')
+          .eq('group_id', gid);
+
+        if (members) {
+          state.students = members
+            .filter(m => m.user_id !== user.id) // Exclude self
+            .map((m, i) => ({
+              id: m.user_id,
+              name: m.profiles?.full_name || m.profiles?.username || `User ${i}`,
+              role: 'student'
+            }));
+        }
+
+        // 4. Setup Chat Realtime
+        const channel = supabase.channel(`grp_${gid}`)
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'group_messages',
+            filter: `group_id=eq.${gid}`
+          }, (payload) => {
+            const msg = payload.new;
+            const isSelf = msg.sender_id === user.id;
+            addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at);
+          })
+          .subscribe();
+
+        // 5. Initialize Agora Video
+        await initAgora(gid, state.currentUser.id, state.currentUser.name);
+    }
+
+    // ============= INITIALIZATION =============
+    async function initialize() {
+      // 1. Check Auth
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const user = session.user;
+      state.currentUser = {
+        id: user.id,
+        name: user.user_metadata.firstName || user.user_metadata.full_name || 'User',
+        email: user.email,
+        role: 'student' // Default role
+      };
+      state.isAuthenticated = true;
+
+      // 2. Get Group Info
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+      if (gid) {
+        const { data: group } = await supabase
+          .from('groups')
+          .select('*')
+          .eq('id', gid)
+          .single();
+        
+        if (group) {
+          state.classTitle = group.name;
+          classTitleEl.textContent = group.name;
+          
+          // Check if host
+          if (group.created_by === user.id || state.currentUser.role === 'admin') {
+            state.isHost = true;
+            state.currentUser.role = 'host';
+            hostTools.style.display = 'flex';
+            hostNameEl.textContent = state.currentUser.name;
+          } else {
+            // Try to find host name
+            hostNameEl.textContent = 'Host'; 
+          }
+
+          // NEW: Waiting Room Check
+          if (state.isHost) {
+            setupHostWaitingRoom(gid);
+            await completeSessionSetup(gid, user);
+          } else {
+            await checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
+          }
+        }
+      }
       
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
-      
+
+      // Add CSS for animations
       const style = document.createElement('style');
       style.textContent = `
         @keyframes slideIn {
@@ -2659,30 +3108,41 @@
         }
       `;
       document.head.appendChild(style);
-      
-      if ('ontouchstart' in window) {
-        document.querySelectorAll('button').forEach(btn => {
-          btn.style.minHeight = '44px';
-          btn.style.minWidth = '44px';
-        });
+    }
+
+    // Make functions global for HTML event handlers
+    window.handleButtonAction = handleButtonAction;
+    window.toggleChatDrawer = toggleChatDrawer;
+    window.toggleWhiteboard = toggleWhiteboard;
+    window.takeAttendance = takeAttendance;
+    window.generateSummary = generateSummary;
+    window.generateQuiz = generateQuiz;
+    window.suggestResources = suggestResources;
+    window.muteAllParticipants = muteAllParticipants;
+    window.disableAllCameras = disableAllCameras;
+    window.spotlightRandomStudent = spotlightRandomStudent;
+    window.showPendingRequests = showPendingRequests;
+    window.copyClassLink = copyClassLink;
+    window.exportAttendance = exportAttendance;
+    window.closeAttendanceModal = closeAttendanceModal;
+    window.cancelScreenShare = cancelScreenShare;
+    window.closeWhiteboard = closeWhiteboard;
+    window.saveWhiteboard = saveWhiteboard;
+    window.openWaitingRoom = openWaitingRoom;
+    window.closeWaitingRoomModal = closeWaitingRoomModal;
+    window.approveStudent = approveStudent;
+    window.rejectStudent = rejectStudent;
+
+    // Cleanup on tab close (Essential for production to release resources)
+    window.addEventListener('beforeunload', async () => {
+      if (state.client) {
+        await state.client.leave();
+        if (state.localAudioTrack) state.localAudioTrack.close();
+        if (state.localVideoTrack) state.localVideoTrack.close();
       }
-      
-      // Show desktop chat input on desktop
-      if (!state.isMobile) {
-        setTimeout(() => {
-          showDesktopChatInput();
-        }, 1000);
-      }
-      
-      // Add sample messages
-      setTimeout(() => {
-        addMessage("Hi everyone! Excited to be here.", "Emily Chen", false);
-      }, 1000);
-      
-      setTimeout(() => {
-        addMessage("Can someone explain the main topic again?", "Marcus Rodriguez", false);
-      }, 3000);
     });
+
+    document.addEventListener('DOMContentLoaded', initialize);
   </script>
 </body>
 </html>
