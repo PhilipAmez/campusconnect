@@ -2991,12 +2991,6 @@
         return true;
       }
       
-      if (request?.status === 'rejected') {
-        alert("The host has denied your request to join.");
-        window.location.href = 'dashboard.html';
-        return false;
-      }
-
       // Show waiting screen
       document.getElementById('waiting-room-overlay').classList.remove('hidden');
 
@@ -3007,6 +3001,11 @@
           user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
           status: 'pending'
         });
+      } else if (request.status === 'rejected') {
+        // Reset rejected status to pending to allow re-entry attempt
+        await supabase.from('meeting_requests')
+          .update({ status: 'pending' })
+          .eq('id', request.id);
       }
 
       // Listen for approval
