@@ -1624,7 +1624,10 @@
     <div class="attendance-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Waiting Room</h2>
-        <button onclick="closeWaitingRoomModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button id="accept-all-btn" onclick="approveAllStudents()" style="display: none; padding: 8px 16px; background: rgba(0,255,148,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">Accept All</button>
+          <button onclick="closeWaitingRoomModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+        </div>
       </div>
       <div id="waiting-list" class="attendance-list">
         <!-- Items go here -->
@@ -3097,12 +3100,15 @@
     function updateWaitingRoomUI() {
       const badge = document.getElementById('waiting-room-badge');
       const list = document.getElementById('waiting-list');
+      const acceptAllBtn = document.getElementById('accept-all-btn');
       
       if (state.waitingStudents.length > 0) {
         badge.textContent = state.waitingStudents.length;
         badge.style.display = 'flex';
+        if (acceptAllBtn) acceptAllBtn.style.display = 'block';
       } else {
         badge.style.display = 'none';
+        if (acceptAllBtn) acceptAllBtn.style.display = 'none';
       }
 
       list.innerHTML = state.waitingStudents.length === 0 ? '<div style="padding:20px; text-align:center; opacity:0.7;">No pending requests</div>' : '';
@@ -3156,6 +3162,25 @@
       } catch (error) {
         console.error('Error rejecting student:', error);
         showNotification('Failed to reject request', 'end');
+      }
+    }
+
+    async function approveAllStudents() {
+      if (state.waitingStudents.length === 0) return;
+      
+      const ids = state.waitingStudents.map(s => s.id);
+      console.log('Approving all students:', ids);
+      
+      try {
+        const { error } = await supabase.from('meeting_requests').update({ status: 'approved' }).in('id', ids);
+        if (error) throw error;
+        
+        state.waitingStudents = [];
+        updateWaitingRoomUI();
+        showNotification('All students admitted', 'check');
+      } catch (error) {
+        console.error('Error approving all students:', error);
+        showNotification('Failed to approve requests', 'end');
       }
     }
 
@@ -3363,6 +3388,7 @@
     window.closeWaitingRoomModal = closeWaitingRoomModal;
     window.approveStudent = approveStudent;
     window.rejectStudent = rejectStudent;
+    window.approveAllStudents = approveAllStudents;
 
     // Cleanup on tab close (Essential for production to release resources)
     window.addEventListener('beforeunload', async () => {
