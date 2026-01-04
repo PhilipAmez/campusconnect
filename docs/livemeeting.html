@@ -1688,6 +1688,8 @@
       isHost: false,
       currentUser: null,
       isAuthenticated: false,
+      hostId: null,
+      hostName: null,
       students: [],
       attendance: [],
       screenShareRequests: [],
@@ -2870,14 +2872,35 @@
         
         // Render Local Video
         const container = document.getElementById('video-container');
-        // Remove placeholder host tile if it exists and we are the host, or just append
         const hostTile = document.getElementById('host-tile');
-        if (hostTile && state.isHost) hostTile.remove();
-
-        const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
-        container.appendChild(localPlayerDiv);
         
-        state.localVideoTrack.play(`player-${uid}`);
+        if (state.isHost && hostTile) {
+          // Reuse host tile for local host video
+          hostTile.id = `tile-${uid}`;
+          hostTile.innerHTML = '';
+          
+          const playerContainer = document.createElement('div');
+          playerContainer.id = `player-${uid}`;
+          playerContainer.style.width = '100%';
+          playerContainer.style.height = '100%';
+          playerContainer.style.position = 'absolute';
+          playerContainer.style.top = '0';
+          playerContainer.style.left = '0';
+          playerContainer.style.transform = 'scaleX(-1)'; // Mirror local
+          hostTile.appendChild(playerContainer);
+          
+          const nameTag = document.createElement('div');
+          nameTag.className = 'name-tag';
+          nameTag.innerHTML = `<span>${userName} (You)</span><span class="host-badge">HOST</span>`;
+          hostTile.appendChild(nameTag);
+          
+          state.localVideoTrack.play(`player-${uid}`);
+        } else {
+          // Normal student or fallback
+          const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
+          container.appendChild(localPlayerDiv);
+          state.localVideoTrack.play(`player-${uid}`);
+        }
 
         // Publish
         await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
@@ -2947,16 +2970,52 @@
         const container = document.getElementById('video-container');
         // Check if tile exists
         let tile = document.getElementById(`tile-${user.uid}`);
+        
         if (!tile) {
-          // Try to find name from Supabase list, fallback to UID
-          const student = state.students.find(s => s.id === user.uid);
-          const name = student ? student.name : `User ${user.uid}`;
+          let name = `User ${user.uid}`;
+          const isHostUser = (user.uid === state.hostId);
+
+          if (isHostUser) {
+            name = state.hostName || 'Host';
+            // Reuse the placeholder host tile
+            const placeholder = document.getElementById('host-tile');
+            if (placeholder) {
+              tile = placeholder;
+              tile.id = `tile-${user.uid}`;
+              tile.innerHTML = ''; // Clear placeholder content
+              
+              const playerContainer = document.createElement('div');
+              playerContainer.id = `player-${user.uid}`;
+              playerContainer.style.width = '100%';
+              playerContainer.style.height = '100%';
+              playerContainer.style.position = 'absolute';
+              playerContainer.style.top = '0';
+              playerContainer.style.left = '0';
+              tile.appendChild(playerContainer);
+              
+              const nameTag = document.createElement('div');
+              nameTag.className = 'name-tag';
+              nameTag.innerHTML = `<span>${name}</span><span class="host-badge">HOST</span>`;
+              tile.appendChild(nameTag);
+            }
+          }
+
+          if (!tile) {
+            // Try to find name from Supabase list, fallback to fetching profile
+            const student = state.students.find(s => s.id === user.uid);
+            if (student) {
+              name = student.name;
+            } else {
+              const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', user.uid).single();
+              if (profile) name = profile.full_name || profile.username;
+            }
+            
+            tile = createVideoTile(user.uid, name);
+            container.appendChild(tile);
+          }
           
           // Track attendance
           updateAttendance({ id: user.uid, name: name });
-          
-          tile = createVideoTile(user.uid, name);
-          container.appendChild(tile);
         }
         user.videoTrack.play(`player-${user.uid}`);
       }
@@ -3399,15 +3458,25 @@
           state.classTitle = group.name;
           classTitleEl.textContent = group.name;
           
+          state.hostId = group.created_by;
+          
           // Check if host
           if (group.created_by === user.id || state.currentUser.role === 'admin') {
             state.isHost = true;
             state.currentUser.role = 'host';
             hostTools.style.display = 'flex';
             hostNameEl.textContent = state.currentUser.name;
+            state.hostName = state.currentUser.name;
           } else {
-            // Try to find host name
-            hostNameEl.textContent = 'Host'; 
+            // Fetch Host Name
+            const { data: hostProfile } = await supabase
+              .from('profiles')
+              .select('full_name, username')
+              .eq('id', group.created_by)
+              .single();
+            
+            state.hostName = hostProfile?.full_name || hostProfile?.username || 'Host';
+            hostNameEl.textContent = state.hostName;
           }
 
           // NEW: Waiting Room Check
