@@ -1576,7 +1576,7 @@
     <button class="tool-btn" title="Disable All Cameras" onclick="disableAllCameras()">
       <i class="fas fa-video-slash"></i>
     </button>
-    <button class="tool-btn" title="Spotlight Student" onclick="spotlightRandomStudent()">
+    <button class="tool-btn" title="Spotlight Host" onclick="toggleHostSpotlight()">
       <i class="fas fa-star"></i>
     </button>
     <button class="tool-btn" title="Screen Share Requests" onclick="showPendingRequests()">
@@ -2624,10 +2624,30 @@
       showNotification('All cameras disabled', 'camera');
     }
 
-    function spotlightRandomStudent() {
-      if (state.students.length > 0) {
-        const student = state.students[Math.floor(Math.random() * state.students.length)];
-        showNotification(`Spotlighted ${student.name}`, 'spotlight');
+    async function toggleHostSpotlight() {
+      const newState = !state.isPresentationMode;
+      
+      if (state.channel) {
+        await state.channel.send({
+          type: 'broadcast',
+          event: 'spotlight',
+          payload: { active: newState }
+        });
+      }
+      
+      toggleSpotlightUI(newState);
+    }
+
+    function toggleSpotlightUI(active) {
+      state.isPresentationMode = active;
+      const container = document.getElementById('video-container');
+      
+      if (active) {
+        container.classList.add('presentation-mode');
+        showNotification('Host Spotlight Active', 'spotlight');
+      } else {
+        container.classList.remove('presentation-mode');
+        showNotification('Spotlight Disabled', 'spotlight');
       }
     }
 
@@ -2717,6 +2737,7 @@
         case 'download': icon = 'download'; iconColor = 'var(--accent-green)'; break;
         case 'link': icon = 'link'; iconColor = 'var(--accent-blue)'; break;
         case 'check': icon = 'check-circle'; iconColor = 'var(--accent-green)'; break;
+        case 'spotlight': icon = 'star'; iconColor = 'var(--accent-yellow)'; break;
       }
       
       notification.innerHTML = `
@@ -3394,7 +3415,7 @@
         }
 
         // 4. Setup Chat Realtime
-        const channel = supabase.channel(`grp_${gid}`)
+        state.channel = supabase.channel(`grp_${gid}`)
           .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
@@ -3404,6 +3425,9 @@
             const msg = payload.new;
             const isSelf = msg.sender_id === user.id;
             addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at);
+          })
+          .on('broadcast', { event: 'spotlight' }, (payload) => {
+            toggleSpotlightUI(payload.payload.active);
           })
           .subscribe();
 
@@ -3518,7 +3542,7 @@
     window.suggestResources = suggestResources;
     window.muteAllParticipants = muteAllParticipants;
     window.disableAllCameras = disableAllCameras;
-    window.spotlightRandomStudent = spotlightRandomStudent;
+    window.toggleHostSpotlight = toggleHostSpotlight;
     window.showPendingRequests = showPendingRequests;
     window.copyClassLink = copyClassLink;
     window.exportAttendance = exportAttendance;
