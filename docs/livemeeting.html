@@ -1344,6 +1344,10 @@
       background: var(--glass-bg); border: 1px solid var(--red);
       padding: 30px; border-radius: 20px; text-align: center; max-width: 400px;
     }
+    
+    .device-preview video {
+      object-fit: cover !important;
+    }
   </style>
 </head>
 <body class="dark-mode">
@@ -1363,6 +1367,36 @@
       <p id="error-message" style="opacity: 0.8; margin-bottom: 20px;">Unable to connect to the live session.</p>
       <button onclick="window.location.reload()" style="padding: 10px 20px; background: var(--accent-blue); border: none; border-radius: 8px; color: white; cursor: pointer;">Try Again</button>
       <button onclick="window.location.href='dashboard.html'" style="padding: 10px 20px; background: transparent; border: 1px solid var(--text-color); border-radius: 8px; color: var(--text-color); cursor: pointer; margin-left: 10px;">Go Back</button>
+    </div>
+  </div>
+
+  <!-- Device Settings Modal -->
+  <div id="device-settings-modal" class="attendance-modal" style="z-index: 9000;">
+    <div class="attendance-content" style="max-width: 600px;">
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: var(--text-color);">Setup Devices</h2>
+      
+      <div class="device-preview" style="background: #000; height: 300px; border-radius: 16px; margin-bottom: 20px; position: relative; overflow: hidden;">
+        <div id="local-preview" style="width: 100%; height: 100%;"></div>
+        <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
+           <div style="background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; color: white; font-size: 12px;">Preview</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 8px; font-size: 14px; opacity: 0.8; color: var(--text-color);">Camera</label>
+        <select id="camera-select" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--glass-border); outline: none;">
+        </select>
+      </div>
+
+      <div style="margin-bottom: 25px;">
+        <label style="display: block; margin-bottom: 8px; font-size: 14px; opacity: 0.8; color: var(--text-color);">Microphone</label>
+        <select id="mic-select" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--glass-border); outline: none;">
+        </select>
+      </div>
+
+      <button id="join-btn" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; border: none; font-weight: 600; cursor: pointer; font-size: 16px;">
+        Join Class
+      </button>
     </div>
   </div>
 
@@ -1666,6 +1700,9 @@
       client: null,
       localAudioTrack: null,
       localVideoTrack: null,
+      localScreenTrack: null,
+      selectedMicId: null,
+      selectedCamId: null,
       remoteUsers: {},
       waitingStudents: []
     };
@@ -2057,31 +2094,90 @@
       }, 1000);
     }
 
-    function startScreenSharing() {
+    async function startScreenSharing() {
       screenShareModal.style.display = 'none';
-      state.isScreenSharing = true;
       
-      const hostTile = document.getElementById('host-tile');
-      hostTile.classList.add('screen-sharing');
-      
-      const shareBtn = document.querySelector('[data-action="share"]');
-      shareBtn.innerHTML = '<i class="fas fa-stop"></i>';
-      shareBtn.setAttribute('data-tooltip', 'Stop Sharing');
-      
-      showNotification('Screen sharing started', 'share');
+      try {
+        const screenTrack = await AgoraRTC.createScreenVideoTrack({
+          encoderConfig: "1080p_1",
+          optimizationMode: "detail"
+        });
+
+        if (Array.isArray(screenTrack)) {
+          state.localScreenTrack = screenTrack[0];
+        } else {
+          state.localScreenTrack = screenTrack;
+        }
+
+        state.localScreenTrack.on("track-ended", () => {
+          stopScreenSharing();
+        });
+
+        if (state.localVideoTrack) {
+          state.localVideoTrack.stop();
+          await state.client.unpublish(state.localVideoTrack);
+        }
+
+        await state.client.publish(state.localScreenTrack);
+        
+        const uid = state.currentUser.id;
+        const playerContainer = document.getElementById(`player-${uid}`);
+        if (playerContainer) playerContainer.style.transform = 'none';
+        
+        state.localScreenTrack.play(`player-${uid}`);
+
+        state.isScreenSharing = true;
+        
+        const myTile = document.getElementById(`tile-${uid}`);
+        if (myTile) myTile.classList.add('screen-sharing');
+        
+        const shareBtn = document.querySelector('[data-action="share"]');
+        shareBtn.innerHTML = '<i class="fas fa-stop"></i>';
+        shareBtn.setAttribute('data-tooltip', 'Stop Sharing');
+        
+        showNotification('Screen sharing started', 'share');
+      } catch (error) {
+        console.error("Error starting screen share:", error);
+        if (error.code !== 'PERMISSION_DENIED') {
+          showNotification('Failed to start screen share', 'end');
+        }
+      }
     }
 
-    function stopScreenSharing() {
-      state.isScreenSharing = false;
-      
-      const hostTile = document.getElementById('host-tile');
-      hostTile.classList.remove('screen-sharing');
-      
-      const shareBtn = document.querySelector('[data-action="share"]');
-      shareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
-      shareBtn.setAttribute('data-tooltip', 'Share Screen');
-      
-      showNotification('Screen sharing stopped', 'share');
+    async function stopScreenSharing() {
+      if (!state.isScreenSharing) return;
+
+      try {
+        if (state.localScreenTrack) {
+          state.localScreenTrack.stop();
+          await state.client.unpublish(state.localScreenTrack);
+          state.localScreenTrack.close();
+          state.localScreenTrack = null;
+        }
+
+        if (state.localVideoTrack) {
+          await state.client.publish(state.localVideoTrack);
+          const uid = state.currentUser.id;
+          const playerContainer = document.getElementById(`player-${uid}`);
+          if (playerContainer) playerContainer.style.transform = 'scaleX(-1)';
+          
+          state.localVideoTrack.play(`player-${uid}`);
+        }
+
+        state.isScreenSharing = false;
+        
+        const uid = state.currentUser.id;
+        const myTile = document.getElementById(`tile-${uid}`);
+        if (myTile) myTile.classList.remove('screen-sharing');
+        
+        const shareBtn = document.querySelector('[data-action="share"]');
+        shareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+        shareBtn.setAttribute('data-tooltip', 'Share Screen');
+        
+        showNotification('Screen sharing stopped', 'share');
+      } catch (error) {
+        console.error("Error stopping screen share:", error);
+      }
     }
 
     function cancelScreenShare() {
@@ -2728,16 +2824,18 @@
         await state.client.join(state.agoraAppId, channelName, token, uid);
 
         // 4. Create & Publish Local Tracks
-        // Handle permissions gracefully for real users
-        try {
-          updateLoadingStatus("Accessing camera and microphone...");
-          [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-        } catch (permError) {
-          if (permError.name === 'NotAllowedError') {
-            showNotification("Microphone/Camera access denied. Please check browser settings.", "end");
-            return;
+        // If tracks were not created in settings (e.g. skipped), create them now
+        if (!state.localAudioTrack || !state.localVideoTrack) {
+          try {
+            updateLoadingStatus("Accessing camera and microphone...");
+            [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+          } catch (permError) {
+            if (permError.name === 'NotAllowedError') {
+              showNotification("Microphone/Camera access denied. Please check browser settings.", "end");
+              return;
+            }
+            throw permError;
           }
-          throw permError;
         }
         
         // Render Local Video
@@ -3003,6 +3101,68 @@
       document.getElementById('error-modal').style.display = 'flex';
     }
 
+    // ============= DEVICE SETTINGS =============
+    async function openDeviceSettingsModal(gid, user) {
+      const modal = document.getElementById('device-settings-modal');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      
+      // Hide loading, show modal
+      loadingOverlay.classList.add('hidden');
+      modal.style.display = 'flex';
+      
+      try {
+        // 1. Create initial tracks to trigger permissions
+        if (!state.localAudioTrack || !state.localVideoTrack) {
+           [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        }
+        
+        // 2. Play preview
+        state.localVideoTrack.play('local-preview');
+        
+        // 3. Get Devices
+        const devices = await AgoraRTC.getDevices();
+        const cams = devices.filter(d => d.kind === 'videoinput');
+        const mics = devices.filter(d => d.kind === 'audioinput');
+        
+        const camSelect = document.getElementById('camera-select');
+        const micSelect = document.getElementById('mic-select');
+        
+        camSelect.innerHTML = cams.map(d => `<option value="${d.deviceId}">${d.label || 'Camera ' + (cams.indexOf(d) + 1)}</option>`).join('');
+        micSelect.innerHTML = mics.map(d => `<option value="${d.deviceId}">${d.label || 'Microphone ' + (mics.indexOf(d) + 1)}</option>`).join('');
+        
+        // Listeners
+        camSelect.onchange = async (e) => {
+          state.selectedCamId = e.target.value;
+          if (state.localVideoTrack) {
+            state.localVideoTrack.stop();
+            state.localVideoTrack.close();
+          }
+          state.localVideoTrack = await AgoraRTC.createCameraVideoTrack({ cameraId: state.selectedCamId });
+          state.localVideoTrack.play('local-preview');
+        };
+        
+        micSelect.onchange = async (e) => {
+          state.selectedMicId = e.target.value;
+          if (state.localAudioTrack) {
+            state.localAudioTrack.stop();
+            state.localAudioTrack.close();
+          }
+          state.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({ microphoneId: state.selectedMicId });
+        };
+        
+        // Join Button
+        document.getElementById('join-btn').onclick = async () => {
+          modal.style.display = 'none';
+          loadingOverlay.classList.remove('hidden');
+          await initAgora(gid, user.id, user.user_metadata.firstName || user.user_metadata.full_name || 'User');
+        };
+
+      } catch (e) {
+        console.error("Error in device settings:", e);
+        showCriticalError("Could not access camera/microphone. Please check permissions.");
+      }
+    }
+
     // ============= SESSION SETUP =============
     async function completeSessionSetup(gid, user) {
         // 3. Load Participants (Group Members)
@@ -3036,7 +3196,8 @@
           .subscribe();
 
         // 5. Initialize Agora Video
-        await initAgora(gid, state.currentUser.id, state.currentUser.name);
+        // Instead of initializing immediately, open settings
+        openDeviceSettingsModal(gid, user);
     }
 
     // ============= INITIALIZATION =============
