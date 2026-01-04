@@ -1870,12 +1870,22 @@
       state.attendance.forEach(student => {
         const item = document.createElement('div');
         item.className = 'attendance-item';
+        
+        let actionHtml = '<div style="color: var(--accent-green);">✓ Present</div>';
+        if (state.isHost) {
+          actionHtml = `
+            <button onclick="removeStudent('${student.id}')" style="background: rgba(255,59,48,0.1); color: var(--red); border: 1px solid var(--red); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+              <i class="fas fa-user-times"></i> Remove
+            </button>
+          `;
+        }
+
         item.innerHTML = `
           <div>
             <strong>${student.name}</strong>
             <div style="font-size: 12px; opacity: 0.7;">Joined: ${student.joinTime}</div>
           </div>
-          <div style="color: var(--accent-green);">✓ Present</div>
+          ${actionHtml}
         `;
         listContainer.appendChild(item);
       });
@@ -2759,12 +2769,25 @@
       state.client.on("user-published", handleUserPublished);
       state.client.on("user-unpublished", handleUserUnpublished);
       
+      // Handle user joining
+      state.client.on("user-joined", (user) => {
+        const student = state.students.find(s => s.id === user.uid);
+        const name = student ? student.name : `User ${user.uid}`;
+        showNotification(`${name} joined the meeting`, 'user');
+      });
+
       // Handle user leaving (explicit leave or timeout)
       state.client.on("user-left", (user, reason) => {
         const tile = document.getElementById(`tile-${user.uid}`);
         if (tile) tile.remove();
+        
+        const student = state.students.find(s => s.id === user.uid);
+        const name = student ? student.name : `User ${user.uid}`;
+        
         if (reason === "ServerTimeOut") {
-           showNotification("User dropped due to network timeout", "info");
+           showNotification(`${name} dropped due to network timeout`, "info");
+        } else {
+           showNotification(`${name} left the meeting`, "end");
         }
       });
 
@@ -2928,6 +2951,10 @@
           // Try to find name from Supabase list, fallback to UID
           const student = state.students.find(s => s.id === user.uid);
           const name = student ? student.name : `User ${user.uid}`;
+          
+          // Track attendance
+          updateAttendance({ id: user.uid, name: name });
+          
           tile = createVideoTile(user.uid, name);
           container.appendChild(tile);
         }
@@ -3154,6 +3181,28 @@
       }
     }
 
+    async function removeStudent(userId) {
+      if (!confirm('Are you sure you want to remove this student from the meeting?')) return;
+      
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+      
+      try {
+        const { error } = await supabase
+          .from('meeting_requests')
+          .update({ status: 'rejected' })
+          .eq('group_id', gid)
+          .eq('user_id', userId);
+          
+        if (error) throw error;
+        
+        showNotification('Student removed', 'info');
+        // The student will be disconnected via the realtime listener
+      } catch (error) {
+        console.error('Error removing student:', error);
+        showNotification('Failed to remove student', 'end');
+      }
+    }
+
     async function approveAllStudents() {
       if (state.waitingStudents.length === 0) return;
       
@@ -3174,6 +3223,8 @@
     }
 
     async function resetAllRequests() {
+      if (!confirm('Are you sure you want to reset all waiting room requests? This will require all students to be re-admitted.')) return;
+
       const gid = new URLSearchParams(window.location.search).get('groupId');
 
       try {
@@ -3297,6 +3348,21 @@
           })
           .subscribe();
 
+        // 6. Listen for Kick/Status Change
+        supabase.channel(`status_${user.id}`)
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'meeting_requests',
+            filter: `user_id=eq.${user.id}`
+          }, (payload) => {
+            if (payload.new.status === 'rejected' && payload.new.group_id === gid) {
+              alert('You have been removed from the meeting.');
+              window.location.href = 'dashboard.html';
+            }
+          })
+          .subscribe();
+
         // 5. Initialize Agora Video
         // Instead of initializing immediately, open settings
         openDeviceSettingsModal(gid, user);
@@ -3397,6 +3463,7 @@
     window.rejectStudent = rejectStudent;
     window.approveAllStudents = approveAllStudents;
     window.resetAllRequests = resetAllRequests;
+    window.removeStudent = removeStudent;
 
     // Cleanup on tab close (Essential for production to release resources)
     window.addEventListener('beforeunload', async () => {
