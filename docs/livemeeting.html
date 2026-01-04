@@ -1588,6 +1588,9 @@
     <button class="tool-btn" title="Export Attendance" onclick="exportAttendance()">
       <i class="fas fa-download"></i>
     </button>
+    <button class="tool-btn" title="Reset Waiting Room" onclick="resetAllRequests()">
+      <i class="fas fa-sync"></i>
+    </button>
     <button class="tool-btn" title="Waiting Room" onclick="openWaitingRoom()" style="position: relative;">
       <i class="fas fa-user-clock"></i>
       <div id="waiting-room-badge" class="waiting-badge" style="display: none;">0</div>
@@ -2927,20 +2930,6 @@
           const name = student ? student.name : `User ${user.uid}`;
           tile = createVideoTile(user.uid, name);
           container.appendChild(tile);
-
-        // Check for bandwidth
-        if (state.lowBandwidthMode && quality > 4) {
-          let videoPlaceholder = document.createElement('div');
-          videoPlaceholder.className = 'video-placeholder';
-          videoPlaceholder.innerHTML = `
-              <i class="fas fa-wifi" style="font-size: 32px; color: white;"></i>
-          `;
-          tile.innerHTML = '';
-          tile.appendChild(videoPlaceholder);
-        } else {
-          tile.innerHTML = ''; // Clear existing content
-        }
-
         }
         user.videoTrack.play(`player-${user.uid}`);
       }
@@ -3184,6 +3173,24 @@
       }
     }
 
+    async function resetAllRequests() {
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+
+      try {
+        const { error } = await supabase
+          .from('meeting_requests')
+          .update({ status: 'pending' })
+          .eq('group_id', gid);
+
+        if (error) throw error;
+        showNotification('All student requests reset to pending.', 'info');
+        fetchPendingRequests(gid);
+      } catch (error) {
+        console.error('Error resetting requests:', error);
+        showNotification('Failed to reset requests.', 'end');
+      }
+    }
+
     function openWaitingRoom() { waitingRoomModal.style.display = 'flex'; }
     function closeWaitingRoomModal() { waitingRoomModal.style.display = 'none'; }
 
@@ -3389,6 +3396,7 @@
     window.approveStudent = approveStudent;
     window.rejectStudent = rejectStudent;
     window.approveAllStudents = approveAllStudents;
+    window.resetAllRequests = resetAllRequests;
 
     // Cleanup on tab close (Essential for production to release resources)
     window.addEventListener('beforeunload', async () => {
