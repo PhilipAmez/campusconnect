@@ -275,8 +275,8 @@
     // ===== CONSTANTS =====
     const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
     const AI_USER_NAME = 'PeerPal AI';
-    const OPENAI_API_KEY = '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
-    const AI_MODELS = ['gpt-4o-mini'];
+    const GEMINI_API_KEY = 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88';
+    const AI_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
     
     // ===== DOM ELEMENTS =====
     const elements = {
@@ -830,7 +830,7 @@
       for (let i = 0; i < 10; i++) {
         const bar = document.createElement('div');
         bar.className = 'wave-bar';
-          bar.style.height = `${8 + Math.random() * 22}px`;
+        bar.style.height = `${8 + Math.random() * 22}px`;
         waveform.appendChild(bar);
       }
       
@@ -1388,35 +1388,62 @@
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
         
         try {
-          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          // Try gemini-2.5-flash first, fall back to gemini-2.5-flash-lite if needed
+          let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'You are an assistant that ONLY responds when explicitly called.\nDo not speak unless the user directly asks or mentions you.\nDo not continue conversations unprompted.'
-                },
-                {
-                  role: 'user',
-                  content: `You are PeerPal AI, an advanced Study Buddy. A user asked: "${cleanMessage}". Provide a helpful, educational response under 150 words.`
-                }
-              ],
-              temperature: 0.7,
-              max_tokens: 300,
-              top_p: 0.9
+              contents: [{
+                parts: [{
+                  text: `You are an assistant that ONLY responds when explicitly called.
+Do not speak unless the user directly asks or mentions you.
+Do not continue conversations unprompted.
+
+User message:
+${cleanMessage}`
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 300,
+                topP: 0.9,
+              }
             })
           });
           
+          // If the first model fails, try the second one
+          if (!response.ok) {
+            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{
+                    text: `You are an assistant that ONLY responds when explicitly called.
+Do not speak unless the user directly asks or mentions you.
+Do not continue conversations unprompted.
+
+User message:
+${cleanMessage}`
+                  }]
+                }],
+                generationConfig: {
+                  temperature: 0.7,
+                  maxOutputTokens: 300,
+                  topP: 0.9,
+                }
+              })
+            });
+          }
+          
           if (response.ok) {
             const data = await response.json();
-            if (data?.choices?.[0]?.message?.content) {
-              aiReply = data.choices[0].message.content;
+            if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+              aiReply = data.candidates[0].content.parts[0].text;
             }
+          } else {
+            console.log('Both AI models failed, using fallback response');
+            aiReply = generateSmartStudyResponse(cleanMessage);
           }
         } catch (modelError) {
           console.log('AI model error:', modelError);
