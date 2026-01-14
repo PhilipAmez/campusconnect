@@ -2539,6 +2539,15 @@
       whiteboardOverlay.classList.toggle('active');
       whiteboardTools.classList.toggle('active');
       
+      // Broadcast whiteboard toggle to all participants
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'whiteboard-toggle',
+          payload: { active: state.isWhiteboardActive }
+        }).catch(err => console.log('Whiteboard toggle sync:', err));
+      }
+      
       if (state.isWhiteboardActive) {
         resizeCanvas();
         showNotification('Whiteboard Activated', 'whiteboard');
@@ -3611,6 +3620,18 @@
           })
           .on('broadcast', { event: 'spotlight' }, (payload) => {
             toggleSpotlightUI(payload.payload.active);
+          })
+          .on('broadcast', { event: 'whiteboard-toggle' }, (payload) => {
+            if (payload.payload.active) {
+              state.isWhiteboardActive = true;
+              whiteboardOverlay.classList.add('active');
+              whiteboardTools.classList.add('active');
+              resizeCanvas();
+            } else {
+              state.isWhiteboardActive = false;
+              whiteboardOverlay.classList.remove('active');
+              whiteboardTools.classList.remove('active');
+            }
           })
           .on('broadcast', { event: 'whiteboard-batch' }, (payload) => {
             const commands = payload.payload.commands || [];
