@@ -960,8 +960,20 @@
     </a>
 
 <script type="module">
-    import { supabase } from './js/supabaseClient.js'
-    
+    // Import Supabase client
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/+esm'
+
+    const supabaseUrl = 'https://mdofjippejpqylwuzsqp.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kb2ZqaXBwZWpwcXlsd3V6c3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NjcyNzAsImV4cCI6MjA2ODI0MzI3MH0.PKtUqmGKciAQH3f_kz2q9VeYSdOcYHQDCJFu6UHcAw4'
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
+
     console.log('Signup script loaded, Supabase:', supabase ? 'Loaded' : 'Not loaded')
 
     // Preview selected profile photo
@@ -990,7 +1002,6 @@
     const usernameError = document.getElementById('usernameError');
     const emailError = document.getElementById('emailError');
     const passwordError = document.getElementById('passwordError');
-    const formError = document.getElementById('formError');
 
     // Check if username already exists
     async function checkUsernameExists(username) {
@@ -1125,8 +1136,9 @@
 
             // Validation
             if (!firstName || !lastName || !username || !contact || !email || !password || !confirmPassword || !campus || !department || !level) {
-                document.getElementById('formError').textContent = 'Please fill in all required fields';
-                document.getElementById('formError').style.display = 'block';
+                const formError = document.getElementById('formError') || createFormError();
+                formError.textContent = 'Please fill in all required fields';
+                formError.style.display = 'block';
                 return;
             }
 
@@ -1166,6 +1178,7 @@
                     .from('avatars')
                     .upload(filePath, file, { cacheControl: '3600', upsert: false });
                 if (uploadError) {
+                    const formError = document.getElementById('formError') || createFormError();
                     formError.textContent = 'Profile photo upload failed: ' + uploadError.message;
                     formError.style.display = 'block';
                     return;
@@ -1189,8 +1202,11 @@
                         profilePhoto: profilePhotoUrl,
                         campus,
                         department,
-                        level
-                    }
+                        level,
+                        role: 'student',
+                        userType: 'student'
+                    },
+                    emailRedirectTo: `${window.location.origin}/login.html`
                 }
             });
 
@@ -1201,13 +1217,45 @@
                     emailError.style.display = 'flex';
                     document.getElementById('email').focus();
                 } else {
-                    document.getElementById('formError').textContent = 'Sign up failed: ' + signUpError.message;
-                    document.getElementById('formError').style.display = 'block';
+                    const formError = document.getElementById('formError') || createFormError();
+                    formError.textContent = 'Sign up failed: ' + signUpError.message;
+                    formError.style.display = 'block';
                 }
                 return;
             }
 
             console.log('Signup successful:', signUpData);
+            
+            // Create user profile in profiles table
+            if (signUpData.user) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: signUpData.user.id,
+                        first_name: firstName,
+                        last_name: lastName,
+                        full_name: `${firstName} ${lastName}`,
+                        username: username,
+                        email: email,
+                        phone: contact,
+                        profile_photo: profilePhotoUrl,
+                        institution: campus,
+                        department: department,
+                        level: level,
+                        role: 'student',
+                        user_type: 'student',
+                        is_lecturer: false,
+                        lecturer_badge: false,
+                        verified: false,
+                        created_at: new Date().toISOString()
+                    });
+
+                if (profileError) {
+                    console.error('Error creating user profile:', profileError);
+                } else {
+                    console.log('User profile created successfully');
+                }
+            }
             
             // Show verification message
             userEmailSpan.textContent = email;
@@ -1219,13 +1267,25 @@
 
         } catch (error) {
             console.error('An unexpected error occurred:', error);
-            document.getElementById('formError').textContent = 'An unexpected error occurred. Please try again.';
-            document.getElementById('formError').style.display = 'block';
+            const formError = document.getElementById('formError') || createFormError();
+            formError.textContent = 'An unexpected error occurred. Please try again.';
+            formError.style.display = 'block';
         } finally {
             submitButton.innerHTML = '<i class="fas fa-user-plus"></i><span>Sign Up</span>';
             submitButton.disabled = false;
         }
     });
+
+    // Create form error element if it doesn't exist
+    function createFormError() {
+        const formError = document.createElement('div');
+        formError.id = 'formError';
+        formError.className = 'error-message';
+        formError.style.display = 'none';
+        formError.style.marginBottom = '1rem';
+        form.insertBefore(formError, form.querySelector('.submit-btn'));
+        return formError;
+    }
 
     // Add 3D effect to glass panel (only on desktop)
     const glassPanel = document.querySelector('.glass-panel');
@@ -1240,8 +1300,8 @@
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
             
-            const rotateY = (x - centerX) / 80; // Reduced movement
-            const rotateX = (centerY - y) / 80; // Reduced movement
+            const rotateY = (x - centerX) / 80;
+            const rotateX = (centerY - y) / 80;
             
             this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
         });
