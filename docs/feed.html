@@ -64,7 +64,7 @@
             <div class="upload-form" id="uploadForm">
                 <div class="form-group">
                     <label class="form-label" for="postTitle">Title *</label>
-                    <input type="text" class="form-input" id="postTitle" placeholder="Enter post title" required>
+                    <input type="text" class="form-input" id="postTitle" placeholder="Enter post title">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="postCaption">Caption</label>
@@ -858,6 +858,7 @@
                             `}
                             <span class="username">@${video.profiles?.username || 'user'}</span>
                         </a>
+                        <div class="post-title">${video.title || ''}</div>
                         <div class="caption">${video.content || ''}</div>
                         <div class="hashtags">${video.hashtags || ''}</div>
                     </div><div class="actions-sidebar">
@@ -1424,9 +1425,9 @@
             // Upload submit button
             const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
             if (uploadSubmitBtn) {
-                uploadSubmitBtn.addEventListener('click', function() {
-                    submitPost();
-                });
+                const newSubmitBtn = uploadSubmitBtn.cloneNode(true);
+                uploadSubmitBtn.parentNode.replaceChild(newSubmitBtn, uploadSubmitBtn);
+                newSubmitBtn.addEventListener('click', submitPost);
             }
           
             // Enter key in comment inputs
