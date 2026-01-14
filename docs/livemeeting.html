@@ -994,6 +994,13 @@
       transform: translateY(-2px);
     }
     
+    .tool-btn.active {
+      background: rgba(77, 171, 247, 0.3);
+      border-color: rgba(77, 171, 247, 0.6);
+      box-shadow: 0 0 15px rgba(77, 171, 247, 0.4);
+      transform: scale(1.1);
+    }
+    
     #spotlight-btn.active {
       background: linear-gradient(135deg, var(--accent-yellow), #ffb700);
       color: #000;
@@ -1784,6 +1791,7 @@
       drawing: false,
       lastX: 0,
       lastY: 0,
+      drawingCommands: [],
       classTitle: 'PeerLoom Live Session',
       aiApiKey: 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88', // Matched with chatroom.html key
       desktopChatInputVisible: false,
@@ -2033,6 +2041,19 @@
 
     setInterval(rotateActiveSpeaker, 5000 + Math.random() * 5000);
 
+    // ============= WHITEBOARD BATCH SYNC =============
+    // Send batched drawing commands every 100ms
+    setInterval(() => {
+      if (state.drawingCommands.length > 0 && state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'whiteboard-batch',
+          payload: { commands: state.drawingCommands }
+        }).catch(err => console.log('Whiteboard batch sync:', err));
+        state.drawingCommands = [];
+      }
+    }, 100);
+
     // ============= CONTROL BAR BUTTONS =============
     const buttons = document.querySelectorAll('#control-bar .ctrl-btn');
 
@@ -2125,6 +2146,25 @@
           break;
       }
     }
+
+    // ============= HOST TOOLS BUTTON HIGHLIGHTING =============
+    const hostToolButtons = document.querySelectorAll('#host-tools .tool-btn');
+    
+    hostToolButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Remove active from all host tool buttons
+        hostToolButtons.forEach(b => b.classList.remove('active'));
+        // Add active to clicked button (except spotlight which has its own styling)
+        if (!btn.id.includes('spotlight')) {
+          btn.classList.add('active');
+          // Auto-remove active after 2 seconds for non-persistent actions
+          setTimeout(() => {
+            btn.classList.remove('active');
+          }, 2000);
+        }
+      });
+    });
 
     // ============= DESKTOP CHAT INPUT MANAGEMENT =============
     function showDesktopChatInput() {
@@ -3572,21 +3612,23 @@
           .on('broadcast', { event: 'spotlight' }, (payload) => {
             toggleSpotlightUI(payload.payload.active);
           })
-          .on('broadcast', { event: 'whiteboard-draw' }, (payload) => {
-            const data = payload.payload;
-            ctx.beginPath();
-            ctx.moveTo(data.lastX, data.lastY);
-            ctx.lineTo(data.x, data.y);
-            ctx.strokeStyle = data.color;
-            ctx.lineWidth = data.lineWidth;
-            ctx.lineCap = 'round';
-            if (data.tool === 'eraser') {
-              ctx.globalCompositeOperation = 'destination-out';
-            }
-            ctx.stroke();
-            if (data.tool === 'eraser') {
-              ctx.globalCompositeOperation = 'source-over';
-            }
+          .on('broadcast', { event: 'whiteboard-batch' }, (payload) => {
+            const commands = payload.payload.commands || [];
+            commands.forEach(cmd => {
+              ctx.beginPath();
+              ctx.moveTo(cmd.fromX, cmd.fromY);
+              ctx.lineTo(cmd.toX, cmd.toY);
+              ctx.strokeStyle = cmd.color;
+              ctx.lineWidth = cmd.lineWidth;
+              ctx.lineCap = 'round';
+              if (cmd.tool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+              }
+              ctx.stroke();
+              if (cmd.tool === 'eraser') {
+                ctx.globalCompositeOperation = 'source-over';
+              }
+            });
           })
           .subscribe();
 
