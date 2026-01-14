@@ -992,6 +992,13 @@
       transform: translateY(-2px);
     }
     
+    #spotlight-btn.active {
+      background: linear-gradient(135deg, var(--accent-yellow), #ffb700);
+      color: #000;
+      box-shadow: 0 0 20px rgba(255, 212, 59, 0.6);
+      transform: scale(1.1);
+    }
+    
     /* Whiteboard */
     #whiteboard-overlay {
       position: fixed;
@@ -1080,13 +1087,31 @@
         gap: 8px; 
       }
       
+      .presentation-mode {
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto;
+        padding: calc(var(--top-bar-height) + 20px) 8px 200px;
+      }
+      
       .presentation-mode .video-tile:first-child {
-        height: calc(100vh - 200px);
+        grid-column: 1;
+        width: 100%;
+        height: 320px;
         border-radius: 20px;
+        margin-bottom: 12px;
       }
       
       .presentation-mode .video-tile:not(:first-child) { 
-        height: 60px; 
+        height: 110px;
+        width: 110px;
+        opacity: 0.85;
+        display: inline-block;
+        margin-right: 8px;
+      }
+      
+      .presentation-mode .video-tile:not(:first-child):hover {
+        opacity: 1;
+        transform: scale(1.05);
       }
       
       .video-tile { 
@@ -1237,24 +1262,33 @@
     /* Small Phones */
     @media (max-width: 480px) {
       #video-container {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: 1fr;
+        padding: calc(var(--top-bar-height) + 20px) 8px 200px;
       }
       
-      #control-bar {
-        padding: 0 4px;
-      }
-      
-      #control-bar button.ctrl-btn {
-        width: 40px;
-        height: 40px;
+      .presentation-mode {
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto;
+        display: flex;
+        flex-direction: column;
+        padding: calc(var(--top-bar-height) + 20px) 8px 200px;
       }
       
       .presentation-mode .video-tile:first-child {
-        height: calc(100vh - 200px);
+        grid-column: 1;
+        width: 100%;
+        height: 280px;
+        border-radius: 20px;
+        margin-bottom: 10px;
       }
       
       .presentation-mode .video-tile:not(:first-child) {
-        height: 50px;
+        height: 100px;
+        width: 100px;
+        opacity: 0.85;
+        margin-right: 8px;
+        margin-bottom: 8px;
+        display: inline-block;
       }
       
       .name-tag {
@@ -1271,6 +1305,29 @@
     @media (max-width: 360px) {
       #video-container {
         grid-template-columns: 1fr;
+      }
+      
+      .presentation-mode {
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .presentation-mode .video-tile:first-child {
+        grid-column: 1;
+        width: 100%;
+        height: 240px;
+        margin-bottom: 8px;
+      }
+      
+      .presentation-mode .video-tile:not(:first-child) {
+        height: 85px;
+        width: 85px;
+        opacity: 0.85;
+        margin-right: 6px;
+        margin-bottom: 6px;
+        display: inline-block;
       }
       
       #control-bar {
@@ -1602,7 +1659,7 @@
     <button class="tool-btn" title="Disable All Cameras" onclick="disableAllCameras()">
       <i class="fas fa-video-slash"></i>
     </button>
-    <button class="tool-btn" title="Spotlight Host" onclick="toggleHostSpotlight()">
+    <button id="spotlight-btn" class="tool-btn" title="Spotlight Host" onclick="toggleHostSpotlight()">
       <i class="fas fa-star"></i>
     </button>
     <button class="tool-btn" title="Screen Share Requests" onclick="showPendingRequests()">
@@ -2503,6 +2560,23 @@
       
       state.lastX = x;
       state.lastY = y;
+      
+      // Broadcast whiteboard drawing to other participants
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'whiteboard-draw',
+          payload: {
+            x: x,
+            y: y,
+            lastX: state.lastX - (x - state.lastX),
+            lastY: state.lastY - (y - state.lastY),
+            tool: state.currentWhiteboardTool,
+            color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
+            lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
+          }
+        }).catch(err => console.log('Whiteboard sync:', err));
+      }
     });
 
     whiteboardCanvas.addEventListener('touchmove', (e) => {
@@ -2530,6 +2604,23 @@
       
       state.lastX = x;
       state.lastY = y;
+      
+      // Broadcast whiteboard drawing to other participants
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'whiteboard-draw',
+          payload: {
+            x: x,
+            y: y,
+            lastX: state.lastX - (x - state.lastX),
+            lastY: state.lastY - (y - state.lastY),
+            tool: state.currentWhiteboardTool,
+            color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
+            lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
+          }
+        }).catch(err => console.log('Whiteboard sync:', err));
+      }
     });
 
     whiteboardCanvas.addEventListener('mouseup', () => state.drawing = false);
@@ -2672,6 +2763,7 @@
     function toggleSpotlightUI(active) {
       state.isPresentationMode = active;
       const container = document.getElementById('video-container');
+      const spotlightBtn = document.getElementById('spotlight-btn');
       
       if (active) {
         const hostTile = document.getElementById(`tile-${state.hostId}`);
@@ -2679,9 +2771,11 @@
             container.prepend(hostTile);
         }
         container.classList.add('presentation-mode');
+        if (spotlightBtn) spotlightBtn.classList.add('active');
         showNotification('Host Spotlight Active', 'spotlight');
       } else {
         container.classList.remove('presentation-mode');
+        if (spotlightBtn) spotlightBtn.classList.remove('active');
         showNotification('Spotlight Disabled', 'spotlight');
       }
     }
@@ -3466,6 +3560,22 @@
           })
           .on('broadcast', { event: 'spotlight' }, (payload) => {
             toggleSpotlightUI(payload.payload.active);
+          })
+          .on('broadcast', { event: 'whiteboard-draw' }, (payload) => {
+            const data = payload.payload;
+            ctx.beginPath();
+            ctx.moveTo(data.lastX, data.lastY);
+            ctx.lineTo(data.x, data.y);
+            ctx.strokeStyle = data.color;
+            ctx.lineWidth = data.lineWidth;
+            ctx.lineCap = 'round';
+            if (data.tool === 'eraser') {
+              ctx.globalCompositeOperation = 'destination-out';
+            }
+            ctx.stroke();
+            if (data.tool === 'eraser') {
+              ctx.globalCompositeOperation = 'source-over';
+            }
           })
           .subscribe();
 
