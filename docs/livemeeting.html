@@ -428,7 +428,9 @@
     
     #control-bar button.ctrl-btn.active { 
       transform: scale(1.15); 
-      background: rgba(255, 255, 255, 0.18); 
+      background: rgba(77, 171, 247, 0.3);
+      border-color: rgba(77, 171, 247, 0.6);
+      box-shadow: 0 0 15px rgba(77, 171, 247, 0.4);
     }
     
     #control-bar button.ctrl-btn:not(.active) { 
@@ -2049,9 +2051,18 @@
     });
 
     function handleButtonAction(action, btn) {
-      if (!btn) return;
-      buttons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      if (!action || !btn) return;
+      
+      // Toggle buttons (mic, cam, hand, recording) maintain their own active state
+      const toggleButtons = ['mic', 'cam', 'hand', 'record'];
+      
+      if (toggleButtons.includes(action)) {
+        btn.classList.toggle('active');
+      } else {
+        // Other buttons: remove active from all, add to clicked
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
       
       switch (action) {
         case 'mic':
