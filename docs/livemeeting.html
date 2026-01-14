@@ -111,23 +111,30 @@
     
     /* Presentation Mode */
     .presentation-mode {
-      grid-template-columns: 1fr;
-      grid-template-rows: 1fr auto;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-auto-rows: auto;
       padding: calc(var(--top-bar-height) + 20px) 16px 200px;
     }
     
     .presentation-mode .video-tile:first-child {
-      grid-row: 1;
-      height: calc(100vh - 220px);
+      grid-column: 1 / -1;
+      width: 100%;
+      height: 450px;
       border-radius: 24px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
     
     .presentation-mode .video-tile:not(:first-child) { 
-      height: 80px; 
-      opacity: 0.7;
-      transition: opacity 0.3s ease;
-      border-radius: 12px;
+      height: 120px; 
+      min-width: 160px;
+      opacity: 0.85;
+      transition: all 0.3s ease;
+      border-radius: 16px;
+    }
+    
+    .presentation-mode .video-tile:not(:first-child):hover {
+      opacity: 1;
+      transform: scale(1.05);
     }
     
     /* Video Tiles with Active Speaker Pulse */
@@ -139,6 +146,11 @@
       box-shadow: var(--shadow); 
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
       border: 2px solid transparent;
+    }
+    .video-tile video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     
     .video-tile.active-speaker {
@@ -423,6 +435,16 @@
     
     #control-bar button.ctrl-btn.end i { 
       color: var(--red); 
+    }
+    
+    /* Hide host-only buttons by default */
+    #control-bar button.ctrl-btn.host-only {
+      display: none;
+    }
+    
+    /* Show host-only buttons when user is host */
+    body.is-host #control-bar button.ctrl-btn.host-only {
+      display: flex;
     }
     
     .ctrl-btn::after {
@@ -1458,10 +1480,10 @@
     <button class="ctrl-btn" data-action="share" data-tooltip="Share Screen">
       <i class="fas fa-desktop"></i>
     </button>
-    <button class="ctrl-btn" data-action="record" data-tooltip="Record Session">
+    <button class="ctrl-btn host-only" data-action="record" data-tooltip="Record Session">
       <i class="fas fa-circle-dot"></i>
     </button>
-    <button class="ctrl-btn" data-action="attendance" data-tooltip="Attendance">
+    <button class="ctrl-btn host-only" data-action="attendance" data-tooltip="Attendance">
       <i class="fas fa-user-check"></i>
     </button>
     <button class="ctrl-btn" data-action="chat" data-tooltip="Chat">
@@ -2648,6 +2670,10 @@
       const container = document.getElementById('video-container');
       
       if (active) {
+        const hostTile = document.getElementById(`tile-${state.hostId}`);
+        if (hostTile) {
+            container.prepend(hostTile);
+        }
         container.classList.add('presentation-mode');
         showNotification('Host Spotlight Active', 'spotlight');
       } else {
@@ -3497,6 +3523,7 @@
             state.isHost = true;
             state.currentUser.role = 'host';
             hostTools.style.display = 'flex';
+            document.body.classList.add('is-host');
             hostNameEl.textContent = state.currentUser.name;
             state.hostName = state.currentUser.name;
           } else {
