@@ -1712,7 +1712,8 @@
       selectedMicId: null,
       selectedCamId: null,
       remoteUsers: {},
-      waitingStudents: []
+      waitingStudents: [],
+      isBlurEnabled: false
     };
 
     // ============= DOM ELEMENTS =============
@@ -2021,6 +2022,10 @@
           toggleWhiteboard();
           break;
           
+        case 'blur':
+          toggleBlurBackground(btn);
+          break;
+
         case 'end':
           endCall();
           break;
@@ -2988,6 +2993,7 @@
       await state.client.subscribe(user, mediaType);
 
       if (mediaType === 'video') {
+        console.log(`Subscribing to video of user ${user.uid}`);
         const container = document.getElementById('video-container');
         // Check if tile exists
         let tile = document.getElementById(`tile-${user.uid}`);
@@ -3042,12 +3048,14 @@
       }
 
       if (mediaType === 'audio') {
+        console.log(`Subscribing to audio of user ${user.uid}`);
         user.audioTrack.play();
       }
     }
 
 
     async function handleUserUnpublished(user, mediaType) {
+      console.log(`User ${user.uid} unpublished ${mediaType}`);
       if (mediaType === 'video') {
         const tile = document.getElementById(`tile-${user.uid}`);
         if (tile) tile.remove();
