@@ -451,6 +451,18 @@
       display: flex;
     }
     
+    /* Hide whiteboard button by default (only show for presenters) */
+    #control-bar button[data-action="whiteboard"] {
+      display: none;
+    }
+    
+    /* Show whiteboard button when user is host or has presenter permissions */
+    body.is-host #control-bar button[data-action="whiteboard"],
+    body.can-present #control-bar button[data-action="whiteboard"] {
+      display: flex;
+      display: flex;
+    }
+    
     .ctrl-btn::after {
       content: attr(data-tooltip);
       position: absolute;
@@ -1462,6 +1474,18 @@
     </div>
   </div>
 
+  <!-- Styled Confirmation Modal -->
+  <div id="confirmation-modal" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 9999; display: none; align-items: center; justify-content: center;">
+    <div style="background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); padding: 30px; border-radius: 20px; text-align: center; max-width: 400px; box-shadow: var(--shadow);">
+      <h2 id="modal-title" style="margin: 0 0 15px; font-size: 24px; color: var(--text-color);">Confirm Action</h2>
+      <p id="modal-message" style="opacity: 0.8; margin-bottom: 25px;">Are you sure?</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="modal-cancel" style="padding: 12px 24px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: var(--text-color); cursor: pointer; font-weight: 600; transition: all 0.2s;">Cancel</button>
+        <button id="modal-confirm" style="padding: 12px 24px; background: var(--accent-blue); border: none; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Device Settings Modal -->
   <div id="device-settings-modal" class="attendance-modal" style="z-index: 9000;">
     <div class="attendance-content" style="max-width: 600px;">
@@ -1806,7 +1830,8 @@
       selectedCamId: null,
       remoteUsers: {},
       waitingStudents: [],
-      isBlurEnabled: false
+      isBlurEnabled: false,
+      canPresent: false  // Tracks if user has permission to present/draw on whiteboard
     };
 
     // ============= DOM ELEMENTS =============
@@ -2089,7 +2114,11 @@
         case 'mic':
           if (state.localAudioTrack) {
             state.isMicOn = !state.isMicOn;
-            state.localAudioTrack.setEnabled(state.isMicOn);
+            state.localAudioTrack.setEnabled(state.isMicOn).catch(err => {
+              console.error('Mic error:', err);
+              state.isMicOn = !state.isMicOn; // Revert state on error
+              showNotification('Microphone error - please try again', 'error');
+            });
           }
           const micIcon = btn.querySelector('i');
           if (micIcon) {
@@ -2102,9 +2131,12 @@
         case 'cam':
           if (state.localVideoTrack) {
             state.isCameraOn = !state.isCameraOn;
-            state.localVideoTrack.setEnabled(state.isCameraOn);
+            state.localVideoTrack.setEnabled(state.isCameraOn).catch(err => {
+              console.error('Camera error:', err);
+              state.isCameraOn = !state.isCameraOn; // Revert state on error
+              showNotification('Camera error - please try again', 'error');
+            });
           }
-          state.isCameraOn = !state.isCameraOn;
           const camIcon = btn.querySelector('i');
           if (camIcon) {
             camIcon.classList.toggle('fa-video');
@@ -2196,6 +2228,19 @@
       }
     });
 
+    // ============= PRESENTER MODE =============
+    function enablePresenterMode() {
+      state.canPresent = true;
+      document.body.classList.add('can-present');
+      showNotification('You have been accepted to present', 'check');
+    }
+
+    function disablePresenterMode() {
+      state.canPresent = false;
+      document.body.classList.remove('can-present');
+      showNotification('Presenter access revoked', 'info');
+    }
+
     // ============= SCREEN SHARING =============
     function handleScreenShare() {
       if (!state.isHost) {
@@ -2231,6 +2276,8 @@
       messagesContainer.appendChild(systemDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
+      // Grant presenter mode to requesting user
+      enablePresenterMode();
       showNotification('Screen share request sent to host', 'info');
     }
 
@@ -2513,6 +2560,10 @@
     desktopEmojiBtn.addEventListener('click', () => {
       showNotification('Emoji picker would open here', 'info');
     });
+
+    // Confirmation Modal Button Listeners
+    document.getElementById('modal-cancel').addEventListener('click', closeConfirmationModal);
+    document.getElementById('modal-confirm').addEventListener('click', executeConfirmation);
 
     // Clicking on desktop chat input field shows the panel
     chatDesktopInput.addEventListener('focus', () => {
@@ -2873,23 +2924,99 @@
     }
 
     function endCall() {
-      if (confirm('Are you sure you want to leave the class?')) {
-        showNotification('Leaving class...', 'end');
-        
-        // Leave Agora Channel
-        if (state.client) {
-          state.client.leave();
-          if (state.localAudioTrack) state.localAudioTrack.close();
-          if (state.localVideoTrack) state.localVideoTrack.close();
-        }
+      showConfirmationModal(
+        'Leave Class?',
+        'Are you sure you want to leave the class?',
+        () => {
+          showNotification('Leaving class...', 'end');
+          
+          // Leave Agora Channel
+          if (state.client) {
+            state.client.leave();
+            if (state.localAudioTrack) state.localAudioTrack.close();
+            if (state.localVideoTrack) state.localVideoTrack.close();
+          }
 
-        setTimeout(() => {
-          alert('Redirecting to dashboard...');
-        }, 1000);
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 500);
+        }
+      );
+    }
+
+    function showConfirmationModal(title, message, callback) {
+      state.confirmationCallback = callback;
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-message').textContent = message;
+      document.getElementById('confirmation-modal').style.display = 'flex';
+    }
+
+    function closeConfirmationModal() {
+      document.getElementById('confirmation-modal').style.display = 'none';
+      state.confirmationCallback = null;
+    }
+
+    function executeConfirmation() {
+      if (state.confirmationCallback) {
+        state.confirmationCallback();
+      }
+      closeConfirmationModal();
+    }
+
+    // ============= NOTIFICATION PERMISSIONS & SOUNDS =============
+    async function requestNotificationPermissions() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            console.log('Notification permission granted');
+          }
+        } catch (error) {
+          console.log('Notification permission request failed:', error);
+        }
+      }
+    }
+
+    function playNotificationSound() {
+      // Use Web Audio API to create a simple notification sound
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } catch (error) {
+        console.log('Notification sound error:', error);
       }
     }
 
     function showNotification(message, type = 'info') {
+      // Send browser notification if permission is granted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('PeerLoom', {
+            body: message,
+            icon: '/docs/favicon.ico',
+            badge: '/docs/favicon.ico',
+            tag: 'peerloom-notification'
+          });
+          playNotificationSound();
+        } catch (error) {
+          console.log('Notification error:', error);
+        }
+      }
+
+      // In-app notification (existing code)
       const notification = document.createElement('div');
       notification.style.cssText = `
         position: fixed;
@@ -2944,6 +3071,8 @@
       }, 3000);
     }
 
+
+
     // ============= THEME TOGGLE =============
     document.getElementById('dark-mode-toggle').addEventListener('click', () => {
       document.body.classList.toggle('light-mode');
@@ -2983,8 +3112,8 @@
       
       // Handle user joining
       state.client.on("user-joined", (user) => {
-        const student = state.students.find(s => s.id === user.uid);
-        const name = student ? student.name : `User ${user.uid}`;
+        let student = state.students.find(s => s.id === user.uid);
+        const name = student?.name || `User ${user.uid.slice(0, 8)}`;
         showNotification(`${name} joined the meeting`, 'user');
       });
 
@@ -2993,8 +3122,8 @@
         const tile = document.getElementById(`tile-${user.uid}`);
         if (tile) tile.remove();
         
-        const student = state.students.find(s => s.id === user.uid);
-        const name = student ? student.name : `User ${user.uid}`;
+        let student = state.students.find(s => s.id === user.uid);
+        const name = student?.name || `User ${user.uid.slice(0, 8)}`;
         
         if (reason === "ServerTimeOut") {
            showNotification(`${name} dropped due to network timeout`, "info");
@@ -3312,8 +3441,8 @@
             document.getElementById('waiting-room-overlay').classList.add('hidden');
             onApproved();
           } else if (payload.new.status === 'rejected') {
-            alert("Access denied.");
-            window.location.href = 'dashboard.html';
+            showNotification('Access denied - you were not approved to join.', 'end');
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
           }
         })
         .subscribe();
@@ -3334,23 +3463,7 @@
         .subscribe();
     }
 
-    function playNotificationSound() {
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
-      } catch (e) { console.error(e); }
-    }
+
 
     async function fetchPendingRequests(gid) {
       const { data: requests } = await supabase
@@ -3454,25 +3567,29 @@
     }
 
     async function removeStudent(userId) {
-      if (!confirm('Are you sure you want to remove this student from the meeting?')) return;
+      showConfirmationModal(
+        'Remove Student?',
+        'Are you sure you want to remove this student from the meeting?',
+        async () => {
+          const gid = new URLSearchParams(window.location.search).get('groupId');
       
-      const gid = new URLSearchParams(window.location.search).get('groupId');
-      
-      try {
-        const { error } = await supabase
-          .from('meeting_requests')
-          .update({ status: 'rejected' })
-          .eq('group_id', gid)
-          .eq('user_id', userId);
-          
-        if (error) throw error;
-        
-        showNotification('Student removed', 'info');
-        // The student will be disconnected via the realtime listener
-      } catch (error) {
-        console.error('Error removing student:', error);
-        showNotification('Failed to remove student', 'end');
-      }
+          try {
+            const { error } = await supabase
+              .from('meeting_requests')
+              .update({ status: 'rejected' })
+              .eq('group_id', gid)
+              .eq('user_id', userId);
+              
+            if (error) throw error;
+            
+            showNotification('Student removed', 'info');
+            // The student will be disconnected via the realtime listener
+          } catch (error) {
+            console.error('Error removing student:', error);
+            showNotification('Failed to remove student', 'end');
+          }
+        }
+      );
     }
 
     async function approveAllStudents() {
@@ -3495,23 +3612,27 @@
     }
 
     async function resetAllRequests() {
-      if (!confirm('Are you sure you want to reset all waiting room requests? This will require all students to be re-admitted.')) return;
+      showConfirmationModal(
+        'Reset Waiting Room?',
+        'Are you sure you want to reset all waiting room requests? This will require all students to be re-admitted.',
+        async () => {
+          const gid = new URLSearchParams(window.location.search).get('groupId');
 
-      const gid = new URLSearchParams(window.location.search).get('groupId');
+          try {
+            const { error } = await supabase
+              .from('meeting_requests')
+              .update({ status: 'pending' })
+              .eq('group_id', gid);
 
-      try {
-        const { error } = await supabase
-          .from('meeting_requests')
-          .update({ status: 'pending' })
-          .eq('group_id', gid);
-
-        if (error) throw error;
-        showNotification('All student requests reset to pending.', 'info');
-        fetchPendingRequests(gid);
-      } catch (error) {
-        console.error('Error resetting requests:', error);
-        showNotification('Failed to reset requests.', 'end');
-      }
+            if (error) throw error;
+            showNotification('All student requests reset to pending.', 'info');
+            fetchPendingRequests(gid);
+          } catch (error) {
+            console.error('Error resetting requests:', error);
+            showNotification('Failed to reset requests.', 'end');
+          }
+        }
+      );
     }
 
     function openWaitingRoom() { waitingRoomModal.style.display = 'flex'; }
@@ -3662,8 +3783,8 @@
             filter: `user_id=eq.${user.id}`
           }, (payload) => {
             if (payload.new.status === 'rejected' && payload.new.group_id === gid) {
-              alert('You have been removed from the meeting.');
-              window.location.href = 'dashboard.html';
+              showNotification('You have been removed from the meeting.', 'end');
+              setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
             }
           })
           .subscribe();
@@ -3675,6 +3796,9 @@
 
     // ============= INITIALIZATION =============
     async function initialize() {
+      // Request notification permissions
+      requestNotificationPermissions();
+      
       // 1. Check Auth
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
