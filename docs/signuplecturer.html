@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -497,6 +496,46 @@
             font-style: italic;
         }
         
+        /* Lecturer Verified Badge Styles */
+        .lecturer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px 4px 6px;
+            border-radius: 20px;
+            margin-left: 8px;
+            animation: badgePulse 3s ease-in-out infinite;
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+            vertical-align: middle;
+        }
+        
+        .lecturer-badge i {
+            font-size: 0.7rem;
+            background: white;
+            color: #6366f1;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes badgePulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            }
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -576,6 +615,11 @@
                 padding: 6px 12px;
                 font-size: 0.8rem;
                 border-radius: 10px;
+            }
+            
+            .lecturer-badge {
+                font-size: 0.7rem;
+                padding: 3px 8px 3px 5px;
             }
         }
         
@@ -909,6 +953,63 @@
     function showToast(message, type = 'success') {
         console.log(`${type}: ${message}`);
         // You can implement actual toast notifications here
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
+
+    // Function to display lecturer badge
+    function displayLecturerBadge(profile) {
+        // Check if user is a lecturer and has verified email
+        const isLecturer = profile.level === 'lecturer' || 
+                           profile.custom_level === 'lecturer' || 
+                           profile.role === 'lecturer';
+        
+        const isEmailVerified = profile.verified === true;
+        
+        if (isLecturer && isEmailVerified) {
+            return `
+                <span class="lecturer-badge" title="Verified Lecturer">
+                    <i class="fas fa-check"></i>
+                    Verified Lecturer
+                </span>
+            `;
+        }
+        return '';
+    }
+
+    // Function to add badge to any element containing user name
+    function addLecturerBadgeToElement(elementSelector, profile) {
+        const element = document.querySelector(elementSelector);
+        if (element && profile) {
+            const badgeHtml = displayLecturerBadge(profile);
+            if (badgeHtml) {
+                element.innerHTML += badgeHtml;
+            }
+        }
+    }
+
+    // Function to auto-apply badges to elements with data-user-id attribute
+    async function autoApplyBadges(containerSelector = 'body') {
+        const container = document.querySelector(containerSelector);
+        const elements = container.querySelectorAll('[data-user-id]');
+        
+        for (const element of elements) {
+            const userId = element.getAttribute('data-user-id');
+            if (userId) {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+                
+                if (profile && !error) {
+                    const badgeHtml = displayLecturerBadge(profile);
+                    if (badgeHtml) {
+                        // Add badge next to the element
+                        element.innerHTML += badgeHtml;
+                    }
+                }
+            }
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1127,19 +1228,20 @@
                 }
                 
                 console.log('Attempting to sign up lecturer...');
+                
+                // Step 1: Create auth user
                 const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
-                            firstName,
-                            lastName,
-                            school,
-                            department,
-                            phone,
+                            first_name: firstName,
+                            last_name: lastName,
+                            school: school,
+                            department: department,
+                            phone: phone,
                             role: 'lecturer',
-                            userType: 'lecturer',
-                            isLecturer: true
+                            user_type: 'lecturer'
                         },
                         emailRedirectTo: `${window.location.origin}/login.html`
                     }
@@ -1158,34 +1260,46 @@
                     return;
                 }
 
-                console.log('Lecturer signup successful:', signUpData);
+                console.log('Lecturer auth signup successful:', signUpData);
                 
-                // Insert lecturer profile into profiles table
+                // Step 2: Update existing profile with lecturer data
                 if (signUpData.user) {
+                    const profileData = {
+                        id: signUpData.user.id,
+                        full_name: `${firstName} ${lastName}`,
+                        email: email,
+                        contact: phone,
+                        department: department,
+                        campus: school,
+                        level: 'lecturer',
+                        custom_level: 'lecturer',
+                        role: 'lecturer',
+                        bio: `Lecturer at ${school} - ${department}`,
+                        show_full_name: true,
+                        show_academic_info: true,
+                        show_groups_count: true,
+                        privacy: 'public',
+                        theme_preference: 'dark',
+                        notification_preferences: {
+                            email_notifications: true,
+                            group_updates: true,
+                            new_messages: true,
+                            announcements: true,
+                            lecturer_specific: true
+                        }
+                    };
+
+                    // Use UPDATE instead of INSERT (since row already exists)
                     const { error: profileError } = await supabase
                         .from('profiles')
-                        .insert({
-                            id: signUpData.user.id,
-                            first_name: firstName,
-                            last_name: lastName,
-                            full_name: `${firstName} ${lastName}`,
-                            email: email,
-                            phone: phone,
-                            institution: school,
-                            department: department,
-                            role: 'lecturer',
-                            user_type: 'lecturer',
-                            is_lecturer: true,
-                            lecturer_badge: true,
-                            verified: false,
-                            created_at: new Date().toISOString()
-                        });
+                        .update(profileData)
+                        .eq('id', signUpData.user.id);
 
                     if (profileError) {
-                        console.error('Error creating lecturer profile:', profileError);
-                        showToast('Profile creation failed: ' + profileError.message, 'error');
+                        console.error('Error updating lecturer profile:', profileError);
+                        showToast('Profile update failed: ' + profileError.message, 'error');
                     } else {
-                        console.log('Lecturer profile created successfully');
+                        console.log('Lecturer profile updated successfully');
                     }
                 }
                 
