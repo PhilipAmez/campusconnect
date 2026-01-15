@@ -1392,8 +1392,75 @@
             });
         }
        
+        // ============= NOTIFICATION PERMISSIONS & SOUNDS =============
+        async function requestNotificationPermissions() {
+          if ('Notification' in window && Notification.permission === 'default') {
+            try {
+              const permission = await Notification.requestPermission();
+              console.log('Notification permission:', permission);
+            } catch (error) {
+              console.log('Notification permission request failed:', error);
+            }
+          }
+        }
+
+        function playNotificationSound() {
+          // Use Web Audio API to create a simple notification sound
+          try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+          } catch (error) {
+            console.log('Notification sound error:', error);
+          }
+        }
+
+        function showNotification(message, type = 'info') {
+          // Show in-app toast notification
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.8); color: white; padding: 15px 20px; border-radius: 8px; font-size: 14px; z-index: 99999; animation: slideInRight 0.3s ease; max-width: 300px;';
+          toast.textContent = message;
+          document.body.appendChild(toast);
+
+          // Play sound
+          playNotificationSound();
+
+          // Send browser notification if permission granted
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Peerloom', {
+              body: message,
+              icon: '/android-chrome-192x192.png',
+              tag: 'peerloom-notification',
+              badge: '/android-chrome-192x192.png'
+            });
+          }
+
+          setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+              document.body.removeChild(toast);
+            }, 300);
+          }, 3000);
+        }
+       
         // Gate-keep the dashboard page
         document.addEventListener('DOMContentLoaded', async () => {
+            // Request notification permissions on dashboard load
+            requestNotificationPermissions();
+            
             // Hide splash screen by default
             const splashContainer = document.getElementById('splashContainer');
             if (splashContainer) {
@@ -2319,25 +2386,6 @@
         function navigateToUserProfile(userId) {
             resetLogoutTimer(); // Reset timer on user action
             window.location.href = `profile.html?userId=${userId}`;
-        }
-       
-        // Show notification with blur effect
-        function showNotification(message, callback) {
-            const modal = document.getElementById('notificationModal');
-            const body = document.querySelector('.dashboard');
-            const modalMessage = document.getElementById('modalMessage');
-          
-            if (!modal || !body || !modalMessage) return;
-          
-            modalMessage.textContent = message;
-            modal.classList.add('show');
-            body.classList.add('blur-background');
-           
-            setTimeout(() => {
-                modal.classList.remove('show');
-                body.classList.remove('blur-background');
-                if (callback) callback();
-            }, 3000);
         }
        
         // Add event listeners
