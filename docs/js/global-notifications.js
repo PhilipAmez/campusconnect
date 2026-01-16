@@ -73,6 +73,9 @@ function showToast(message, type = 'info', duration = 5000, onClick = null) {
         });
     }
 
+    // Play sound whenever a toast is displayed
+    playNotificationSound();
+
     container.appendChild(toast);
 
     // Remove after duration
@@ -108,25 +111,27 @@ function ensureToastUI() {
             pointer-events: none; display: flex; flex-direction: column; gap: 10px;
         }
         .toast {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(0,0,0,0.1);
+            background: var(--glass-gradient, var(--glass-bg, rgba(255, 255, 255, 0.9)));
+            backdrop-filter: blur(var(--blur, 10px));
+            -webkit-backdrop-filter: blur(var(--blur, 10px));
+            border: 1px solid var(--border, rgba(0,0,0,0.1));
             padding: 16px; border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            color: #333;
+            box-shadow: var(--shadow, 0 4px 20px rgba(0,0,0,0.15));
+            color: var(--text-primary, var(--text, #333));
             pointer-events: auto;
             animation: slideInToast 0.3s ease;
             display: flex; align-items: center; gap: 12px; min-width: 280px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        .toast i { font-size: 1.2em; margin-right: 8px; }
+        .toast i { font-size: 1.2em; margin-right: 8px; color: var(--accent, #3498db); }
         /* Dark mode support */
         @media (prefers-color-scheme: dark) {
-            .toast { background: rgba(30, 30, 30, 0.9); color: #fff; border-color: rgba(255,255,255,0.1); }
+            .toast { background: var(--glass-gradient, var(--glass-bg, rgba(30, 30, 30, 0.9))); color: var(--text-primary, var(--text, #fff)); border-color: var(--border, rgba(255,255,255,0.1)); }
         }
         [data-theme="dark"] .toast, body.dark .toast {
-            background: rgba(30, 30, 30, 0.9) !important; color: #fff !important; border-color: rgba(255,255,255,0.1) !important;
+            background: var(--glass-gradient, var(--glass-bg, rgba(30, 30, 30, 0.9))) !important; 
+            color: var(--text-primary, var(--text, #fff)) !important; 
+            border-color: var(--border, rgba(255,255,255,0.1)) !important;
         }
         @keyframes slideInToast {
             from { transform: translateX(100%); opacity: 0; }
@@ -169,9 +174,6 @@ function setupGlobalRealtimeUpdates() {
             (payload) => {
                 const newNotification = payload.new;
 
-                // Play sound and show desktop notification based on preferences
-                playNotificationSound();
-                
                 const typeLabel = newNotification.type.charAt(0).toUpperCase() + newNotification.type.slice(1);
                 const message = newNotification.content || `New ${typeLabel}`;
                 showDesktopNotification('Peerloom', {
@@ -183,14 +185,27 @@ function setupGlobalRealtimeUpdates() {
                 let onClick = null;
                 let toastType = 'info';
 
-                if (newNotification.type === 'new_follower') {
-                    onClick = () => window.location.href = `profile.html?userId=${newNotification.sender_id}`;
-                    toastType = 'follow';
-                } else if (newNotification.type === 'new_like') {
-                    onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
-                    toastType = 'like';
-                } else if (newNotification.post_id) {
-                    onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
+                switch (newNotification.type) {
+                    case 'new_follower':
+                        onClick = () => window.location.href = `profile.html?userId=${newNotification.sender_id}`;
+                        toastType = 'follow';
+                        break;
+                    case 'new_like':
+                        onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
+                        toastType = 'like';
+                        break;
+                    case 'new_comment':
+                        onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
+                        toastType = 'message';
+                        break;
+                    case 'new_post':
+                        onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
+                        toastType = 'info';
+                        break;
+                    default:
+                        if (newNotification.post_id) {
+                            onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
+                        }
                 }
                 
                 showToast(message, toastType, 5000, onClick);
@@ -227,7 +242,6 @@ async function setupGroupMessagesSubscription() {
                 const groupName = groupMap[newMessage.group_id] || 'Group';
                 const content = escapeHtml(newMessage.content.length > 50 ? newMessage.content.substring(0, 50) + '...' : newMessage.content);
                 
-                playNotificationSound();
                 showToast(`New message in <strong>${groupName}</strong>: "${content}"`, 'message', 5000, () => {
                     window.location.href = `chatroom.html?groupId=${newMessage.group_id}`;
                 });
