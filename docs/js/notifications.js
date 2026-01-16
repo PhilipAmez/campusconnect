@@ -1,6 +1,39 @@
 // Import Supabase client
 import { supabase } from './supabaseClient.js';
 
+// ============= NOTIFICATION HELPER FUNCTIONS =============
+function playNotificationSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+        console.log('Notification sound error:', error);
+    }
+}
+
+function showDesktopNotification(title, options = {}) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+            icon: '/android-chrome-192x192.png',
+            badge: '/android-chrome-192x192.png',
+            ...options
+        });
+    }
+}
+
 // State
 let userProfile = null;
 let currentUser = null;
@@ -187,6 +220,16 @@ function setupRealtimeUpdates() {
         .channel(`public:notifications:user_id=eq.${currentUser.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
             (payload) => {
+                // Play sound and show desktop notification
+                playNotificationSound();
+                
+                const typeLabel = payload.new.type.charAt(0).toUpperCase() + payload.new.type.slice(1);
+                const message = payload.new.message || `New ${typeLabel}`;
+                showDesktopNotification('Peerloom', {
+                    body: message,
+                    tag: `notification-${payload.new.id}`
+                });
+                
                 // Only add if on 'all' tab or the matching tab
                 if (currentTab === 'all' || currentTab === payload.new.type) {
                     fetchNotifications(currentTab, true); // Simple refresh for now
