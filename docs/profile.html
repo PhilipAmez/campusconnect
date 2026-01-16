@@ -3138,7 +3138,10 @@
 
                     // Increment likes_count
                     await supabase.rpc('increment_likes', { post_id_to_update: postId });
-                    playNotificationSound();
+                    const prefs = userProfile?.notification_preferences || {};
+                    if (prefs.sound !== false) {
+                        playNotificationSound();
+                    }
                     showToast('Post liked!', 'like');
 
                     // Create a notification for the post author, but not if you like your own post
@@ -3511,7 +3514,10 @@
                 // Manually update local state for immediate UI feedback
                 if (!currentUserFollowing.includes(userId)) currentUserFollowing.push(userId);
                 showError('User followed successfully!');
-                playNotificationSound();
+                const prefs = userProfile?.notification_preferences || {};
+                if (prefs.sound !== false) {
+                    playNotificationSound();
+                }
                 showToast('Followed successfully!', 'follow');
             } catch (error) {
                 console.error('Error following user:', error);
@@ -3532,7 +3538,10 @@
                 // Manually update local state for immediate UI feedback
                 currentUserFollowing = currentUserFollowing.filter(id => id !== userId);
                 showError('User unfollowed');
-                playNotificationSound();
+                const prefs = userProfile?.notification_preferences || {};
+                if (prefs.sound !== false) {
+                    playNotificationSound();
+                }
                 showToast('Unfollowed successfully', 'info');
 
                 // Log the unfollow action in the notifications table for activity history.
@@ -3931,18 +3940,6 @@
                 return Math.floor(interval) + " minutes ago";
             }
             return Math.floor(seconds) + " seconds ago";
-        }
-        // Show error message
-        function showError(message) {
-            // You could implement a toast notification system here
-            // Let's use our new toast system for errors and success messages!
-            if (message.toLowerCase().includes('error')) {
-                console.error(message);
-                showToast(message, 'error');
-            } else {
-                console.log(message);
-                showToast(message, 'success');
-            }
         }
         // Theme toggle with swipe
         let startX;

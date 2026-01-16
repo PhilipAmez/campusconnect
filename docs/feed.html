@@ -2850,8 +2850,13 @@
                 if (progressStatus) progressStatus.textContent = 'Post created successfully!';
                 
                 // --- Immediate user feedback ---
-                playNotificationSound();
-                showDesktopNotification('Post Created', { body: `Your post "${newPost.title}" is now live!` });
+                const prefs = currentUserProfile?.notification_preferences || {};
+                if (prefs.sound !== false) {
+                    playNotificationSound();
+                }
+                if (prefs.push !== false) {
+                    showDesktopNotification('Post Created', { body: `Your post "${newPost.title}" is now live!` });
+                }
                 // --- End immediate feedback ---
 
                 setTimeout(() => {

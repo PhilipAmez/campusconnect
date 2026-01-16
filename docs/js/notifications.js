@@ -223,10 +223,12 @@ function setupRealtimeUpdates() {
                 const prefs = userProfile?.notification_preferences || {};
 
                 // Check user preferences before showing notifications
-                if (prefs.push !== false) {
+                if (prefs.sound !== false) {
                     // Play sound
                     playNotificationSound();
-
+                }
+                
+                if (prefs.push !== false) {
                     // Show desktop notification
                     const typeLabel = payload.new.type.charAt(0).toUpperCase() + payload.new.type.slice(1);
                     const message = payload.new.message || `New ${typeLabel}`;
