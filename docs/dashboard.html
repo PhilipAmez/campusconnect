@@ -1411,7 +1411,8 @@
            
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                window.location.replace('index.html?message=session_expired');
+                // Session check removed - no redirect on session expiration
+                console.log("No active session found");
                 return;
             }
            
