@@ -1,38 +1,8 @@
 // Import Supabase client
 import { supabase } from './supabaseClient.js';
 
-// ============= NOTIFICATION HELPER FUNCTIONS =============
-function playNotificationSound() {
-    try {
-        const audio = new Audio('/sounds/notification.mp3');
-        audio.volume = 0.5;
-        audio.play().catch(error => console.log('Could not play notification sound:', error));
-    } catch (error) {
-        console.log('Notification sound error:', error);
-    }
-}
-
-function showDesktopNotification(title, options = {}) {
-    if ('Notification' in window) {
-        if (Notification.permission === 'granted') {
-            new Notification(title, {
-                icon: '/android-chrome-192x192.png',
-                badge: '/android-chrome-192x192.png',
-                ...options
-            });
-        } else if (Notification.permission === 'default') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    new Notification(title, {
-                        icon: '/android-chrome-192x192.png',
-                        badge: '/android-chrome-192x192.png',
-                        ...options
-                    });
-                }
-            });
-        }
-    }
-}
+// Import Supabase client
+import { supabase } from './supabaseClient.js';
 
 // State
 let userProfile = null;
@@ -65,7 +35,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     addEventListeners();
 
     await fetchNotifications(currentTab, true);
-    setupRealtimeUpdates();
+
+    // Listen for new notifications from the global script to refresh the list
+    document.addEventListener('new-notification', () => {
+        if (document.visibilityState === 'visible') {
+            fetchNotifications(currentTab, true);
+        }
+    });
 });
 
 function addEventListeners() {

@@ -469,6 +469,37 @@
         transform: translateX(100%);
       }
     }
+
+    /* Global Toast Notification Styles */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: var(--glass-gradient);
+      backdrop-filter: blur(var(--blur));
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      color: var(--text-primary);
+      pointer-events: auto;
+      animation: slideInToast 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 280px;
+    }
+    @keyframes slideInToast {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -596,6 +627,10 @@
     </div>
   </div>
 
+  <!-- Container for Global Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="./js/global-notifications.js"></script>
   <script type="module" src="./js/notifications.js"></script>
   <script>
       if (typeof window.openUploadModal === 'undefined') {
