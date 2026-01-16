@@ -90,7 +90,54 @@ function escapeHtml(str) {
     });
 }
 
+// Inject Toast UI if missing (for pages that don't have it manually added)
+function ensureToastUI() {
+    if (document.getElementById('toast-container')) return;
+
+    // Create Container
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+
+    // Inject Styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .toast-container {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            pointer-events: none; display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.1);
+            padding: 16px; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            color: #333;
+            pointer-events: auto;
+            animation: slideInToast 0.3s ease;
+            display: flex; align-items: center; gap: 12px; min-width: 280px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .toast i { font-size: 1.2em; margin-right: 8px; }
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .toast { background: rgba(30, 30, 30, 0.9); color: #fff; border-color: rgba(255,255,255,0.1); }
+        }
+        [data-theme="dark"] .toast, body.dark .toast {
+            background: rgba(30, 30, 30, 0.9) !important; color: #fff !important; border-color: rgba(255,255,255,0.1) !important;
+        }
+        @keyframes slideInToast {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 async function initializeGlobalNotifications() {
+    ensureToastUI();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
         // Not logged in, no need to listen for notifications
