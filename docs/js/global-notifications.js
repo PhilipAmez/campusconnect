@@ -234,9 +234,17 @@ async function setupGroupMessagesSubscription() {
     supabase.channel('global-group-messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages' },
             (payload) => {
+                console.log('🔔 Notification Payload:', payload);
                 const newMessage = payload.new;
-                if (!groupIds.includes(newMessage.group_id)) return; // Filter client-side
-                if (newMessage.sender_id === globalCurrentUser.id) return; // Don't notify own messages
+                
+                if (!groupIds.includes(newMessage.group_id)) {
+                    console.log('❌ Message ignored: Group ID not in user groups', newMessage.group_id, groupIds);
+                    return;
+                }
+                if (newMessage.sender_id === globalCurrentUser.id) {
+                    console.log('❌ Message ignored: Sender is current user');
+                    return;
+                }
 
                 const groupName = groupMap[newMessage.group_id] || 'Group';
                 const content = escapeHtml(newMessage.content.length > 50 ? newMessage.content.substring(0, 50) + '...' : newMessage.content);
@@ -245,7 +253,9 @@ async function setupGroupMessagesSubscription() {
                     window.location.href = `chatroom.html?groupId=${newMessage.group_id}`;
                 });
             }
-        ).subscribe();
+        ).subscribe((status) => {
+            console.log('📡 Notification Subscription Status:', status);
+        });
 }
 
 // Initialize on script load
