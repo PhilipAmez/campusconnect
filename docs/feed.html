@@ -2825,6 +2825,38 @@
                 if (insertError) {
                     throw insertError;
                 }
+
+                // --- Create Notifications for Followers ---
+                try {
+                    // 1. Get followers of the user who posted
+                    const { data: followers, error: followersError } = await supabase
+                        .from('followers')
+                        .select('follower_id')
+                        .eq('following_id', user.id);
+
+                    if (followersError) {
+                        console.error('Error fetching followers for notification:', followersError);
+                    } else if (followers && followers.length > 0) {
+                        // 2. Create a notification for each follower
+                        const notifications = followers.map(f => ({
+                            user_id: f.follower_id, // The person to be notified
+                            sender_id: user.id,      // The person who created the post
+                            type: 'new_post',
+                            content: `@${newPost.username} just added a new post: "${newPost.title}"`,
+                            post_id: newPost.id      // Link to the new post
+                        }));
+
+                        // 3. Insert all notifications
+                        const { error: notificationError } = await supabase.from('notifications').insert(notifications);
+                        if (notificationError) {
+                            console.error('Error creating new post notifications:', notificationError);
+                        }
+                    }
+                } catch (e) {
+                    console.error('An unexpected error occurred while creating notifications:', e);
+                }
+                // --- End Notification Creation ---
+
                 // 4. Update UI on success
                 if (progressStatus) progressStatus.textContent = 'Post created successfully!';
                 setTimeout(() => {

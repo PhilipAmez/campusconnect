@@ -147,8 +147,28 @@ app.post('/messages', upload.none(), async (req, res) => {
     );
     const msg = result.rows[0];
     io.to('group_' + group_id).emit('new_message', msg);
+
+    // --- Create Notifications ---
+    // 1. Get group members
+    const membersRes = await pool.query(
+      'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id != $2',
+      [group_id, sender_id]
+    );
+
+    // 2. Create a notification for each member
+    for (const member of membersRes.rows) {
+      const notifQuery = {
+        text: `INSERT INTO notifications (user_id, sender_id, type, content, post_id)
+               VALUES ($1, $2, 'new_group_message', $3, $4)`,
+        values: [member.user_id, sender_id, `New message in your group`, group_id],
+      };
+      await pool.query(notifQuery);
+    }
+    // --- End Notification ---
+
     res.status(201).json(msg);
-  } catch {
+  } catch (err) {
+    console.error('Error sending message or creating notification:', err);
     res.status(500).json({ error: 'Failed to send message' });
   }
 });

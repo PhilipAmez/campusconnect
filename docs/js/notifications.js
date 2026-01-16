@@ -220,15 +220,21 @@ function setupRealtimeUpdates() {
         .channel(`public:notifications:user_id=eq.${currentUser.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
             (payload) => {
-                // Play sound and show desktop notification
-                playNotificationSound();
-                
-                const typeLabel = payload.new.type.charAt(0).toUpperCase() + payload.new.type.slice(1);
-                const message = payload.new.message || `New ${typeLabel}`;
-                showDesktopNotification('Peerloom', {
-                    body: message,
-                    tag: `notification-${payload.new.id}`
-                });
+                const prefs = userProfile?.notification_preferences || {};
+
+                // Check user preferences before showing notifications
+                if (prefs.push !== false) {
+                    // Play sound
+                    playNotificationSound();
+
+                    // Show desktop notification
+                    const typeLabel = payload.new.type.charAt(0).toUpperCase() + payload.new.type.slice(1);
+                    const message = payload.new.message || `New ${typeLabel}`;
+                    showDesktopNotification('Peerloom', {
+                        body: message,
+                        tag: `notification-${payload.new.id}`
+                    });
+                }
                 
                 // Only add if on 'all' tab or the matching tab
                 if (currentTab === 'all' || currentTab === payload.new.type) {
