@@ -231,12 +231,11 @@ async function setupGroupMessagesSubscription() {
     const groupMap = {};
     members.forEach(m => { if (m.groups) groupMap[m.group_id] = m.groups.name; });
 
-    const filterString = `group_id=in.(${groupIds.join(',')})`;
-
     supabase.channel('global-group-messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: filterString },
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages' },
             (payload) => {
                 const newMessage = payload.new;
+                if (!groupIds.includes(newMessage.group_id)) return; // Filter client-side
                 if (newMessage.sender_id === globalCurrentUser.id) return; // Don't notify own messages
 
                 const groupName = groupMap[newMessage.group_id] || 'Group';
