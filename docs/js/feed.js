@@ -1,12 +1,9 @@
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('video').forEach(video => {
-        video.addEventListener('waiting', () => {
-            const parent = video.parentElement;
-            if (!parent) return;
-            const overlay = parent.querySelector('.loading-overlay');
-            if (overlay && overlay.style) {
-                overlay.style.display = 'flex';
-            }
-        });
-    });
-});
+function playNotificationSound() {
+    try {
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(error => console.log('Could not play notification sound:', error));
+    } catch (error) {
+        console.log('Notification sound error:', error);
+    }
+}

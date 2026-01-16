@@ -351,33 +351,22 @@
         });
 
         // ===== NOTIFICATION HELPERS =====
-        function playNotificationSound() {
-            try {
-                const audio = new Audio('/sounds/notification.mp3');
-                audio.volume = 0.5;
-                audio.play().catch(error => console.log('Could not play notification sound:', error));
-            } catch (error) {
-                console.log('Notification sound error:', error);
-            }
-        }
 
-        function showDesktopNotification(title, message) {
+        function showDesktopNotification(title, options = {}) {
             if ('Notification' in window) {
                 if (Notification.permission === 'granted') {
                     new Notification(title, {
-                        body: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
                         icon: '/android-chrome-192x192.png',
                         badge: '/android-chrome-192x192.png',
-                        tag: 'feed-notification'
+                        ...options
                     });
                 } else if (Notification.permission === 'default') {
                     Notification.requestPermission().then(permission => {
                         if (permission === 'granted') {
                             new Notification(title, {
-                                body: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
                                 icon: '/android-chrome-192x192.png',
                                 badge: '/android-chrome-192x192.png',
-                                tag: 'feed-notification'
+                                ...options
                             });
                         }
                     });
@@ -2859,6 +2848,12 @@
 
                 // 4. Update UI on success
                 if (progressStatus) progressStatus.textContent = 'Post created successfully!';
+                
+                // --- Immediate user feedback ---
+                playNotificationSound();
+                showDesktopNotification('Post Created', { body: `Your post "${newPost.title}" is now live!` });
+                // --- End immediate feedback ---
+
                 setTimeout(() => {
                     if (uploadProgress) uploadProgress.classList.remove('active');
                     if (progressFill) progressFill.style.width = '0%';

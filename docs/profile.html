@@ -3128,6 +3128,7 @@
 
                     // Decrement likes_count using an RPC call for atomicity
                     await supabase.rpc('decrement_likes', { post_id_to_update: postId });
+                    showToast('Post unliked!', 'info');
 
                 } else {
                     // Like the post
@@ -3137,6 +3138,8 @@
 
                     // Increment likes_count
                     await supabase.rpc('increment_likes', { post_id_to_update: postId });
+                    playNotificationSound();
+                    showToast('Post liked!', 'like');
 
                     // Create a notification for the post author, but not if you like your own post
                     if (post && post.user_id !== currentUser.id) {
@@ -3508,6 +3511,8 @@
                 // Manually update local state for immediate UI feedback
                 if (!currentUserFollowing.includes(userId)) currentUserFollowing.push(userId);
                 showError('User followed successfully!');
+                playNotificationSound();
+                showToast('Followed successfully!', 'follow');
             } catch (error) {
                 console.error('Error following user:', error);
                 throw error;
@@ -3527,9 +3532,10 @@
                 // Manually update local state for immediate UI feedback
                 currentUserFollowing = currentUserFollowing.filter(id => id !== userId);
                 showError('User unfollowed');
+                playNotificationSound();
+                showToast('Unfollowed successfully', 'info');
 
                 // Log the unfollow action in the notifications table for activity history.
-                // This won't create a visible notification unless you specifically handle the 'user_unfollowed' type.
                 if (currentUser.id !== userId) {
                     const { error: notificationError } = await supabase
                         .from('notifications')
