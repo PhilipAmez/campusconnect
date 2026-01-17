@@ -1452,6 +1452,40 @@
     .device-preview video {
       object-fit: cover !important;
     }
+    
+    /* Hand Raise Icon */
+    .hand-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--accent-yellow);
+      color: #000;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(255, 212, 59, 0.4);
+      animation: pulse-hand-icon 1.5s infinite;
+    }
+    
+    @keyframes pulse-hand-icon {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    /* Media Control Lock */
+    .media-locked {
+      opacity: 0.5;
+      cursor: not-allowed !important;
+    }
+    
+    .media-locked i {
+      color: var(--red) !important;
+    }
   </style>
 </head>
 <body class="dark-mode">
@@ -1686,11 +1720,17 @@
 
   <!-- Host Tools -->
   <div id="host-tools">
-    <button class="tool-btn" title="Mute All Students" onclick="muteAllParticipants()">
+    <button class="tool-btn" title="Mute All Students" id="mute-all-btn" onclick="muteAllParticipants()">
       <i class="fas fa-microphone-slash"></i>
     </button>
-    <button class="tool-btn" title="Disable All Cameras" onclick="disableAllCameras()">
+    <button class="tool-btn" title="Unmute All Students" id="unmute-all-btn" onclick="unmuteAllParticipants()" style="display:none;">
+      <i class="fas fa-microphone"></i>
+    </button>
+    <button class="tool-btn" title="Disable All Cameras" id="disable-cameras-btn" onclick="disableAllCameras()">
       <i class="fas fa-video-slash"></i>
+    </button>
+    <button class="tool-btn" title="Enable All Cameras" id="enable-cameras-btn" onclick="enableAllCameras()" style="display:none;">
+      <i class="fas fa-video"></i>
     </button>
     <button id="spotlight-btn" class="tool-btn" title="Spotlight Host" onclick="toggleHostSpotlight()">
       <i class="fas fa-star"></i>
@@ -1710,6 +1750,9 @@
     <button class="tool-btn" title="Waiting Room" onclick="openWaitingRoom()" style="position: relative;">
       <i class="fas fa-user-clock"></i>
       <div id="waiting-room-badge" class="waiting-badge" style="display: none;">0</div>
+    </button>
+    <button class="tool-btn" title="Clear All Hands" onclick="clearAllHands()">
+      <i class="fas fa-hands"></i>
     </button>
   </div>
 
@@ -1794,8 +1837,8 @@
 
     // ============= STATE MANAGEMENT =============
     const state = {
-      isMicOn: true,
-      isCameraOn: true,
+      isMicOn: false,
+      isCameraOn: false,
       isRecording: false,
       isHandRaised: false,
       isScreenSharing: false,
@@ -1817,11 +1860,10 @@
       lastY: 0,
       drawingCommands: [],
       classTitle: 'PeerLoom Live Session',
-      aiApiKey: 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88', // Matched with chatroom.html key
+      aiApiKey: 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88',
       desktopChatInputVisible: false,
       isMobile: window.innerWidth <= 768,
-      // Agora State
-      agoraAppId: '6f87382c37b444d2806c74bb889a598f', // Get this from console.agora.io
+      agoraAppId: '6f87382c37b444d2806c74bb889a598f',
       client: null,
       localAudioTrack: null,
       localVideoTrack: null,
@@ -1831,7 +1873,21 @@
       remoteUsers: {},
       waitingStudents: [],
       isBlurEnabled: false,
-      canPresent: false  // Tracks if user has permission to present/draw on whiteboard
+      canPresent: false,
+      allMuted: false,
+      allCamerasDisabled: false,
+      spotlightUserId: null,
+      raisedHands: new Map(),
+      currentPresenter: null,
+      mediaControlLocked: false,
+      cameraControlLocked: false,
+      listenOnlyMode: true,
+      forceListenOnly: true,
+      promotedSpeakers: new Set(),
+      renderedVideoTiles: new Set(),
+      hardMuteLock: false,
+      hardCameraLock: false,
+      spotlightImmune: true
     };
 
     // ============= DOM ELEMENTS =============
@@ -1902,7 +1958,6 @@
         console.error('Gemini API Error:', error);
         hideAILoading();
         
-        // Handle errors gracefully without showing error messages in chat
         if (type === 'summary') {
           return "I've analyzed the discussion and identified key points. The conversation covered important topics that would benefit from review.";
         } else if (type === 'quiz') {
@@ -1943,6 +1998,11 @@
     }
 
     async function takeAttendance() {
+      if (!state.isHost) {
+        showNotification('Only host can take attendance', 'info');
+        return;
+      }
+      
       const attendanceData = state.attendance.map(s => ({
         name: s.name,
         joinTime: s.joinTime,
@@ -2013,6 +2073,11 @@
     }
 
     function exportAttendance() {
+      if (!state.isHost) {
+        showNotification('Only host can export attendance', 'info');
+        return;
+      }
+      
       const csvContent = [
         ['Name', 'Role', 'Join Time', 'Join Date', 'Status'],
         [state.currentUser?.name || 'Host', 'Host', new Date().toLocaleTimeString(), new Date().toLocaleDateString(), 'Present'],
@@ -2048,6 +2113,8 @@
 
     // ============= ACTIVE SPEAKER ROTATION =============
     function rotateActiveSpeaker() {
+      if (state.spotlightUserId || state.spotlightImmune) return;
+      
       const tiles = document.querySelectorAll('.video-tile');
       tiles.forEach(tile => tile.classList.remove('active-speaker'));
       
@@ -2067,7 +2134,6 @@
     setInterval(rotateActiveSpeaker, 5000 + Math.random() * 5000);
 
     // ============= WHITEBOARD BATCH SYNC =============
-    // Send batched drawing commands every 100ms
     setInterval(() => {
       if (state.drawingCommands.length > 0 && state.channel) {
         state.channel.send({
@@ -2099,13 +2165,39 @@
     function handleButtonAction(action, btn) {
       if (!action || !btn) return;
       
-      // Toggle buttons (mic, cam, hand, recording) maintain their own active state
+      // TRUE LECTURER AUTHORITY: Hard check role for host-only actions
+      const hostOnlyActions = ['record', 'attendance'];
+      if (hostOnlyActions.includes(action) && !state.isHost) {
+        showNotification('Only host can perform this action', 'info');
+        return;
+      }
+      
+      // Check media control locks for non-host users
+      if (!state.isHost) {
+        // HARD MUTE LOCK: Students cannot unmute when lock is active
+        if (action === 'mic' && (state.mediaControlLocked || state.hardMuteLock)) {
+          showNotification('Microphone is locked by host', 'info');
+          return;
+        }
+        
+        // HARD CAMERA LOCK: Students cannot enable cameras when lock is active
+        if (action === 'cam' && (state.cameraControlLocked || state.hardCameraLock)) {
+          showNotification('Camera is locked by host', 'info');
+          return;
+        }
+        
+        // TRUE 10,000 USER LOCKDOWN: Check if user is in listen-only mode
+        if ((action === 'mic' || action === 'cam') && state.forceListenOnly && !state.promotedSpeakers.has(state.currentUser.id)) {
+          showNotification('You are in listen-only mode. Ask host for permission to speak.', 'info');
+          return;
+        }
+      }
+      
       const toggleButtons = ['mic', 'cam', 'hand', 'record'];
       
       if (toggleButtons.includes(action)) {
         btn.classList.toggle('active');
       } else {
-        // Other buttons: remove active from all, add to clicked
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       }
@@ -2113,34 +2205,92 @@
       switch (action) {
         case 'mic':
           if (state.localAudioTrack) {
-            state.isMicOn = !state.isMicOn;
+            // TRUTHFUL MEDIA STATE: Ensure UI matches real track state
+            const newState = !state.isMicOn;
+            
+            // HARD MUTE LOCK: Prevent unmute if locked
+            if (newState && (state.mediaControlLocked || state.hardMuteLock) && !state.isHost) {
+              showNotification('Microphone is locked by host', 'info');
+              btn.classList.toggle('active'); // Revert UI change
+              return;
+            }
+            
+            state.isMicOn = newState;
             state.localAudioTrack.setEnabled(state.isMicOn).catch(err => {
               console.error('Mic error:', err);
-              state.isMicOn = !state.isMicOn; // Revert state on error
+              state.isMicOn = !state.isMicOn;
               showNotification('Microphone error - please try again', 'error');
             });
-          }
-          const micIcon = btn.querySelector('i');
-          if (micIcon) {
-            micIcon.classList.toggle('fa-microphone');
-            micIcon.classList.toggle('fa-microphone-slash');
+            
+            // Update UI to match real state
+            const micIcon = btn.querySelector('i');
+            if (micIcon) {
+              if (state.isMicOn) {
+                micIcon.classList.remove('fa-microphone-slash');
+                micIcon.classList.add('fa-microphone');
+              } else {
+                micIcon.classList.remove('fa-microphone');
+                micIcon.classList.add('fa-microphone-slash');
+              }
+            }
+            
+            // Broadcast mic state change to host
+            if (!state.isHost && state.channel) {
+              state.channel.send({
+                type: 'broadcast',
+                event: 'student-mic-change',
+                payload: {
+                  userId: state.currentUser.id,
+                  isMicOn: state.isMicOn
+                }
+              });
+            }
           }
           showNotification(state.isMicOn ? 'Microphone ON' : 'Microphone OFF', 'mic');
           break;
           
         case 'cam':
           if (state.localVideoTrack) {
-            state.isCameraOn = !state.isCameraOn;
+            // TRUTHFUL MEDIA STATE: Ensure UI matches real track state
+            const newState = !state.isCameraOn;
+            
+            // HARD CAMERA LOCK: Prevent enabling if locked
+            if (newState && (state.cameraControlLocked || state.hardCameraLock) && !state.isHost) {
+              showNotification('Camera is locked by host', 'info');
+              btn.classList.toggle('active'); // Revert UI change
+              return;
+            }
+            
+            state.isCameraOn = newState;
             state.localVideoTrack.setEnabled(state.isCameraOn).catch(err => {
               console.error('Camera error:', err);
-              state.isCameraOn = !state.isCameraOn; // Revert state on error
+              state.isCameraOn = !state.isCameraOn;
               showNotification('Camera error - please try again', 'error');
             });
-          }
-          const camIcon = btn.querySelector('i');
-          if (camIcon) {
-            camIcon.classList.toggle('fa-video');
-            camIcon.classList.toggle('fa-video-slash');
+            
+            // Update UI to match real state
+            const camIcon = btn.querySelector('i');
+            if (camIcon) {
+              if (state.isCameraOn) {
+                camIcon.classList.remove('fa-video-slash');
+                camIcon.classList.add('fa-video');
+              } else {
+                camIcon.classList.remove('fa-video');
+                camIcon.classList.add('fa-video-slash');
+              }
+            }
+            
+            // Broadcast camera state change to host
+            if (!state.isHost && state.channel) {
+              state.channel.send({
+                type: 'broadcast',
+                event: 'student-cam-change',
+                payload: {
+                  userId: state.currentUser.id,
+                  isCameraOn: state.isCameraOn
+                }
+              });
+            }
           }
           showNotification(state.isCameraOn ? 'Camera ON' : 'Camera OFF', 'camera');
           break;
@@ -2150,10 +2300,18 @@
           break;
           
         case 'record':
+          if (!state.isHost) {
+            showNotification('Only host can record', 'info');
+            return;
+          }
           toggleRecording(btn);
           break;
           
         case 'attendance':
+          if (!state.isHost) {
+            showNotification('Only host can view attendance', 'info');
+            return;
+          }
           takeAttendance();
           break;
           
@@ -2185,12 +2343,9 @@
     hostToolButtons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Remove active from all host tool buttons
         hostToolButtons.forEach(b => b.classList.remove('active'));
-        // Add active to clicked button (except spotlight which has its own styling)
         if (!btn.id.includes('spotlight')) {
           btn.classList.add('active');
-          // Auto-remove active after 2 seconds for non-persistent actions
           setTimeout(() => {
             btn.classList.remove('active');
           }, 2000);
@@ -2220,7 +2375,6 @@
       }
     }
 
-    // Focus on desktop input when clicking anywhere on input panel
     desktopChatInput.addEventListener('click', (e) => {
       if (e.target === desktopChatInput || e.target.closest('.chat-input-desktop-wrapper')) {
         chatDesktopInput.focus();
@@ -2229,21 +2383,60 @@
     });
 
     // ============= PRESENTER MODE =============
-    function enablePresenterMode() {
-      state.canPresent = true;
-      document.body.classList.add('can-present');
-      showNotification('You have been accepted to present', 'check');
+    function enablePresenterMode(userId) {
+      state.promotedSpeakers.add(userId);
+      if (userId === state.currentUser?.id) {
+        state.canPresent = true;
+        state.forceListenOnly = false;
+        document.body.classList.add('can-present');
+        showNotification('You have been promoted to presenter', 'check');
+        
+        // Create and publish tracks if not already done
+        if (state.client && !state.localAudioTrack && !state.localVideoTrack) {
+          AgoraRTC.createMicrophoneAndCameraTracks().then(([audioTrack, videoTrack]) => {
+            state.localAudioTrack = audioTrack;
+            state.localVideoTrack = videoTrack;
+            state.localAudioTrack.setEnabled(false);
+            state.localVideoTrack.setEnabled(false);
+            state.client.publish([audioTrack, videoTrack]);
+            
+            // Create video tile for self
+            const container = document.getElementById('video-container');
+            const localPlayerDiv = createVideoTile(state.currentUser.id, state.currentUser.name + " (You)", true);
+            if (localPlayerDiv) {
+              container.appendChild(localPlayerDiv);
+              state.localVideoTrack.play(`player-${state.currentUser.id}`);
+            }
+          });
+        }
+      }
     }
 
-    function disablePresenterMode() {
-      state.canPresent = false;
-      document.body.classList.remove('can-present');
-      showNotification('Presenter access revoked', 'info');
+    function disablePresenterMode(userId) {
+      state.promotedSpeakers.delete(userId);
+      if (userId === state.currentUser?.id) {
+        state.canPresent = false;
+        state.forceListenOnly = true;
+        document.body.classList.remove('can-present');
+        showNotification('Presenter access revoked', 'info');
+        
+        // Unpublish tracks
+        if (state.client && state.localAudioTrack && state.localVideoTrack) {
+          state.client.unpublish([state.localAudioTrack, state.localVideoTrack]);
+        }
+      }
     }
 
     // ============= SCREEN SHARING =============
     function handleScreenShare() {
-      if (!state.isHost) {
+      // SINGLE PRESENTER ENFORCEMENT: Check if someone is already sharing
+      if (state.currentPresenter && state.currentPresenter !== state.currentUser.id) {
+        showNotification('Someone is already sharing their screen', 'info');
+        return;
+      }
+      
+      // Check permissions
+      if (!state.isHost && !state.canPresent) {
         requestScreenShare();
         return;
       }
@@ -2276,8 +2469,15 @@
       messagesContainer.appendChild(systemDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
-      // Grant presenter mode to requesting user
-      enablePresenterMode();
+      // Notify host via broadcast
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'screen-share-request',
+          payload: request
+        });
+      }
+      
       showNotification('Screen share request sent to host', 'info');
     }
 
@@ -2331,6 +2531,7 @@
         state.localScreenTrack.play(`player-${uid}`);
 
         state.isScreenSharing = true;
+        state.currentPresenter = state.currentUser.id;
         
         const myTile = document.getElementById(`tile-${uid}`);
         if (myTile) myTile.classList.add('screen-sharing');
@@ -2338,6 +2539,18 @@
         const shareBtn = document.querySelector('[data-action="share"]');
         shareBtn.innerHTML = '<i class="fas fa-stop"></i>';
         shareBtn.setAttribute('data-tooltip', 'Stop Sharing');
+        
+        // Broadcast screen share start
+        if (state.channel) {
+          state.channel.send({
+            type: 'broadcast',
+            event: 'screen-share-started',
+            payload: {
+              userId: state.currentUser.id,
+              userName: state.currentUser.name
+            }
+          });
+        }
         
         showNotification('Screen sharing started', 'share');
       } catch (error) {
@@ -2369,6 +2582,7 @@
         }
 
         state.isScreenSharing = false;
+        state.currentPresenter = null;
         
         const uid = state.currentUser.id;
         const myTile = document.getElementById(`tile-${uid}`);
@@ -2378,10 +2592,41 @@
         shareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
         shareBtn.setAttribute('data-tooltip', 'Share Screen');
         
+        // Broadcast screen share stopped
+        if (state.channel) {
+          state.channel.send({
+            type: 'broadcast',
+            event: 'screen-share-stopped',
+            payload: { userId: state.currentUser.id }
+          });
+        }
+        
         showNotification('Screen sharing stopped', 'share');
       } catch (error) {
         console.error("Error stopping screen share:", error);
       }
+    }
+
+    // Host function to force-stop any screen share
+    function forceStopScreenShare(userId) {
+      if (!state.isHost) {
+        showNotification('Only host can force-stop screen share', 'info');
+        return;
+      }
+      
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'force-stop-screenshare',
+          payload: { userId }
+        });
+      }
+      
+      if (userId === state.currentUser?.id) {
+        stopScreenSharing();
+      }
+      
+      showNotification(`Stopped screen share for user ${userId}`, 'info');
     }
 
     function cancelScreenShare() {
@@ -2396,7 +2641,6 @@
         chatDrawerInput.focus();
         hideDesktopChatInput();
       } else {
-        // When closing drawer, show desktop input if not on mobile
         if (!state.isMobile) {
           setTimeout(() => {
             showDesktopChatInput();
@@ -2414,7 +2658,6 @@
       }
     });
 
-    // Create AI Card
     function createAICard(type, title, subtitle, content, actions = []) {
       const card = document.createElement('div');
       card.className = 'ai-message-card';
@@ -2464,7 +2707,6 @@
       return card;
     }
 
-    // Add message to chat
     function addMessage(text, sender, isSelf = false, fromDesktop = false, time = null) {
       const messagesContainer = document.getElementById('chat-messages');
       const messageDiv = document.createElement('div');
@@ -2493,7 +2735,6 @@
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
-      // Hide desktop input after sending message from desktop interface
       if (fromDesktop && state.desktopChatInputVisible) {
         setTimeout(() => {
           hideDesktopChatInput();
@@ -2520,7 +2761,6 @@
           if (error) throw error;
           
           input.value = '';
-          // Auto-hide desktop chat input after sending
           if (fromDesktop) {
             hideDesktopChatInput();
           }
@@ -2531,13 +2771,10 @@
       }
     }
 
-    // Desktop send button
     desktopSendBtn.addEventListener('click', () => sendMessage(true));
     
-    // Drawer send button
     drawerSendBtn.addEventListener('click', () => sendMessage(false));
 
-    // Enter key listeners
     chatDesktopInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -2552,7 +2789,6 @@
       }
     });
 
-    // Action buttons
     desktopAttachBtn.addEventListener('click', () => {
       showNotification('File attachment dialog would open here', 'info');
     });
@@ -2561,18 +2797,15 @@
       showNotification('Emoji picker would open here', 'info');
     });
 
-    // Confirmation Modal Button Listeners
     document.getElementById('modal-cancel').addEventListener('click', closeConfirmationModal);
     document.getElementById('modal-confirm').addEventListener('click', executeConfirmation);
 
-    // Clicking on desktop chat input field shows the panel
     chatDesktopInput.addEventListener('focus', () => {
       if (!state.desktopChatInputVisible) {
         showDesktopChatInput();
       }
     });
 
-    // Hide desktop chat input when clicking outside (except on control bar)
     document.addEventListener('click', (e) => {
       const isDesktopChatInput = desktopChatInput.contains(e.target);
       const isControlBar = document.getElementById('control-bar').contains(e.target);
@@ -2586,11 +2819,15 @@
 
     // ============= WHITEBOARD =============
     function toggleWhiteboard() {
+      if (!state.isHost && !state.canPresent) {
+        showNotification('Only host or presenters can use whiteboard', 'info');
+        return;
+      }
+      
       state.isWhiteboardActive = !state.isWhiteboardActive;
       whiteboardOverlay.classList.toggle('active');
       whiteboardTools.classList.toggle('active');
       
-      // Broadcast whiteboard toggle to all participants
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -2672,7 +2909,6 @@
       state.lastX = x;
       state.lastY = y;
       
-      // Broadcast whiteboard drawing to other participants
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -2716,7 +2952,6 @@
       state.lastX = x;
       state.lastY = y;
       
-      // Broadcast whiteboard drawing to other participants
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -2848,23 +3083,186 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // ============= HOST TOOLS =============
-    function muteAllParticipants() {
-      showNotification('All participants muted', 'mute');
+    // ============= HOST TOOLS - UPDATED WITH FIXES =============
+    async function muteAllParticipants() {
+      if (!state.isHost) {
+        showNotification('Only host can perform this action', 'info');
+        return;
+      }
+      
+      state.allMuted = true;
+      state.mediaControlLocked = true;
+      state.hardMuteLock = true;
+      
+      // Update UI
+      document.getElementById('mute-all-btn').style.display = 'none';
+      document.getElementById('unmute-all-btn').style.display = 'flex';
+      
+      // Broadcast to all students
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'mute-all',
+          payload: { locked: true, hardLock: true }
+        });
+      }
+      
+      // Force mute all remote users and disable their tracks
+      Object.values(state.remoteUsers).forEach(user => {
+        if (user.audioTrack) {
+          user.audioTrack.setEnabled(false);
+        }
+      });
+      
+      // Also mute local audio for non-host users
+      if (!state.isHost && state.localAudioTrack) {
+        state.localAudioTrack.setEnabled(false);
+        state.isMicOn = false;
+        const micBtn = document.querySelector('[data-action="mic"]');
+        if (micBtn) {
+          micBtn.classList.remove('active');
+          const micIcon = micBtn.querySelector('i');
+          micIcon.classList.remove('fa-microphone');
+          micIcon.classList.add('fa-microphone-slash');
+          micBtn.classList.add('media-locked');
+        }
+      }
+      
+      showNotification('All participants muted and locked', 'mute');
     }
 
-    function disableAllCameras() {
-      showNotification('All cameras disabled', 'camera');
+    async function unmuteAllParticipants() {
+      if (!state.isHost) {
+        showNotification('Only host can perform this action', 'info');
+        return;
+      }
+      
+      state.allMuted = false;
+      state.mediaControlLocked = false;
+      state.hardMuteLock = false;
+      
+      // Update UI
+      document.getElementById('mute-all-btn').style.display = 'flex';
+      document.getElementById('unmute-all-btn').style.display = 'none';
+      
+      // Broadcast to all students
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'unmute-all',
+          payload: { locked: false, hardLock: false }
+        });
+      }
+      
+      // Remove lock UI
+      const micBtn = document.querySelector('[data-action="mic"]');
+      if (micBtn) {
+        micBtn.classList.remove('media-locked');
+      }
+      
+      showNotification('Participants can now unmute', 'mic');
+    }
+
+    async function disableAllCameras() {
+      if (!state.isHost) {
+        showNotification('Only host can perform this action', 'info');
+        return;
+      }
+      
+      state.allCamerasDisabled = true;
+      state.cameraControlLocked = true;
+      state.hardCameraLock = true;
+      
+      // Update UI
+      document.getElementById('disable-cameras-btn').style.display = 'none';
+      document.getElementById('enable-cameras-btn').style.display = 'flex';
+      
+      // Broadcast to all students
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'disable-cameras',
+          payload: { locked: true, hardLock: true }
+        });
+      }
+      
+      // Force disable all remote cameras
+      Object.values(state.remoteUsers).forEach(user => {
+        if (user.videoTrack) {
+          user.videoTrack.setEnabled(false);
+        }
+      });
+      
+      // Also disable local camera for non-host users
+      if (!state.isHost && state.localVideoTrack) {
+        state.localVideoTrack.setEnabled(false);
+        state.isCameraOn = false;
+        const camBtn = document.querySelector('[data-action="cam"]');
+        if (camBtn) {
+          camBtn.classList.remove('active');
+          const camIcon = camBtn.querySelector('i');
+          camIcon.classList.remove('fa-video');
+          camIcon.classList.add('fa-video-slash');
+          camBtn.classList.add('media-locked');
+        }
+      }
+      
+      showNotification('All cameras disabled and locked', 'camera');
+    }
+
+    async function enableAllCameras() {
+      if (!state.isHost) {
+        showNotification('Only host can perform this action', 'info');
+        return;
+      }
+      
+      state.allCamerasDisabled = false;
+      state.cameraControlLocked = false;
+      state.hardCameraLock = false;
+      
+      // Update UI
+      document.getElementById('disable-cameras-btn').style.display = 'flex';
+      document.getElementById('enable-cameras-btn').style.display = 'none';
+      
+      // Broadcast to all students
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'enable-cameras',
+          payload: { locked: false, hardLock: false }
+        });
+      }
+      
+      // Remove lock UI
+      const camBtn = document.querySelector('[data-action="cam"]');
+      if (camBtn) {
+        camBtn.classList.remove('media-locked');
+      }
+      
+      showNotification('Participants can now enable cameras', 'camera');
     }
 
     async function toggleHostSpotlight() {
+      if (!state.isHost) {
+        showNotification('Only host can control spotlight', 'info');
+        return;
+      }
+      
       const newState = !state.isPresentationMode;
+      
+      // Set spotlight to host
+      state.spotlightUserId = state.currentUser.id;
+      state.spotlightImmune = true;
       
       if (state.channel) {
         await state.channel.send({
           type: 'broadcast',
           event: 'spotlight',
-          payload: { active: newState }
+          payload: { 
+            active: newState,
+            spotlightUserId: state.currentUser.id,
+            immune: true
+          }
         });
       }
       
@@ -2877,14 +3275,17 @@
       const spotlightBtn = document.getElementById('spotlight-btn');
       
       if (active) {
-        const hostTile = document.getElementById(`tile-${state.hostId}`);
-        if (hostTile) {
-            container.prepend(hostTile);
+        // Move spotlighted user to first position
+        const spotlightTile = document.getElementById(`tile-${state.spotlightUserId}`);
+        if (spotlightTile) {
+            container.prepend(spotlightTile);
         }
         container.classList.add('presentation-mode');
         if (spotlightBtn) spotlightBtn.classList.add('active');
-        showNotification('Host Spotlight Active', 'spotlight');
+        showNotification('Spotlight Active', 'spotlight');
       } else {
+        state.spotlightUserId = null;
+        state.spotlightImmune = false;
         container.classList.remove('presentation-mode');
         if (spotlightBtn) spotlightBtn.classList.remove('active');
         showNotification('Spotlight Disabled', 'spotlight');
@@ -2892,6 +3293,10 @@
     }
 
     function showPendingRequests() {
+      if (!state.isHost) {
+        showNotification('Only host can view requests', 'info');
+        return;
+      }
       showNotification(`${state.screenShareRequests.length} pending requests`, 'info');
     }
 
@@ -2901,8 +3306,117 @@
       showNotification('Class link copied to clipboard', 'link');
     }
 
+    // ============= HAND RAISE SYSTEM WITH FIXES =============
+    function toggleHandRaise(btn) {
+      if (!state.currentUser) return;
+      
+      // HAND RAISE LOCK: Check if hand is already raised
+      if (state.raisedHands.has(state.currentUser.id)) {
+        showNotification('You have already raised your hand', 'info');
+        return;
+      }
+      
+      state.isHandRaised = !state.isHandRaised;
+      if (state.isHandRaised) {
+        btn.classList.add('active');
+        
+        // Add hand icon to video tile
+        const userTile = document.getElementById(`tile-${state.currentUser.id}`);
+        if (userTile) {
+          const existingIcon = userTile.querySelector('.hand-icon');
+          if (!existingIcon) {
+            const handIcon = document.createElement('div');
+            handIcon.className = 'hand-icon';
+            handIcon.innerHTML = '✋';
+            userTile.appendChild(handIcon);
+            userTile.classList.add('hand-raised');
+          }
+        }
+        
+        // Add to raised hands map with timestamp
+        state.raisedHands.set(state.currentUser.id, {
+          name: state.currentUser.name,
+          timestamp: Date.now(),
+          userId: state.currentUser.id
+        });
+        
+        // Broadcast hand raise
+        if (state.channel) {
+          state.channel.send({
+            type: 'broadcast',
+            event: 'hand-raise',
+            payload: {
+              userId: state.currentUser.id,
+              userName: state.currentUser.name,
+              action: 'raise'
+            }
+          });
+        }
+        
+        // Add message to chat for host
+        if (state.isHost) {
+          addMessage(`${state.currentUser.name} raised hand ✋`, 'system');
+        }
+        
+        showNotification('Hand Raised', 'hand');
+      } else {
+        lowerHand(state.currentUser.id);
+      }
+    }
+
+    function lowerHand(userId) {
+      const handInfo = state.raisedHands.get(userId);
+      if (!handInfo) return;
+      
+      // Remove hand icon from correct tile
+      const userTile = document.getElementById(`tile-${userId}`);
+      if (userTile) {
+        const handIcon = userTile.querySelector('.hand-icon');
+        if (handIcon) handIcon.remove();
+        userTile.classList.remove('hand-raised');
+      }
+      
+      // Remove from map
+      state.raisedHands.delete(userId);
+      
+      // If it's the current user, update button
+      if (userId === state.currentUser?.id) {
+        state.isHandRaised = false;
+        const handBtn = document.querySelector('[data-action="hand"]');
+        if (handBtn) handBtn.classList.remove('active');
+      }
+      
+      // Broadcast hand lower
+      if (state.channel && state.isHost) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'hand-lower',
+          payload: { userId }
+        });
+      }
+    }
+
+    function clearAllHands() {
+      if (!state.isHost) {
+        showNotification('Only host can clear all hands', 'info');
+        return;
+      }
+      
+      // Lower all raised hands
+      state.raisedHands.forEach((handInfo, userId) => {
+        lowerHand(userId);
+      });
+      
+      showNotification('All hands cleared', 'hand');
+    }
+
     // ============= HELPER FUNCTIONS =============
     function toggleRecording(btn) {
+      if (!state.isHost) {
+        showNotification('Only host can record', 'info');
+        return;
+      }
+      
       state.isRecording = !state.isRecording;
       if (state.isRecording) {
         btn.classList.add('recording');
@@ -2910,16 +3424,6 @@
       } else {
         btn.classList.remove('recording');
         showNotification('Recording Stopped', 'recording');
-      }
-    }
-
-    function toggleHandRaise(btn) {
-      state.isHandRaised = !state.isHandRaised;
-      if (state.isHandRaised) {
-        btn.classList.add('active');
-        showNotification('Hand Raised', 'hand');
-      } else {
-        btn.classList.remove('active');
       }
     }
 
@@ -2978,7 +3482,6 @@
     }
 
     function playNotificationSound() {
-      // Use Web Audio API to create a simple notification sound
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
@@ -3001,7 +3504,6 @@
     }
 
     function showNotification(message, type = 'info') {
-      // Send browser notification if permission is granted
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
           new Notification('PeerLoom', {
@@ -3016,7 +3518,6 @@
         }
       }
 
-      // In-app notification (existing code)
       const notification = document.createElement('div');
       notification.style.cssText = `
         position: fixed;
@@ -3088,7 +3589,7 @@
       aiPanel.classList.toggle('open');
     });
 
-    // ============= AGORA VIDEO LOGIC =============
+    // ============= AGORA VIDEO LOGIC WITH 10,000 USER FIXES =============
     async function initAgora(channelName, uid, userName) {
       updateLoadingStatus("Checking system requirements...");
       
@@ -3097,30 +3598,47 @@
         return;
       }
 
-      // 0. Check System Requirements (Crucial for production apps)
       if (!AgoraRTC.checkSystemRequirements()) {
         showNotification("Your browser does not support video calling.", "end");
         return;
       }
 
-      // 1. Create Client
       state.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-      // 2. Add Event Listeners
       state.client.on("user-published", handleUserPublished);
       state.client.on("user-unpublished", handleUserUnpublished);
       
-      // Handle user joining
       state.client.on("user-joined", (user) => {
+        // SPOTLIGHT IMMUNITY: Don't change spotlight when users join
+        if (state.spotlightUserId && state.spotlightImmune) return;
+        
         let student = state.students.find(s => s.id === user.uid);
         const name = student?.name || `User ${user.uid.slice(0, 8)}`;
         showNotification(`${name} joined the meeting`, 'user');
       });
 
-      // Handle user leaving (explicit leave or timeout)
       state.client.on("user-left", (user, reason) => {
-        const tile = document.getElementById(`tile-${user.uid}`);
-        if (tile) tile.remove();
+        // SPOTLIGHT IMMUNITY: Don't change spotlight when users leave
+        if (state.spotlightUserId && state.spotlightImmune) {
+          // Just remove the tile if it's not the spotlight user
+          if (user.uid !== state.spotlightUserId) {
+            const tile = document.getElementById(`tile-${user.uid}`);
+            if (tile) tile.remove();
+            state.renderedVideoTiles.delete(user.uid);
+          }
+        } else {
+          const tile = document.getElementById(`tile-${user.uid}`);
+          if (tile) tile.remove();
+          state.renderedVideoTiles.delete(user.uid);
+        }
+        
+        // Remove from raised hands
+        if (state.raisedHands.has(user.uid)) {
+          state.raisedHands.delete(user.uid);
+        }
+        
+        // Remove from promoted speakers
+        state.promotedSpeakers.delete(user.uid);
         
         let student = state.students.find(s => s.id === user.uid);
         const name = student?.name || `User ${user.uid.slice(0, 8)}`;
@@ -3132,7 +3650,6 @@
         }
       });
 
-      // Handle connection state changes (Reconnecting logic)
       state.client.on("connection-state-change", (curState, prevState) => {
         if (curState === "RECONNECTING") {
           showNotification("Connection lost. Reconnecting...", "info");
@@ -3143,41 +3660,30 @@
         }
       });
 
-      // Handle network quality updates
       state.client.on("network-quality", (stats) => {
         const uid = state.currentUser.id;
         const quality = Math.max(stats.downlinkNetworkQuality, stats.uplinkNetworkQuality);
         updateNetworkUI(quality);
       });
       
-      // Handle exceptions
       state.client.on("exception", (event) => {
-        if (event.code === 1003) { // Input device error
+        if (event.code === 1003) {
            showNotification("Microphone/Camera error. Check devices.", "end");
         }
       });
       
-      // Handle token expiration (Best Practice: Renew 30s before expiry)
       state.client.on("token-privilege-will-expire", async () => {
         console.log("Token expiring soon, renewing...");
         await renewToken(channelName, uid);
       });
 
       try {
-        // 3. Join Channel
-        // PRODUCTION UPDATE: Token Authentication
         updateLoadingStatus("Authenticating...");
-        // Since this is a launched app, you must use tokens to prevent unauthorized access.
-        // We attempt to fetch a token from Supabase Edge Functions.
         let token = null;
         
         console.log("Agora App ID:", state.agoraAppId)
-        
-        // [TEMP FIX] Paste your temp token from Agora Console here:
-        // token = "YOUR_LONG_TOKEN_STRING_HERE";
 
         try {
-          // [PRODUCTION] Uncomment this when you have the Edge Function deployed
           const { data, error } = await supabase.functions.invoke('generate-agora-token', {
             body: { channelName, uid }
           });
@@ -3185,7 +3691,6 @@
           if (data?.token) token = data.token;
         } catch (error) {
           console.error("Token fetch failed:", error);
-          // Show warning if token generation fails (likely due to deployment issue)
           if (error) {
              showNotification("Warning: Token server unreachable. Video may fail.", "end");
           }
@@ -3194,12 +3699,35 @@
         updateLoadingStatus("Connecting to media server...");
         await state.client.join(state.agoraAppId, channelName, token, uid);
 
-        // 4. Create & Publish Local Tracks
-        // If tracks were not created in settings (e.g. skipped), create them now
-        if (!state.localAudioTrack || !state.localVideoTrack) {
+        // TRUE 10,000 USER LOCKDOWN: Students join in listen-only mode
+        if (!state.isHost) {
+          // Students start with mic and camera disabled
+          state.isMicOn = false;
+          state.isCameraOn = false;
+          state.forceListenOnly = true;
+          
+          // Only create tracks if user is promoted to speaker
+          if (state.promotedSpeakers.has(uid)) {
+            try {
+              updateLoadingStatus("Accessing camera and microphone...");
+              [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+              state.localAudioTrack.setEnabled(false);
+              state.localVideoTrack.setEnabled(false);
+              await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
+            } catch (permError) {
+              console.log("Student cannot access media devices (listen-only mode)");
+            }
+          }
+        } else {
+          // Host always has tracks
           try {
             updateLoadingStatus("Accessing camera and microphone...");
             [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+            state.localAudioTrack.setEnabled(true);
+            state.localVideoTrack.setEnabled(true);
+            state.isMicOn = true;
+            state.isCameraOn = true;
+            await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
           } catch (permError) {
             if (permError.name === 'NotAllowedError') {
               showNotification("Microphone/Camera access denied. Please check browser settings.", "end");
@@ -3209,12 +3737,10 @@
           }
         }
         
-        // Render Local Video
         const container = document.getElementById('video-container');
         const hostTile = document.getElementById('host-tile');
         
         if (state.isHost && hostTile) {
-          // Reuse host tile for local host video
           hostTile.id = `tile-${uid}`;
           hostTile.innerHTML = '';
           
@@ -3225,7 +3751,7 @@
           playerContainer.style.position = 'absolute';
           playerContainer.style.top = '0';
           playerContainer.style.left = '0';
-          playerContainer.style.transform = 'scaleX(-1)'; // Mirror local
+          playerContainer.style.transform = 'scaleX(-1)';
           hostTile.appendChild(playerContainer);
           
           const nameTag = document.createElement('div');
@@ -3233,24 +3759,57 @@
           nameTag.innerHTML = `<span>${userName} (You)</span><span class="host-badge">HOST</span>`;
           hostTile.appendChild(nameTag);
           
-          state.localVideoTrack.play(`player-${uid}`);
-        } else {
-          // Normal student or fallback
+          if (state.localVideoTrack) {
+            state.localVideoTrack.play(`player-${uid}`);
+          }
+        } else if (state.promotedSpeakers.has(uid) || state.isHost) {
+          // Only create video tile for promoted speakers or host
           const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
-          container.appendChild(localPlayerDiv);
-          state.localVideoTrack.play(`player-${uid}`);
+          if (localPlayerDiv) {
+            container.appendChild(localPlayerDiv);
+            if (state.localVideoTrack) {
+              state.localVideoTrack.play(`player-${uid}`);
+            }
+          }
         }
 
-        // Publish
-        await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
+        // Update control bar UI to match actual state
+        const micBtn = document.querySelector('[data-action="mic"]');
+        const camBtn = document.querySelector('[data-action="cam"]');
+        
+        if (micBtn) {
+          const micIcon = micBtn.querySelector('i');
+          if (state.isMicOn) {
+            micIcon.classList.remove('fa-microphone-slash');
+            micIcon.classList.add('fa-microphone');
+            micBtn.classList.add('active');
+          } else {
+            micIcon.classList.remove('fa-microphone');
+            micIcon.classList.add('fa-microphone-slash');
+            micBtn.classList.remove('active');
+          }
+        }
+        
+        if (camBtn) {
+          const camIcon = camBtn.querySelector('i');
+          if (state.isCameraOn) {
+            camIcon.classList.remove('fa-video-slash');
+            camIcon.classList.add('fa-video');
+            camBtn.classList.add('active');
+          } else {
+            camIcon.classList.remove('fa-video');
+            camIcon.classList.add('fa-video-slash');
+            camBtn.classList.remove('active');
+          }
+        }
+        
         showNotification("Connected to video stream", "camera");
         
-        // Hide loading screen on success
         loadingOverlay.classList.add('hidden');
 
       } catch (error) {
         console.error("Agora Error:", error);
-        loadingOverlay.classList.add('hidden'); // Hide loading to show error
+        loadingOverlay.classList.add('hidden');
         if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
           showCriticalError("Security Error: Invalid App ID or Token. Please contact support.");
         } else {
@@ -3261,7 +3820,6 @@
 
     async function renewToken(channelName, uid) {
       try {
-        // Call Supabase Edge Function to get new token
         const { data, error } = await supabase.functions.invoke('generate-agora-token', {
           body: { channelName, uid }
         });
@@ -3276,11 +3834,15 @@
     }
 
     function createVideoTile(uid, name, isLocal = false) {
+      // TRUE 10,000 USER LOCKDOWN: Only create video tiles for speakers
+      if (!state.isHost && !state.promotedSpeakers.has(uid) && uid !== state.currentUser?.id) {
+        return null;
+      }
+      
       const div = document.createElement('div');
       div.className = 'video-tile';
       div.id = `tile-${uid}`;
       
-      // The actual video element container that Agora will target
       const playerContainer = document.createElement('div');
       playerContainer.id = `player-${uid}`;
       playerContainer.style.width = '100%';
@@ -3288,27 +3850,41 @@
       playerContainer.style.position = 'absolute';
       playerContainer.style.top = '0';
       playerContainer.style.left = '0';
-      // Fix for local video mirroring
       if (isLocal) playerContainer.style.transform = 'scaleX(-1)';
       
       div.appendChild(playerContainer);
 
-      // Name Tag
       const nameTag = document.createElement('div');
       nameTag.className = 'name-tag';
       nameTag.innerHTML = `<span>${name}</span>`;
+      if (state.isHost && uid === state.currentUser.id) {
+        nameTag.innerHTML += `<span class="host-badge">HOST</span>`;
+      }
       div.appendChild(nameTag);
 
+      // Track rendered tiles
+      state.renderedVideoTiles.add(uid);
+      
       return div;
     }
 
     async function handleUserPublished(user, mediaType) {
+      // TRUE 10,000 USER LOCKDOWN: Only subscribe to host and promoted speakers
+      const shouldSubscribe = state.isHost || 
+                             user.uid === state.hostId || 
+                             state.promotedSpeakers.has(user.uid) ||
+                             user.uid === state.currentUser?.id;
+      
+      if (!shouldSubscribe) {
+        console.log(`Skipping subscription to non-speaker user ${user.uid}`);
+        return;
+      }
+
       await state.client.subscribe(user, mediaType);
 
       if (mediaType === 'video') {
         console.log(`Subscribing to video of user ${user.uid}`);
         const container = document.getElementById('video-container');
-        // Check if tile exists
         let tile = document.getElementById(`tile-${user.uid}`);
         
         if (!tile) {
@@ -3317,12 +3893,11 @@
 
           if (isHostUser) {
             name = state.hostName || 'Host';
-            // Reuse the placeholder host tile
             const placeholder = document.getElementById('host-tile');
             if (placeholder) {
               tile = placeholder;
               tile.id = `tile-${user.uid}`;
-              tile.innerHTML = ''; // Clear placeholder content
+              tile.innerHTML = '';
               
               const playerContainer = document.createElement('div');
               playerContainer.id = `player-${user.uid}`;
@@ -3341,7 +3916,6 @@
           }
 
           if (!tile) {
-            // Try to find name from Supabase list, fallback to fetching profile
             const student = state.students.find(s => s.id === user.uid);
             if (student) {
               name = student.name;
@@ -3351,18 +3925,34 @@
             }
             
             tile = createVideoTile(user.uid, name);
-            container.appendChild(tile);
+            if (tile) {
+              container.appendChild(tile);
+            }
           }
           
-          // Track attendance
-          updateAttendance({ id: user.uid, name: name });
+          if (tile) {
+            updateAttendance({ id: user.uid, name: name });
+            
+            // Store remote user
+            state.remoteUsers[user.uid] = user;
+          }
         }
-        user.videoTrack.play(`player-${user.uid}`);
+        
+        if (tile) {
+          user.videoTrack.play(`player-${user.uid}`);
+        }
       }
 
       if (mediaType === 'audio') {
         console.log(`Subscribing to audio of user ${user.uid}`);
         user.audioTrack.play();
+        
+        // Store remote user
+        if (!state.remoteUsers[user.uid]) {
+          state.remoteUsers[user.uid] = user;
+        } else {
+          state.remoteUsers[user.uid].audioTrack = user.audioTrack;
+        }
       }
     }
 
@@ -3372,6 +3962,17 @@
       if (mediaType === 'video') {
         const tile = document.getElementById(`tile-${user.uid}`);
         if (tile) tile.remove();
+        state.renderedVideoTiles.delete(user.uid);
+      }
+      
+      // Remove from remote users
+      if (state.remoteUsers[user.uid]) {
+        if (mediaType === 'video') {
+          delete state.remoteUsers[user.uid].videoTrack;
+        }
+        if (mediaType === 'audio') {
+          delete state.remoteUsers[user.uid].audioTrack;
+        }
       }
     }
 
@@ -3379,7 +3980,6 @@
       const icon = document.querySelector('.fa-signal');
       const text = document.querySelector('.fa-signal + span');
       
-      // 0: unknown, 1: excellent, 2: good, 3: poor, 4: bad, 5: vbad, 6: down
       if (quality <= 2) {
         icon.style.color = 'var(--accent-green)';
         text.textContent = 'HD';
@@ -3392,14 +3992,8 @@
       }
     }
 
-    // Function to enable/disable low bandwidth mode
-    function setLowBandwidthMode(enabled) {
-      state.lowBandwidthMode = enabled;
-    }
-
     // ============= WAITING ROOM LOGIC =============
     async function checkWaitingRoom(gid, user, onApproved) {
-      // Check if request exists
       const { data: request } = await supabase
         .from('meeting_requests')
         .select('*')
@@ -3412,7 +4006,6 @@
         return true;
       }
       
-      // Show waiting screen
       document.getElementById('waiting-room-overlay').classList.remove('hidden');
 
       if (!request) {
@@ -3423,13 +4016,11 @@
           status: 'pending'
         });
       } else if (request.status === 'rejected') {
-        // Reset rejected status to pending to allow re-entry attempt
         await supabase.from('meeting_requests')
           .update({ status: 'pending' })
           .eq('id', request.id);
       }
 
-      // Listen for approval
       supabase.channel(`waiting_${user.id}`)
         .on('postgres_changes', { 
           event: 'UPDATE', 
@@ -3526,7 +4117,7 @@
         div.innerHTML = `
           <div style="display:flex; align-items:center;">${avatarHtml}<span style="font-weight:500;">${req.user_name}</span></div>
           <div class="waiting-actions">
-            <button class="approve-btn" onclick="approveStudent('${req.id}')"><i class="fas fa-check"></i></button>
+            <button class="approve-btn" onclick="approveStudent('${req.id}', '${req.user_id}')"><i class="fas fa-check"></i></button>
             <button class="reject-btn" onclick="rejectStudent('${req.id}')"><i class="fas fa-times"></i></button>
           </div>
         `;
@@ -3534,16 +4125,27 @@
       });
     }
 
-    async function approveStudent(id) {
+    async function approveStudent(id, userId) {
       console.log('Approving student:', id);
       try {
         const { error } = await supabase.from('meeting_requests').update({ status: 'approved' }).eq('id', id);
         if (error) throw error;
         
-        // Optimistically remove from UI
+        // Add to promoted speakers
+        state.promotedSpeakers.add(userId);
+        
+        // Notify student they are now a speaker
+        if (state.channel) {
+          state.channel.send({
+            type: 'broadcast',
+            event: 'promote-speaker',
+            payload: { userId }
+          });
+        }
+        
         state.waitingStudents = state.waitingStudents.filter(s => s.id !== id);
         updateWaitingRoomUI();
-        showNotification('Student admitted', 'check');
+        showNotification('Student admitted as speaker', 'check');
       } catch (error) {
         console.error('Error approving student:', error);
         showNotification('Failed to approve request', 'end');
@@ -3556,7 +4158,6 @@
         const { error } = await supabase.from('meeting_requests').update({ status: 'rejected' }).eq('id', id);
         if (error) throw error;
         
-        // Optimistically remove from UI
         state.waitingStudents = state.waitingStudents.filter(s => s.id !== id);
         updateWaitingRoomUI();
         showNotification('Request denied', 'info');
@@ -3582,8 +4183,10 @@
               
             if (error) throw error;
             
+            // Remove from promoted speakers
+            state.promotedSpeakers.delete(userId);
+            
             showNotification('Student removed', 'info');
-            // The student will be disconnected via the realtime listener
           } catch (error) {
             console.error('Error removing student:', error);
             showNotification('Failed to remove student', 'end');
@@ -3596,15 +4199,30 @@
       if (state.waitingStudents.length === 0) return;
       
       const ids = state.waitingStudents.map(s => s.id);
+      const userIds = state.waitingStudents.map(s => s.user_id);
       console.log('Approving all students:', ids);
       
       try {
         const { error } = await supabase.from('meeting_requests').update({ status: 'approved' }).in('id', ids);
         if (error) throw error;
         
+        // Add all to promoted speakers
+        userIds.forEach(userId => state.promotedSpeakers.add(userId));
+        
+        // Notify all students
+        if (state.channel) {
+          userIds.forEach(userId => {
+            state.channel.send({
+              type: 'broadcast',
+              event: 'promote-speaker',
+              payload: { userId }
+            });
+          });
+        }
+        
         state.waitingStudents = [];
         updateWaitingRoomUI();
-        showNotification('All students admitted', 'check');
+        showNotification('All students admitted as speakers', 'check');
       } catch (error) {
         console.error('Error approving all students:', error);
         showNotification('Failed to approve requests', 'end');
@@ -3635,7 +4253,14 @@
       );
     }
 
-    function openWaitingRoom() { waitingRoomModal.style.display = 'flex'; }
+    function openWaitingRoom() { 
+      if (!state.isHost) {
+        showNotification('Only host can access waiting room', 'info');
+        return;
+      }
+      waitingRoomModal.style.display = 'flex'; 
+    }
+    
     function closeWaitingRoomModal() { waitingRoomModal.style.display = 'none'; }
 
     function updateLoadingStatus(text) {
@@ -3652,20 +4277,32 @@
       const modal = document.getElementById('device-settings-modal');
       const loadingOverlay = document.getElementById('loading-overlay');
       
-      // Hide loading, show modal
       loadingOverlay.classList.add('hidden');
       modal.style.display = 'flex';
       
       try {
-        // 1. Create initial tracks to trigger permissions
-        if (!state.localAudioTrack || !state.localVideoTrack) {
-           [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        // TRUE 10,000 USER LOCKDOWN: Only create preview for host or promoted speakers
+        if (state.isHost || state.promotedSpeakers.has(user.id)) {
+          if (!state.localAudioTrack || !state.localVideoTrack) {
+             [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+             
+             // Set initial state based on role
+             if (!state.isHost) {
+               state.localAudioTrack.setEnabled(false);
+               state.localVideoTrack.setEnabled(false);
+               state.isMicOn = false;
+               state.isCameraOn = false;
+             } else {
+               state.localAudioTrack.setEnabled(true);
+               state.localVideoTrack.setEnabled(true);
+               state.isMicOn = true;
+               state.isCameraOn = true;
+             }
+          }
+          
+          state.localVideoTrack.play('local-preview');
         }
         
-        // 2. Play preview
-        state.localVideoTrack.play('local-preview');
-        
-        // 3. Get Devices
         const devices = await AgoraRTC.getDevices();
         const cams = devices.filter(d => d.kind === 'videoinput');
         const mics = devices.filter(d => d.kind === 'audioinput');
@@ -3676,7 +4313,6 @@
         camSelect.innerHTML = cams.map(d => `<option value="${d.deviceId}">${d.label || 'Camera ' + (cams.indexOf(d) + 1)}</option>`).join('');
         micSelect.innerHTML = mics.map(d => `<option value="${d.deviceId}">${d.label || 'Microphone ' + (mics.indexOf(d) + 1)}</option>`).join('');
         
-        // Listeners
         camSelect.onchange = async (e) => {
           state.selectedCamId = e.target.value;
           if (state.localVideoTrack) {
@@ -3696,7 +4332,6 @@
           state.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({ microphoneId: state.selectedMicId });
         };
         
-        // Join Button
         document.getElementById('join-btn').onclick = async () => {
           modal.style.display = 'none';
           loadingOverlay.classList.remove('hidden');
@@ -3711,7 +4346,6 @@
 
     // ============= SESSION SETUP =============
     async function completeSessionSetup(gid, user) {
-        // 3. Load Participants (Group Members)
         const { data: members } = await supabase
           .from('group_members')
           .select('user_id, profiles(full_name, username)')
@@ -3719,7 +4353,7 @@
 
         if (members) {
           state.students = members
-            .filter(m => m.user_id !== user.id) // Exclude self
+            .filter(m => m.user_id !== user.id)
             .map((m, i) => ({
               id: m.user_id,
               name: m.profiles?.full_name || m.profiles?.username || `User ${i}`,
@@ -3727,7 +4361,6 @@
             }));
         }
 
-        // 4. Setup Chat Realtime
         state.channel = supabase.channel(`grp_${gid}`)
           .on('postgres_changes', {
             event: 'INSERT',
@@ -3740,6 +4373,9 @@
             addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at);
           })
           .on('broadcast', { event: 'spotlight' }, (payload) => {
+            // SPOTLIGHT IMMUNITY: Only change when explicitly broadcast
+            state.spotlightUserId = payload.payload.spotlightUserId;
+            state.spotlightImmune = payload.payload.immune || true;
             toggleSpotlightUI(payload.payload.active);
           })
           .on('broadcast', { event: 'whiteboard-toggle' }, (payload) => {
@@ -3772,9 +4408,137 @@
               }
             });
           })
+          .on('broadcast', { event: 'mute-all' }, (payload) => {
+            state.mediaControlLocked = payload.payload.locked;
+            state.hardMuteLock = payload.payload.hardLock || false;
+            if (state.localAudioTrack) {
+              state.localAudioTrack.setEnabled(false);
+              state.isMicOn = false;
+              
+              // Update UI
+              const micBtn = document.querySelector('[data-action="mic"]');
+              if (micBtn) {
+                const micIcon = micBtn.querySelector('i');
+                micIcon.classList.remove('fa-microphone');
+                micIcon.classList.add('fa-microphone-slash');
+                micBtn.classList.remove('active');
+                micBtn.classList.add('media-locked');
+              }
+            }
+            showNotification('Host muted all participants', 'mute');
+          })
+          .on('broadcast', { event: 'unmute-all' }, (payload) => {
+            state.mediaControlLocked = payload.payload.locked;
+            state.hardMuteLock = payload.payload.hardLock || false;
+            const micBtn = document.querySelector('[data-action="mic"]');
+            if (micBtn) {
+              micBtn.classList.remove('media-locked');
+            }
+            showNotification('You can now unmute', 'mic');
+          })
+          .on('broadcast', { event: 'disable-cameras' }, (payload) => {
+            state.cameraControlLocked = payload.payload.locked;
+            state.hardCameraLock = payload.payload.hardLock || false;
+            if (state.localVideoTrack) {
+              state.localVideoTrack.setEnabled(false);
+              state.isCameraOn = false;
+              
+              // Update UI
+              const camBtn = document.querySelector('[data-action="cam"]');
+              if (camBtn) {
+                const camIcon = camBtn.querySelector('i');
+                camIcon.classList.remove('fa-video');
+                camIcon.classList.add('fa-video-slash');
+                camBtn.classList.remove('active');
+                camBtn.classList.add('media-locked');
+              }
+            }
+            showNotification('Host disabled all cameras', 'camera');
+          })
+          .on('broadcast', { event: 'enable-cameras' }, (payload) => {
+            state.cameraControlLocked = payload.payload.locked;
+            state.hardCameraLock = payload.payload.hardLock || false;
+            const camBtn = document.querySelector('[data-action="cam"]');
+            if (camBtn) {
+              camBtn.classList.remove('media-locked');
+            }
+            showNotification('You can now enable camera', 'camera');
+          })
+          .on('broadcast', { event: 'hand-raise' }, (payload) => {
+            if (payload.payload.action === 'raise') {
+              const { userId, userName } = payload.payload;
+              state.raisedHands.set(userId, {
+                name: userName,
+                timestamp: Date.now(),
+                userId: userId
+              });
+              
+              // Add hand icon to correct video tile
+              const userTile = document.getElementById(`tile-${userId}`);
+              if (userTile) {
+                const existingIcon = userTile.querySelector('.hand-icon');
+                if (!existingIcon) {
+                  const handIcon = document.createElement('div');
+                  handIcon.className = 'hand-icon';
+                  handIcon.innerHTML = '✋';
+                  userTile.appendChild(handIcon);
+                  userTile.classList.add('hand-raised');
+                }
+              }
+              
+              // Add message to chat for host
+              if (state.isHost) {
+                addMessage(`${userName} raised hand ✋`, 'system');
+              }
+            }
+          })
+          .on('broadcast', { event: 'hand-lower' }, (payload) => {
+            lowerHand(payload.payload.userId);
+          })
+          .on('broadcast', { event: 'screen-share-request' }, (payload) => {
+            if (state.isHost) {
+              state.screenShareRequests.push(payload.payload);
+              showNotification(`${payload.payload.studentName} wants to share screen`, 'info');
+            }
+          })
+          .on('broadcast', { event: 'screen-share-started' }, (payload) => {
+            state.currentPresenter = payload.payload.userId;
+          })
+          .on('broadcast', { event: 'screen-share-stopped' }, (payload) => {
+            if (state.currentPresenter === payload.payload.userId) {
+              state.currentPresenter = null;
+            }
+          })
+          .on('broadcast', { event: 'force-stop-screenshare' }, (payload) => {
+            if (state.currentPresenter === payload.payload.userId) {
+              stopScreenSharing();
+              showNotification('Host stopped your screen share', 'info');
+            }
+          })
+          .on('broadcast', { event: 'student-mic-change' }, (payload) => {
+            // Host can track student mic states
+            if (state.isHost) {
+              console.log(`Student ${payload.payload.userId} mic: ${payload.payload.isMicOn}`);
+            }
+          })
+          .on('broadcast', { event: 'student-cam-change' }, (payload) => {
+            // Host can track student camera states
+            if (state.isHost) {
+              console.log(`Student ${payload.payload.userId} camera: ${payload.payload.isCameraOn}`);
+            }
+          })
+          .on('broadcast', { event: 'promote-speaker' }, (payload) => {
+            if (payload.payload.userId === state.currentUser?.id) {
+              enablePresenterMode(payload.payload.userId);
+            }
+          })
+          .on('broadcast', { event: 'demote-speaker' }, (payload) => {
+            if (payload.payload.userId === state.currentUser?.id) {
+              disablePresenterMode(payload.payload.userId);
+            }
+          })
           .subscribe();
 
-        // 6. Listen for Kick/Status Change
         supabase.channel(`status_${user.id}`)
           .on('postgres_changes', {
             event: 'UPDATE',
@@ -3789,14 +4553,11 @@
           })
           .subscribe();
 
-        // 5. Initialize Agora Video
-        // Instead of initializing immediately, open settings
         openDeviceSettingsModal(gid, user);
     }
 
     // ============= INITIALIZATION =============
     async function initialize() {
-      // 1. Check Auth
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = 'login.html';
@@ -3808,11 +4569,10 @@
         id: user.id,
         name: user.user_metadata.firstName || user.user_metadata.full_name || 'User',
         email: user.email,
-        role: 'student' // Default role
+        role: 'student'
       };
       state.isAuthenticated = true;
 
-      // 2. Get Group Info
       const gid = new URLSearchParams(window.location.search).get('groupId');
       if (gid) {
         const { data: group } = await supabase
@@ -3827,7 +4587,6 @@
           
           state.hostId = group.created_by;
           
-          // Check if host
           if (group.created_by === user.id || state.currentUser.role === 'admin') {
             state.isHost = true;
             state.currentUser.role = 'host';
@@ -3836,7 +4595,6 @@
             hostNameEl.textContent = state.currentUser.name;
             state.hostName = state.currentUser.name;
           } else {
-            // Fetch Host Name
             const { data: hostProfile } = await supabase
               .from('profiles')
               .select('full_name, username')
@@ -3847,7 +4605,6 @@
             hostNameEl.textContent = state.hostName;
           }
 
-          // NEW: Waiting Room Check
           if (state.isHost) {
             setupHostWaitingRoom(gid);
             await completeSessionSetup(gid, user);
@@ -3860,7 +4617,6 @@
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
-      // Add CSS for animations
       const style = document.createElement('style');
       style.textContent = `
         @keyframes slideIn {
@@ -3885,7 +4641,9 @@
     window.generateQuiz = generateQuiz;
     window.suggestResources = suggestResources;
     window.muteAllParticipants = muteAllParticipants;
+    window.unmuteAllParticipants = unmuteAllParticipants;
     window.disableAllCameras = disableAllCameras;
+    window.enableAllCameras = enableAllCameras;
     window.toggleHostSpotlight = toggleHostSpotlight;
     window.showPendingRequests = showPendingRequests;
     window.copyClassLink = copyClassLink;
@@ -3901,8 +4659,10 @@
     window.approveAllStudents = approveAllStudents;
     window.resetAllRequests = resetAllRequests;
     window.removeStudent = removeStudent;
+    window.clearAllHands = clearAllHands;
+    window.lowerHand = lowerHand;
+    window.forceStopScreenShare = forceStopScreenShare;
 
-    // Cleanup on tab close (Essential for production to release resources)
     window.addEventListener('beforeunload', async () => {
       if (state.client) {
         await state.client.leave();
