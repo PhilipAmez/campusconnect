@@ -1195,12 +1195,18 @@
             </a>
         </div>
     </div>
+    <!-- Hidden audio element for notification sound -->
+    <audio id="notificationSound" preload="auto">
+        <source src="/sounds/notification.mp3" type="audio/mpeg">
+        <source src="/sounds/notification.ogg" type="audio/ogg">
+    </audio>
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
        
         // NEW: Notification badge elements
         const notificationBadgeDesktop = document.getElementById('notificationBadgeDesktop');
         const notificationBadgeMobile = document.getElementById('notificationBadgeMobile');
+        const notificationSound = document.getElementById('notificationSound');
 
         // Auto-logout timer (1 hour = 3600000 milliseconds)
         let logoutTimer;
@@ -1361,9 +1367,25 @@
 
         function playNotificationSound() {
             try {
-                const audio = new Audio('/sounds/notification.mp3');
-                audio.volume = 0.5;
-                audio.play().catch(error => console.log('Could not play notification sound:', error));
+                if (notificationSound) {
+                    // Reset audio to start to allow rapid playback
+                    notificationSound.currentTime = 0;
+                    notificationSound.volume = 0.5;
+                    
+                    // Unlock audio context on user interaction
+                    if (notificationSound.paused) {
+                        const playPromise = notificationSound.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.log('Could not play notification sound:', error);
+                            });
+                        }
+                    } else {
+                        notificationSound.play().catch(error => {
+                            console.log('Could not play notification sound:', error);
+                        });
+                    }
+                }
             } catch (error) {
                 console.log('Notification sound error:', error);
             }
@@ -1372,32 +1394,139 @@
         // Function to trigger a push notification
         async function triggerPushNotification(title, body, tag = 'peerloom-notification') {
             if ('Notification' in window && Notification.permission === 'granted') {
-                const notification = new Notification(title, {
-                    body,
-                    tag,
-                    icon: '/android-chrome-192x192.png',
-                    requireInteraction: false
-                });
-                
-                // Play notification sound
-                playNotificationSound();
-                
-                // Handle notification click
-                notification.onclick = function() {
-                    window.focus();
-                    notification.close();
-                };
-                
-                // Auto close after 7 seconds
-                setTimeout(() => notification.close(), 7000);
-                return notification;
+                try {
+                    const notification = new Notification(title, {
+                        body,
+                        tag,
+                        icon: '/android-chrome-192x192.png',
+                        requireInteraction: false
+                    });
+                    
+                    // Play notification sound
+                    playNotificationSound();
+                    
+                    // Handle notification click
+                    notification.onclick = function() {
+                        window.focus();
+                        notification.close();
+                    };
+                    
+                    // Auto close after 7 seconds
+                    setTimeout(() => notification.close(), 7000);
+                    return notification;
+                } catch (error) {
+                    console.log('Error creating push notification:', error);
+                }
             }
             return null;
         }
 
-        // Example function to show a notification (can be called from anywhere)
-        function showPushNotificationExample() {
-            triggerPushNotification('PeerLoom', 'Welcome to your dashboard! Stay connected with your study groups.');
+        // Setup realtime notifications subscription
+        function setupRealtimeNotifications(userId) {
+            try {
+                const channel = supabase
+                    .channel('notifications-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${userId}`
+                        },
+                        (payload) => {
+                            console.log('New notification received in real-time:', payload.new);
+                            
+                            // Update notification badge
+                            updateNotificationBadge();
+                            
+                            // Play notification sound
+                            playNotificationSound();
+                            
+                            // Show browser notification if permission granted
+                            if (Notification.permission === 'granted') {
+                                const notification = payload.new;
+                                let title = 'PeerLoom';
+                                let body = '';
+                                
+                                // Customize notification based on type
+                                switch (notification.type) {
+                                    case 'new_follower':
+                                        title = 'New Follower';
+                                        body = `${notification.sender_profile?.full_name || 'Someone'} started following you`;
+                                        break;
+                                    case 'group_join':
+                                        title = 'Group Joined';
+                                        body = `You joined ${notification.content || 'a group'}`;
+                                        break;
+                                    case 'message':
+                                        title = 'New Message';
+                                        body = `New message from ${notification.sender_profile?.full_name || 'Someone'}`;
+                                        break;
+                                    case 'post_like':
+                                        title = 'Post Liked';
+                                        body = `${notification.sender_profile?.full_name || 'Someone'} liked your post`;
+                                        break;
+                                    case 'comment':
+                                        title = 'New Comment';
+                                        body = `${notification.sender_profile?.full_name || 'Someone'} commented on your post`;
+                                        break;
+                                    default:
+                                        body = notification.content || 'You have a new notification';
+                                }
+                                
+                                triggerPushNotification(title, body);
+                            }
+                        }
+                    )
+                    .subscribe((status, err) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('Successfully subscribed to notifications');
+                        }
+                        if (status === 'CHANNEL_ERROR') {
+                            console.error('Error in notifications channel:', err);
+                        }
+                        if (status === 'TIMED_OUT') {
+                            console.error('Notifications channel timed out');
+                        }
+                        if (status === 'CLOSED') {
+                            console.error('Notifications channel closed');
+                        }
+                    });
+                
+                return channel;
+            } catch (error) {
+                console.error('Error setting up realtime notifications:', error);
+                return null;
+            }
+        }
+
+        // Update notification badge
+        async function updateNotificationBadge() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { count, error } = await supabase
+                    .from('notifications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id)
+                    .eq('read', false);
+
+                if (error) throw error;
+
+                if (count > 0) {
+                    notificationBadgeDesktop.classList.add('visible');
+                    notificationBadgeMobile.classList.add('visible');
+                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.add('visible'));
+                } else {
+                    notificationBadgeDesktop.classList.remove('visible');
+                    notificationBadgeMobile.classList.remove('visible');
+                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.remove('visible'));
+                }
+            } catch (error) { 
+                console.error('Error updating notification badge:', error); 
+            }
         }
 
         // Prevent page scroll when scrolling inside columns
@@ -1487,7 +1616,14 @@
             loadConnections();
             checkFollowStatus();
 
-            loadUserNotifications(); // NEW: Load notification count
+            // Load initial notifications
+            updateNotificationBadge();
+
+            // Setup realtime notifications subscription
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setupRealtimeNotifications(user.id);
+            }
 
             loadDefaultVideos(); // Load default videos initially
 
@@ -1496,11 +1632,6 @@
 
             // Setup search groups functionality
             setupGroupSearch();
-            
-            // Show welcome notification
-            setTimeout(() => {
-                showPushNotificationExample();
-            }, 2000);
         });
 
         // Hook up both "Logout" links
@@ -1520,30 +1651,6 @@
                 window.location.href = 'index.html?message=logout_success';
             });
         });
-       
-        // NEW: Load user notifications from Supabase (simplified for just the count)
-        async function loadUserNotifications() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            try {
-                const { count, error } = await supabase
-                    .from('notifications')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('user_id', user.id)
-                    .eq('read', false);
-
-                if (error) throw error;
-
-                if (count > 0) {
-                    notificationBadgeDesktop.classList.add('visible');
-                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.add('visible'));
-                } else {
-                    notificationBadgeDesktop.classList.remove('visible');
-                    document.querySelectorAll('.mobile-bottom-nav .notification-badge').forEach(el => el.classList.remove('visible'));
-                }
-            } catch (error) { console.error('Error loading notification count:', error); }
-        }
 
         // Burger-menu toggler with touch support
         const navToggle = document.getElementById('navToggle');
