@@ -1119,6 +1119,7 @@
                 <div class="search-container">
                     <input type="text" id="groupSearch" class="search-bar" placeholder="Search groups..." />
                     <button class="btn search-btn" id="searchGroupsBtn">Search</button>
+                    <div id="groupLoading" class="loading"></div>
                 </div>
                 <button class="btn my-active-groups-btn" onclick="window.location.href='active-groups.html'">
                     <i class="fas fa-list"></i> My Active Groups
@@ -1265,7 +1266,6 @@
         // Load theme on page load
         function loadTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
-
             applyTheme(savedTheme);
         }
        
@@ -1369,6 +1369,37 @@
             }
         }
 
+        // Function to trigger a push notification
+        async function triggerPushNotification(title, body, tag = 'peerloom-notification') {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification(title, {
+                    body,
+                    tag,
+                    icon: '/android-chrome-192x192.png',
+                    requireInteraction: false
+                });
+                
+                // Play notification sound
+                playNotificationSound();
+                
+                // Handle notification click
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+                
+                // Auto close after 7 seconds
+                setTimeout(() => notification.close(), 7000);
+                return notification;
+            }
+            return null;
+        }
+
+        // Example function to show a notification (can be called from anywhere)
+        function showPushNotificationExample() {
+            triggerPushNotification('PeerLoom', 'Welcome to your dashboard! Stay connected with your study groups.');
+        }
+
         // Prevent page scroll when scrolling inside columns
         function setupColumnScrollPrevention() {
             const columns = document.querySelectorAll('.sidebar, .main-content, .connections');
@@ -1460,12 +1491,16 @@
 
             loadDefaultVideos(); // Load default videos initially
 
-
             // Initialize pull-to-refresh
             initPullToRefresh();
 
             // Setup search groups functionality
             setupGroupSearch();
+            
+            // Show welcome notification
+            setTimeout(() => {
+                showPushNotificationExample();
+            }, 2000);
         });
 
         // Hook up both "Logout" links
@@ -1687,13 +1722,24 @@
         // Search groups function
         async function searchGroups() {
             const searchTerm = document.getElementById('groupSearch').value.trim();
+            const searchGroupsBtn = document.getElementById('searchGroupsBtn');
+            const groupLoading = document.getElementById('groupLoading');
+            
             if (!searchTerm) {
                 loadSuggestedGroups();
                 return;
             }
 
+            // Disable button and show loader
+            searchGroupsBtn.disabled = true;
+            groupLoading.style.display = 'block';
+
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                searchGroupsBtn.disabled = false;
+                groupLoading.style.display = 'none';
+                return;
+            }
 
             // Get groups the user is already a member of
             const { data: userGroups, error: userGroupsError } = await supabase
@@ -1703,6 +1749,8 @@
             
             if (userGroupsError) {
                 console.error('Error loading user groups:', userGroupsError);
+                searchGroupsBtn.disabled = false;
+                groupLoading.style.display = 'none';
                 return;
             }
            
@@ -1718,11 +1766,17 @@
                 .limit(5);
 
             const suggestedGroupsDiv = document.getElementById('suggestedGroups');
-            if (!suggestedGroupsDiv) return;
+            if (!suggestedGroupsDiv) {
+                searchGroupsBtn.disabled = false;
+                groupLoading.style.display = 'none';
+                return;
+            }
 
             if (error) {
                 console.error('Error searching groups:', error);
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-red-500">Error searching groups.</p>';
+                searchGroupsBtn.disabled = false;
+                groupLoading.style.display = 'none';
                 return;
             }
 
@@ -1756,6 +1810,10 @@
             } else {
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No groups found matching your search.</p>';
             }
+            
+            // Re-enable button and hide loader
+            searchGroupsBtn.disabled = false;
+            groupLoading.style.display = 'none';
         }
        
         // Join group function
@@ -1811,6 +1869,9 @@
                         button.disabled = true;
                         button.style.background = '#d1d5db';
                     }
+                    
+                    // Trigger push notification
+                    triggerPushNotification('Group Joined', 'You have successfully joined a new study group!');
                 }
             } catch (error) {
                 console.error('Unexpected error joining group:', error);
@@ -2073,6 +2134,7 @@
             const connectionSearch = document.getElementById('connectionSearch').value.trim();
             const connectionLoading = document.getElementById('connectionLoading');
             const connectionList = document.getElementById('connectionList');
+            const searchConnectionsBtn = document.getElementById('searchConnectionsBtn');
           
             if (!connectionList) return;
           
@@ -2082,11 +2144,17 @@
                 return;
             }
            
+            // Disable button and show loader
+            searchConnectionsBtn.disabled = true;
             connectionLoading.style.display = 'block';
            
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                if (!user) {
+                    searchConnectionsBtn.disabled = false;
+                    connectionLoading.style.display = 'none';
+                    return;
+                }
                
                 const { data, error } = await supabase
                     .from('profiles')
@@ -2152,10 +2220,16 @@
                 console.error('Connection search error:', error);
                 connectionList.innerHTML = `<p class="text-center text-red-500">Error searching users: ${error.message}</p>`;
             } finally {
+                // Re-enable button and hide loader
+                searchConnectionsBtn.disabled = false;
                 connectionLoading.style.display = 'none';
             }
         }
-       
+
+        // YouTube API key and search functionality
+        const YOUTUBE_API_KEY = 'AIzaSyAz4f77FM8h7nyU55ns3Ll3SEdXiSY38AU';
+        let lastSearchQuery = '';
+
         // Search courses with YouTube API - Now only educational content
         async function searchCourses(refresh = false) {
             resetLogoutTimer(); // Reset timer on user action
@@ -2163,12 +2237,17 @@
             let courseSearch = document.getElementById('courseSearch').value.trim();
             const courseLoading = document.getElementById('courseLoading');
             const courseList = document.getElementById('courseList');
+            const searchCoursesBtn = document.getElementById('searchCoursesBtn');
            
             if (!courseSearch && !refresh) {
                 // If no search term and not a refresh, show default videos
                 loadDefaultVideos();
                 return;
             }
+           
+            // Disable button and show loader
+            searchCoursesBtn.disabled = true;
+            courseLoading.style.display = 'block';
            
             // If refresh, append a random term to vary results
             if (refresh && lastSearchQuery) {
@@ -2179,13 +2258,11 @@
            
             lastSearchQuery = courseSearch;
            
-            courseLoading.style.display = 'block';
-           
             try {
                 // Add educational keywords to focus on educational content
                 const educationalKeywords = 'educational tutorial lecture course university college learning';
                 const query = `${courseSearch} ${educationalKeywords}`;
-                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=8&key=AIzaSyAj8ndzUssPrQGo6HqyTN36ZhvHNNQjpus`;
+                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=8&key=${YOUTUBE_API_KEY}`;
                 const response = await fetch(url);
                
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -2226,56 +2303,68 @@
                 // Show error toast
                 showNotification('Error loading videos. Showing default content.');
             } finally {
+                // Re-enable button and hide loader
+                searchCoursesBtn.disabled = false;
                 courseLoading.style.display = 'none';
             }
         }
        
-        // Pull-to-refresh implementation
+        // Soft/Silent pull-to-refresh implementation
         let ptrStartY = 0;
         let ptrCurrentY = 0;
-        let ptrThreshold = 80; // Pixels to trigger refresh
+        let ptrThreshold = 100; // Pixels to trigger refresh
+        let isRefreshing = false;
+        
         function initPullToRefresh() {
             const mainContent = document.querySelector('.main-content');
             const ptrIndicator = document.getElementById('ptrIndicator');
            
-            if (!mainContent || !ptrIndicator) return;
+            if (!mainContent) return;
            
             let isPulling = false;
            
             mainContent.addEventListener('touchstart', (e) => {
-                if (mainContent.scrollTop === 0) {
+                if (mainContent.scrollTop === 0 && !isRefreshing) {
                     ptrStartY = e.touches[0].clientY;
                     isPulling = true;
                 }
             }, { passive: true });
            
             mainContent.addEventListener('touchmove', (e) => {
-                if (!isPulling || mainContent.scrollTop > 0) return;
+                if (!isPulling || mainContent.scrollTop > 0 || isRefreshing) return;
                
                 ptrCurrentY = e.touches[0].clientY;
                 const diff = ptrCurrentY - ptrStartY;
                
                 if (diff > 0 && diff < ptrThreshold) {
-                    // Show indicator on pull
-                    ptrIndicator.style.top = `${Math.max(-50 + diff / 2, -50)}px`;
-                    ptrIndicator.classList.add('show');
+                    // Show indicator only briefly during pull
+                    if (diff > 50) {
+                        ptrIndicator.style.top = `${Math.max(-50 + diff / 2, -50)}px`;
+                        ptrIndicator.classList.add('show');
+                    }
                 }
             }, { passive: true });
            
             mainContent.addEventListener('touchend', async (e) => {
-                if (!isPulling) return;
+                if (!isPulling || isRefreshing) return;
                
                 isPulling = false;
-                ptrIndicator.classList.remove('show');
                
                 if (ptrCurrentY - ptrStartY >= ptrThreshold) {
-                    // Trigger refresh
-                    ptrIndicator.style.top = '-50px';
+                    // Trigger silent refresh
+                    isRefreshing = true;
                     ptrIndicator.classList.add('show');
+                    
+                    // Clear cache by adding timestamp to API call
                     await searchCourses(true); // Refresh with variation
+                    
+                    // Hide indicator quickly
                     setTimeout(() => {
                         ptrIndicator.classList.remove('show');
-                    }, 1500);
+                        isRefreshing = false;
+                    }, 500);
+                } else {
+                    ptrIndicator.classList.remove('show');
                 }
             }, { passive: true });
         }
@@ -2333,6 +2422,9 @@
                         button.style.background = 'rgba(239, 68, 68, 0.2)';
                         button.style.color = '#ef4444';
                         showNotification('You are now following this user');
+                        
+                        // Trigger push notification
+                        triggerPushNotification('New Follower', 'You have a new follower on PeerLoom!');
                     }
                 }
             } catch (error) {
@@ -2387,6 +2479,15 @@
                     }
                 });
             }
+            
+            const connectionSearchInput = document.getElementById('connectionSearch');
+            if (connectionSearchInput) {
+                connectionSearchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchConnections();
+                    }
+                });
+            }
         });
        
         // Make functions globally available
@@ -2395,6 +2496,7 @@
         window.navigateToUserProfile = navigateToUserProfile;
         window.enterSite = enterSite;
         window.toggleTheme = toggleTheme;
+        window.triggerPushNotification = triggerPushNotification;
 
         // A placeholder for openUploadModal if it's not defined on this page
         if (typeof window.openUploadModal === 'undefined') {
