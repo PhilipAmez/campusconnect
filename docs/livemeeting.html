@@ -1991,31 +1991,17 @@
 
     function endCall() {
       state.isIntentionalLeave = true;
-      const title = state.isHost ? 'End Class for All?' : 'Leave Class?';
-      const message = state.isHost 
-        ? 'Are you sure you want to end this class for all participants?' 
-        : 'Are you sure you want to leave the class?';
-
       showConfirmationModal(
-        title,
-        message,
+        'Leave Class?',
+        'Are you sure you want to leave the class?',
         async () => {
-          showNotification(state.isHost ? 'Ending class...' : 'Leaving class...', 'end');
+          showNotification('Leaving class...', 'end');
           
           // If host, clear the waiting room/meeting requests for this session
           if (state.isHost) {
             const gid = new URLSearchParams(window.location.search).get('groupId');
             if (gid) {
               await supabase.from('meeting_requests').delete().eq('group_id', gid);
-            }
-            
-            // Broadcast end meeting to all participants
-            if (state.channel) {
-              await state.channel.send({
-                type: 'broadcast',
-                event: 'end-meeting-for-all',
-                payload: {}
-              });
             }
           }
           
@@ -3237,27 +3223,6 @@
           .on('broadcast', { event: 'demote-speaker' }, (payload) => {
             if (payload.payload.userId === state.currentUser?.id) {
               disablePresenterMode(payload.payload.userId);
-            }
-          })
-          .on('broadcast', { event: 'end-meeting-for-all' }, () => {
-            if (!state.isHost) {
-              showNotification('Host has ended the meeting', 'end');
-              state.isIntentionalLeave = true;
-              
-              if (state.client) {
-                state.client.leave();
-                if (state.localAudioTrack) state.localAudioTrack.close();
-                if (state.localVideoTrack) state.localVideoTrack.close();
-              }
-
-              setTimeout(() => {
-                const gid = new URLSearchParams(window.location.search).get('groupId');
-                if (gid) {
-                  window.location.href = `chatroom.html?groupId=${gid}`;
-                } else {
-                  window.location.href = 'dashboard.html';
-                }
-              }, 2000);
             }
           })
           .subscribe();
