@@ -1994,8 +1994,16 @@
       showConfirmationModal(
         'Leave Class?',
         'Are you sure you want to leave the class?',
-        () => {
+        async () => {
           showNotification('Leaving class...', 'end');
+          
+          // If host, clear the waiting room/meeting requests for this session
+          if (state.isHost) {
+            const gid = new URLSearchParams(window.location.search).get('groupId');
+            if (gid) {
+              await supabase.from('meeting_requests').delete().eq('group_id', gid);
+            }
+          }
           
           // Leave Agora Channel
           if (state.client) {
@@ -2472,6 +2480,47 @@
       }
       div.appendChild(nameTag);
 
+      // Add Kick Button for Host
+      if (state.isHost && uid !== state.currentUser.id) {
+        const kickBtn = document.createElement('button');
+        kickBtn.className = 'kick-btn';
+        kickBtn.innerHTML = '<i class="fas fa-user-times"></i>';
+        kickBtn.title = 'Remove Student';
+        kickBtn.style.cssText = `
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(255, 59, 48, 0.9);
+          color: white;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 20;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        `;
+        
+        kickBtn.onclick = (e) => {
+          e.stopPropagation();
+          removeStudent(uid);
+        };
+        
+        div.appendChild(kickBtn);
+        
+        // Show on hover
+        div.addEventListener('mouseenter', () => { kickBtn.style.opacity = '1'; });
+        div.addEventListener('mouseleave', () => { kickBtn.style.opacity = '0'; });
+        
+        // Always show on mobile
+        if (state.isMobile) kickBtn.style.opacity = '1';
+      }
+
       // Track rendered tiles
       state.renderedVideoTiles.add(uid);
       
@@ -2603,7 +2652,33 @@
     }
 
     // ============= WAITING ROOM LOGIC =============
+    function showWaitingForHostOverlay(gid, user) {
+      const overlay = document.getElementById('waiting-room-overlay');
+      overlay.classList.remove('hidden');
+      overlay.querySelector('h2').textContent = "Waiting for Host to Start";
+      overlay.querySelector('p').textContent = "The host has not started the class yet. You will join automatically when they arrive.";
+      
+      const channel = supabase.channel(`waiting_start_${gid}`)
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'meeting_requests', 
+          filter: `group_id=eq.${gid}`
+        }, (payload) => {
+          if (payload.new.status === 'host_active') {
+            supabase.removeChannel(channel);
+            checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
+          }
+        })
+        .subscribe();
+    }
+
     async function checkWaitingRoom(gid, user, onApproved) {
+      // Reset overlay text in case it was changed
+      const overlay = document.getElementById('waiting-room-overlay');
+      overlay.querySelector('h2').textContent = "Waiting for Host";
+      overlay.querySelector('p').textContent = "Please wait while the host admits you to the class.";
+
       const { data: request } = await supabase
         .from('meeting_requests')
         .select('*')
@@ -3219,10 +3294,39 @@
           }
 
           if (state.isHost) {
+            // Mark session as active
+            const { data: activeMarker } = await supabase
+              .from('meeting_requests')
+              .select('id')
+              .eq('group_id', gid)
+              .eq('user_id', user.id)
+              .maybeSingle();
+              
+            if (!activeMarker) {
+              await supabase.from('meeting_requests').insert({
+                group_id: gid,
+                user_id: user.id,
+                user_name: state.currentUser.name,
+                status: 'host_active'
+              });
+            }
+
             setupHostWaitingRoom(gid);
             await completeSessionSetup(gid, user);
           } else {
-            await checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
+            // Check if host has started the meeting
+            const { data: hostActive } = await supabase
+              .from('meeting_requests')
+              .select('id')
+              .eq('group_id', gid)
+              .eq('status', 'host_active')
+              .maybeSingle();
+              
+            if (!hostActive) {
+              showWaitingForHostOverlay(gid, user);
+            } else {
+              await checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
+            }
           }
         }
       }
