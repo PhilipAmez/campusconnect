@@ -1,9 +1,6 @@
 // Import Supabase client
 import { supabase } from './supabaseClient.js';
 
-// Import Supabase client
-import { supabase } from './supabaseClient.js';
-
 // State
 let userProfile = null;
 let currentUser = null;
