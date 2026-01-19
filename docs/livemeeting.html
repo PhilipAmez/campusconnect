@@ -1991,17 +1991,31 @@
 
     function endCall() {
       state.isIntentionalLeave = true;
+      const title = state.isHost ? 'End Class for All?' : 'Leave Class?';
+      const message = state.isHost 
+        ? 'Are you sure you want to end this class for all participants?' 
+        : 'Are you sure you want to leave the class?';
+
       showConfirmationModal(
-        'Leave Class?',
-        'Are you sure you want to leave the class?',
+        title,
+        message,
         async () => {
-          showNotification('Leaving class...', 'end');
+          showNotification(state.isHost ? 'Ending class...' : 'Leaving class...', 'end');
           
           // If host, clear the waiting room/meeting requests for this session
           if (state.isHost) {
             const gid = new URLSearchParams(window.location.search).get('groupId');
             if (gid) {
               await supabase.from('meeting_requests').delete().eq('group_id', gid);
+            }
+            
+            // Broadcast end meeting to all participants
+            if (state.channel) {
+              await state.channel.send({
+                type: 'broadcast',
+                event: 'end-meeting-for-all',
+                payload: {}
+              });
             }
           }
           
@@ -2313,24 +2327,21 @@
         updateLoadingStatus("Connecting to media server...");
         await state.client.join(state.agoraAppId, channelName, token, uid);
 
-        // TRUE 10,000 USER LOCKDOWN: Students join in listen-only mode
+        // STANDARD CLASS MODE: Students join with tracks but muted
         if (!state.isHost) {
           // Students start with mic and camera disabled
           state.isMicOn = false;
           state.isCameraOn = false;
-          state.forceListenOnly = true;
+          state.forceListenOnly = false;
           
-          // Only create tracks if user is promoted to speaker
-          if (state.promotedSpeakers.has(uid)) {
-            try {
-              updateLoadingStatus("Accessing camera and microphone...");
-              [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-              state.localAudioTrack.setEnabled(false);
-              state.localVideoTrack.setEnabled(false);
-              await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
-            } catch (permError) {
-              console.log("Student cannot access media devices (listen-only mode)");
-            }
+          try {
+            updateLoadingStatus("Accessing camera and microphone...");
+            [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+            state.localAudioTrack.setEnabled(false);
+            state.localVideoTrack.setEnabled(false);
+            await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
+          } catch (permError) {
+            console.warn("Student joined without media permissions");
           }
         } else {
           // Host always has tracks
@@ -2376,8 +2387,8 @@
           if (state.localVideoTrack) {
             state.localVideoTrack.play(`player-${uid}`);
           }
-        } else if (state.promotedSpeakers.has(uid) || state.isHost) {
-          // Only create video tile for promoted speakers or host
+        } else {
+          // Create video tile for self (student view)
           const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
           if (localPlayerDiv) {
             container.appendChild(localPlayerDiv);
@@ -2452,10 +2463,6 @@
     }
 
     function createVideoTile(uid, name, isLocal = false) {
-      // TRUE 10,000 USER LOCKDOWN: Only create video tiles for speakers
-      if (!state.isHost && !state.promotedSpeakers.has(uid) && uid !== state.currentUser?.id) {
-        return null;
-      }
       
       const div = document.createElement('div');
       div.className = 'video-tile';
@@ -2528,16 +2535,6 @@
     }
 
     async function handleUserPublished(user, mediaType) {
-      // TRUE 10,000 USER LOCKDOWN: Only subscribe to host and promoted speakers
-      const shouldSubscribe = state.isHost || 
-                             user.uid === state.hostId || 
-                             state.promotedSpeakers.has(user.uid) ||
-                             user.uid === state.currentUser?.id;
-      
-      if (!shouldSubscribe) {
-        console.log(`Skipping subscription to non-speaker user ${user.uid}`);
-        return;
-      }
 
       await state.client.subscribe(user, mediaType);
 
@@ -3223,6 +3220,27 @@
           .on('broadcast', { event: 'demote-speaker' }, (payload) => {
             if (payload.payload.userId === state.currentUser?.id) {
               disablePresenterMode(payload.payload.userId);
+            }
+          })
+          .on('broadcast', { event: 'end-meeting-for-all' }, () => {
+            if (!state.isHost) {
+              showNotification('Host has ended the meeting', 'end');
+              state.isIntentionalLeave = true;
+              
+              if (state.client) {
+                state.client.leave();
+                if (state.localAudioTrack) state.localAudioTrack.close();
+                if (state.localVideoTrack) state.localVideoTrack.close();
+              }
+
+              setTimeout(() => {
+                const gid = new URLSearchParams(window.location.search).get('groupId');
+                if (gid) {
+                  window.location.href = `chatroom.html?groupId=${gid}`;
+                } else {
+                  window.location.href = 'dashboard.html';
+                }
+              }, 2000);
             }
           })
           .subscribe();
