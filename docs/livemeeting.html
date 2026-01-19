@@ -416,7 +416,10 @@
       hardMuteLock: false,
       hardCameraLock: false,
       spotlightImmune: true,
-      isIntentionalLeave: false
+      isIntentionalLeave: false,
+      mediaRequests: [],
+      whiteboardState: [],
+      whiteboardLocked: false
     };
 
     // ============= DOM ELEMENTS =============
@@ -668,7 +671,10 @@
         state.channel.send({
           type: 'broadcast',
           event: 'whiteboard-batch',
-          payload: { commands: state.drawingCommands }
+          payload: { 
+            commands: state.drawingCommands,
+            userId: state.currentUser.id 
+          }
         }).catch(err => console.log('Whiteboard batch sync:', err));
         state.drawingCommands = [];
       }
@@ -706,18 +712,21 @@
         // HARD MUTE LOCK: Students cannot unmute when lock is active
         if (action === 'mic' && (state.mediaControlLocked || state.hardMuteLock)) {
           showNotification('Microphone is locked by host', 'info');
+          sendMediaRequest('mic');
           return;
         }
         
         // HARD CAMERA LOCK: Students cannot enable cameras when lock is active
         if (action === 'cam' && (state.cameraControlLocked || state.hardCameraLock)) {
           showNotification('Camera is locked by host', 'info');
+          sendMediaRequest('cam');
           return;
         }
         
         // TRUE 10,000 USER LOCKDOWN: Check if user is in listen-only mode
         if ((action === 'mic' || action === 'cam') && state.forceListenOnly && !state.promotedSpeakers.has(state.currentUser.id)) {
           showNotification('You are in listen-only mode. Ask host for permission to speak.', 'info');
+          sendMediaRequest(action);
           return;
         }
       }
@@ -864,6 +873,23 @@
           endCall();
           break;
       }
+    }
+
+    // ============= MEDIA REQUEST SYSTEM =============
+    function sendMediaRequest(mediaType) {
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+      if (!state.channel || !gid) return;
+      
+      state.channel.send({
+        type: 'broadcast',
+        event: 'media-request',
+        payload: {
+          roomId: gid,
+          userId: state.currentUser.id,
+          userName: state.currentUser.name,
+          mediaType: mediaType
+        }
+      }).catch(err => console.log('Media request send error:', err));
     }
 
     // ============= HOST TOOLS BUTTON HIGHLIGHTING =============
@@ -1361,7 +1387,11 @@
         state.channel.send({
           type: 'broadcast',
           event: 'whiteboard-toggle',
-          payload: { active: state.isWhiteboardActive }
+          payload: { 
+            active: state.isWhiteboardActive,
+            drawingCommands: state.whiteboardState,
+            userId: state.currentUser.id
+          }
         }).catch(err => console.log('Whiteboard toggle sync:', err));
       }
       
@@ -1399,6 +1429,7 @@
     }
 
     whiteboardCanvas.addEventListener('mousedown', (e) => {
+      if (!state.isHost && !state.canPresent) return;
       state.drawing = true;
       const { x, y } = getCanvasCoordinates(e);
       state.lastX = x;
@@ -1406,6 +1437,7 @@
     });
 
     whiteboardCanvas.addEventListener('touchstart', (e) => {
+      if (!state.isHost && !state.canPresent) return;
       e.preventDefault();
       state.drawing = true;
       const { x, y } = getCanvasCoordinates(e);
@@ -1414,7 +1446,7 @@
     });
 
     whiteboardCanvas.addEventListener('mousemove', (e) => {
-      if (!state.drawing) return;
+      if (!state.drawing || (!state.isHost && !state.canPresent)) return;
       
       const { x, y } = getCanvasCoordinates(e);
       
@@ -1435,29 +1467,23 @@
         ctx.globalCompositeOperation = 'source-over';
       }
       
+      state.drawingCommands.push({
+        fromX: state.lastX,
+        fromY: state.lastY,
+        toX: x,
+        toY: y,
+        tool: state.currentWhiteboardTool,
+        color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
+        lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
+      });
+      
       state.lastX = x;
       state.lastY = y;
-      
-      if (state.channel) {
-        state.channel.send({
-          type: 'broadcast',
-          event: 'whiteboard-draw',
-          payload: {
-            x: x,
-            y: y,
-            lastX: state.lastX - (x - state.lastX),
-            lastY: state.lastY - (y - state.lastY),
-            tool: state.currentWhiteboardTool,
-            color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
-            lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
-          }
-        }).catch(err => console.log('Whiteboard sync:', err));
-      }
     });
 
     whiteboardCanvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      if (!state.drawing) return;
+      if (!state.drawing || (!state.isHost && !state.canPresent)) return;
       
       const { x, y } = getCanvasCoordinates(e);
       
@@ -1478,24 +1504,18 @@
         ctx.globalCompositeOperation = 'source-over';
       }
       
+      state.drawingCommands.push({
+        fromX: state.lastX,
+        fromY: state.lastY,
+        toX: x,
+        toY: y,
+        tool: state.currentWhiteboardTool,
+        color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
+        lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
+      });
+      
       state.lastX = x;
       state.lastY = y;
-      
-      if (state.channel) {
-        state.channel.send({
-          type: 'broadcast',
-          event: 'whiteboard-draw',
-          payload: {
-            x: x,
-            y: y,
-            lastX: state.lastX - (x - state.lastX),
-            lastY: state.lastY - (y - state.lastY),
-            tool: state.currentWhiteboardTool,
-            color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
-            lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
-          }
-        }).catch(err => console.log('Whiteboard sync:', err));
-      }
     });
 
     whiteboardCanvas.addEventListener('mouseup', () => state.drawing = false);
@@ -1510,6 +1530,14 @@
         
         if (state.currentWhiteboardTool === 'clear') {
           ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+          state.whiteboardState = [];
+          if (state.channel) {
+            state.channel.send({
+              type: 'broadcast',
+              event: 'whiteboard-clear',
+              payload: { userId: state.currentUser.id }
+            });
+          }
         }
       });
     });
@@ -3061,11 +3089,30 @@
             toggleSpotlightUI(payload.payload.active);
           })
           .on('broadcast', { event: 'whiteboard-toggle' }, (payload) => {
+            if (payload.payload.userId === state.currentUser.id) return;
             if (payload.payload.active) {
               state.isWhiteboardActive = true;
               whiteboardOverlay.classList.add('active');
               whiteboardTools.classList.add('active');
               resizeCanvas();
+              // Render initial state
+              const commands = payload.payload.drawingCommands || [];
+              commands.forEach(cmd => {
+                ctx.beginPath();
+                ctx.moveTo(cmd.fromX, cmd.fromY);
+                ctx.lineTo(cmd.toX, cmd.toY);
+                ctx.strokeStyle = cmd.color;
+                ctx.lineWidth = cmd.lineWidth;
+                ctx.lineCap = 'round';
+                if (cmd.tool === 'eraser') {
+                  ctx.globalCompositeOperation = 'destination-out';
+                }
+                ctx.stroke();
+                if (cmd.tool === 'eraser') {
+                  ctx.globalCompositeOperation = 'source-over';
+                }
+              });
+              state.whiteboardState = payload.payload.drawingCommands || [];
             } else {
               state.isWhiteboardActive = false;
               whiteboardOverlay.classList.remove('active');
@@ -3073,6 +3120,8 @@
             }
           })
           .on('broadcast', { event: 'whiteboard-batch' }, (payload) => {
+            if (payload.payload.userId === state.currentUser.id) return;
+            if (!state.isWhiteboardActive) return;
             const commands = payload.payload.commands || [];
             commands.forEach(cmd => {
               ctx.beginPath();
@@ -3088,7 +3137,13 @@
               if (cmd.tool === 'eraser') {
                 ctx.globalCompositeOperation = 'source-over';
               }
+              state.whiteboardState.push(cmd);
             });
+          })
+          .on('broadcast', { event: 'whiteboard-clear' }, (payload) => {
+            if (payload.payload.userId === state.currentUser.id) return;
+            ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+            state.whiteboardState = [];
           })
           .on('broadcast', { event: 'mute-all' }, (payload) => {
             state.mediaControlLocked = payload.payload.locked;
@@ -3184,6 +3239,12 @@
             if (state.isHost) {
               state.screenShareRequests.push(payload.payload);
               showNotification(`${payload.payload.studentName} wants to share screen`, 'info');
+            }
+          })
+          .on('broadcast', { event: 'media-request' }, (payload) => {
+            if (state.isHost) {
+              state.mediaRequests.push(payload.payload);
+              showNotification(`${payload.payload.userName} wants to use ${payload.payload.mediaType}`, 'info');
             }
           })
           .on('broadcast', { event: 'screen-share-started' }, (payload) => {
