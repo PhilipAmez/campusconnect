@@ -9,6 +9,262 @@
   <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
   <script type="module" src="js/supabaseClient.js"></script>
   <link rel="stylesheet" href="livemeeting.css" />
+  <style>
+    /* Student tiles container */
+    #student-tiles-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      padding: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--glass-bg);
+      border-top: 1px solid var(--glass-border);
+      margin-top: 10px;
+    }
+
+    .student-tile {
+      position: relative;
+      width: 120px;
+      height: 90px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid transparent;
+    }
+
+    .student-tile.active-speaker {
+      border-color: var(--accent-blue);
+    }
+
+    .student-tile.hand-raised {
+      border-color: var(--accent-yellow);
+    }
+
+    .student-tile .video-player {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .student-tile .status-indicators {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      display: flex;
+      gap: 4px;
+      z-index: 2;
+    }
+
+    .student-tile .status-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .student-tile .status-icon.mic-off {
+      color: var(--red);
+    }
+
+    .student-tile .status-icon.mic-on {
+      color: var(--accent-green);
+    }
+
+    .student-tile .status-icon.cam-off {
+      color: var(--red);
+    }
+
+    .student-tile .status-icon.cam-on {
+      color: var(--accent-green);
+    }
+
+    .student-tile .status-icon.hand {
+      color: var(--accent-yellow);
+    }
+
+    .student-tile .student-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+      color: white;
+      font-size: 11px;
+      padding: 4px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Request modal */
+    #requests-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #requests-content {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 25px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .requests-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .requests-header h2 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--text-color);
+    }
+
+    .request-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .request-info {
+      flex: 1;
+    }
+
+    .request-student {
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 5px;
+    }
+
+    .request-type {
+      font-size: 12px;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .request-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .request-actions button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .request-approve {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .request-reject {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .clear-all-hands {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 193, 7, 0.1);
+      color: var(--accent-yellow);
+      border: 1px solid var(--accent-yellow);
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Whiteboard in main tile */
+    #main-tile {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #whiteboard-main {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      display: none;
+    }
+
+    #whiteboard-main.active {
+      display: block;
+    }
+
+    #whiteboard-main-canvas {
+      width: 100%;
+      height: 100%;
+      background: white;
+    }
+
+    .whiteboard-colors {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 20px;
+      z-index: 11;
+    }
+
+    .color-option {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    .color-option.active {
+      border-color: white;
+    }
+  </style>
 </head>
 <body class="dark-mode">
 
@@ -72,16 +328,47 @@
     </div>
   </div>
 
+  <!-- Requests Modal -->
+  <div id="requests-modal">
+    <div id="requests-content">
+      <div class="requests-header">
+        <h2>Pending Requests</h2>
+        <button onclick="closeRequestsModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="requests-list">
+        <!-- Requests will be added here -->
+      </div>
+      <button class="clear-all-hands" onclick="clearAllHands()">
+        <i class="fas fa-hands"></i> Clear All Raised Hands
+      </button>
+    </div>
+  </div>
+
   <!-- Video Area -->
   <div id="video-container" class="grid-mode">
-    <div class="video-tile active-speaker" id="host-tile">
-      <div class="video-placeholder">
-        <i class="fas fa-crown" style="font-size: 36px; color: white;"></i>
+    <div id="main-tile">
+      <div class="video-tile active-speaker" id="host-tile">
+        <div class="video-placeholder">
+          <i class="fas fa-crown" style="font-size: 36px; color: white;"></i>
+        </div>
+        <div class="name-tag">
+          <span id="host-name">Loading...</span>
+          <span class="host-badge">HOST</span>
+        </div>
       </div>
-      <div class="name-tag">
-        <span id="host-name">Loading...</span>
-        <span class="host-badge">HOST</span>
+      <div id="whiteboard-main">
+        <canvas id="whiteboard-main-canvas"></canvas>
+        <div class="whiteboard-colors" id="whiteboard-colors" style="display: none;">
+          <div class="color-option active" style="background: #000000;" data-color="#000000"></div>
+          <div class="color-option" style="background: #FF0000;" data-color="#FF0000"></div>
+          <div class="color-option" style="background: #00FF00;" data-color="#00FF00"></div>
+          <div class="color-option" style="background: #0000FF;" data-color="#0000FF"></div>
+          <div class="color-option" style="background: #FFFF00;" data-color="#FFFF00"></div>
+        </div>
       </div>
+    </div>
+    <div id="student-tiles-container">
+      <!-- Student tiles will be added here -->
     </div>
   </div>
 
@@ -263,8 +550,9 @@
     <button id="spotlight-btn" class="tool-btn" title="Spotlight Host" onclick="toggleHostSpotlight()">
       <i class="fas fa-star"></i>
     </button>
-    <button class="tool-btn" title="Screen Share Requests" onclick="showPendingRequests()">
+    <button class="tool-btn" title="View Requests" onclick="openRequestsModal()">
       <i class="fas fa-check-circle"></i>
+      <div id="requests-badge" class="waiting-badge" style="display: none;">0</div>
     </button>
     <button class="tool-btn" title="Copy Class Link" onclick="copyClassLink()">
       <i class="fas fa-link"></i>
@@ -419,7 +707,10 @@
       isIntentionalLeave: false,
       mediaRequests: [],
       whiteboardState: [],
-      whiteboardLocked: false
+      whiteboardLocked: false,
+      studentTiles: new Map(),
+      pendingRequests: [],
+      whiteboardPenColor: '#000000'
     };
 
     // ============= DOM ELEMENTS =============
@@ -446,6 +737,14 @@
     const ctx = whiteboardCanvas.getContext('2d');
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingStatus = document.getElementById('loading-status');
+    const studentTilesContainer = document.getElementById('student-tiles-container');
+    const requestsModal = document.getElementById('requests-modal');
+    const requestsList = document.getElementById('requests-list');
+    const whiteboardMain = document.getElementById('whiteboard-main');
+    const whiteboardMainCanvas = document.getElementById('whiteboard-main-canvas');
+    const whiteboardMainCtx = whiteboardMainCanvas.getContext('2d');
+    const whiteboardColors = document.getElementById('whiteboard-colors');
+    const requestsBadge = document.getElementById('requests-badge');
 
     // ============= GEMINI AI SETUP =============
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${state.aiApiKey}`;
@@ -880,15 +1179,25 @@
       const gid = new URLSearchParams(window.location.search).get('groupId');
       if (!state.channel || !gid) return;
       
+      const request = {
+        roomId: gid,
+        userId: state.currentUser.id,
+        userName: state.currentUser.name,
+        mediaType: mediaType,
+        timestamp: Date.now()
+      };
+      
+      state.pendingRequests.push(request);
+      updateRequestsBadge();
+      
+      if (state.isHost) {
+        updateRequestsModal();
+      }
+      
       state.channel.send({
         type: 'broadcast',
         event: 'media-request',
-        payload: {
-          roomId: gid,
-          userId: state.currentUser.id,
-          userName: state.currentUser.name,
-          mediaType: mediaType
-        }
+        payload: request
       }).catch(err => console.log('Media request send error:', err));
     }
 
@@ -1012,10 +1321,13 @@
       const request = {
         studentId: state.currentUser?.id || 'student',
         studentName: state.currentUser?.name || 'Student',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        type: 'screen-share'
       };
       
       state.screenShareRequests.push(request);
+      state.pendingRequests.push(request);
+      updateRequestsBadge();
       
       const messagesContainer = document.getElementById('chat-messages');
       const systemDiv = document.createElement('div');
@@ -1372,33 +1684,334 @@
       }
     });
 
+    // ============= STUDENT TILE MANAGEMENT =============
+    function createStudentTile(userId, userName, isLocal = false) {
+      const tile = document.createElement('div');
+      tile.className = 'student-tile';
+      tile.id = `student-tile-${userId}`;
+      
+      const videoPlayer = document.createElement('div');
+      videoPlayer.id = `player-${userId}`;
+      videoPlayer.className = 'video-player';
+      tile.appendChild(videoPlayer);
+      
+      const statusIndicators = document.createElement('div');
+      statusIndicators.className = 'status-indicators';
+      
+      const micIcon = document.createElement('div');
+      micIcon.className = 'status-icon mic-off';
+      micIcon.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+      statusIndicators.appendChild(micIcon);
+      
+      const camIcon = document.createElement('div');
+      camIcon.className = 'status-icon cam-off';
+      camIcon.innerHTML = '<i class="fas fa-video-slash"></i>';
+      statusIndicators.appendChild(camIcon);
+      
+      const handIcon = document.createElement('div');
+      handIcon.className = 'status-icon hand';
+      handIcon.innerHTML = '<i class="fas fa-hand"></i>';
+      handIcon.style.display = 'none';
+      statusIndicators.appendChild(handIcon);
+      
+      tile.appendChild(statusIndicators);
+      
+      const studentName = document.createElement('div');
+      studentName.className = 'student-name';
+      studentName.textContent = userName + (isLocal ? " (You)" : "");
+      tile.appendChild(studentName);
+      
+      // Store tile in state
+      state.studentTiles.set(userId, {
+        element: tile,
+        micIcon: micIcon,
+        camIcon: camIcon,
+        handIcon: handIcon,
+        name: userName,
+        isLocal: isLocal
+      });
+      
+      return tile;
+    }
+
+    function updateStudentTileStatus(userId, status) {
+      const tileInfo = state.studentTiles.get(userId);
+      if (!tileInfo) return;
+      
+      if (status.mic !== undefined) {
+        if (status.mic) {
+          tileInfo.micIcon.className = 'status-icon mic-on';
+          tileInfo.micIcon.innerHTML = '<i class="fas fa-microphone"></i>';
+        } else {
+          tileInfo.micIcon.className = 'status-icon mic-off';
+          tileInfo.micIcon.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+        }
+      }
+      
+      if (status.cam !== undefined) {
+        if (status.cam) {
+          tileInfo.camIcon.className = 'status-icon cam-on';
+          tileInfo.camIcon.innerHTML = '<i class="fas fa-video"></i>';
+        } else {
+          tileInfo.camIcon.className = 'status-icon cam-off';
+          tileInfo.camIcon.innerHTML = '<i class="fas fa-video-slash"></i>';
+        }
+      }
+      
+      if (status.handRaised !== undefined) {
+        tileInfo.handIcon.style.display = status.handRaised ? 'flex' : 'none';
+        if (status.handRaised) {
+          tileInfo.element.classList.add('hand-raised');
+        } else {
+          tileInfo.element.classList.remove('hand-raised');
+        }
+      }
+      
+      if (status.activeSpeaker !== undefined) {
+        if (status.activeSpeaker) {
+          tileInfo.element.classList.add('active-speaker');
+        } else {
+          tileInfo.element.classList.remove('active-speaker');
+        }
+      }
+    }
+
+    function removeStudentTile(userId) {
+      const tileInfo = state.studentTiles.get(userId);
+      if (tileInfo && tileInfo.element) {
+        tileInfo.element.remove();
+      }
+      state.studentTiles.delete(userId);
+    }
+
+    // ============= REQUEST MODAL =============
+    function openRequestsModal() {
+      if (!state.isHost) {
+        showNotification('Only host can view requests', 'info');
+        return;
+      }
+      
+      updateRequestsModal();
+      requestsModal.style.display = 'flex';
+    }
+
+    function closeRequestsModal() {
+      requestsModal.style.display = 'none';
+    }
+
+    function updateRequestsModal() {
+      if (!requestsList) return;
+      
+      requestsList.innerHTML = '';
+      
+      if (state.pendingRequests.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.padding = '20px';
+        emptyMsg.style.opacity = '0.7';
+        emptyMsg.textContent = 'No pending requests';
+        requestsList.appendChild(emptyMsg);
+        return;
+      }
+      
+      state.pendingRequests.forEach((request, index) => {
+        const requestItem = document.createElement('div');
+        requestItem.className = 'request-item';
+        
+        let typeIcon = 'question-circle';
+        let typeText = 'Unknown';
+        let typeColor = 'var(--accent-blue)';
+        
+        switch(request.mediaType) {
+          case 'mic':
+            typeIcon = 'microphone';
+            typeText = 'Microphone Access';
+            typeColor = 'var(--accent-green)';
+            break;
+          case 'cam':
+            typeIcon = 'video';
+            typeText = 'Camera Access';
+            typeColor = 'var(--accent-green)';
+            break;
+          case 'screen-share':
+            typeIcon = 'desktop';
+            typeText = 'Screen Share';
+            typeColor = 'var(--accent-blue)';
+            break;
+          case 'hand':
+            typeIcon = 'hand';
+            typeText = 'Raised Hand';
+            typeColor = 'var(--accent-yellow)';
+            break;
+        }
+        
+        requestItem.innerHTML = `
+          <div class="request-info">
+            <div class="request-student">${request.userName}</div>
+            <div class="request-type" style="color: ${typeColor};">
+              <i class="fas fa-${typeIcon}"></i> ${typeText}
+            </div>
+          </div>
+          <div class="request-actions">
+            <button class="request-approve" onclick="approveRequest(${index})">
+              <i class="fas fa-check"></i> Approve
+            </button>
+            <button class="request-reject" onclick="rejectRequest(${index})">
+              <i class="fas fa-times"></i> Reject
+            </button>
+          </div>
+        `;
+        
+        requestsList.appendChild(requestItem);
+      });
+    }
+
+    function approveRequest(index) {
+      if (!state.isHost) return;
+      
+      const request = state.pendingRequests[index];
+      if (!request) return;
+      
+      // Handle different request types
+      switch(request.mediaType) {
+        case 'mic':
+          // Grant microphone access
+          if (state.channel) {
+            state.channel.send({
+              type: 'broadcast',
+              event: 'grant-media-permission',
+              payload: {
+                userId: request.userId,
+                mediaType: 'mic',
+                granted: true
+              }
+            });
+          }
+          break;
+          
+        case 'cam':
+          // Grant camera access
+          if (state.channel) {
+            state.channel.send({
+              type: 'broadcast',
+              event: 'grant-media-permission',
+              payload: {
+                userId: request.userId,
+                mediaType: 'cam',
+                granted: true
+              }
+            });
+          }
+          break;
+          
+        case 'screen-share':
+          // Grant screen share permission
+          if (state.channel) {
+            state.channel.send({
+              type: 'broadcast',
+              event: 'grant-screen-share',
+              payload: {
+                userId: request.userId,
+                granted: true
+              }
+            });
+          }
+          break;
+          
+        case 'hand':
+          // Just acknowledge hand raise
+          showNotification(`Acknowledged ${request.userName}'s raised hand`, 'hand');
+          break;
+      }
+      
+      // Remove from pending requests
+      state.pendingRequests.splice(index, 1);
+      updateRequestsBadge();
+      updateRequestsModal();
+      
+      showNotification(`Approved ${request.mediaType} request for ${request.userName}`, 'check');
+    }
+
+    function rejectRequest(index) {
+      if (!state.isHost) return;
+      
+      const request = state.pendingRequests[index];
+      if (!request) return;
+      
+      // Remove from pending requests
+      state.pendingRequests.splice(index, 1);
+      updateRequestsBadge();
+      updateRequestsModal();
+      
+      showNotification(`Rejected ${request.mediaType} request for ${request.userName}`, 'info');
+    }
+
+    function updateRequestsBadge() {
+      if (!requestsBadge) return;
+      
+      const count = state.pendingRequests.length;
+      if (count > 0) {
+        requestsBadge.textContent = count;
+        requestsBadge.style.display = 'flex';
+      } else {
+        requestsBadge.style.display = 'none';
+      }
+    }
+
     // ============= WHITEBOARD =============
     function toggleWhiteboard() {
-      if (!state.isHost && !state.canPresent) {
-        showNotification('Only host or presenters can use whiteboard', 'info');
+      if (!state.isHost) {
+        showNotification('Only host can use whiteboard', 'info');
         return;
       }
       
       state.isWhiteboardActive = !state.isWhiteboardActive;
-      whiteboardOverlay.classList.toggle('active');
-      whiteboardTools.classList.toggle('active');
-      
-      if (state.channel) {
-        state.channel.send({
-          type: 'broadcast',
-          event: 'whiteboard-toggle',
-          payload: { 
-            active: state.isWhiteboardActive,
-            drawingCommands: state.whiteboardState,
-            userId: state.currentUser.id
-          }
-        }).catch(err => console.log('Whiteboard toggle sync:', err));
-      }
       
       if (state.isWhiteboardActive) {
-        resizeCanvas();
+        // Hide host video, show whiteboard
+        const hostTile = document.getElementById('host-tile');
+        if (hostTile) hostTile.style.display = 'none';
+        
+        whiteboardMain.classList.add('active');
+        whiteboardColors.style.display = 'flex';
+        
+        // Resize canvas
+        whiteboardMainCanvas.width = whiteboardMainCanvas.offsetWidth;
+        whiteboardMainCanvas.height = whiteboardMainCanvas.offsetHeight;
+        
+        // Broadcast whiteboard state to all students
+        if (state.channel) {
+          state.channel.send({
+            type: 'broadcast',
+            event: 'whiteboard-main-toggle',
+            payload: { 
+              active: true,
+              userId: state.currentUser.id
+            }
+          });
+        }
+        
         showNotification('Whiteboard Activated', 'whiteboard');
       } else {
+        // Show host video, hide whiteboard
+        const hostTile = document.getElementById('host-tile');
+        if (hostTile) hostTile.style.display = 'flex';
+        
+        whiteboardMain.classList.remove('active');
+        whiteboardColors.style.display = 'none';
+        
+        // Broadcast whiteboard closed
+        if (state.channel) {
+          state.channel.send({
+            type: 'broadcast',
+            event: 'whiteboard-main-toggle',
+            payload: { 
+              active: false,
+              userId: state.currentUser.id
+            }
+          });
+        }
+        
         showNotification('Whiteboard Closed', 'whiteboard');
       }
     }
@@ -1408,10 +2021,10 @@
       whiteboardCanvas.height = whiteboardCanvas.offsetHeight;
     }
 
-    function getCanvasCoordinates(e) {
-      const rect = whiteboardCanvas.getBoundingClientRect();
-      const scaleX = whiteboardCanvas.width / rect.width;
-      const scaleY = whiteboardCanvas.height / rect.height;
+    function getCanvasCoordinates(e, canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
       
       let clientX, clientY;
       if (e.type.includes('touch')) {
@@ -1428,10 +2041,125 @@
       };
     }
 
+    // Whiteboard drawing for main canvas
+    whiteboardMainCanvas.addEventListener('mousedown', (e) => {
+      if (!state.isHost) return;
+      state.drawing = true;
+      const { x, y } = getCanvasCoordinates(e, whiteboardMainCanvas);
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardMainCanvas.addEventListener('touchstart', (e) => {
+      if (!state.isHost) return;
+      e.preventDefault();
+      state.drawing = true;
+      const { x, y } = getCanvasCoordinates(e, whiteboardMainCanvas);
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardMainCanvas.addEventListener('mousemove', (e) => {
+      if (!state.drawing || !state.isHost) return;
+      
+      const { x, y } = getCanvasCoordinates(e, whiteboardMainCanvas);
+      
+      whiteboardMainCtx.beginPath();
+      whiteboardMainCtx.moveTo(state.lastX, state.lastY);
+      whiteboardMainCtx.lineTo(x, y);
+      
+      if (state.currentWhiteboardTool === 'pen') {
+        whiteboardMainCtx.strokeStyle = state.whiteboardPenColor;
+        whiteboardMainCtx.lineWidth = 3;
+        whiteboardMainCtx.lineCap = 'round';
+        whiteboardMainCtx.stroke();
+      } else if (state.currentWhiteboardTool === 'eraser') {
+        whiteboardMainCtx.strokeStyle = 'white';
+        whiteboardMainCtx.lineWidth = 20;
+        whiteboardMainCtx.stroke();
+      }
+      
+      // Broadcast drawing to all students
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'whiteboard-main-draw',
+          payload: {
+            fromX: state.lastX,
+            fromY: state.lastY,
+            toX: x,
+            toY: y,
+            tool: state.currentWhiteboardTool,
+            color: state.currentWhiteboardTool === 'pen' ? state.whiteboardPenColor : 'white',
+            lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
+          }
+        });
+      }
+      
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardMainCanvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!state.drawing || !state.isHost) return;
+      
+      const { x, y } = getCanvasCoordinates(e, whiteboardMainCanvas);
+      
+      whiteboardMainCtx.beginPath();
+      whiteboardMainCtx.moveTo(state.lastX, state.lastY);
+      whiteboardMainCtx.lineTo(x, y);
+      
+      if (state.currentWhiteboardTool === 'pen') {
+        whiteboardMainCtx.strokeStyle = state.whiteboardPenColor;
+        whiteboardMainCtx.lineWidth = 3;
+        whiteboardMainCtx.lineCap = 'round';
+        whiteboardMainCtx.stroke();
+      } else if (state.currentWhiteboardTool === 'eraser') {
+        whiteboardMainCtx.strokeStyle = 'white';
+        whiteboardMainCtx.lineWidth = 20;
+        whiteboardMainCtx.stroke();
+      }
+      
+      // Broadcast drawing to all students
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'whiteboard-main-draw',
+          payload: {
+            fromX: state.lastX,
+            fromY: state.lastY,
+            toX: x,
+            toY: y,
+            tool: state.currentWhiteboardTool,
+            color: state.currentWhiteboardTool === 'pen' ? state.whiteboardPenColor : 'white',
+            lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
+          }
+        });
+      }
+      
+      state.lastX = x;
+      state.lastY = y;
+    });
+
+    whiteboardMainCanvas.addEventListener('mouseup', () => state.drawing = false);
+    whiteboardMainCanvas.addEventListener('mouseout', () => state.drawing = false);
+    whiteboardMainCanvas.addEventListener('touchend', () => state.drawing = false);
+
+    // Color selection
+    document.querySelectorAll('.color-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+        state.whiteboardPenColor = option.dataset.color;
+      });
+    });
+
+    // Original whiteboard functions (kept for compatibility)
     whiteboardCanvas.addEventListener('mousedown', (e) => {
       if (!state.isHost && !state.canPresent) return;
       state.drawing = true;
-      const { x, y } = getCanvasCoordinates(e);
+      const { x, y } = getCanvasCoordinates(e, whiteboardCanvas);
       state.lastX = x;
       state.lastY = y;
     });
@@ -1440,7 +2168,7 @@
       if (!state.isHost && !state.canPresent) return;
       e.preventDefault();
       state.drawing = true;
-      const { x, y } = getCanvasCoordinates(e);
+      const { x, y } = getCanvasCoordinates(e, whiteboardCanvas);
       state.lastX = x;
       state.lastY = y;
     });
@@ -1448,7 +2176,7 @@
     whiteboardCanvas.addEventListener('mousemove', (e) => {
       if (!state.drawing || (!state.isHost && !state.canPresent)) return;
       
-      const { x, y } = getCanvasCoordinates(e);
+      const { x, y } = getCanvasCoordinates(e, whiteboardCanvas);
       
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
@@ -1485,7 +2213,7 @@
       e.preventDefault();
       if (!state.drawing || (!state.isHost && !state.canPresent)) return;
       
-      const { x, y } = getCanvasCoordinates(e);
+      const { x, y } = getCanvasCoordinates(e, whiteboardCanvas);
       
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
@@ -1530,6 +2258,7 @@
         
         if (state.currentWhiteboardTool === 'clear') {
           ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+          whiteboardMainCtx.clearRect(0, 0, whiteboardMainCanvas.width, whiteboardMainCanvas.height);
           state.whiteboardState = [];
           if (state.channel) {
             state.channel.send({
@@ -1546,12 +2275,17 @@
       state.isWhiteboardActive = false;
       whiteboardOverlay.classList.remove('active');
       whiteboardTools.classList.remove('active');
+      whiteboardMain.classList.remove('active');
+      whiteboardColors.style.display = 'none';
+      
+      const hostTile = document.getElementById('host-tile');
+      if (hostTile) hostTile.style.display = 'flex';
     }
 
     function saveWhiteboard() {
       const link = document.createElement('a');
       link.download = `whiteboard-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
-      link.href = whiteboardCanvas.toDataURL('image/png');
+      link.href = whiteboardMainCanvas.toDataURL('image/png');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1887,7 +2621,7 @@
         showNotification('Only host can view requests', 'info');
         return;
       }
-      showNotification(`${state.screenShareRequests.length} pending requests`, 'info');
+      openRequestsModal();
     }
 
     function copyClassLink() {
@@ -1910,25 +2644,26 @@
       if (state.isHandRaised) {
         btn.classList.add('active');
         
-        // Add hand icon to video tile
-        const userTile = document.getElementById(`tile-${state.currentUser.id}`);
-        if (userTile) {
-          const existingIcon = userTile.querySelector('.hand-icon');
-          if (!existingIcon) {
-            const handIcon = document.createElement('div');
-            handIcon.className = 'hand-icon';
-            handIcon.innerHTML = '✋';
-            userTile.appendChild(handIcon);
-            userTile.classList.add('hand-raised');
-          }
-        }
-        
         // Add to raised hands map with timestamp
         state.raisedHands.set(state.currentUser.id, {
           name: state.currentUser.name,
           timestamp: Date.now(),
           userId: state.currentUser.id
         });
+        
+        // Update student tile
+        updateStudentTileStatus(state.currentUser.id, { handRaised: true });
+        
+        // Add to pending requests for host
+        const request = {
+          userId: state.currentUser.id,
+          userName: state.currentUser.name,
+          mediaType: 'hand',
+          timestamp: Date.now()
+        };
+        
+        state.pendingRequests.push(request);
+        updateRequestsBadge();
         
         // Broadcast hand raise
         if (state.channel) {
@@ -1958,16 +2693,17 @@
       const handInfo = state.raisedHands.get(userId);
       if (!handInfo) return;
       
-      // Remove hand icon from correct tile
-      const userTile = document.getElementById(`tile-${userId}`);
-      if (userTile) {
-        const handIcon = userTile.querySelector('.hand-icon');
-        if (handIcon) handIcon.remove();
-        userTile.classList.remove('hand-raised');
-      }
+      // Update student tile
+      updateStudentTileStatus(userId, { handRaised: false });
       
       // Remove from map
       state.raisedHands.delete(userId);
+      
+      // Remove from pending requests
+      state.pendingRequests = state.pendingRequests.filter(req => 
+        !(req.userId === userId && req.mediaType === 'hand')
+      );
+      updateRequestsBadge();
       
       // If it's the current user, update button
       if (userId === state.currentUser?.id) {
@@ -1996,6 +2732,9 @@
       state.raisedHands.forEach((handInfo, userId) => {
         lowerHand(userId);
       });
+      
+      // Update requests modal
+      updateRequestsModal();
       
       showNotification('All hands cleared', 'hand');
     }
@@ -2094,6 +2833,7 @@
         document.getElementById('video-container').innerHTML = '';
         state.renderedVideoTiles.clear();
         state.remoteUsers = {};
+        state.studentTiles.clear();
         
         await initAgora(gid, state.currentUser.id, state.currentUser.name);
       } catch (e) {
@@ -2286,6 +3026,9 @@
           state.renderedVideoTiles.delete(user.uid);
         }
         
+        // Remove student tile
+        removeStudentTile(user.uid);
+        
         // Remove from raised hands
         if (state.raisedHands.has(user.uid)) {
           state.raisedHands.delete(user.uid);
@@ -2416,13 +3159,15 @@
             state.localVideoTrack.play(`player-${uid}`);
           }
         } else {
-          // Create video tile for self (student view)
-          const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
-          if (localPlayerDiv) {
-            container.appendChild(localPlayerDiv);
-            if (state.localVideoTrack) {
-              state.localVideoTrack.play(`player-${uid}`);
-            }
+          // Create student tile for self
+          const studentTile = createStudentTile(uid, userName, true);
+          if (studentTile) {
+            studentTilesContainer.appendChild(studentTile);
+            updateStudentTileStatus(uid, {
+              mic: state.isMicOn,
+              cam: state.isCameraOn,
+              handRaised: state.isHandRaised
+            });
           }
         }
 
@@ -2612,6 +3357,19 @@
             if (tile) {
               container.appendChild(tile);
             }
+            
+            // Create student tile for non-host users
+            if (!isHostUser) {
+              const studentTile = createStudentTile(user.uid, name);
+              if (studentTile) {
+                studentTilesContainer.appendChild(studentTile);
+                updateStudentTileStatus(user.uid, {
+                  mic: false,
+                  cam: true,
+                  handRaised: state.raisedHands.has(user.uid)
+                });
+              }
+            }
           }
           
           if (tile) {
@@ -2637,6 +3395,9 @@
         } else {
           state.remoteUsers[user.uid].audioTrack = user.audioTrack;
         }
+        
+        // Update student tile status
+        updateStudentTileStatus(user.uid, { mic: true });
       }
     }
 
@@ -2647,6 +3408,14 @@
         const tile = document.getElementById(`tile-${user.uid}`);
         if (tile) tile.remove();
         state.renderedVideoTiles.delete(user.uid);
+        
+        // Update student tile status
+        updateStudentTileStatus(user.uid, { cam: false });
+      }
+      
+      if (mediaType === 'audio') {
+        // Update student tile status
+        updateStudentTileStatus(user.uid, { mic: false });
       }
       
       // Remove from remote users
@@ -3140,9 +3909,44 @@
               state.whiteboardState.push(cmd);
             });
           })
+          .on('broadcast', { event: 'whiteboard-main-toggle' }, (payload) => {
+            if (payload.payload.userId === state.currentUser.id) return;
+            
+            if (payload.payload.active) {
+              // Hide host video, show whiteboard for students
+              const hostTile = document.getElementById('host-tile');
+              if (hostTile) hostTile.style.display = 'none';
+              
+              whiteboardMain.classList.add('active');
+              whiteboardMainCanvas.width = whiteboardMainCanvas.offsetWidth;
+              whiteboardMainCanvas.height = whiteboardMainCanvas.offsetHeight;
+              
+              // Clear canvas
+              whiteboardMainCtx.clearRect(0, 0, whiteboardMainCanvas.width, whiteboardMainCanvas.height);
+            } else {
+              // Show host video, hide whiteboard for students
+              const hostTile = document.getElementById('host-tile');
+              if (hostTile) hostTile.style.display = 'flex';
+              
+              whiteboardMain.classList.remove('active');
+            }
+          })
+          .on('broadcast', { event: 'whiteboard-main-draw' }, (payload) => {
+            if (!whiteboardMain.classList.contains('active')) return;
+            
+            const cmd = payload.payload;
+            whiteboardMainCtx.beginPath();
+            whiteboardMainCtx.moveTo(cmd.fromX, cmd.fromY);
+            whiteboardMainCtx.lineTo(cmd.toX, cmd.toY);
+            whiteboardMainCtx.strokeStyle = cmd.color;
+            whiteboardMainCtx.lineWidth = cmd.lineWidth;
+            whiteboardMainCtx.lineCap = 'round';
+            whiteboardMainCtx.stroke();
+          })
           .on('broadcast', { event: 'whiteboard-clear' }, (payload) => {
             if (payload.payload.userId === state.currentUser.id) return;
             ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+            whiteboardMainCtx.clearRect(0, 0, whiteboardMainCanvas.width, whiteboardMainCanvas.height);
             state.whiteboardState = [];
           })
           .on('broadcast', { event: 'mute-all' }, (payload) => {
@@ -3210,17 +4014,20 @@
                 userId: userId
               });
               
-              // Add hand icon to correct video tile
-              const userTile = document.getElementById(`tile-${userId}`);
-              if (userTile) {
-                const existingIcon = userTile.querySelector('.hand-icon');
-                if (!existingIcon) {
-                  const handIcon = document.createElement('div');
-                  handIcon.className = 'hand-icon';
-                  handIcon.innerHTML = '✋';
-                  userTile.appendChild(handIcon);
-                  userTile.classList.add('hand-raised');
-                }
+              // Update student tile
+              updateStudentTileStatus(userId, { handRaised: true });
+              
+              // Add to pending requests for host
+              if (state.isHost) {
+                const request = {
+                  userId: userId,
+                  userName: userName,
+                  mediaType: 'hand',
+                  timestamp: Date.now()
+                };
+                state.pendingRequests.push(request);
+                updateRequestsBadge();
+                updateRequestsModal();
               }
               
               // Add message to chat for host
@@ -3238,12 +4045,18 @@
           .on('broadcast', { event: 'screen-share-request' }, (payload) => {
             if (state.isHost) {
               state.screenShareRequests.push(payload.payload);
+              state.pendingRequests.push(payload.payload);
+              updateRequestsBadge();
+              updateRequestsModal();
               showNotification(`${payload.payload.studentName} wants to share screen`, 'info');
             }
           })
           .on('broadcast', { event: 'media-request' }, (payload) => {
             if (state.isHost) {
               state.mediaRequests.push(payload.payload);
+              state.pendingRequests.push(payload.payload);
+              updateRequestsBadge();
+              updateRequestsModal();
               showNotification(`${payload.payload.userName} wants to use ${payload.payload.mediaType}`, 'info');
             }
           })
@@ -3266,12 +4079,16 @@
             if (state.isHost) {
               console.log(`Student ${payload.payload.userId} mic: ${payload.payload.isMicOn}`);
             }
+            // Update student tile
+            updateStudentTileStatus(payload.payload.userId, { mic: payload.payload.isMicOn });
           })
           .on('broadcast', { event: 'student-cam-change' }, (payload) => {
             // Host can track student camera states
             if (state.isHost) {
               console.log(`Student ${payload.payload.userId} camera: ${payload.payload.isCameraOn}`);
             }
+            // Update student tile
+            updateStudentTileStatus(payload.payload.userId, { cam: payload.payload.isCameraOn });
           })
           .on('broadcast', { event: 'promote-speaker' }, (payload) => {
             if (payload.payload.userId === state.currentUser?.id) {
@@ -3281,6 +4098,25 @@
           .on('broadcast', { event: 'demote-speaker' }, (payload) => {
             if (payload.payload.userId === state.currentUser?.id) {
               disablePresenterMode(payload.payload.userId);
+            }
+          })
+          .on('broadcast', { event: 'grant-media-permission' }, (payload) => {
+            if (payload.payload.userId === state.currentUser?.id && payload.payload.granted) {
+              if (payload.payload.mediaType === 'mic') {
+                state.mediaControlLocked = false;
+                state.hardMuteLock = false;
+                showNotification('Host granted microphone access', 'check');
+              } else if (payload.payload.mediaType === 'cam') {
+                state.cameraControlLocked = false;
+                state.hardCameraLock = false;
+                showNotification('Host granted camera access', 'check');
+              }
+            }
+          })
+          .on('broadcast', { event: 'grant-screen-share' }, (payload) => {
+            if (payload.payload.userId === state.currentUser?.id && payload.payload.granted) {
+              state.canPresent = true;
+              showNotification('Host granted screen share permission', 'check');
             }
           })
           .on('broadcast', { event: 'end-meeting-for-all' }, () => {
@@ -3461,6 +4297,10 @@
     window.lowerHand = lowerHand;
     window.forceStopScreenShare = forceStopScreenShare;
     window.rejoinSession = rejoinSession;
+    window.openRequestsModal = openRequestsModal;
+    window.closeRequestsModal = closeRequestsModal;
+    window.approveRequest = approveRequest;
+    window.rejectRequest = rejectRequest;
 
     window.addEventListener('beforeunload', async () => {
       if (state.client) {
