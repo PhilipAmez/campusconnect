@@ -2398,6 +2398,11 @@
           hostTile.id = `tile-${uid}`;
           hostTile.innerHTML = '';
           
+          const ph = document.createElement('div');
+          ph.className = 'video-placeholder';
+          ph.innerHTML = '<i class="fas fa-crown" style="font-size: 36px; color: white;"></i>';
+          hostTile.appendChild(ph);
+
           const playerContainer = document.createElement('div');
           playerContainer.id = `player-${uid}`;
           playerContainer.style.width = '100%';
@@ -2405,11 +2410,13 @@
           playerContainer.style.position = 'absolute';
           playerContainer.style.top = '0';
           playerContainer.style.left = '0';
+          playerContainer.style.zIndex = '1';
           playerContainer.style.transform = 'scaleX(-1)';
           hostTile.appendChild(playerContainer);
           
           const nameTag = document.createElement('div');
           nameTag.className = 'name-tag';
+          nameTag.style.zIndex = '2';
           nameTag.innerHTML = `<span>${userName} (You)</span><span class="host-badge">HOST</span>`;
           hostTile.appendChild(nameTag);
           
@@ -2497,6 +2504,12 @@
       div.className = 'video-tile';
       div.id = `tile-${uid}`;
       
+      const placeholder = document.createElement('div');
+      placeholder.className = 'video-placeholder';
+      const initials = name ? name.charAt(0).toUpperCase() : '?';
+      placeholder.innerHTML = `<div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">${initials}</div>`;
+      div.appendChild(placeholder);
+
       const playerContainer = document.createElement('div');
       playerContainer.id = `player-${uid}`;
       playerContainer.style.width = '100%';
@@ -2504,12 +2517,14 @@
       playerContainer.style.position = 'absolute';
       playerContainer.style.top = '0';
       playerContainer.style.left = '0';
+      playerContainer.style.zIndex = '1';
       if (isLocal) playerContainer.style.transform = 'scaleX(-1)';
       
       div.appendChild(playerContainer);
 
       const nameTag = document.createElement('div');
       nameTag.className = 'name-tag';
+      nameTag.style.zIndex = '2';
       nameTag.innerHTML = `<span>${name}</span>`;
       if (state.isHost && uid === state.currentUser.id) {
         nameTag.innerHTML += `<span class="host-badge">HOST</span>`;
@@ -2567,62 +2582,68 @@
 
       await state.client.subscribe(user, mediaType);
 
-      if (mediaType === 'video') {
-        console.log(`Subscribing to video of user ${user.uid}`);
-        const container = document.getElementById('video-container');
-        let tile = document.getElementById(`tile-${user.uid}`);
-        
-        if (!tile) {
-          let name = `User ${user.uid}`;
-          const isHostUser = (user.uid === state.hostId);
+      // Ensure tile exists for any media type
+      const container = document.getElementById('video-container');
+      let tile = document.getElementById(`tile-${user.uid}`);
+      
+      if (!tile) {
+        let name = `User ${user.uid.slice(0,4)}`;
+        const isHostUser = (user.uid === state.hostId);
 
-          if (isHostUser) {
-            name = state.hostName || 'Host';
-            const placeholder = document.getElementById('host-tile');
-            if (placeholder) {
-              tile = placeholder;
-              tile.id = `tile-${user.uid}`;
-              tile.innerHTML = '';
-              
-              const playerContainer = document.createElement('div');
-              playerContainer.id = `player-${user.uid}`;
-              playerContainer.style.width = '100%';
-              playerContainer.style.height = '100%';
-              playerContainer.style.position = 'absolute';
-              playerContainer.style.top = '0';
-              playerContainer.style.left = '0';
-              tile.appendChild(playerContainer);
-              
-              const nameTag = document.createElement('div');
-              nameTag.className = 'name-tag';
-              nameTag.innerHTML = `<span>${name}</span><span class="host-badge">HOST</span>`;
-              tile.appendChild(nameTag);
-            }
-          }
-
-          if (!tile) {
-            const student = state.students.find(s => s.id === user.uid);
-            if (student) {
-              name = student.name;
-            } else {
-              const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', user.uid).single();
-              if (profile) name = profile.full_name || profile.username;
-            }
+        if (isHostUser) {
+          name = state.hostName || 'Host';
+          const placeholder = document.getElementById('host-tile');
+          if (placeholder) {
+            tile = placeholder;
+            tile.id = `tile-${user.uid}`;
+            tile.innerHTML = '';
             
-            tile = createVideoTile(user.uid, name);
-            if (tile) {
-              container.appendChild(tile);
-            }
+            const ph = document.createElement('div');
+            ph.className = 'video-placeholder';
+            ph.innerHTML = '<i class="fas fa-crown" style="font-size: 36px; color: white;"></i>';
+            tile.appendChild(ph);
+
+            const playerContainer = document.createElement('div');
+            playerContainer.id = `player-${user.uid}`;
+            playerContainer.style.width = '100%';
+            playerContainer.style.height = '100%';
+            playerContainer.style.position = 'absolute';
+            playerContainer.style.top = '0';
+            playerContainer.style.left = '0';
+            playerContainer.style.zIndex = '1';
+            tile.appendChild(playerContainer);
+            
+            const nameTag = document.createElement('div');
+            nameTag.className = 'name-tag';
+            nameTag.style.zIndex = '2';
+            nameTag.innerHTML = `<span>${name}</span><span class="host-badge">HOST</span>`;
+            tile.appendChild(nameTag);
+          }
+        }
+
+        if (!tile) {
+          const student = state.students.find(s => s.id === user.uid);
+          if (student) {
+            name = student.name;
+          } else {
+            const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', user.uid).single();
+            if (profile) name = profile.full_name || profile.username;
           }
           
+          tile = createVideoTile(user.uid, name);
           if (tile) {
-            updateAttendance({ id: user.uid, name: name });
-            
-            // Store remote user
-            state.remoteUsers[user.uid] = user;
+            container.appendChild(tile);
           }
         }
         
+        if (tile) {
+          updateAttendance({ id: user.uid, name: name });
+          state.remoteUsers[user.uid] = user;
+        }
+      }
+
+      if (mediaType === 'video') {
+        console.log(`Subscribing to video of user ${user.uid}`);
         if (tile) {
           user.videoTrack.play(`player-${user.uid}`);
         }
@@ -2632,10 +2653,7 @@
         console.log(`Subscribing to audio of user ${user.uid}`);
         user.audioTrack.play();
         
-        // Store remote user
-        if (!state.remoteUsers[user.uid]) {
-          state.remoteUsers[user.uid] = user;
-        } else {
+        if (state.remoteUsers[user.uid]) {
           state.remoteUsers[user.uid].audioTrack = user.audioTrack;
         }
       }
@@ -2645,9 +2663,8 @@
     async function handleUserUnpublished(user, mediaType) {
       console.log(`User ${user.uid} unpublished ${mediaType}`);
       if (mediaType === 'video') {
-        const tile = document.getElementById(`tile-${user.uid}`);
-        if (tile) tile.remove();
-        state.renderedVideoTiles.delete(user.uid);
+        const playerContainer = document.getElementById(`player-${user.uid}`);
+        if (playerContainer) playerContainer.innerHTML = '';
       }
       
       // Remove from remote users
