@@ -2772,13 +2772,16 @@
     function setupHostWaitingRoom(gid) {
       fetchPendingRequests(gid);
       
-      supabase.channel('host_waiting_room')
+      supabase.channel(`host_waiting_room_${gid}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'meeting_requests',
           filter: `group_id=eq.${gid}`
-        }, () => fetchPendingRequests(gid))
+        }, (payload) => {
+          console.log('Waiting room update:', payload);
+          fetchPendingRequests(gid);
+        })
         .subscribe();
     }
 
@@ -2789,7 +2792,8 @@
         .from('meeting_requests')
         .select('*')
         .eq('group_id', gid)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
       
       let newData = requests || [];
 
@@ -3400,6 +3404,9 @@
               .maybeSingle();
               
             if (!activeMarker) {
+              // Clean up stale requests from previous sessions
+              await supabase.from('meeting_requests').delete().eq('group_id', gid);
+
               await supabase.from('meeting_requests').insert({
                 group_id: gid,
                 user_id: user.id,
