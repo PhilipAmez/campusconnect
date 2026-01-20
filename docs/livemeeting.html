@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,6 +325,19 @@
     </div>
   </div>
 
+  <!-- Requests Modal for Lecturer -->
+  <div class="attendance-modal" id="requests-modal">
+    <div class="attendance-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Pending Requests</h2>
+        <button onclick="closeRequestsModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="requests-list" class="attendance-list">
+        <!-- Requests will be added here -->
+      </div>
+    </div>
+  </div>
+
   <!-- Screen Share Modal -->
   <div class="screen-share-modal" id="screen-share-modal">
     <div class="screen-share-content">
@@ -420,7 +432,10 @@
       isIntentionalLeave: false,
       mediaRequests: [],
       whiteboardState: [],
-      whiteboardLocked: false
+      whiteboardLocked: false,
+      pendingRequests: [],
+      allUsers: new Map(),
+      userTiles: new Map()
     };
 
     // ============= DOM ELEMENTS =============
@@ -440,6 +455,7 @@
     const screenShareModal = document.getElementById('screen-share-modal');
     const attendanceModal = document.getElementById('attendance-modal');
     const waitingRoomModal = document.getElementById('waiting-room-modal');
+    const requestsModal = document.getElementById('requests-modal');
     const hostTools = document.getElementById('host-tools');
     const hostNameEl = document.getElementById('host-name');
     const classTitleEl = document.getElementById('class-title');
@@ -644,6 +660,243 @@
       timerEl.textContent = `${h}:${m}:${s}`;
     }, 1000);
 
+    // ============= USER-FIRST TILE SYSTEM =============
+    function createUserTile(uid, userName, isLocal = false, isHost = false) {
+      if (state.userTiles.has(uid)) {
+        return state.userTiles.get(uid);
+      }
+
+      const div = document.createElement('div');
+      div.className = 'video-tile user-tile';
+      div.id = `tile-${uid}`;
+      div.dataset.uid = uid;
+      div.dataset.userName = userName;
+
+      const initials = userName ? userName.charAt(0).toUpperCase() : '?';
+      const avatarColor = stringToColor(uid);
+
+      const avatarHtml = `
+        <div class="user-avatar" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: ${avatarColor}; border-radius: 12px;">
+          <div style="font-size: 32px; font-weight: bold; color: white;">${initials}</div>
+        </div>
+      `;
+
+      const videoContainer = document.createElement('div');
+      videoContainer.className = 'video-container';
+      videoContainer.id = `player-${uid}`;
+      videoContainer.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;z-index:2;display:none;';
+
+      div.innerHTML = avatarHtml;
+      div.appendChild(videoContainer);
+
+      const statusBar = document.createElement('div');
+      statusBar.className = 'user-status-bar';
+      statusBar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);padding:8px;z-index:3;display:flex;align-items:center;gap:8px;';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'user-name';
+      nameSpan.textContent = userName;
+      nameSpan.style.cssText = 'color:white;font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+
+      const micIcon = document.createElement('i');
+      micIcon.className = 'fas fa-microphone-slash';
+      micIcon.style.cssText = 'color:var(--red);font-size:10px;';
+
+      const camIcon = document.createElement('i');
+      camIcon.className = 'fas fa-video-slash';
+      camIcon.style.cssText = 'color:var(--red);font-size:10px;';
+
+      const handIcon = document.createElement('i');
+      handIcon.className = 'fas fa-hand';
+      handIcon.style.cssText = 'color:var(--accent-yellow);font-size:10px;display:none;';
+
+      if (isHost) {
+        const hostBadge = document.createElement('span');
+        hostBadge.className = 'host-badge';
+        hostBadge.textContent = 'HOST';
+        hostBadge.style.cssText = 'background:var(--accent-yellow);color:black;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:bold;margin-left:4px;';
+        nameSpan.appendChild(hostBadge);
+      }
+
+      statusBar.appendChild(nameSpan);
+      statusBar.appendChild(micIcon);
+      statusBar.appendChild(camIcon);
+      statusBar.appendChild(handIcon);
+      div.appendChild(statusBar);
+
+      state.userTiles.set(uid, {
+        element: div,
+        videoContainer,
+        statusBar,
+        micIcon,
+        camIcon,
+        handIcon,
+        hasVideo: false
+      });
+
+      return div;
+    }
+
+    function updateUserTile(uid, updates) {
+      const tileData = state.userTiles.get(uid);
+      if (!tileData) return;
+
+      if (updates.hasVideo !== undefined) {
+        tileData.hasVideo = updates.hasVideo;
+        tileData.videoContainer.style.display = updates.hasVideo ? 'block' : 'none';
+        tileData.element.querySelector('.user-avatar').style.display = updates.hasVideo ? 'none' : 'flex';
+      }
+
+      if (updates.micOn !== undefined) {
+        tileData.micIcon.className = updates.micOn ? 'fas fa-microphone' : 'fas fa-microphone-slash';
+        tileData.micIcon.style.color = updates.micOn ? 'var(--accent-green)' : 'var(--red)';
+      }
+
+      if (updates.camOn !== undefined) {
+        tileData.camIcon.className = updates.camOn ? 'fas fa-video' : 'fas fa-video-slash';
+        tileData.camIcon.style.color = updates.camOn ? 'var(--accent-green)' : 'var(--red)';
+      }
+
+      if (updates.handRaised !== undefined) {
+        tileData.handIcon.style.display = updates.handRaised ? 'block' : 'none';
+      }
+
+      if (updates.waiting !== undefined) {
+        const waitingBadge = tileData.element.querySelector('.waiting-badge') || document.createElement('div');
+        if (updates.waiting) {
+          waitingBadge.className = 'waiting-badge';
+          waitingBadge.textContent = 'Waiting';
+          waitingBadge.style.cssText = 'position:absolute;top:10px;right:10px;background:var(--accent-yellow);color:black;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:bold;z-index:4;';
+          tileData.element.appendChild(waitingBadge);
+        } else {
+          waitingBadge.remove();
+        }
+      }
+    }
+
+    function stringToColor(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const hue = hash % 360;
+      return `hsl(${hue}, 70%, 50%)`;
+    }
+
+    // ============= MEDIA REQUEST SYSTEM =============
+    function sendMediaRequest(mediaType) {
+      if (!state.channel) return;
+
+      state.channel.send({
+        type: 'broadcast',
+        event: 'media-request',
+        payload: {
+          userId: state.currentUser.id,
+          userName: state.currentUser.name,
+          mediaType: mediaType,
+          timestamp: Date.now()
+        }
+      }).catch(err => console.log('Media request send error:', err));
+
+      showNotification(`${mediaType.toUpperCase()} request sent to host`, 'info');
+    }
+
+    function showPendingRequests() {
+      if (!state.isHost) {
+        showNotification('Only host can view requests', 'info');
+        return;
+      }
+      updateRequestsModal();
+      requestsModal.style.display = 'flex';
+    }
+
+    function closeRequestsModal() {
+      requestsModal.style.display = 'none';
+    }
+
+    function updateRequestsModal() {
+      const listContainer = document.getElementById('requests-list');
+      listContainer.innerHTML = '';
+
+      const allRequests = [...state.pendingRequests];
+      
+      if (allRequests.length === 0) {
+        listContainer.innerHTML = '<div style="padding:20px;text-align:center;opacity:0.7;">No pending requests</div>';
+        return;
+      }
+
+      allRequests.forEach((request, index) => {
+        const item = document.createElement('div');
+        item.className = 'attendance-item';
+        
+        const initials = request.userName ? request.userName.charAt(0).toUpperCase() : '?';
+        const avatarColor = stringToColor(request.userId);
+        
+        item.innerHTML = `
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:${avatarColor};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">${initials}</div>
+            <div>
+              <strong>${request.userName}</strong>
+              <div style="font-size:12px;opacity:0.7;">${request.mediaType} request • ${new Date(request.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="approveMediaRequest(${index})" style="background:rgba(0,255,148,0.1);color:var(--accent-green);border:1px solid var(--accent-green);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;">
+              <i class="fas fa-check"></i> Approve
+            </button>
+            <button onclick="rejectMediaRequest(${index})" style="background:rgba(255,59,48,0.1);color:var(--red);border:1px solid var(--red);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;">
+              <i class="fas fa-times"></i> Reject
+            </button>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function approveMediaRequest(index) {
+      const request = state.pendingRequests[index];
+      if (!request) return;
+
+      state.pendingRequests.splice(index, 1);
+      
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'media-approval',
+          payload: {
+            userId: request.userId,
+            mediaType: request.mediaType,
+            approved: true
+          }
+        });
+      }
+
+      updateRequestsModal();
+      showNotification(`Approved ${request.mediaType} for ${request.userName}`, 'check');
+    }
+
+    function rejectMediaRequest(index) {
+      const request = state.pendingRequests[index];
+      if (!request) return;
+
+      state.pendingRequests.splice(index, 1);
+      
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'media-approval',
+          payload: {
+            userId: request.userId,
+            mediaType: request.mediaType,
+            approved: false
+          }
+        });
+      }
+
+      updateRequestsModal();
+      showNotification(`Rejected ${request.mediaType} request from ${request.userName}`, 'info');
+    }
+
     // ============= ACTIVE SPEAKER ROTATION =============
     function rotateActiveSpeaker() {
       if (state.spotlightUserId || state.spotlightImmune) return;
@@ -654,7 +907,7 @@
       if (state.students.length > 0) {
         const randomIndex = Math.floor(Math.random() * state.students.length);
         const studentTile = Array.from(tiles).find(tile => 
-          tile.querySelector('.name-tag')?.textContent.includes(state.students[randomIndex].name)
+          tile.dataset.uid === state.students[randomIndex].id
         );
         
         if (studentTile) {
@@ -701,30 +954,25 @@
     function handleButtonAction(action, btn) {
       if (!action || !btn) return;
       
-      // TRUE LECTURER AUTHORITY: Hard check role for host-only actions
       const hostOnlyActions = ['record', 'attendance'];
       if (hostOnlyActions.includes(action) && !state.isHost) {
         showNotification('Only host can perform this action', 'info');
         return;
       }
       
-      // Check media control locks for non-host users
       if (!state.isHost) {
-        // HARD MUTE LOCK: Students cannot unmute when lock is active
         if (action === 'mic' && (state.mediaControlLocked || state.hardMuteLock)) {
           showNotification('Microphone is locked by host', 'info');
           sendMediaRequest('mic');
           return;
         }
         
-        // HARD CAMERA LOCK: Students cannot enable cameras when lock is active
         if (action === 'cam' && (state.cameraControlLocked || state.hardCameraLock)) {
           showNotification('Camera is locked by host', 'info');
           sendMediaRequest('cam');
           return;
         }
         
-        // TRUE 10,000 USER LOCKDOWN: Check if user is in listen-only mode
         if ((action === 'mic' || action === 'cam') && state.forceListenOnly && !state.promotedSpeakers.has(state.currentUser.id)) {
           showNotification('You are in listen-only mode. Ask host for permission to speak.', 'info');
           sendMediaRequest(action);
@@ -744,13 +992,11 @@
       switch (action) {
         case 'mic':
           if (state.localAudioTrack) {
-            // TRUTHFUL MEDIA STATE: Ensure UI matches real track state
             const newState = !state.isMicOn;
             
-            // HARD MUTE LOCK: Prevent unmute if locked
             if (newState && (state.mediaControlLocked || state.hardMuteLock) && !state.isHost) {
               showNotification('Microphone is locked by host', 'info');
-              btn.classList.toggle('active'); // Revert UI change
+              btn.classList.toggle('active');
               return;
             }
             
@@ -761,7 +1007,6 @@
               showNotification('Microphone error - please try again', 'error');
             });
             
-            // Update UI to match real state
             const micIcon = btn.querySelector('i');
             if (micIcon) {
               if (state.isMicOn) {
@@ -773,7 +1018,8 @@
               }
             }
             
-            // Broadcast mic state change to host
+            updateUserTile(state.currentUser.id, { micOn: state.isMicOn });
+            
             if (!state.isHost && state.channel) {
               state.channel.send({
                 type: 'broadcast',
@@ -790,13 +1036,11 @@
           
         case 'cam':
           if (state.localVideoTrack) {
-            // TRUTHFUL MEDIA STATE: Ensure UI matches real track state
             const newState = !state.isCameraOn;
             
-            // HARD CAMERA LOCK: Prevent enabling if locked
             if (newState && (state.cameraControlLocked || state.hardCameraLock) && !state.isHost) {
               showNotification('Camera is locked by host', 'info');
-              btn.classList.toggle('active'); // Revert UI change
+              btn.classList.toggle('active');
               return;
             }
             
@@ -807,7 +1051,6 @@
               showNotification('Camera error - please try again', 'error');
             });
             
-            // Update UI to match real state
             const camIcon = btn.querySelector('i');
             if (camIcon) {
               if (state.isCameraOn) {
@@ -819,7 +1062,11 @@
               }
             }
             
-            // Broadcast camera state change to host
+            updateUserTile(state.currentUser.id, { 
+              camOn: state.isCameraOn,
+              hasVideo: state.isCameraOn 
+            });
+            
             if (!state.isHost && state.channel) {
               state.channel.send({
                 type: 'broadcast',
@@ -876,23 +1123,6 @@
       }
     }
 
-    // ============= MEDIA REQUEST SYSTEM =============
-    function sendMediaRequest(mediaType) {
-      const gid = new URLSearchParams(window.location.search).get('groupId');
-      if (!state.channel || !gid) return;
-      
-      state.channel.send({
-        type: 'broadcast',
-        event: 'media-request',
-        payload: {
-          roomId: gid,
-          userId: state.currentUser.id,
-          userName: state.currentUser.name,
-          mediaType: mediaType
-        }
-      }).catch(err => console.log('Media request send error:', err));
-    }
-
     // ============= HOST TOOLS BUTTON HIGHLIGHTING =============
     const hostToolButtons = document.querySelectorAll('#host-tools .tool-btn');
     
@@ -947,7 +1177,6 @@
         document.body.classList.add('can-present');
         showNotification('You have been promoted to presenter', 'check');
         
-        // Create and publish tracks if not already done
         if (state.client && !state.localAudioTrack && !state.localVideoTrack) {
           AgoraRTC.createMicrophoneAndCameraTracks().then(([audioTrack, videoTrack]) => {
             state.localAudioTrack = audioTrack;
@@ -956,13 +1185,11 @@
             state.localVideoTrack.setEnabled(false);
             state.client.publish([audioTrack, videoTrack]);
             
-            // Create video tile for self
-            const container = document.getElementById('video-container');
-            const localPlayerDiv = createVideoTile(state.currentUser.id, state.currentUser.name + " (You)", true);
-            if (localPlayerDiv) {
-              container.appendChild(localPlayerDiv);
-              state.localVideoTrack.play(`player-${state.currentUser.id}`);
-            }
+            updateUserTile(state.currentUser.id, { 
+              hasVideo: false,
+              micOn: false,
+              camOn: false
+            });
           });
         }
       }
@@ -976,7 +1203,6 @@
         document.body.classList.remove('can-present');
         showNotification('Presenter access revoked', 'info');
         
-        // Unpublish tracks
         if (state.client && state.localAudioTrack && state.localVideoTrack) {
           state.client.unpublish([state.localAudioTrack, state.localVideoTrack]);
         }
@@ -985,13 +1211,11 @@
 
     // ============= SCREEN SHARING =============
     function handleScreenShare() {
-      // SINGLE PRESENTER ENFORCEMENT: Check if someone is already sharing
       if (state.currentPresenter && state.currentPresenter !== state.currentUser.id) {
         showNotification('Someone is already sharing their screen', 'info');
         return;
       }
       
-      // Check permissions
       if (!state.isHost && !state.canPresent) {
         requestScreenShare();
         return;
@@ -1013,7 +1237,8 @@
       const request = {
         studentId: state.currentUser?.id || 'student',
         studentName: state.currentUser?.name || 'Student',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        mediaType: 'screen'
       };
       
       state.screenShareRequests.push(request);
@@ -1025,7 +1250,6 @@
       messagesContainer.appendChild(systemDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
-      // Notify host via broadcast
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1082,21 +1306,18 @@
         
         const uid = state.currentUser.id;
         const playerContainer = document.getElementById(`player-${uid}`);
-        if (playerContainer) playerContainer.style.transform = 'none';
-        
-        state.localScreenTrack.play(`player-${uid}`);
+        if (playerContainer) {
+          playerContainer.style.transform = 'none';
+          state.localScreenTrack.play(`player-${uid}`);
+        }
 
         state.isScreenSharing = true;
         state.currentPresenter = state.currentUser.id;
-        
-        const myTile = document.getElementById(`tile-${uid}`);
-        if (myTile) myTile.classList.add('screen-sharing');
         
         const shareBtn = document.querySelector('[data-action="share"]');
         shareBtn.innerHTML = '<i class="fas fa-stop"></i>';
         shareBtn.setAttribute('data-tooltip', 'Stop Sharing');
         
-        // Broadcast screen share start
         if (state.channel) {
           state.channel.send({
             type: 'broadcast',
@@ -1140,15 +1361,10 @@
         state.isScreenSharing = false;
         state.currentPresenter = null;
         
-        const uid = state.currentUser.id;
-        const myTile = document.getElementById(`tile-${uid}`);
-        if (myTile) myTile.classList.remove('screen-sharing');
-        
         const shareBtn = document.querySelector('[data-action="share"]');
         shareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
         shareBtn.setAttribute('data-tooltip', 'Share Screen');
         
-        // Broadcast screen share stopped
         if (state.channel) {
           state.channel.send({
             type: 'broadcast',
@@ -1163,7 +1379,6 @@
       }
     }
 
-    // Host function to force-stop any screen share
     function forceStopScreenShare(userId) {
       if (!state.isHost) {
         showNotification('Only host can force-stop screen share', 'info');
@@ -1665,12 +1880,10 @@
       state.mediaControlLocked = true;
       state.hardMuteLock = true;
       
-      // Update UI
       document.getElementById('mute-all-btn').style.display = 'none';
       document.getElementById('unmute-all-btn').style.display = 'flex';
       updateLockMediaButton();
       
-      // Broadcast to all students
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1679,14 +1892,12 @@
         });
       }
       
-      // Force mute all remote users and disable their tracks
       Object.values(state.remoteUsers).forEach(user => {
         if (user.audioTrack) {
           user.audioTrack.setEnabled(false);
         }
       });
       
-      // Also mute local audio for non-host users
       if (!state.isHost && state.localAudioTrack) {
         state.localAudioTrack.setEnabled(false);
         state.isMicOn = false;
@@ -1713,12 +1924,10 @@
       state.mediaControlLocked = false;
       state.hardMuteLock = false;
       
-      // Update UI
       document.getElementById('mute-all-btn').style.display = 'flex';
       document.getElementById('unmute-all-btn').style.display = 'none';
       updateLockMediaButton();
       
-      // Broadcast to all students
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1727,7 +1936,6 @@
         });
       }
       
-      // Remove lock UI
       const micBtn = document.querySelector('[data-action="mic"]');
       if (micBtn) {
         micBtn.classList.remove('media-locked');
@@ -1746,12 +1954,10 @@
       state.cameraControlLocked = true;
       state.hardCameraLock = true;
       
-      // Update UI
       document.getElementById('disable-cameras-btn').style.display = 'none';
       document.getElementById('enable-cameras-btn').style.display = 'flex';
       updateLockMediaButton();
       
-      // Broadcast to all students
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1760,14 +1966,12 @@
         });
       }
       
-      // Force disable all remote cameras
       Object.values(state.remoteUsers).forEach(user => {
         if (user.videoTrack) {
           user.videoTrack.setEnabled(false);
         }
       });
       
-      // Also disable local camera for non-host users
       if (!state.isHost && state.localVideoTrack) {
         state.localVideoTrack.setEnabled(false);
         state.isCameraOn = false;
@@ -1794,12 +1998,10 @@
       state.cameraControlLocked = false;
       state.hardCameraLock = false;
       
-      // Update UI
       document.getElementById('disable-cameras-btn').style.display = 'flex';
       document.getElementById('enable-cameras-btn').style.display = 'none';
       updateLockMediaButton();
       
-      // Broadcast to all students
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1808,7 +2010,6 @@
         });
       }
       
-      // Remove lock UI
       const camBtn = document.querySelector('[data-action="cam"]');
       if (camBtn) {
         camBtn.classList.remove('media-locked');
@@ -1820,7 +2021,6 @@
     async function lockAllMedia() {
       if (!state.isHost) return;
       
-      // Execute both actions
       await muteAllParticipants();
       await disableAllCameras();
     }
@@ -1828,7 +2028,6 @@
     async function unlockAllMedia() {
       if (!state.isHost) return;
       
-      // Execute both actions
       await unmuteAllParticipants();
       await enableAllCameras();
     }
@@ -1841,7 +2040,6 @@
       
       const newState = !state.isPresentationMode;
       
-      // Set spotlight to host
       state.spotlightUserId = state.currentUser.id;
       state.spotlightImmune = true;
       
@@ -1866,7 +2064,6 @@
       const spotlightBtn = document.getElementById('spotlight-btn');
       
       if (active) {
-        // Move spotlighted user to first position
         const spotlightTile = document.getElementById(`tile-${state.spotlightUserId}`);
         if (spotlightTile) {
             container.prepend(spotlightTile);
@@ -1883,14 +2080,6 @@
       }
     }
 
-    function showPendingRequests() {
-      if (!state.isHost) {
-        showNotification('Only host can view requests', 'info');
-        return;
-      }
-      showNotification(`${state.screenShareRequests.length} pending requests`, 'info');
-    }
-
     function copyClassLink() {
       const link = `https://peerloom.com/live/${Math.random().toString(36).substr(2, 9)}`;
       navigator.clipboard.writeText(link);
@@ -1901,7 +2090,6 @@
     function toggleHandRaise(btn) {
       if (!state.currentUser) return;
       
-      // HAND RAISE LOCK: Check if hand is already raised
       if (state.raisedHands.has(state.currentUser.id)) {
         showNotification('You have already raised your hand', 'info');
         return;
@@ -1911,27 +2099,14 @@
       if (state.isHandRaised) {
         btn.classList.add('active');
         
-        // Add hand icon to video tile
-        const userTile = document.getElementById(`tile-${state.currentUser.id}`);
-        if (userTile) {
-          const existingIcon = userTile.querySelector('.hand-icon');
-          if (!existingIcon) {
-            const handIcon = document.createElement('div');
-            handIcon.className = 'hand-icon';
-            handIcon.innerHTML = '✋';
-            userTile.appendChild(handIcon);
-            userTile.classList.add('hand-raised');
-          }
-        }
+        updateUserTile(state.currentUser.id, { handRaised: true });
         
-        // Add to raised hands map with timestamp
         state.raisedHands.set(state.currentUser.id, {
           name: state.currentUser.name,
           timestamp: Date.now(),
           userId: state.currentUser.id
         });
         
-        // Broadcast hand raise
         if (state.channel) {
           state.channel.send({
             type: 'broadcast',
@@ -1944,7 +2119,6 @@
           });
         }
         
-        // Add message to chat for host
         if (state.isHost) {
           addMessage(`${state.currentUser.name} raised hand ✋`, 'system');
         }
@@ -1959,25 +2133,16 @@
       const handInfo = state.raisedHands.get(userId);
       if (!handInfo) return;
       
-      // Remove hand icon from correct tile
-      const userTile = document.getElementById(`tile-${userId}`);
-      if (userTile) {
-        const handIcon = userTile.querySelector('.hand-icon');
-        if (handIcon) handIcon.remove();
-        userTile.classList.remove('hand-raised');
-      }
+      updateUserTile(userId, { handRaised: false });
       
-      // Remove from map
       state.raisedHands.delete(userId);
       
-      // If it's the current user, update button
       if (userId === state.currentUser?.id) {
         state.isHandRaised = false;
         const handBtn = document.querySelector('[data-action="hand"]');
         if (handBtn) handBtn.classList.remove('active');
       }
       
-      // Broadcast hand lower
       if (state.channel && state.isHost) {
         state.channel.send({
           type: 'broadcast',
@@ -1993,7 +2158,6 @@
         return;
       }
       
-      // Lower all raised hands
       state.raisedHands.forEach((handInfo, userId) => {
         lowerHand(userId);
       });
@@ -2031,14 +2195,12 @@
         async () => {
           showNotification(state.isHost ? 'Ending class...' : 'Leaving class...', 'end');
           
-          // If host, clear the waiting room/meeting requests for this session
           if (state.isHost) {
             const gid = new URLSearchParams(window.location.search).get('groupId');
             if (gid) {
               await supabase.from('meeting_requests').delete().eq('group_id', gid);
             }
             
-            // Broadcast end meeting to all participants
             if (state.channel) {
               await state.channel.send({
                 type: 'broadcast',
@@ -2048,7 +2210,6 @@
             }
           }
           
-          // Leave Agora Channel
           if (state.client) {
             state.client.leave();
             if (state.localAudioTrack) state.localAudioTrack.close();
@@ -2095,6 +2256,7 @@
         document.getElementById('video-container').innerHTML = '';
         state.renderedVideoTiles.clear();
         state.remoteUsers = {};
+        state.userTiles.clear();
         
         await initAgora(gid, state.currentUser.id, state.currentUser.name);
       } catch (e) {
@@ -2227,8 +2389,6 @@
       }, 3000);
     }
 
-
-
     // ============= THEME TOGGLE =============
     document.getElementById('dark-mode-toggle').addEventListener('click', () => {
       document.body.classList.toggle('light-mode');
@@ -2244,7 +2404,7 @@
       aiPanel.classList.toggle('open');
     });
 
-    // ============= AGORA VIDEO LOGIC WITH 10,000 USER FIXES =============
+    // ============= AGORA VIDEO LOGIC WITH USER-FIRST TILE SYSTEM =============
     async function initAgora(channelName, uid, userName) {
       updateLoadingStatus("Checking system requirements...");
       
@@ -2263,46 +2423,74 @@
       state.client.on("user-published", handleUserPublished);
       state.client.on("user-unpublished", handleUserUnpublished);
       
-      state.client.on("user-joined", (user) => {
-        // SPOTLIGHT IMMUNITY: Don't change spotlight when users join
+      state.client.on("user-joined", async (user) => {
         if (state.spotlightUserId && state.spotlightImmune) return;
         
-        let student = state.students.find(s => s.id === user.uid);
-        const name = student?.name || `User ${user.uid.slice(0, 8)}`;
+        let name = `User ${user.uid.slice(0, 8)}`;
+        const isHostUser = (user.uid === state.hostId);
+
+        if (isHostUser) {
+          name = state.hostName || 'Host';
+        } else {
+          const student = state.students.find(s => s.id === user.uid);
+          if (student) {
+            name = student.name;
+          } else {
+            const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', user.uid).single();
+            if (profile) name = profile.full_name || profile.username;
+          }
+        }
+
+        state.allUsers.set(user.uid, { uid: user.uid, name });
+
+        const container = document.getElementById('video-container');
+        let tile = document.getElementById(`tile-${user.uid}`);
+        
+        if (!tile) {
+          tile = createUserTile(user.uid, name, user.uid === uid, isHostUser);
+          container.appendChild(tile);
+          state.userTiles.set(user.uid, { element: tile });
+        }
+
+        if (isHostUser) {
+          tile.classList.add('host-tile');
+        }
+
+        updateAttendance({ id: user.uid, name: name });
+        state.remoteUsers[user.uid] = user;
+        
         showNotification(`${name} joined the meeting`, 'user');
       });
 
       state.client.on("user-left", (user, reason) => {
-        // SPOTLIGHT IMMUNITY: Don't change spotlight when users leave
         if (state.spotlightUserId && state.spotlightImmune) {
-          // Just remove the tile if it's not the spotlight user
           if (user.uid !== state.spotlightUserId) {
             const tile = document.getElementById(`tile-${user.uid}`);
             if (tile) tile.remove();
-            state.renderedVideoTiles.delete(user.uid);
+            state.userTiles.delete(user.uid);
           }
         } else {
           const tile = document.getElementById(`tile-${user.uid}`);
           if (tile) tile.remove();
-          state.renderedVideoTiles.delete(user.uid);
+          state.userTiles.delete(user.uid);
         }
         
-        // Remove from raised hands
         if (state.raisedHands.has(user.uid)) {
           state.raisedHands.delete(user.uid);
         }
         
-        // Remove from promoted speakers
         state.promotedSpeakers.delete(user.uid);
         
-        let student = state.students.find(s => s.id === user.uid);
-        const name = student?.name || `User ${user.uid.slice(0, 8)}`;
+        const userData = state.allUsers.get(user.uid);
+        const name = userData?.name || `User ${user.uid.slice(0, 8)}`;
         
         if (reason === "ServerTimeOut") {
            showNotification(`${name} dropped due to network timeout`, "info");
         } else {
            showNotification(`${name} left the meeting`, "end");
         }
+        
+        state.allUsers.delete(user.uid);
       });
 
       state.client.on("connection-state-change", (curState, prevState) => {
@@ -2356,9 +2544,44 @@
         updateLoadingStatus("Connecting to media server...");
         await state.client.join(state.agoraAppId, channelName, token, uid);
 
-        // STANDARD CLASS MODE: Students join with tracks but muted
-        if (!state.isHost) {
-          // Students start with mic and camera disabled
+        const container = document.getElementById('video-container');
+        
+        if (state.isHost) {
+          try {
+            updateLoadingStatus("Accessing camera and microphone...");
+            [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+            state.localAudioTrack.setEnabled(true);
+            state.localVideoTrack.setEnabled(true);
+            state.isMicOn = true;
+            state.isCameraOn = true;
+            await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
+            
+            const hostTile = document.getElementById('host-tile');
+            if (hostTile) {
+              hostTile.id = `tile-${uid}`;
+              hostTile.classList.add('host-tile');
+              
+              const videoContainer = document.createElement('div');
+              videoContainer.id = `player-${uid}`;
+              videoContainer.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;z-index:2;';
+              hostTile.appendChild(videoContainer);
+              
+              state.localVideoTrack.play(`player-${uid}`);
+              
+              updateUserTile(uid, { 
+                hasVideo: true,
+                micOn: true,
+                camOn: true
+              });
+            }
+          } catch (permError) {
+            if (permError.name === 'NotAllowedError') {
+              showNotification("Microphone/Camera access denied. Please check browser settings.", "end");
+              return;
+            }
+            throw permError;
+          }
+        } else {
           state.isMicOn = false;
           state.isCameraOn = false;
           state.forceListenOnly = false;
@@ -2372,69 +2595,17 @@
           } catch (permError) {
             console.warn("Student joined without media permissions");
           }
-        } else {
-          // Host always has tracks
-          try {
-            updateLoadingStatus("Accessing camera and microphone...");
-            [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-            state.localAudioTrack.setEnabled(true);
-            state.localVideoTrack.setEnabled(true);
-            state.isMicOn = true;
-            state.isCameraOn = true;
-            await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
-          } catch (permError) {
-            if (permError.name === 'NotAllowedError') {
-              showNotification("Microphone/Camera access denied. Please check browser settings.", "end");
-              return;
-            }
-            throw permError;
-          }
-        }
-        
-        const container = document.getElementById('video-container');
-        const hostTile = document.getElementById('host-tile');
-        
-        if (state.isHost && hostTile) {
-          hostTile.id = `tile-${uid}`;
-          hostTile.innerHTML = '';
           
-          const ph = document.createElement('div');
-          ph.className = 'video-placeholder';
-          ph.innerHTML = '<i class="fas fa-crown" style="font-size: 36px; color: white;"></i>';
-          hostTile.appendChild(ph);
-
-          const playerContainer = document.createElement('div');
-          playerContainer.id = `player-${uid}`;
-          playerContainer.style.width = '100%';
-          playerContainer.style.height = '100%';
-          playerContainer.style.position = 'absolute';
-          playerContainer.style.top = '0';
-          playerContainer.style.left = '0';
-          playerContainer.style.zIndex = '1';
-          playerContainer.style.transform = 'scaleX(-1)';
-          hostTile.appendChild(playerContainer);
+          const localTile = createUserTile(uid, userName + " (You)", true, false);
+          container.appendChild(localTile);
           
-          const nameTag = document.createElement('div');
-          nameTag.className = 'name-tag';
-          nameTag.style.zIndex = '2';
-          nameTag.innerHTML = `<span>${userName} (You)</span><span class="host-badge">HOST</span>`;
-          hostTile.appendChild(nameTag);
-          
-          if (state.localVideoTrack) {
-            state.localVideoTrack.play(`player-${uid}`);
-          }
-        } else {
-          // Create video tile for self (student view)
-          const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
-          if (localPlayerDiv) {
-            container.appendChild(localPlayerDiv);
-            if (state.localVideoTrack) {
-              state.localVideoTrack.play(`player-${uid}`);
-            }
-          }
+          updateUserTile(uid, { 
+            hasVideo: false,
+            micOn: false,
+            camOn: false
+          });
         }
 
-        // Update control bar UI to match actual state
         const micBtn = document.querySelector('[data-action="mic"]');
         const camBtn = document.querySelector('[data-action="cam"]');
         
@@ -2498,159 +2669,18 @@
       }
     }
 
-    function createVideoTile(uid, name, isLocal = false) {
-      
-      const div = document.createElement('div');
-      div.className = 'video-tile';
-      div.id = `tile-${uid}`;
-      
-      const placeholder = document.createElement('div');
-      placeholder.className = 'video-placeholder';
-      const initials = name ? name.charAt(0).toUpperCase() : '?';
-      placeholder.innerHTML = `<div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">${initials}</div>`;
-      div.appendChild(placeholder);
-
-      const playerContainer = document.createElement('div');
-      playerContainer.id = `player-${uid}`;
-      playerContainer.style.width = '100%';
-      playerContainer.style.height = '100%';
-      playerContainer.style.position = 'absolute';
-      playerContainer.style.top = '0';
-      playerContainer.style.left = '0';
-      playerContainer.style.zIndex = '1';
-      if (isLocal) playerContainer.style.transform = 'scaleX(-1)';
-      
-      div.appendChild(playerContainer);
-
-      const nameTag = document.createElement('div');
-      nameTag.className = 'name-tag';
-      nameTag.style.zIndex = '2';
-      nameTag.innerHTML = `<span>${name}</span>`;
-      if (state.isHost && uid === state.currentUser.id) {
-        nameTag.innerHTML += `<span class="host-badge">HOST</span>`;
-      }
-      div.appendChild(nameTag);
-
-      // Add Kick Button for Host
-      if (state.isHost && uid !== state.currentUser.id) {
-        const kickBtn = document.createElement('button');
-        kickBtn.className = 'kick-btn';
-        kickBtn.innerHTML = '<i class="fas fa-user-times"></i>';
-        kickBtn.title = 'Remove Student';
-        kickBtn.style.cssText = `
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: rgba(255, 59, 48, 0.9);
-          color: white;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 20;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        `;
-        
-        kickBtn.onclick = (e) => {
-          e.stopPropagation();
-          removeStudent(uid);
-        };
-        
-        div.appendChild(kickBtn);
-        
-        // Show on hover
-        div.addEventListener('mouseenter', () => { kickBtn.style.opacity = '1'; });
-        div.addEventListener('mouseleave', () => { kickBtn.style.opacity = '0'; });
-        
-        // Always show on mobile
-        if (state.isMobile) kickBtn.style.opacity = '1';
-      }
-
-      // Track rendered tiles
-      state.renderedVideoTiles.add(uid);
-      
-      return div;
-    }
-
     async function handleUserPublished(user, mediaType) {
-
       await state.client.subscribe(user, mediaType);
 
-      // Ensure tile exists for any media type
-      const container = document.getElementById('video-container');
-      let tile = document.getElementById(`tile-${user.uid}`);
-      
-      if (!tile) {
-        let name = `User ${user.uid.slice(0,4)}`;
-        const isHostUser = (user.uid === state.hostId);
-
-        if (isHostUser) {
-          name = state.hostName || 'Host';
-          const placeholder = document.getElementById('host-tile');
-          if (placeholder) {
-            tile = placeholder;
-            tile.id = `tile-${user.uid}`;
-            tile.innerHTML = '';
-            
-            const ph = document.createElement('div');
-            ph.className = 'video-placeholder';
-            ph.innerHTML = '<i class="fas fa-crown" style="font-size: 36px; color: white;"></i>';
-            tile.appendChild(ph);
-
-            const playerContainer = document.createElement('div');
-            playerContainer.id = `player-${user.uid}`;
-            playerContainer.style.width = '100%';
-            playerContainer.style.height = '100%';
-            playerContainer.style.position = 'absolute';
-            playerContainer.style.top = '0';
-            playerContainer.style.left = '0';
-            playerContainer.style.zIndex = '1';
-            tile.appendChild(playerContainer);
-            
-            const nameTag = document.createElement('div');
-            nameTag.className = 'name-tag';
-            nameTag.style.zIndex = '2';
-            nameTag.innerHTML = `<span>${name}</span><span class="host-badge">HOST</span>`;
-            tile.appendChild(nameTag);
-          }
-        }
-
-        if (!tile) {
-          const student = state.students.find(s => s.id === user.uid);
-          if (student) {
-            name = student.name;
-          } else {
-            const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', user.uid).single();
-            if (profile) name = profile.full_name || profile.username;
-          }
-          
-          tile = createVideoTile(user.uid, name);
-          if (tile) {
-            container.appendChild(tile);
-          }
-        }
-        
-        if (tile) {
-          updateAttendance({ id: user.uid, name: name });
-          state.remoteUsers[user.uid] = user;
-        }
-      }
+      const tileData = state.userTiles.get(user.uid);
+      if (!tileData) return;
 
       if (mediaType === 'video') {
-        console.log(`Subscribing to video of user ${user.uid}`);
-        if (tile) {
-          user.videoTrack.play(`player-${user.uid}`);
-        }
+        user.videoTrack.play(`player-${user.uid}`);
+        updateUserTile(user.uid, { hasVideo: true });
       }
 
       if (mediaType === 'audio') {
-        console.log(`Subscribing to audio of user ${user.uid}`);
         user.audioTrack.play();
         
         if (state.remoteUsers[user.uid]) {
@@ -2659,15 +2689,12 @@
       }
     }
 
-
     async function handleUserUnpublished(user, mediaType) {
       console.log(`User ${user.uid} unpublished ${mediaType}`);
       if (mediaType === 'video') {
-        const playerContainer = document.getElementById(`player-${user.uid}`);
-        if (playerContainer) playerContainer.innerHTML = '';
+        updateUserTile(user.uid, { hasVideo: false });
       }
       
-      // Remove from remote users
       if (state.remoteUsers[user.uid]) {
         if (mediaType === 'video') {
           delete state.remoteUsers[user.uid].videoTrack;
@@ -2717,7 +2744,6 @@
     }
 
     async function checkWaitingRoom(gid, user, onApproved) {
-      // Reset overlay text in case it was changed
       const overlay = document.getElementById('waiting-room-overlay');
       overlay.querySelector('h2').textContent = "Waiting for Host";
       overlay.querySelector('p').textContent = "Please wait while the host admits you to the class.";
@@ -2784,8 +2810,6 @@
         })
         .subscribe();
     }
-
-
 
     async function fetchPendingRequests(gid) {
       const { data: requests } = await supabase
@@ -2863,10 +2887,8 @@
         const { error } = await supabase.from('meeting_requests').update({ status: 'approved' }).eq('id', id);
         if (error) throw error;
         
-        // Add to promoted speakers
         state.promotedSpeakers.add(userId);
         
-        // Notify student they are now a speaker
         if (state.channel) {
           state.channel.send({
             type: 'broadcast',
@@ -2915,7 +2937,6 @@
               
             if (error) throw error;
             
-            // Remove from promoted speakers
             state.promotedSpeakers.delete(userId);
             
             showNotification('Student removed', 'info');
@@ -2938,10 +2959,8 @@
         const { error } = await supabase.from('meeting_requests').update({ status: 'approved' }).in('id', ids);
         if (error) throw error;
         
-        // Add all to promoted speakers
         userIds.forEach(userId => state.promotedSpeakers.add(userId));
         
-        // Notify all students
         if (state.channel) {
           userIds.forEach(userId => {
             state.channel.send({
@@ -3013,12 +3032,10 @@
       modal.style.display = 'flex';
       
       try {
-        // TRUE 10,000 USER LOCKDOWN: Only create preview for host or promoted speakers
         if (state.isHost || state.promotedSpeakers.has(user.id)) {
           if (!state.localAudioTrack || !state.localVideoTrack) {
              [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
              
-             // Set initial state based on role
              if (!state.isHost) {
                state.localAudioTrack.setEnabled(false);
                state.localVideoTrack.setEnabled(false);
@@ -3105,7 +3122,6 @@
             addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at);
           })
           .on('broadcast', { event: 'spotlight' }, (payload) => {
-            // SPOTLIGHT IMMUNITY: Only change when explicitly broadcast
             state.spotlightUserId = payload.payload.spotlightUserId;
             state.spotlightImmune = payload.payload.immune || true;
             toggleSpotlightUI(payload.payload.active);
@@ -3117,7 +3133,6 @@
               whiteboardOverlay.classList.add('active');
               whiteboardTools.classList.add('active');
               resizeCanvas();
-              // Render initial state
               const commands = payload.payload.drawingCommands || [];
               commands.forEach(cmd => {
                 ctx.beginPath();
@@ -3174,7 +3189,6 @@
               state.localAudioTrack.setEnabled(false);
               state.isMicOn = false;
               
-              // Update UI
               const micBtn = document.querySelector('[data-action="mic"]');
               if (micBtn) {
                 const micIcon = micBtn.querySelector('i');
@@ -3202,7 +3216,6 @@
               state.localVideoTrack.setEnabled(false);
               state.isCameraOn = false;
               
-              // Update UI
               const camBtn = document.querySelector('[data-action="cam"]');
               if (camBtn) {
                 const camIcon = camBtn.querySelector('i');
@@ -3232,25 +3245,12 @@
                 userId: userId
               });
               
-              // Add hand icon to correct video tile
-              const userTile = document.getElementById(`tile-${userId}`);
-              if (userTile) {
-                const existingIcon = userTile.querySelector('.hand-icon');
-                if (!existingIcon) {
-                  const handIcon = document.createElement('div');
-                  handIcon.className = 'hand-icon';
-                  handIcon.innerHTML = '✋';
-                  userTile.appendChild(handIcon);
-                  userTile.classList.add('hand-raised');
-                }
-              }
+              updateUserTile(userId, { handRaised: true });
               
-              // Add message to chat for host
               if (state.isHost) {
                 addMessage(`${userName} raised hand ✋`, 'system');
               }
 
-              // Show notification to all users
               showNotification(`${userName} raised hand`, 'hand');
             }
           })
@@ -3265,8 +3265,44 @@
           })
           .on('broadcast', { event: 'media-request' }, (payload) => {
             if (state.isHost) {
-              state.mediaRequests.push(payload.payload);
+              state.pendingRequests.push(payload.payload);
               showNotification(`${payload.payload.userName} wants to use ${payload.payload.mediaType}`, 'info');
+            }
+          })
+          .on('broadcast', { event: 'media-approval' }, (payload) => {
+            if (payload.payload.userId === state.currentUser.id) {
+              if (payload.payload.approved) {
+                if (payload.payload.mediaType === 'mic') {
+                  if (state.localAudioTrack) {
+                    state.localAudioTrack.setEnabled(true);
+                    state.isMicOn = true;
+                    const micBtn = document.querySelector('[data-action="mic"]');
+                    if (micBtn) {
+                      micBtn.classList.add('active');
+                      const micIcon = micBtn.querySelector('i');
+                      micIcon.classList.remove('fa-microphone-slash');
+                      micIcon.classList.add('fa-microphone');
+                    }
+                    updateUserTile(state.currentUser.id, { micOn: true });
+                  }
+                } else if (payload.payload.mediaType === 'cam') {
+                  if (state.localVideoTrack) {
+                    state.localVideoTrack.setEnabled(true);
+                    state.isCameraOn = true;
+                    const camBtn = document.querySelector('[data-action="cam"]');
+                    if (camBtn) {
+                      camBtn.classList.add('active');
+                      const camIcon = camBtn.querySelector('i');
+                      camIcon.classList.remove('fa-video-slash');
+                      camIcon.classList.add('fa-video');
+                    }
+                    updateUserTile(state.currentUser.id, { camOn: true, hasVideo: true });
+                  }
+                }
+                showNotification(`Host approved your ${payload.payload.mediaType} request`, 'check');
+              } else {
+                showNotification(`Host rejected your ${payload.payload.mediaType} request`, 'info');
+              }
             }
           })
           .on('broadcast', { event: 'screen-share-started' }, (payload) => {
@@ -3284,15 +3320,16 @@
             }
           })
           .on('broadcast', { event: 'student-mic-change' }, (payload) => {
-            // Host can track student mic states
             if (state.isHost) {
-              console.log(`Student ${payload.payload.userId} mic: ${payload.payload.isMicOn}`);
+              updateUserTile(payload.payload.userId, { micOn: payload.payload.isMicOn });
             }
           })
           .on('broadcast', { event: 'student-cam-change' }, (payload) => {
-            // Host can track student camera states
             if (state.isHost) {
-              console.log(`Student ${payload.payload.userId} camera: ${payload.payload.isCameraOn}`);
+              updateUserTile(payload.payload.userId, { 
+                camOn: payload.payload.isCameraOn,
+                hasVideo: payload.payload.isCameraOn
+              });
             }
           })
           .on('broadcast', { event: 'promote-speaker' }, (payload) => {
@@ -3395,7 +3432,6 @@
           }
 
           if (state.isHost) {
-            // Mark session as active
             const { data: activeMarker } = await supabase
               .from('meeting_requests')
               .select('id')
@@ -3404,7 +3440,6 @@
               .maybeSingle();
               
             if (!activeMarker) {
-              // Clean up stale requests from previous sessions
               await supabase.from('meeting_requests').delete().eq('group_id', gid);
 
               await supabase.from('meeting_requests').insert({
@@ -3418,7 +3453,6 @@
             setupHostWaitingRoom(gid);
             await completeSessionSetup(gid, user);
           } else {
-            // Check if host has started the meeting
             const { data: hostActive } = await supabase
               .from('meeting_requests')
               .select('id')
@@ -3486,6 +3520,9 @@
     window.lowerHand = lowerHand;
     window.forceStopScreenShare = forceStopScreenShare;
     window.rejoinSession = rejoinSession;
+    window.approveMediaRequest = approveMediaRequest;
+    window.rejectMediaRequest = rejectMediaRequest;
+    window.closeRequestsModal = closeRequestsModal;
 
     window.addEventListener('beforeunload', async () => {
       if (state.client) {
