@@ -2483,6 +2483,7 @@ import { supabase } from './js/supabaseClient.js';
         .select('*')
         .eq('group_id', gid)
         .eq('status', 'pending')
+        .neq('user_id', state.currentUser.id)
         .order('created_at', { ascending: true });
       
       let newData = requests || [];
@@ -2663,6 +2664,7 @@ import { supabase } from './js/supabaseClient.js';
               .from('meeting_requests')
               .update({ status: 'pending' })
               .eq('group_id', gid)
+              .neq('user_id', state.currentUser.id)
               .neq('status', 'host_active');
 
             if (error) throw error;
