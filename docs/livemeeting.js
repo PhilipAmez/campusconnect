@@ -3123,14 +3123,14 @@ import { supabase } from './js/supabaseClient.js';
             await completeSessionSetup(gid, user);
           } else {
             // Check if host has started the meeting
-            const { data: hostActive } = await supabase
+            const { data: hostActiveList } = await supabase
               .from('meeting_requests')
               .select('id')
               .eq('group_id', gid)
               .eq('status', 'host_active')
-              .maybeSingle();
+              .limit(1);
               
-            if (!hostActive) {
+            if (!hostActiveList || hostActiveList.length === 0) {
               showWaitingForHostOverlay(gid, user);
             } else {
               await checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
