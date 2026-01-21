@@ -2440,8 +2440,27 @@ import { supabase } from './js/supabaseClient.js';
           joined = true;
           if (pollInterval) clearInterval(pollInterval);
           supabase.removeChannel(channel);
-          document.getElementById('waiting-room-overlay').classList.add('hidden');
-          onApproved();
+          
+          // Show welcoming message
+          const overlay = document.getElementById('waiting-room-overlay');
+          const content = overlay.querySelector('.waiting-content');
+          
+          if (content) {
+            const userName = user.user_metadata.firstName || user.user_metadata.full_name || 'Student';
+            content.innerHTML = `
+              <i class="fas fa-check-circle" style="font-size: 64px; color: var(--accent-green); margin-bottom: 20px;"></i>
+              <h2 style="margin: 0 0 10px; font-size: 28px;">Welcome, ${userName}!</h2>
+              <p style="opacity: 0.9; font-size: 16px;">Your request has been approved. Entering class...</p>
+            `;
+          }
+          
+          playNotificationSound();
+
+          setTimeout(() => {
+            overlay.classList.add('hidden');
+            onApproved();
+            showNotification('Successfully joined the class', 'check');
+          }, 2000);
         } else if (status === 'rejected') {
           joined = true;
           if (pollInterval) clearInterval(pollInterval);
