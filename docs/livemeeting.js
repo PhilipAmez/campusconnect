@@ -3070,8 +3070,13 @@ import { supabase } from './js/supabaseClient.js';
         id: user.id,
         name: user.user_metadata.firstName || user.user_metadata.full_name || 'User',
         email: user.email,
-        role: 'student'
+        role: 'student',
+        photo: user.user_metadata.avatar_url
       };
+      
+      const { data: myProfile } = await supabase.from('profiles').select('profile_photo').eq('id', user.id).single();
+      if (myProfile?.profile_photo) state.currentUser.photo = myProfile.profile_photo;
+
       state.isAuthenticated = true;
 
       const gid = new URLSearchParams(window.location.search).get('groupId');
