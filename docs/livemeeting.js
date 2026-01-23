@@ -2135,6 +2135,9 @@ import { supabase } from './js/supabaseClient.js';
         
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
 
+        // Start detecting who is speaking
+        startSpeakingDetection();
+
         // Host Welcome Message
         if (state.isHost) {
           const overlay = document.getElementById('waiting-room-overlay');
