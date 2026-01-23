@@ -455,11 +455,18 @@ import { supabase } from './js/supabaseClient.js';
               }
             }
             
+            // Toggle local video visibility to show/hide profile picture
+            const localTile = document.getElementById(`tile-${state.currentUser.id}`);
+            if (localTile) {
+              const player = localTile.querySelector(`#player-${state.currentUser.id}`);
+              if (player) player.style.opacity = state.isCameraOn ? '1' : '0';
+            }
+            
             // Broadcast camera state change to host
-            if (!state.isHost && state.channel) {
+            if (state.channel) {
               state.channel.send({
                 type: 'broadcast',
-                event: 'student-cam-change',
+                event: 'cam-change',
                 payload: {
                   userId: state.currentUser.id,
                   isCameraOn: state.isCameraOn
@@ -594,10 +601,12 @@ import { supabase } from './js/supabaseClient.js';
             
             // Create video tile for self
             const container = document.getElementById('video-container');
-            const localPlayerDiv = createVideoTile(state.currentUser.id, state.currentUser.name + " (You)", true);
+            const localPlayerDiv = createVideoTile(state.currentUser.id, state.currentUser.name + " (You)", true, state.currentUser.photo);
             if (localPlayerDiv) {
               container.appendChild(localPlayerDiv);
               state.localVideoTrack.play(`player-${state.currentUser.id}`);
+              const player = localPlayerDiv.querySelector(`#player-${state.currentUser.id}`);
+              if (player) player.style.opacity = state.isCameraOn ? '1' : '0';
             }
           });
         }
@@ -2037,7 +2046,18 @@ import { supabase } from './js/supabaseClient.js';
           
           const ph = document.createElement('div');
           ph.className = 'video-placeholder';
-          ph.innerHTML = '<i class="fas fa-crown" style="font-size: 36px; color: white;"></i>';
+          
+          if (state.currentUser.photo) {
+             ph.innerHTML = `
+              <img src="${state.currentUser.photo}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; filter: blur(20px); opacity: 0.3;">
+              <div style="position: relative; z-index: 1;">
+                <img src="${state.currentUser.photo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: block; margin: 0 auto;">
+                <i class="fas fa-crown" style="font-size: 24px; color: var(--accent-yellow); position: absolute; top: -10px; right: -10px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
+              </div>
+             `;
+          } else {
+             ph.innerHTML = '<i class="fas fa-crown" style="font-size: 36px; color: white;"></i>';
+          }
           hostTile.appendChild(ph);
 
           const playerContainer = document.createElement('div');
@@ -2060,14 +2080,18 @@ import { supabase } from './js/supabaseClient.js';
           if (state.localVideoTrack) {
             state.localVideoTrack.play(`player-${uid}`);
           }
+          const player = hostTile.querySelector(`#player-${uid}`);
+          if (player) player.style.opacity = state.isCameraOn ? '1' : '0';
         } else {
           // Create video tile for self (student view)
-          const localPlayerDiv = createVideoTile(uid, userName + " (You)", true);
+          const localPlayerDiv = createVideoTile(uid, userName + " (You)", true, state.currentUser.photo);
           if (localPlayerDiv) {
             container.appendChild(localPlayerDiv);
             if (state.localVideoTrack) {
               state.localVideoTrack.play(`player-${uid}`);
             }
+            const player = localPlayerDiv.querySelector(`#player-${uid}`);
+            if (player) player.style.opacity = state.isCameraOn ? '1' : '0';
           }
         }
 
@@ -2109,6 +2133,26 @@ import { supabase } from './js/supabaseClient.js';
         
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
 
+        // Host Welcome Message
+        if (state.isHost) {
+          const overlay = document.getElementById('waiting-room-overlay');
+          const content = overlay.querySelector('.waiting-content');
+          if (content) {
+            const avatarHtml = state.currentUser.photo 
+              ? `<img src="${state.currentUser.photo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 3px solid var(--accent-green); box-shadow: 0 0 20px rgba(0,255,148,0.3);">`
+              : `<i class="fas fa-check-circle" style="font-size: 64px; color: var(--accent-green); margin-bottom: 20px;"></i>`;
+            
+            content.innerHTML = `
+              ${avatarHtml}
+              <h2 style="margin: 0 0 10px; font-size: 28px;">Welcome, ${userName}!</h2>
+              <p style="opacity: 0.9; font-size: 16px;">Session initialized. You are the host.</p>
+            `;
+            overlay.classList.remove('hidden');
+            playNotificationSound();
+            setTimeout(() => { overlay.classList.add('hidden'); }, 2500);
+          }
+        }
+
       } catch (error) {
         console.error("Agora Error:", error);
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
@@ -2135,7 +2179,7 @@ import { supabase } from './js/supabaseClient.js';
       }
     }
 
-    function createVideoTile(uid, name, isLocal = false) {
+    function createVideoTile(uid, name, isLocal = false, photoUrl = null) {
       
       const div = document.createElement('div');
       div.className = 'video-tile';
@@ -2143,8 +2187,16 @@ import { supabase } from './js/supabaseClient.js';
       
       const placeholder = document.createElement('div');
       placeholder.className = 'video-placeholder';
-      const initials = name ? name.charAt(0).toUpperCase() : '?';
-      placeholder.innerHTML = `<div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">${initials}</div>`;
+      
+      if (photoUrl) {
+        placeholder.innerHTML = `
+          <img src="${photoUrl}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; filter: blur(20px); opacity: 0.3;">
+          <img src="${photoUrl}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; position: relative; z-index: 1; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        `;
+      } else {
+        const initials = name ? name.charAt(0).toUpperCase() : '?';
+        placeholder.innerHTML = `<div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">${initials}</div>`;
+      }
       div.appendChild(placeholder);
 
       const playerContainer = document.createElement('div');
@@ -2260,14 +2312,19 @@ import { supabase } from './js/supabaseClient.js';
 
         if (!tile) {
           const student = state.students.find(s => s.id === user.uid);
+          let photo = student?.photo;
+          
           if (student) {
             name = student.name;
           } else {
-            const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', user.uid).single();
-            if (profile) name = profile.full_name || profile.username;
+            const { data: profile } = await supabase.from('profiles').select('full_name, username, profile_photo').eq('id', user.uid).single();
+            if (profile) {
+              name = profile.full_name || profile.username;
+              photo = profile.profile_photo;
+            }
           }
           
-          tile = createVideoTile(user.uid, name);
+          tile = createVideoTile(user.uid, name, false, photo);
           if (tile) {
             container.appendChild(tile);
           }
@@ -2335,8 +2392,10 @@ import { supabase } from './js/supabaseClient.js';
     function showWaitingForHostOverlay(gid, user) {
       const overlay = document.getElementById('waiting-room-overlay');
       overlay.classList.remove('hidden');
-      overlay.querySelector('h2').textContent = "Class Has Not Started";
-      overlay.querySelector('p').textContent = "The host has not started this session yet. You will join automatically once it begins.";
+      document.getElementById('waiting-title').textContent = "Class Has Not Started";
+      document.getElementById('waiting-message').textContent = "The host has not started this session yet. Click 'Request to Join' when ready.";
+      document.getElementById('request-join-btn').style.display = 'block';
+      document.getElementById('waiting-spinner').style.display = 'none';
       
       let startPollInterval;
 
@@ -2377,8 +2436,10 @@ import { supabase } from './js/supabaseClient.js';
     async function checkWaitingRoom(gid, user, onApproved) {
       // Reset overlay text in case it was changed
       const overlay = document.getElementById('waiting-room-overlay');
-      overlay.querySelector('h2').textContent = "Waiting for Approval";
-      overlay.querySelector('p').textContent = "Your request to join is pending approval from the host.";
+      document.getElementById('waiting-title').textContent = "Waiting for Approval";
+      document.getElementById('waiting-message').textContent = "Your request to join is pending approval from the host.";
+      document.getElementById('request-join-btn').style.display = 'none';
+      document.getElementById('waiting-spinner').style.display = 'block';
 
       const { data: request } = await supabase
         .from('meeting_requests')
@@ -2394,17 +2455,29 @@ import { supabase } from './js/supabaseClient.js';
       
       document.getElementById('waiting-room-overlay').classList.remove('hidden');
 
+      // MANUAL REQUEST MODE: Do not automatically insert request
+      // Wait for user to click "Request to Join" button
       if (!request) {
-        await supabase.from('meeting_requests').insert({
-          group_id: gid,
-          user_id: user.id,
-          user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
-          status: 'pending'
-        });
+        // No existing request - show the manual button
+        document.getElementById('waiting-title').textContent = "Ready to Join";
+        document.getElementById('waiting-message').textContent = "Click 'Request to Join' to notify the host. They will review your request.";
+        document.getElementById('request-join-btn').style.display = 'block';
+        document.getElementById('waiting-spinner').style.display = 'none';
+        return false;
       } else if (request.status === 'rejected') {
-        await supabase.from('meeting_requests')
-          .update({ status: 'pending' })
-          .eq('id', request.id);
+        // Previous request was rejected - show button to retry
+        document.getElementById('waiting-title').textContent = "Request Denied";
+        document.getElementById('waiting-message').textContent = "Your previous request was denied. Try again or contact the host.";
+        document.getElementById('request-join-btn').style.display = 'block';
+        document.getElementById('request-join-btn').textContent = 'Try Again';
+        document.getElementById('waiting-spinner').style.display = 'none';
+        return false;
+      } else if (request.status === 'pending') {
+        // Request already pending - show waiting message
+        document.getElementById('waiting-title').textContent = "Request Pending";
+        document.getElementById('waiting-message').textContent = "Your request has been sent. Waiting for host approval...";
+        document.getElementById('request-join-btn').style.display = 'none';
+        document.getElementById('waiting-spinner').style.display = 'block';
       }
 
       let pollInterval;
@@ -2711,6 +2784,69 @@ import { supabase } from './js/supabaseClient.js';
       if (loadingStatus) loadingStatus.textContent = text;
     }
 
+    // ============= MANUAL JOIN REQUEST =============
+    async function submitJoinRequest() {
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+      const btn = document.getElementById('request-join-btn');
+      
+      if (!gid || !state.currentUser) {
+        showNotification('Error: Unable to submit request', 'error');
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+
+        const { data: existingRequest } = await supabase
+          .from('meeting_requests')
+          .select('*')
+          .eq('group_id', gid)
+          .eq('user_id', state.currentUser.id)
+          .maybeSingle();
+
+        if (existingRequest?.status === 'pending') {
+          showNotification('Request already sent. Waiting for approval...', 'info');
+          btn.disabled = false;
+          btn.textContent = 'Request to Join';
+          return;
+        }
+
+        if (existingRequest?.status === 'rejected') {
+          // Update rejected request to pending
+          const { error } = await supabase
+            .from('meeting_requests')
+            .update({ status: 'pending', created_at: new Date().toISOString() })
+            .eq('id', existingRequest.id);
+
+          if (error) throw error;
+        } else {
+          // Create new request
+          const { error } = await supabase.from('meeting_requests').insert({
+            group_id: gid,
+            user_id: state.currentUser.id,
+            user_name: state.currentUser.name,
+            status: 'pending'
+          });
+
+          if (error) throw error;
+        }
+
+        // Update UI to show waiting state
+        document.getElementById('waiting-title').textContent = "Request Sent";
+        document.getElementById('waiting-message').textContent = "Your request has been sent. Waiting for host approval...";
+        document.getElementById('request-join-btn').style.display = 'none';
+        document.getElementById('waiting-spinner').style.display = 'block';
+
+        showNotification('Join request sent to host', 'check');
+      } catch (error) {
+        console.error('Error submitting join request:', error);
+        showNotification('Failed to send request', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Request to Join';
+      }
+    }
+
     function showCriticalError(msg) {
       document.getElementById('error-message').textContent = msg;
       document.getElementById('error-modal').style.display = 'flex';
@@ -2792,7 +2928,7 @@ import { supabase } from './js/supabaseClient.js';
     async function completeSessionSetup(gid, user) {
         const { data: members } = await supabase
           .from('group_members')
-          .select('user_id, profiles(full_name, username)')
+          .select('user_id, profiles(full_name, username, profile_photo)')
           .eq('group_id', gid);
 
         if (members) {
@@ -2801,6 +2937,7 @@ import { supabase } from './js/supabaseClient.js';
             .map((m, i) => ({
               id: m.user_id,
               name: m.profiles?.full_name || m.profiles?.username || `User ${i}`,
+              photo: m.profiles?.profile_photo,
               role: 'student'
             }));
         }
@@ -3001,10 +3138,12 @@ import { supabase } from './js/supabaseClient.js';
               console.log(`Student ${payload.payload.userId} mic: ${payload.payload.isMicOn}`);
             }
           })
-          .on('broadcast', { event: 'student-cam-change' }, (payload) => {
-            // Host can track student camera states
-            if (state.isHost) {
-              console.log(`Student ${payload.payload.userId} camera: ${payload.payload.isCameraOn}`);
+          .on('broadcast', { event: 'cam-change' }, (payload) => {
+            const { userId, isCameraOn } = payload.payload;
+            const tile = document.getElementById(`tile-${userId}`);
+            if (tile) {
+              const player = tile.querySelector(`#player-${userId}`);
+              if (player) player.style.opacity = isCameraOn ? '1' : '0';
             }
           })
           .on('broadcast', { event: 'promote-speaker' }, (payload) => {
@@ -3214,6 +3353,7 @@ import { supabase } from './js/supabaseClient.js';
     window.lowerHand = lowerHand;
     window.forceStopScreenShare = forceStopScreenShare;
     window.rejoinSession = rejoinSession;
+    window.submitJoinRequest = submitJoinRequest;
 
     window.addEventListener('beforeunload', async () => {
       if (state.client) {
