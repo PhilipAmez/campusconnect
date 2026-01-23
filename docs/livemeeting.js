@@ -56,7 +56,9 @@ import { supabase } from './js/supabaseClient.js';
       isIntentionalLeave: false,
       mediaRequests: [],
       whiteboardState: [],
-      whiteboardLocked: false
+      whiteboardLocked: false,
+      currentSpeaker: null,
+      speakersTimeout: null
     };
 
     // ============= DOM ELEMENTS =============
@@ -2220,6 +2222,13 @@ import { supabase } from './js/supabaseClient.js';
       }
       div.appendChild(nameTag);
 
+      // Add speaking indicator badge
+      const speakingBadge = document.createElement('div');
+      speakingBadge.className = 'speaking-indicator';
+      speakingBadge.style.display = 'none';
+      speakingBadge.innerHTML = '<i class="fas fa-microphone"></i> Speaking';
+      div.appendChild(speakingBadge);
+
       // Add Kick Button for Host
       if (state.isHost && uid !== state.currentUser.id) {
         const kickBtn = document.createElement('button');
@@ -2386,6 +2395,78 @@ import { supabase } from './js/supabaseClient.js';
         icon.style.color = 'var(--red)';
         text.textContent = 'Bad';
       }
+    }
+
+    // ============= SPEAKING DETECTION =============
+    function updateSpeakingIndicator(uid) {
+      // Remove previous speaking indicator from all tiles
+      document.querySelectorAll('.speaking-indicator').forEach(badge => {
+        badge.style.display = 'none';
+      });
+
+      if (!uid) return;
+
+      // Show speaking indicator on current speaker's tile
+      const speakingBadge = document.querySelector(`#tile-${uid} .speaking-indicator`);
+      if (speakingBadge) {
+        speakingBadge.style.display = 'flex';
+      }
+
+      state.currentSpeaker = uid;
+
+      // Auto-hide after 5 seconds of no speech
+      if (state.speakersTimeout) clearTimeout(state.speakersTimeout);
+      state.speakersTimeout = setTimeout(() => {
+        if (state.currentSpeaker === uid) {
+          const badge = document.querySelector(`#tile-${uid} .speaking-indicator`);
+          if (badge) badge.style.display = 'none';
+          state.currentSpeaker = null;
+        }
+      }, 5000);
+    }
+
+    // Start monitoring for speaking
+    function startSpeakingDetection() {
+      // Monitor local audio track volume
+      if (state.localAudioTrack) {
+        setInterval(async () => {
+          try {
+            const audioLevel = await state.localAudioTrack.getVolumeLevel();
+            if (audioLevel > 50 && state.isMicOn) {
+              updateSpeakingIndicator(state.currentUser.id);
+            }
+          } catch (e) {
+            // Volume detection not supported on this track
+          }
+        }, 300);
+      }
+
+      // Monitor remote users' audio - use volume meter approach
+      setInterval(() => {
+        if (!state.client) return;
+
+        const remoteAudioStatsList = state.client.getRTCStats().audio?.remoteAudio || [];
+        
+        if (remoteAudioStatsList && remoteAudioStatsList.length > 0) {
+          let maxVolume = 0;
+          let speakingUid = null;
+
+          remoteAudioStatsList.forEach(stat => {
+            // Check if audio is being received
+            const volume = stat.receiveLevel || 0;
+            const bytesReceived = stat.bytesReceived || 0;
+            
+            if (volume > maxVolume || (bytesReceived > 0 && volume > 10)) {
+              maxVolume = volume;
+              speakingUid = stat.uid;
+            }
+          });
+
+          if (maxVolume > 0 && speakingUid) {
+            updateSpeakingIndicator(speakingUid);
+          }
+        }
+      }, 300);
     }
 
     // ============= WAITING ROOM LOGIC =============
