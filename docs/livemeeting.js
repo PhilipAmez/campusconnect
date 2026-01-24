@@ -2610,7 +2610,13 @@ import { supabase } from './js/supabaseClient.js';
         .maybeSingle();
 
       if (request?.status === 'approved') {
-        onApproved();
+        // Show welcome message before proceeding
+        showApprovalWelcome(overlay, user);
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          onApproved();
+          showNotification('Successfully joined the class', 'check');
+        }, 3500);
         return true;
       }
       
@@ -2675,26 +2681,15 @@ import { supabase } from './js/supabaseClient.js';
           if (pollInterval) clearInterval(pollInterval);
           supabase.removeChannel(channel);
           
-          // Show welcoming message
+          // Show welcoming message and enter class
           const overlay = document.getElementById('waiting-room-overlay');
-          const content = overlay.querySelector('.waiting-content');
+          showApprovalWelcome(overlay, user);
           
-          if (content) {
-            const userName = user.user_metadata.firstName || user.user_metadata.full_name || 'Student';
-            content.innerHTML = `
-              <i class="fas fa-check-circle" style="font-size: 64px; color: var(--accent-green); margin-bottom: 20px;"></i>
-              <h2 style="margin: 0 0 10px; font-size: 28px;">Welcome, ${userName}!</h2>
-              <p style="opacity: 0.9; font-size: 16px;">Your request has been approved. Entering class...</p>
-            `;
-          }
-          
-          playNotificationSound();
-
           setTimeout(() => {
             overlay.classList.add('hidden');
             onApproved();
             showNotification('Successfully joined the class', 'check');
-          }, 2000);
+          }, 3500);
         } else if (status === 'rejected') {
           joined = true;
           if (pollInterval) clearInterval(pollInterval);
@@ -2946,6 +2941,27 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     // ============= MANUAL JOIN REQUEST =============
+    function showApprovalWelcome(overlay, user) {
+      // Ensure overlay is visible
+      overlay.classList.remove('hidden');
+      overlay.style.display = 'flex';
+      
+      const content = overlay.querySelector('.waiting-content');
+      if (content) {
+        const userName = user.user_metadata.firstName || user.user_metadata.full_name || 'Student';
+        const profilePhoto = user.user_metadata.avatar_url || null;
+        const profileImg = profilePhoto ? `<img src="${profilePhoto}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 3px solid var(--accent-green);">` : `<div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; font-weight: 600;">${userName.charAt(0).toUpperCase()}</div>`;
+        
+        content.innerHTML = `
+          ${profileImg}
+          <i class="fas fa-check-circle" style="font-size: 48px; color: var(--accent-green); margin-bottom: 15px; position: absolute; bottom: 240px; right: 40px;"></i>
+          <h2 style="margin: 0 0 10px; font-size: 28px;">Welcome, ${userName}!</h2>
+          <p style="opacity: 0.9; font-size: 16px;">Your request has been approved. Entering class...</p>
+        `;
+      }
+      playNotificationSound();
+    }
+
     async function submitJoinRequest() {
       const gid = new URLSearchParams(window.location.search).get('groupId');
       const btn = document.getElementById('request-join-btn');
