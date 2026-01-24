@@ -25,7 +25,7 @@ import { supabase } from './js/supabaseClient.js';
       lastY: 0,
       drawingCommands: [],
       classTitle: 'PeerLoom Live Session',
-      aiApiKey: 'AIzaSyDCLod_PPMVxTli2Y285MtkOkBAxlAfQ88',
+      aiApiKey: null,
       desktopChatInputVisible: false,
       isMobile: window.innerWidth <= 768,
       agoraAppId: '6f87382c37b444d2806c74bb889a598f',
@@ -58,7 +58,8 @@ import { supabase } from './js/supabaseClient.js';
       whiteboardState: [],
       whiteboardLocked: false,
       currentSpeaker: null,
-      speakersTimeout: null
+      speakersTimeout: null,
+      aiReady: false
     };
 
     // ============= DOM ELEMENTS =============
@@ -87,9 +88,84 @@ import { supabase } from './js/supabaseClient.js';
     const loadingStatus = document.getElementById('loading-status');
 
     // ============= GEMINI AI SETUP =============
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${state.aiApiKey}`;
+    let GEMINI_API_URL = null;
+
+    async function initializeAIKey() {
+      const maxRetries = 3;
+      let retryCount = 0;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`[AI Init] Attempt ${retryCount + 1}/${maxRetries}: Fetching AI key from /api/ai-key`);
+          const response = await fetch('/api/ai-key', { 
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.apiKey) {
+              state.aiApiKey = data.apiKey;
+              GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${state.aiApiKey}`;
+              state.aiReady = true;
+              console.log('✅ AI Key loaded successfully');
+              return true;
+            } else {
+              console.warn('[AI Init] Response OK but no API key in response:', data);
+              retryCount++;
+              if (retryCount < maxRetries) await new Promise(r => setTimeout(r, 500));
+              continue;
+            }
+          } else {
+            console.warn(`[AI Init] Server responded with status ${response.status}`);
+            const errorText = await response.text();
+            console.warn('[AI Init] Error response:', errorText);
+            retryCount++;
+            if (retryCount < maxRetries) await new Promise(r => setTimeout(r, 500));
+            continue;
+          }
+        } catch (error) {
+          console.warn(`[AI Init] Attempt ${retryCount + 1} failed:`, error.message);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log('[AI Init] Retrying in 500ms...');
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+      }
+      
+      console.error('[AI Init] Failed to initialize AI key after', maxRetries, 'attempts');
+      state.aiReady = false;
+      return false;
+    }
+
+    async function ensureAIReady() {
+      if (state.aiReady && GEMINI_API_URL) {
+        console.log('[AI] AI is ready');
+        return true;
+      }
+      
+      // If not ready, try to initialize
+      if (!state.aiReady) {
+        console.log('[AI] AI not ready, attempting initialization...');
+        const initialized = await initializeAIKey();
+        if (!initialized) {
+          const errorMsg = 'AI features are temporarily unavailable. Please ensure the backend server is running on port 3000.';
+          console.error('[AI]', errorMsg);
+          showNotification(errorMsg, 'error');
+          return false;
+        }
+      }
+      return true;
+    }
 
     async function callGeminiAI(prompt, type = 'general') {
+      const ready = await ensureAIReady();
+      if (!ready || !GEMINI_API_URL) {
+        const errorMsg = `AI features unavailable: Ready=${ready}, URL=${GEMINI_API_URL ? 'set' : 'null'}. Backend may not be running.`;
+        console.error('[AI] Error in callGeminiAI:', errorMsg);
+        throw new Error('AI features are not available. Please ensure the backend server is running.');
+      }
       try {
         showAILoading();
         
@@ -129,12 +205,13 @@ import { supabase } from './js/supabaseClient.js';
         console.error('Gemini API Error:', error);
         hideAILoading();
         
+        // Provide fallback responses if API call fails
         if (type === 'summary') {
-          return "I've analyzed the discussion and identified key points. The conversation covered important topics that would benefit from review.";
+          return "Summary: I've analyzed the discussion and identified key points. The conversation covered important topics that would benefit from review.";
         } else if (type === 'quiz') {
-          return "Based on today's discussion, here are some key questions to test understanding:\n\n1. What was the main topic discussed?\n2. How does this apply to real-world scenarios?\n3. What were the key takeaways?";
+          return "Quiz Generated:\n\n1. What was the main topic discussed today?\n2. How does this apply to real-world scenarios?\n3. What were the key takeaways?\n\nNote: This is a placeholder. For full AI functionality, ensure the backend server is running on port 3000.";
         } else if (type === 'resources') {
-          return "Here are some valuable resources related to today's discussion:\n\n• Official documentation\n• Tutorial videos\n• Practice exercises\n• Community forums";
+          return "Suggested Resources:\n\n• Official documentation and guides\n• Tutorial videos and webinars\n• Practice exercises and assignments\n• Community forums and discussion boards\n• Research papers and articles\n\nNote: This is a placeholder. For personalized AI recommendations, ensure the backend server is running on port 3000.";
         }
         
         return "I've processed your request. The information is now available in an organized format.";
@@ -3282,6 +3359,9 @@ import { supabase } from './js/supabaseClient.js';
 
     // ============= INITIALIZATION =============
     async function initialize() {
+      // Load AI API key first
+      await initializeAIKey();
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = 'login.html';

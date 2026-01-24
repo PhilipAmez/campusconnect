@@ -93,6 +93,15 @@ async function verifyFirebaseToken(req, res, next) {
 // Routes
 app.get('/', (req, res) => res.send('CampusConnect backend running!'));
 
+// ============= AI API KEY ENDPOINT =============
+app.get('/api/ai-key', (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+  res.json({ apiKey });
+});
+
 app.post('/users', async (req, res) => {
   const { name, email, password } = req.body;
   try {
