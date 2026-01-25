@@ -3184,12 +3184,13 @@ import { supabase } from './js/supabaseClient.js';
     async function completeSessionSetup(gid, user) {
         // SAFETY CHECK: Verify host is still active before entering class
         const { data: hostCheck } = await supabase
-          .from('classes')
+          .from('meeting_requests')
           .select('status')
           .eq('group_id', gid)
-          .single();
+          .eq('status', 'host_active')
+          .limit(1);
         
-        if (!hostCheck || hostCheck.status !== 'host_active') {
+        if (!hostCheck || hostCheck.length === 0) {
           // Host is not active, show waiting overlay again
           showWaitingForHostOverlay(gid, user);
           return;
