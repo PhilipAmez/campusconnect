@@ -1426,11 +1426,12 @@
 
     /* Waiting Room Styles */
     #waiting-room-overlay {
-      position: fixed; inset: 0; background: var(--bg-color); z-index: 5000;
+      position: fixed; inset: 0; background: var(--bg-color); z-index: 10000;
       display: flex; align-items: center; justify-content: center;
       flex-direction: column; pointer-events: auto; backdrop-filter: blur(8px);
+      opacity: 1; visibility: visible;
     }
-    #waiting-room-overlay.hidden { display: none; }
+    #waiting-room-overlay.hidden { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
     .waiting-content { text-align: center; color: var(--text-color); }
     .waiting-list-item { 
       display: flex; justify-content: space-between; align-items: center; 
@@ -1459,7 +1460,7 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       transition: opacity 0.5s ease;
     }
-    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; display: none; }
     
     /* Critical Error Modal */
     #error-modal {

@@ -2218,13 +2218,14 @@ import { supabase } from './js/supabaseClient.js';
         // Host Welcome Message
         if (state.isHost) {
           const overlay = document.getElementById('waiting-room-overlay');
-          const content = overlay.querySelector('.waiting-content');
-          if (content) {
-            const avatarHtml = state.currentUser.photo 
-              ? `<img src="${state.currentUser.photo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 3px solid var(--accent-green); box-shadow: 0 0 20px rgba(0,255,148,0.3);">`
-              : `<i class="fas fa-check-circle" style="font-size: 64px; color: var(--accent-green); margin-bottom: 20px;"></i>`;
-            
-            content.innerHTML = `
+          if (overlay) {
+            const content = overlay.querySelector('.waiting-content');
+            if (content) {
+              const avatarHtml = state.currentUser.photo 
+                ? `<img src="${state.currentUser.photo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 3px solid var(--accent-green); box-shadow: 0 0 20px rgba(0,255,148,0.3);">`
+                : `<i class="fas fa-check-circle" style="font-size: 64px; color: var(--accent-green); margin-bottom: 20px;"></i>`;
+              
+              content.innerHTML = `
               ${avatarHtml}
               <h2 style="margin: 0 0 10px; font-size: 28px;">Welcome, ${userName}!</h2>
               <p style="opacity: 0.9; font-size: 16px;">Session initialized. You are the host.</p>
@@ -2234,6 +2235,7 @@ import { supabase } from './js/supabaseClient.js';
             setTimeout(() => { overlay.classList.add('hidden'); }, 2500);
           }
         }
+      }
 
       } catch (error) {
         console.error("Agora Error:", error);
@@ -2551,22 +2553,45 @@ import { supabase } from './js/supabaseClient.js';
 
     // ============= WAITING ROOM LOGIC =============
     function showWaitingForHostOverlay(gid, user) {
+      console.log('[Waiting Room] Showing waiting for host overlay');
       const overlay = document.getElementById('waiting-room-overlay');
       const loadingOverlay = document.getElementById('loading-overlay');
       
-      // Hide the loading overlay so waiting message is visible
-      if (loadingOverlay) {
-        loadingOverlay.classList.add('hidden');
+      if (!overlay) {
+        console.error('[ERROR] waiting-room-overlay element not found!');
+        return;
       }
       
+      // Completely hide the loading overlay
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+        loadingOverlay.style.display = 'none';
+        loadingOverlay.style.visibility = 'hidden';
+        loadingOverlay.style.opacity = '0';
+        loadingOverlay.style.pointerEvents = 'none';
+        console.log('[Waiting Room] Loading overlay hidden');
+      }
+      
+      // Show waiting overlay
       overlay.classList.remove('hidden');
       overlay.style.display = 'flex';
-      overlay.style.pointerEvents = 'auto'; // Ensure it blocks all interaction
+      overlay.style.pointerEvents = 'auto';
+      overlay.style.visibility = 'visible';
+      overlay.style.opacity = '1';
+      console.log('[Waiting Room] Overlay shown with display:', overlay.style.display);
       
-      document.getElementById('waiting-title').textContent = "Waiting for Host to Start";
-      document.getElementById('waiting-message').textContent = "The host has not started this class session yet. Please wait for the host to begin. You will be automatically notified when the class starts.";
-      document.getElementById('request-join-btn').style.display = 'none'; // Don't show button - just wait
-      document.getElementById('waiting-spinner').style.display = 'block'; // Show waiting spinner
+      // Update text elements - with null checks
+      const titleEl = document.getElementById('waiting-title');
+      const messageEl = document.getElementById('waiting-message');
+      const joinBtn = document.getElementById('request-join-btn');
+      const spinnerEl = document.getElementById('waiting-spinner');
+      
+      if (titleEl) titleEl.textContent = "Waiting for Host to Start";
+      if (messageEl) messageEl.textContent = "The host has not started this class session yet. Please wait for the host to begin. You will be automatically notified when the class starts.";
+      if (joinBtn) joinBtn.style.display = 'none';
+      if (spinnerEl) spinnerEl.style.display = 'block';
+      
+      console.log('[Waiting Room] Elements updated:', { titleEl, messageEl, joinBtn, spinnerEl });
       
       let startPollInterval;
 
@@ -2578,6 +2603,7 @@ import { supabase } from './js/supabaseClient.js';
           filter: `group_id=eq.${gid}`
         }, (payload) => {
           if (payload.new.status === 'host_active') {
+            console.log('[Waiting Room] Host started - handleClassStart triggered');
             handleClassStart();
           }
         })
@@ -2593,31 +2619,59 @@ import { supabase } from './js/supabaseClient.js';
           .maybeSingle();
           
         if (hostActive) {
+          console.log('[Waiting Room] Host detected via polling - handleClassStart triggered');
           handleClassStart();
         }
       }, 2000);
 
       function handleClassStart() {
+        console.log('[Waiting Room] handleClassStart - transitioning to approval');
         if (startPollInterval) clearInterval(startPollInterval);
         supabase.removeChannel(channel);
         
         // Show transition message
-        document.getElementById('waiting-title').textContent = "Class is Starting";
-        document.getElementById('waiting-message').textContent = "The host has started the class. Processing your entry...";
+        const titleEl = document.getElementById('waiting-title');
+        const messageEl = document.getElementById('waiting-message');
+        if (titleEl) titleEl.textContent = "Class is Starting";
+        if (messageEl) messageEl.textContent = "The host has started the class. Processing your entry...";
         
         setTimeout(() => {
+          // Setup canvas before entering waiting room
+          resizeCanvas();
+          window.addEventListener('resize', resizeCanvas);
+          // Student will now see the proper approval/waiting room
           checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
-        }, 500);
+        }, 1000);
       }
     }
 
     async function checkWaitingRoom(gid, user, onApproved) {
+      // SAFETY CHECK: Verify host has actually started before proceeding
+      const { data: hostActive } = await supabase
+        .from('meeting_requests')
+        .select('id')
+        .eq('group_id', gid)
+        .eq('status', 'host_active')
+        .maybeSingle();
+      
+      if (!hostActive) {
+        // Host hasn't started yet, go back to waiting
+        console.warn('[Security] Host not active, student cannot proceed');
+        showWaitingForHostOverlay(gid, user);
+        return false;
+      }
+
       // Reset overlay text in case it was changed
       const overlay = document.getElementById('waiting-room-overlay');
-      document.getElementById('waiting-title').textContent = "Waiting for Approval";
-      document.getElementById('waiting-message').textContent = "Your request to join is pending approval from the host.";
-      document.getElementById('request-join-btn').style.display = 'none';
-      document.getElementById('waiting-spinner').style.display = 'block';
+      const titleEl = document.getElementById('waiting-title');
+      const messageEl = document.getElementById('waiting-message');
+      const joinBtn = document.getElementById('request-join-btn');
+      const spinnerEl = document.getElementById('waiting-spinner');
+      
+      if (titleEl) titleEl.textContent = "Waiting for Approval";
+      if (messageEl) messageEl.textContent = "Your request to join is pending approval from the host.";
+      if (joinBtn) joinBtn.style.display = 'none';
+      if (spinnerEl) spinnerEl.style.display = 'block';
 
       const { data: request } = await supabase
         .from('meeting_requests')
@@ -2689,31 +2743,34 @@ import { supabase } from './js/supabaseClient.js';
         return true;
       }
       
-      document.getElementById('waiting-room-overlay').classList.remove('hidden');
+      const overlayEl = document.getElementById('waiting-room-overlay');
+      if (overlayEl) overlayEl.classList.remove('hidden');
 
       // MANUAL REQUEST MODE: Do not automatically insert request
       // Wait for user to click "Request to Join" button
       if (!request) {
         // No existing request - show the manual button
-        document.getElementById('waiting-title').textContent = "Ready to Join";
-        document.getElementById('waiting-message').textContent = "Click 'Request to Join' to notify the host. They will review your request.";
-        document.getElementById('request-join-btn').style.display = 'block';
-        document.getElementById('waiting-spinner').style.display = 'none';
+        if (titleEl) titleEl.textContent = "Ready to Join";
+        if (messageEl) messageEl.textContent = "Click 'Request to Join' to notify the host. They will review your request.";
+        if (joinBtn) joinBtn.style.display = 'block';
+        if (spinnerEl) spinnerEl.style.display = 'none';
         return false;
       } else if (request.status === 'rejected') {
         // Previous request was rejected - show button to retry
-        document.getElementById('waiting-title').textContent = "Request Denied";
-        document.getElementById('waiting-message').textContent = "Your previous request was denied. Try again or contact the host.";
-        document.getElementById('request-join-btn').style.display = 'block';
-        document.getElementById('request-join-btn').textContent = 'Try Again';
-        document.getElementById('waiting-spinner').style.display = 'none';
+        if (titleEl) titleEl.textContent = "Request Denied";
+        if (messageEl) messageEl.textContent = "Your previous request was denied. Try again or contact the host.";
+        if (joinBtn) {
+          joinBtn.style.display = 'block';
+          joinBtn.textContent = 'Try Again';
+        }
+        if (spinnerEl) spinnerEl.style.display = 'none';
         return false;
       } else if (request.status === 'pending') {
         // Request already pending - show waiting message
-        document.getElementById('waiting-title').textContent = "Request Pending";
-        document.getElementById('waiting-message').textContent = "Your request has been sent. Waiting for host approval...";
-        document.getElementById('request-join-btn').style.display = 'none';
-        document.getElementById('waiting-spinner').style.display = 'block';
+        if (titleEl) titleEl.textContent = "Request Pending";
+        if (messageEl) messageEl.textContent = "Your request has been sent. Waiting for host approval...";
+        if (joinBtn) joinBtn.style.display = 'none';
+        if (spinnerEl) spinnerEl.style.display = 'block';
       }
 
       return false;
@@ -3027,10 +3084,15 @@ import { supabase } from './js/supabaseClient.js';
         }
 
         // Update UI to show waiting state
-        document.getElementById('waiting-title').textContent = "Request Sent";
-        document.getElementById('waiting-message').textContent = "Your request has been sent. Waiting for host approval...";
-        document.getElementById('request-join-btn').style.display = 'none';
-        document.getElementById('waiting-spinner').style.display = 'block';
+        const titleEl = document.getElementById('waiting-title');
+        const messageEl = document.getElementById('waiting-message');
+        const joinBtn = document.getElementById('request-join-btn');
+        const spinnerEl = document.getElementById('waiting-spinner');
+        
+        if (titleEl) titleEl.textContent = "Request Sent";
+        if (messageEl) messageEl.textContent = "Your request has been sent. Waiting for host approval...";
+        if (joinBtn) joinBtn.style.display = 'none';
+        if (spinnerEl) spinnerEl.style.display = 'block';
 
         showNotification('Join request sent to host', 'check');
       } catch (error) {
@@ -3120,6 +3182,19 @@ import { supabase } from './js/supabaseClient.js';
 
     // ============= SESSION SETUP =============
     async function completeSessionSetup(gid, user) {
+        // SAFETY CHECK: Verify host is still active before entering class
+        const { data: hostCheck } = await supabase
+          .from('classes')
+          .select('status')
+          .eq('group_id', gid)
+          .single();
+        
+        if (!hostCheck || hostCheck.status !== 'host_active') {
+          // Host is not active, show waiting overlay again
+          showWaitingForHostOverlay(gid, user);
+          return;
+        }
+        
         const { data: members } = await supabase
           .from('group_members')
           .select('user_id, profiles(full_name, username, profile_photo)')
@@ -3387,6 +3462,10 @@ import { supabase } from './js/supabaseClient.js';
           })
           .subscribe();
 
+        // Ensure canvas is properly sized when entering class
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         openDeviceSettingsModal(gid, user);
     }
 
@@ -3492,6 +3571,7 @@ import { supabase } from './js/supabaseClient.js';
               
             if (!hostActiveList || hostActiveList.length === 0) {
               showWaitingForHostOverlay(gid, user);
+              return; // Do NOT proceed with class setup until host starts
             } else {
               await checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
             }
@@ -3499,6 +3579,7 @@ import { supabase } from './js/supabaseClient.js';
         }
       }
       
+      // Only setup canvas after we're past the waiting screen
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
