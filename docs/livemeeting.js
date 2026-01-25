@@ -2552,6 +2552,13 @@ import { supabase } from './js/supabaseClient.js';
     // ============= WAITING ROOM LOGIC =============
     function showWaitingForHostOverlay(gid, user) {
       const overlay = document.getElementById('waiting-room-overlay');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      
+      // Hide the loading overlay so waiting message is visible
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+      }
+      
       overlay.classList.remove('hidden');
       overlay.style.display = 'flex';
       overlay.style.pointerEvents = 'auto'; // Ensure it blocks all interaction
