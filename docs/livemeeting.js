@@ -2655,12 +2655,12 @@ import { supabase } from './js/supabaseClient.js';
           resizeCanvas();
           window.addEventListener('resize', resizeCanvas);
           // Student will now proceed directly to class setup
-          checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
+          checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user), true);
         }, 1000);
       }
     }
 
-    async function checkWaitingRoom(gid, user, onApproved) {
+    async function checkWaitingRoom(gid, user, onApproved, isAutoJoin = false) {
       // SAFETY CHECK: Verify host has actually started before proceeding
       const { data: hostActive } = await supabase
         .from('meeting_requests')
@@ -2683,17 +2683,44 @@ import { supabase } from './js/supabaseClient.js';
       const joinBtn = document.getElementById('request-join-btn');
       const spinnerEl = document.getElementById('waiting-spinner');
       
-      if (titleEl) titleEl.textContent = "Waiting for Approval";
-      if (messageEl) messageEl.textContent = "Your request to join is pending approval from the host.";
+      if (!isAutoJoin) {
+        if (titleEl) titleEl.textContent = "Waiting for Approval";
+        if (messageEl) messageEl.textContent = "Your request to join is pending approval from the host.";
+      } else {
+        if (titleEl) titleEl.textContent = "Joining Class";
+        if (messageEl) messageEl.textContent = "Verifying entry permissions...";
+      }
       if (joinBtn) joinBtn.style.display = 'none';
       if (spinnerEl) spinnerEl.style.display = 'block';
 
-      const { data: request } = await supabase
+      let { data: request } = await supabase
         .from('meeting_requests')
         .select('*')
         .eq('group_id', gid)
         .eq('user_id', user.id)
         .maybeSingle();
+
+      if (!request && isAutoJoin) {
+        try {
+          await supabase.from('meeting_requests').upsert({
+            group_id: gid,
+            user_id: user.id,
+            user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
+            status: 'approved'
+          });
+          
+          const { data: newReq } = await supabase
+            .from('meeting_requests')
+            .select('*')
+            .eq('group_id', gid)
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          request = newReq;
+        } catch (e) {
+          console.error("Auto-join upsert failed", e);
+        }
+      }
 
       let pollInterval;
       let joined = false;
