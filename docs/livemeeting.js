@@ -2624,22 +2624,37 @@ import { supabase } from './js/supabaseClient.js';
         }
       }, 2000);
 
-      function handleClassStart() {
-        console.log('[Waiting Room] handleClassStart - transitioning to approval');
+      async function handleClassStart() {
+        console.log('[Waiting Room] handleClassStart - auto-approving student');
         if (startPollInterval) clearInterval(startPollInterval);
         supabase.removeChannel(channel);
-        
+
+        // Automatically approve the student when host starts
+        try {
+          await supabase.from('meeting_requests').upsert({
+            group_id: gid,
+            user_id: user.id,
+            user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
+            status: 'approved'
+          });
+          // Add to promoted speakers for proper permissions
+          state.promotedSpeakers.add(user.id);
+          console.log('[Waiting Room] Student auto-approved and promoted');
+        } catch (error) {
+          console.error('[Waiting Room] Error auto-approving student:', error);
+        }
+
         // Show transition message
         const titleEl = document.getElementById('waiting-title');
         const messageEl = document.getElementById('waiting-message');
         if (titleEl) titleEl.textContent = "Class is Starting";
         if (messageEl) messageEl.textContent = "The host has started the class. Processing your entry...";
-        
+
         setTimeout(() => {
           // Setup canvas before entering waiting room
           resizeCanvas();
           window.addEventListener('resize', resizeCanvas);
-          // Student will now see the proper approval/waiting room
+          // Student will now proceed directly to class setup
           checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
         }, 1000);
       }
