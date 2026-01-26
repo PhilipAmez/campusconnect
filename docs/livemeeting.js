@@ -2629,20 +2629,10 @@ import { supabase } from './js/supabaseClient.js';
         if (startPollInterval) clearInterval(startPollInterval);
         supabase.removeChannel(channel);
 
-        // Automatically approve the student when host starts
-        try {
-          await supabase.from('meeting_requests').upsert({
-            group_id: gid,
-            user_id: user.id,
-            user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
-            status: 'approved'
-          });
-          // Add to promoted speakers for proper permissions
-          state.promotedSpeakers.add(user.id);
-          console.log('[Waiting Room] Student auto-approved and promoted');
-        } catch (error) {
-          console.error('[Waiting Room] Error auto-approving student:', error);
-        }
+        // The approval logic is now handled inside checkWaitingRoom to prevent race conditions
+        // and ensure atomicity. We just need to transition the UI here.
+        
+        console.log('[Waiting Room] Host started. Transitioning to class entry check.');
 
         // Show transition message
         const titleEl = document.getElementById('waiting-title');
@@ -2661,19 +2651,22 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     async function checkWaitingRoom(gid, user, onApproved, isAutoJoin = false) {
-      // SAFETY CHECK: Verify host has actually started before proceeding
-      const { data: hostActive } = await supabase
-        .from('meeting_requests')
-        .select('id')
-        .eq('group_id', gid)
-        .eq('status', 'host_active')
-        .maybeSingle();
-      
-      if (!hostActive) {
-        // Host hasn't started yet, go back to waiting
-        console.warn('[Security] Host not active, student cannot proceed');
-        showWaitingForHostOverlay(gid, user);
-        return false;
+      // SAFETY CHECK: Only run if student is joining mid-session, not from the waiting room.
+      // If isAutoJoin is true, we can trust the real-time event that triggered the join process.
+      if (!isAutoJoin) {
+        const { data: hostActive } = await supabase
+          .from('meeting_requests')
+          .select('id')
+          .eq('group_id', gid)
+          .eq('status', 'host_active')
+          .maybeSingle();
+        
+        if (!hostActive) {
+          // Host hasn't started yet, go back to waiting
+          console.warn('[Security] Host not active, student cannot proceed');
+          showWaitingForHostOverlay(gid, user);
+          return false;
+        }
       }
 
       // Reset overlay text in case it was changed
@@ -2702,23 +2695,22 @@ import { supabase } from './js/supabaseClient.js';
 
       if (!request && isAutoJoin) {
         try {
-          await supabase.from('meeting_requests').upsert({
+          console.log('[Auto-Join] No request found, creating an approved one.');
+          const { data: newReq, error } = await supabase.from('meeting_requests').upsert({
             group_id: gid,
             user_id: user.id,
             user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
             status: 'approved'
-          });
+          }).select().single();
           
-          const { data: newReq } = await supabase
-            .from('meeting_requests')
-            .select('*')
-            .eq('group_id', gid)
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
+          if (error) throw error;
+
           request = newReq;
+          // Add to promoted speakers for proper permissions
+          state.promotedSpeakers.add(user.id);
+          console.log('[Auto-Join] Approved request created and user promoted.');
         } catch (e) {
-          console.error("Auto-join upsert failed", e);
+          console.error("[Auto-Join] Upsert failed:", e);
         }
       }
 
