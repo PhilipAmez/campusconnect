@@ -2651,6 +2651,7 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     async function checkWaitingRoom(gid, user, onApproved, isAutoJoin = false) {
+      console.log('[checkWaitingRoom] Starting - isAutoJoin:', isAutoJoin);
       // SAFETY CHECK: Only run if student is joining mid-session, not from the waiting room.
       // If isAutoJoin is true, we can trust the real-time event that triggered the join process.
       let hostActive = false;
@@ -2663,6 +2664,7 @@ import { supabase } from './js/supabaseClient.js';
           .maybeSingle();
         
         hostActive = !!hostActiveData;
+        console.log('[checkWaitingRoom] Host active check:', hostActive);
         
         if (!hostActive) {
           // Host hasn't started yet, go back to waiting
@@ -2697,11 +2699,13 @@ import { supabase } from './js/supabaseClient.js';
         .eq('group_id', gid)
         .eq('user_id', user.id)
         .maybeSingle();
+      
+      console.log('[checkWaitingRoom] Initial request:', request);
 
       // AUTO-APPROVE: If host is active and student has no existing request, auto-approve them
       if (!request && hostActive) {
         try {
-          console.log('[Auto-Approve] Host is active - auto-approving student');
+          console.log('[Auto-Approve] Host is active - auto-approving student', { gid, userId: user.id });
           const { data: newReq, error } = await supabase.from('meeting_requests').insert({
             group_id: gid,
             user_id: user.id,
@@ -2709,22 +2713,69 @@ import { supabase } from './js/supabaseClient.js';
             status: 'approved'
           }).select().single();
           
-          if (error) throw error;
+          if (error) {
+            console.error('[Auto-Approve] Insert error:', error);
+            throw error;
+          }
 
           request = newReq;
           // Add to promoted speakers for proper permissions
           state.promotedSpeakers.add(user.id);
-          console.log('[Auto-Approve] Student auto-approved and promoted.');
+          console.log('[Auto-Approve] Student auto-approved and promoted:', request);
         } catch (e) {
           console.error("[Auto-Approve] Failed:", e);
+          // Continue anyway - polling might still pick it up
         }
       }
 
+      // Check if already approved (or just auto-approved)
+      if (request?.status === 'approved') {
+        console.log('[Check] Student has approved status - proceeding to class');
+        // Don't set up polling - just proceed immediately
+        showApprovalWelcome(document.getElementById('waiting-room-overlay'), user);
+        
+        setTimeout(() => {
+          const overlay = document.getElementById('waiting-room-overlay');
+          if (overlay) {
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+          }
+          onApproved();
+          showNotification('Successfully joined the class', 'check');
+        }, 3500);
+        return true;
+      }
+      
+      const overlayEl = document.getElementById('waiting-room-overlay');
+      if (overlayEl) overlayEl.classList.remove('hidden');
+
+      // If host is active and student hasn't been approved yet, it means they're waiting for manual review
+      // (not auto-approved because they had a previous rejected request)
+      // NEVER show "Ready to Join" button when host is already active - auto-approving handles that
+      if (!request && hostActive) {
+        // This shouldn't happen as auto-approve above should have created an approved request
+        console.warn('[Safety Check] No request but host is active - this is unexpected');
+        if (titleEl) titleEl.textContent = "Joining Class";
+        if (messageEl) messageEl.textContent = "Processing your entry...";
+        if (joinBtn) joinBtn.style.display = 'none';
+        if (spinnerEl) spinnerEl.style.display = 'block';
+        return false;
+      }
+
+      // MANUAL REQUEST MODE: Only show when host hasn't started yet
+      if (!request && !hostActive) {
+        // No existing request and host hasn't started - show the manual button
+        if (titleEl) titleEl.textContent = "Ready to Join";
+        if (messageEl) messageEl.textContent = "Click 'Request to Join' to notify the host. They will review your request.";
+        if (joinBtn) joinBtn.style.display = 'block';
+        if (spinnerEl) spinnerEl.style.display = 'none';
+        return false;
+      }
+
+      // For pending or rejected requests, set up polling to monitor for approval changes
       let pollInterval;
       let joined = false;
-      let welcomeShown = false; // Prevent duplicate welcome messages
 
-      // Initialize polling/subscription first for both approved and pending requests
       const channel = supabase.channel(`waiting_${user.id}`)
         .on('postgres_changes', { 
           event: 'UPDATE', 
@@ -2753,7 +2804,6 @@ import { supabase } from './js/supabaseClient.js';
         
         if (status === 'approved') {
           joined = true;
-          welcomeShown = true;
           
           // Clean up monitoring
           if (pollInterval) clearInterval(pollInterval);
@@ -2777,37 +2827,8 @@ import { supabase } from './js/supabaseClient.js';
         }
       }
 
-      // Check if already approved
-      if (request?.status === 'approved') {
-        handleStatusChange('approved');
-        return true;
-      }
-      
-      const overlayEl = document.getElementById('waiting-room-overlay');
-      if (overlayEl) overlayEl.classList.remove('hidden');
-
-      // If host is active and student hasn't been approved yet, it means they're waiting for manual review
-      // (not auto-approved because they had a previous rejected request)
-      // NEVER show "Ready to Join" button when host is already active - auto-approving handles that
-      if (!request && hostActive) {
-        // This shouldn't happen as auto-approve above should have created an approved request
-        console.warn('[Safety Check] No request but host is active - this is unexpected');
-        if (titleEl) titleEl.textContent = "Joining Class";
-        if (messageEl) messageEl.textContent = "Processing your entry...";
-        if (joinBtn) joinBtn.style.display = 'none';
-        if (spinnerEl) spinnerEl.style.display = 'block';
-        return false;
-      }
-
-      // MANUAL REQUEST MODE: Only show when host hasn't started yet
-      if (!request && !hostActive) {
-        // No existing request and host hasn't started - show the manual button
-        if (titleEl) titleEl.textContent = "Ready to Join";
-        if (messageEl) messageEl.textContent = "Click 'Request to Join' to notify the host. They will review your request.";
-        if (joinBtn) joinBtn.style.display = 'block';
-        if (spinnerEl) spinnerEl.style.display = 'none';
-        return false;
-      } else if (request.status === 'rejected') {
+      // Handle different request statuses
+      if (request?.status === 'rejected') {
         // Previous request was rejected - show button to retry
         if (titleEl) titleEl.textContent = "Request Denied";
         if (messageEl) messageEl.textContent = "Your previous request was denied. Try again or contact the host.";
@@ -2817,7 +2838,7 @@ import { supabase } from './js/supabaseClient.js';
         }
         if (spinnerEl) spinnerEl.style.display = 'none';
         return false;
-      } else if (request.status === 'pending') {
+      } else if (request?.status === 'pending') {
         // Request already pending - show waiting message
         if (titleEl) titleEl.textContent = "Request Pending";
         if (messageEl) messageEl.textContent = "Your request has been sent. Waiting for host approval...";
@@ -3622,10 +3643,14 @@ import { supabase } from './js/supabaseClient.js';
               .eq('status', 'host_active')
               .limit(1);
               
+            console.log('[Initialize] Student - checking if host active:', { hostActiveList });
+            
             if (!hostActiveList || hostActiveList.length === 0) {
+              console.log('[Initialize] Host not active - showing waiting overlay');
               showWaitingForHostOverlay(gid, user);
               return; // Do NOT proceed with class setup until host starts
             } else {
+              console.log('[Initialize] Host is active - checking waiting room');
               await checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user));
             }
           }
