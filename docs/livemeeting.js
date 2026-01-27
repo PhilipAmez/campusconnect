@@ -2653,13 +2653,16 @@ import { supabase } from './js/supabaseClient.js';
     async function checkWaitingRoom(gid, user, onApproved, isAutoJoin = false) {
       // SAFETY CHECK: Only run if student is joining mid-session, not from the waiting room.
       // If isAutoJoin is true, we can trust the real-time event that triggered the join process.
+      let hostActive = false;
       if (!isAutoJoin) {
-        const { data: hostActive } = await supabase
+        const { data: hostActiveData } = await supabase
           .from('meeting_requests')
           .select('id')
           .eq('group_id', gid)
           .eq('status', 'host_active')
           .maybeSingle();
+        
+        hostActive = !!hostActiveData;
         
         if (!hostActive) {
           // Host hasn't started yet, go back to waiting
@@ -2667,6 +2670,8 @@ import { supabase } from './js/supabaseClient.js';
           showWaitingForHostOverlay(gid, user);
           return false;
         }
+      } else {
+        hostActive = true;
       }
 
       // Reset overlay text in case it was changed
@@ -2677,8 +2682,8 @@ import { supabase } from './js/supabaseClient.js';
       const spinnerEl = document.getElementById('waiting-spinner');
       
       if (!isAutoJoin) {
-        if (titleEl) titleEl.textContent = "Waiting for Approval";
-        if (messageEl) messageEl.textContent = "Your request to join is pending approval from the host.";
+        if (titleEl) titleEl.textContent = "Joining Class";
+        if (messageEl) messageEl.textContent = "Verifying entry permissions...";
       } else {
         if (titleEl) titleEl.textContent = "Joining Class";
         if (messageEl) messageEl.textContent = "Verifying entry permissions...";
@@ -2693,10 +2698,11 @@ import { supabase } from './js/supabaseClient.js';
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!request && isAutoJoin) {
+      // AUTO-APPROVE: If host is active and student has no existing request, auto-approve them
+      if (!request && hostActive) {
         try {
-          console.log('[Auto-Join] No request found, creating an approved one.');
-          const { data: newReq, error } = await supabase.from('meeting_requests').upsert({
+          console.log('[Auto-Approve] Host is active - auto-approving student');
+          const { data: newReq, error } = await supabase.from('meeting_requests').insert({
             group_id: gid,
             user_id: user.id,
             user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
@@ -2708,9 +2714,9 @@ import { supabase } from './js/supabaseClient.js';
           request = newReq;
           // Add to promoted speakers for proper permissions
           state.promotedSpeakers.add(user.id);
-          console.log('[Auto-Join] Approved request created and user promoted.');
+          console.log('[Auto-Approve] Student auto-approved and promoted.');
         } catch (e) {
-          console.error("[Auto-Join] Upsert failed:", e);
+          console.error("[Auto-Approve] Failed:", e);
         }
       }
 
@@ -2780,10 +2786,22 @@ import { supabase } from './js/supabaseClient.js';
       const overlayEl = document.getElementById('waiting-room-overlay');
       if (overlayEl) overlayEl.classList.remove('hidden');
 
-      // MANUAL REQUEST MODE: Do not automatically insert request
-      // Wait for user to click "Request to Join" button
-      if (!request) {
-        // No existing request - show the manual button
+      // If host is active and student hasn't been approved yet, it means they're waiting for manual review
+      // (not auto-approved because they had a previous rejected request)
+      // NEVER show "Ready to Join" button when host is already active - auto-approving handles that
+      if (!request && hostActive) {
+        // This shouldn't happen as auto-approve above should have created an approved request
+        console.warn('[Safety Check] No request but host is active - this is unexpected');
+        if (titleEl) titleEl.textContent = "Joining Class";
+        if (messageEl) messageEl.textContent = "Processing your entry...";
+        if (joinBtn) joinBtn.style.display = 'none';
+        if (spinnerEl) spinnerEl.style.display = 'block';
+        return false;
+      }
+
+      // MANUAL REQUEST MODE: Only show when host hasn't started yet
+      if (!request && !hostActive) {
+        // No existing request and host hasn't started - show the manual button
         if (titleEl) titleEl.textContent = "Ready to Join";
         if (messageEl) messageEl.textContent = "Click 'Request to Join' to notify the host. They will review your request.";
         if (joinBtn) joinBtn.style.display = 'block';
