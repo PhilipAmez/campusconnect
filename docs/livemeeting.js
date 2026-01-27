@@ -2625,14 +2625,9 @@ import { supabase } from './js/supabaseClient.js';
       }, 2000);
 
       async function handleClassStart() {
-        console.log('[Waiting Room] handleClassStart - auto-approving student');
+        console.log('[Waiting Room] handleClassStart - host has started');
         if (startPollInterval) clearInterval(startPollInterval);
         supabase.removeChannel(channel);
-
-        // The approval logic is now handled inside checkWaitingRoom to prevent race conditions
-        // and ensure atomicity. We just need to transition the UI here.
-        
-        console.log('[Waiting Room] Host started. Transitioning to class entry check.');
 
         // Show transition message
         const titleEl = document.getElementById('waiting-title');
@@ -2641,10 +2636,11 @@ import { supabase } from './js/supabaseClient.js';
         if (messageEl) messageEl.textContent = "The host has started the class. Processing your entry...";
 
         setTimeout(() => {
-          // Setup canvas before entering waiting room
+          // Setup canvas before entering class
           resizeCanvas();
           window.addEventListener('resize', resizeCanvas);
           // Student will now proceed directly to class setup
+          // Pass isAutoJoin=true to skip manual approval request requirement
           checkWaitingRoom(gid, user, () => completeSessionSetup(gid, user), true);
         }, 1000);
       }
@@ -2652,44 +2648,61 @@ import { supabase } from './js/supabaseClient.js';
 
     async function checkWaitingRoom(gid, user, onApproved, isAutoJoin = false) {
       console.log('[checkWaitingRoom] Starting - isAutoJoin:', isAutoJoin);
-      // SAFETY CHECK: Only run if student is joining mid-session, not from the waiting room.
-      // If isAutoJoin is true, we can trust the real-time event that triggered the join process.
-      let hostActive = false;
-      if (!isAutoJoin) {
-        const { data: hostActiveData } = await supabase
-          .from('meeting_requests')
-          .select('id')
-          .eq('group_id', gid)
-          .eq('status', 'host_active')
-          .maybeSingle();
-        
-        hostActive = !!hostActiveData;
-        console.log('[checkWaitingRoom] Host active check:', hostActive);
-        
-        if (!hostActive) {
-          // Host hasn't started yet, go back to waiting
-          console.warn('[Security] Host not active, student cannot proceed');
-          showWaitingForHostOverlay(gid, user);
-          return false;
+      
+      // SPECIAL CASE: If isAutoJoin is true, host has started, proceed immediately without waiting for approval
+      if (isAutoJoin) {
+        console.log('[checkWaitingRoom] Auto-join mode - proceeding directly to class');
+        const overlay = document.getElementById('waiting-room-overlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+          
+          // Show welcome message
+          const titleEl = document.getElementById('waiting-title');
+          const messageEl = document.getElementById('waiting-message');
+          if (titleEl) titleEl.textContent = "Joining Class";
+          if (messageEl) messageEl.textContent = "Welcome to the class!";
+          
+          showApprovalWelcome(overlay, user);
+          
+          setTimeout(() => {
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+            onApproved();
+            showNotification('Successfully joined the class', 'check');
+          }, 2000);
+        } else {
+          onApproved();
         }
-      } else {
-        hostActive = true;
+        return true;
+      }
+      
+      // NORMAL FLOW: Check if host is active before proceeding
+      const { data: hostActiveData } = await supabase
+        .from('meeting_requests')
+        .select('id')
+        .eq('group_id', gid)
+        .eq('status', 'host_active')
+        .maybeSingle();
+      
+      const hostActive = !!hostActiveData;
+      console.log('[checkWaitingRoom] Host active check:', hostActive);
+      
+      if (!hostActive) {
+        // Host hasn't started yet, go back to waiting
+        console.warn('[checkWaitingRoom] Host not active, student cannot proceed');
+        showWaitingForHostOverlay(gid, user);
+        return false;
       }
 
-      // Reset overlay text in case it was changed
+      // Reset overlay text
       const overlay = document.getElementById('waiting-room-overlay');
       const titleEl = document.getElementById('waiting-title');
       const messageEl = document.getElementById('waiting-message');
       const joinBtn = document.getElementById('request-join-btn');
       const spinnerEl = document.getElementById('waiting-spinner');
       
-      if (!isAutoJoin) {
-        if (titleEl) titleEl.textContent = "Joining Class";
-        if (messageEl) messageEl.textContent = "Verifying entry permissions...";
-      } else {
-        if (titleEl) titleEl.textContent = "Joining Class";
-        if (messageEl) messageEl.textContent = "Verifying entry permissions...";
-      }
+      if (titleEl) titleEl.textContent = "Joining Class";
+      if (messageEl) messageEl.textContent = "Verifying entry permissions...";
       if (joinBtn) joinBtn.style.display = 'none';
       if (spinnerEl) spinnerEl.style.display = 'block';
 
@@ -2705,7 +2718,7 @@ import { supabase } from './js/supabaseClient.js';
       // AUTO-APPROVE: If host is active and student has no existing request, auto-approve them
       if (!request && hostActive) {
         try {
-          console.log('[Auto-Approve] Host is active - auto-approving student', { gid, userId: user.id });
+          console.log('[checkWaitingRoom] Host is active - auto-approving student');
           const { data: newReq, error } = await supabase.from('meeting_requests').insert({
             group_id: gid,
             user_id: user.id,
@@ -2714,35 +2727,31 @@ import { supabase } from './js/supabaseClient.js';
           }).select().single();
           
           if (error) {
-            console.error('[Auto-Approve] Insert error:', error);
-            throw error;
+            console.error('[checkWaitingRoom] Insert error:', error);
+          } else {
+            request = newReq;
+            state.promotedSpeakers.add(user.id);
+            console.log('[checkWaitingRoom] Student auto-approved:', request);
           }
-
-          request = newReq;
-          // Add to promoted speakers for proper permissions
-          state.promotedSpeakers.add(user.id);
-          console.log('[Auto-Approve] Student auto-approved and promoted:', request);
         } catch (e) {
-          console.error("[Auto-Approve] Failed:", e);
-          // Continue anyway - polling might still pick it up
+          console.error("[checkWaitingRoom] Auto-approve failed:", e);
         }
       }
 
       // Check if already approved (or just auto-approved)
       if (request?.status === 'approved') {
-        console.log('[Check] Student has approved status - proceeding to class');
-        // Don't set up polling - just proceed immediately
-        showApprovalWelcome(document.getElementById('waiting-room-overlay'), user);
-        
-        setTimeout(() => {
-          const overlay = document.getElementById('waiting-room-overlay');
-          if (overlay) {
-            overlay.classList.add('hidden');
-            overlay.style.display = 'none';
-          }
+        console.log('[checkWaitingRoom] Student approved - proceeding immediately');
+        // Show welcome and proceed
+        if (overlay) {
+          showApprovalWelcome(overlay, user);
+          setTimeout(() => {
+            if (overlay) overlay.classList.add('hidden');
+            onApproved();
+            showNotification('Successfully joined the class', 'check');
+          }, 2000);
+        } else {
           onApproved();
-          showNotification('Successfully joined the class', 'check');
-        }, 3500);
+        }
         return true;
       }
       
