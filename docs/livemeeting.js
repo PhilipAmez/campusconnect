@@ -60,6 +60,7 @@ import { supabase } from './js/supabaseClient.js';
       currentSpeaker: null,
       speakersTimeout: null,
       aiReady: false,
+      whiteboardOwnerId: null,
       screenShareApproved: false
     };
 
@@ -1110,11 +1111,38 @@ import { supabase } from './js/supabaseClient.js';
         showNotification('Only host or presenters can use whiteboard', 'info');
         return;
       }
-      
-      state.isWhiteboardActive = !state.isWhiteboardActive;
-      whiteboardOverlay.classList.toggle('active');
-      whiteboardTools.classList.toggle('active');
-      
+      // Only the host should become the owner when they activate the whiteboard
+      const activating = !state.isWhiteboardActive;
+      state.isWhiteboardActive = activating;
+
+      if (activating) {
+        // Set owner (host takes ownership)
+        if (state.isHost) {
+          state.whiteboardOwnerId = state.currentUser.id;
+        }
+        resizeCanvas();
+        showNotification('Whiteboard Activated', 'whiteboard');
+      } else {
+        // Clearing ownership when closed
+        if (state.isHost && state.whiteboardOwnerId === state.currentUser.id) {
+          state.whiteboardOwnerId = null;
+        }
+        showNotification('Whiteboard Closed', 'whiteboard');
+      }
+
+      // Update overlay and tools visibility based on ownership
+      if (state.whiteboardOwnerId === state.currentUser.id) {
+        whiteboardOverlay.classList.add('active');
+        whiteboardTools.classList.add('active');
+      } else if (state.isWhiteboardActive) {
+        whiteboardOverlay.classList.add('active');
+        whiteboardTools.classList.remove('active');
+      } else {
+        whiteboardOverlay.classList.remove('active');
+        whiteboardTools.classList.remove('active');
+      }
+
+      // Broadcast the toggle including owner id
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1122,16 +1150,9 @@ import { supabase } from './js/supabaseClient.js';
           payload: { 
             active: state.isWhiteboardActive,
             drawingCommands: state.whiteboardState,
-            userId: state.currentUser.id
+            ownerId: state.whiteboardOwnerId
           }
         }).catch(err => console.log('Whiteboard toggle sync:', err));
-      }
-      
-      if (state.isWhiteboardActive) {
-        resizeCanvas();
-        showNotification('Whiteboard Activated', 'whiteboard');
-      } else {
-        showNotification('Whiteboard Closed', 'whiteboard');
       }
     }
 
@@ -1161,7 +1182,9 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     whiteboardCanvas.addEventListener('mousedown', (e) => {
-      if (!state.isHost && !state.canPresent) return;
+      // Only the whiteboard owner may draw
+      if (state.whiteboardOwnerId !== state.currentUser.id) return;
+      if (!state.isWhiteboardActive) return;
       state.drawing = true;
       const { x, y } = getCanvasCoordinates(e);
       state.lastX = x;
@@ -1169,7 +1192,9 @@ import { supabase } from './js/supabaseClient.js';
     });
 
     whiteboardCanvas.addEventListener('touchstart', (e) => {
-      if (!state.isHost && !state.canPresent) return;
+      // Only the whiteboard owner may draw
+      if (state.whiteboardOwnerId !== state.currentUser.id) return;
+      if (!state.isWhiteboardActive) return;
       e.preventDefault();
       state.drawing = true;
       const { x, y } = getCanvasCoordinates(e);
@@ -1178,14 +1203,14 @@ import { supabase } from './js/supabaseClient.js';
     });
 
     whiteboardCanvas.addEventListener('mousemove', (e) => {
-      if (!state.drawing || (!state.isHost && !state.canPresent)) return;
-      
+      if (!state.drawing || state.whiteboardOwnerId !== state.currentUser.id) return;
+
       const { x, y } = getCanvasCoordinates(e);
-      
+
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
       ctx.lineTo(x, y);
-      
+
       if (state.currentWhiteboardTool === 'pen') {
         ctx.strokeStyle = 'var(--accent-blue)';
         ctx.lineWidth = 3;
@@ -1198,7 +1223,7 @@ import { supabase } from './js/supabaseClient.js';
         ctx.stroke();
         ctx.globalCompositeOperation = 'source-over';
       }
-      
+
       state.drawingCommands.push({
         fromX: state.lastX,
         fromY: state.lastY,
@@ -1208,14 +1233,14 @@ import { supabase } from './js/supabaseClient.js';
         color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
         lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
       });
-      
+
       state.lastX = x;
       state.lastY = y;
     });
 
     whiteboardCanvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      if (!state.drawing || (!state.isHost && !state.canPresent)) return;
+      if (!state.drawing || state.whiteboardOwnerId !== state.currentUser.id) return;
       
       const { x, y } = getCanvasCoordinates(e);
       
@@ -3444,11 +3469,20 @@ import { supabase } from './js/supabaseClient.js';
             toggleSpotlightUI(payload.payload.active);
           })
           .on('broadcast', { event: 'whiteboard-toggle' }, (payload) => {
-            if (payload.payload.userId === state.currentUser.id) return;
+            // Ignore if this toggle originated from ourselves
+            if (payload.payload.ownerId === state.currentUser.id) return;
+
+            const ownerId = payload.payload.ownerId || null;
             if (payload.payload.active) {
               state.isWhiteboardActive = true;
+              state.whiteboardOwnerId = ownerId;
               whiteboardOverlay.classList.add('active');
-              whiteboardTools.classList.add('active');
+              // Only show tools for the owner
+              if (state.whiteboardOwnerId === state.currentUser.id) {
+                whiteboardTools.classList.add('active');
+              } else {
+                whiteboardTools.classList.remove('active');
+              }
               resizeCanvas();
               // Render initial state
               const commands = payload.payload.drawingCommands || [];
@@ -3468,10 +3502,28 @@ import { supabase } from './js/supabaseClient.js';
                 }
               });
               state.whiteboardState = payload.payload.drawingCommands || [];
+
+              // Style owner tile (give host a white tile when owner)
+              if (ownerId) {
+                const ownerTile = document.getElementById(`tile-${ownerId}`);
+                if (ownerTile) {
+                  ownerTile.dataset.whiteboardOwner = 'true';
+                  ownerTile.style.background = 'white';
+                  ownerTile.style.color = '#111';
+                }
+              }
             } else {
               state.isWhiteboardActive = false;
+              state.whiteboardOwnerId = null;
               whiteboardOverlay.classList.remove('active');
               whiteboardTools.classList.remove('active');
+              // Remove owner tile styling
+              const tiles = document.querySelectorAll('[data-whiteboard-owner]');
+              tiles.forEach(t => {
+                t.style.background = '';
+                t.style.color = '';
+                delete t.dataset.whiteboardOwner;
+              });
             }
           })
           .on('broadcast', { event: 'whiteboard-batch' }, (payload) => {
