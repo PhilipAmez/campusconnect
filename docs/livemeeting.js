@@ -59,7 +59,8 @@ import { supabase } from './js/supabaseClient.js';
       whiteboardLocked: false,
       currentSpeaker: null,
       speakersTimeout: null,
-      aiReady: false
+      aiReady: false,
+      screenShareApproved: false
     };
 
     // ============= DOM ELEMENTS =============
@@ -3601,6 +3602,26 @@ import { supabase } from './js/supabaseClient.js';
           .on('broadcast', { event: 'screen-share-stopped' }, (payload) => {
             if (state.currentPresenter === payload.payload.userId) {
               state.currentPresenter = null;
+            }
+          })
+          .on('broadcast', { event: 'screen-share-approved' }, (payload) => {
+            if (!state.isHost && payload.payload.studentId === state.currentUser.id) {
+              state.screenShareApproved = true;
+              state.canPresent = true;
+              showNotification('Your screen share has been approved! You can now share your screen.', 'check');
+              
+              // Enable share button if it's disabled
+              const shareBtn = document.querySelector('[data-action="share"]');
+              if (shareBtn) {
+                shareBtn.style.pointerEvents = 'auto';
+                shareBtn.style.opacity = '1';
+              }
+            }
+          })
+          .on('broadcast', { event: 'screen-share-rejected' }, (payload) => {
+            if (!state.isHost && payload.payload.studentId === state.currentUser.id) {
+              state.screenShareApproved = false;
+              showNotification('Your screen share request was rejected', 'info');
             }
           })
           .on('broadcast', { event: 'force-stop-screenshare' }, (payload) => {
