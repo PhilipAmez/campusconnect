@@ -854,12 +854,18 @@ import { supabase } from './js/supabaseClient.js';
         }
 
         if (state.localVideoTrack) {
+          // Enable the video track before publishing (it may have been disabled)
+          if (!state.localVideoTrack.enabled) {
+            await state.localVideoTrack.setEnabled(true);
+          }
+          
           await state.client.publish(state.localVideoTrack);
           const uid = state.currentUser.id;
           const playerContainer = document.getElementById(`player-${uid}`);
           if (playerContainer) playerContainer.style.transform = 'scaleX(-1)';
           
           state.localVideoTrack.play(`player-${uid}`);
+          state.isCameraOn = true;
         }
 
         state.isScreenSharing = false;
