@@ -1142,6 +1142,54 @@ import { supabase } from './js/supabaseClient.js';
         whiteboardTools.classList.remove('active');
       }
 
+      // Update owner tile preview immediately for local owner
+      const ownerIdLocal = state.whiteboardOwnerId;
+      if (ownerIdLocal) {
+        const ownerTile = document.getElementById(`tile-${ownerIdLocal}`);
+        if (activating && ownerTile) {
+          const playerContainer = document.getElementById(`player-${ownerIdLocal}`);
+          if (playerContainer) playerContainer.style.display = 'none';
+
+          let preview = document.getElementById(`wb-preview-${ownerIdLocal}`);
+          if (!preview) {
+            preview = document.createElement('canvas');
+            preview.id = `wb-preview-${ownerIdLocal}`;
+            preview.className = 'owner-whiteboard-preview';
+            preview.style.position = 'absolute';
+            preview.style.inset = '0';
+            preview.style.width = '100%';
+            preview.style.height = '100%';
+            preview.style.zIndex = '1';
+            ownerTile.appendChild(preview);
+          }
+
+          const pctx = preview.getContext('2d');
+          preview.width = ownerTile.clientWidth || ownerTile.offsetWidth || 320;
+          preview.height = ownerTile.clientHeight || ownerTile.offsetHeight || 180;
+          pctx.fillStyle = '#fff';
+          pctx.fillRect(0, 0, preview.width, preview.height);
+
+          const sx = whiteboardCanvas.width ? (preview.width / whiteboardCanvas.width) : 1;
+          const sy = whiteboardCanvas.height ? (preview.height / whiteboardCanvas.height) : 1;
+          (state.whiteboardState || []).forEach(cmd => {
+            pctx.beginPath();
+            pctx.moveTo((cmd.fromX || 0) * sx, (cmd.fromY || 0) * sy);
+            pctx.lineTo((cmd.toX || 0) * sx, (cmd.toY || 0) * sy);
+            pctx.strokeStyle = cmd.color || '#000';
+            pctx.lineWidth = Math.max(1, (cmd.lineWidth || 2) * ((sx + sy) / 2));
+            pctx.lineCap = 'round';
+            if (cmd.tool === 'eraser') pctx.globalCompositeOperation = 'destination-out';
+            pctx.stroke();
+            if (cmd.tool === 'eraser') pctx.globalCompositeOperation = 'source-over';
+          });
+        } else if (!activating && ownerIdLocal) {
+          const preview = document.getElementById(`wb-preview-${ownerIdLocal}`);
+          if (preview) preview.remove();
+          const playerContainer = document.getElementById(`player-${ownerIdLocal}`);
+          if (playerContainer) playerContainer.style.display = '';
+        }
+      }
+
       // Broadcast the toggle including owner id
       if (state.channel) {
         state.channel.send({
@@ -3510,6 +3558,43 @@ import { supabase } from './js/supabaseClient.js';
                   ownerTile.dataset.whiteboardOwner = 'true';
                   ownerTile.style.background = 'white';
                   ownerTile.style.color = '#111';
+
+                  // For viewers, hide owner's video and show a preview canvas
+                  const playerContainer = document.getElementById(`player-${ownerId}`);
+                  if (playerContainer) playerContainer.style.display = 'none';
+
+                  let preview = document.getElementById(`wb-preview-${ownerId}`);
+                  if (!preview) {
+                    preview = document.createElement('canvas');
+                    preview.id = `wb-preview-${ownerId}`;
+                    preview.className = 'owner-whiteboard-preview';
+                    preview.style.position = 'absolute';
+                    preview.style.inset = '0';
+                    preview.style.width = '100%';
+                    preview.style.height = '100%';
+                    preview.style.zIndex = '1';
+                    ownerTile.appendChild(preview);
+                  }
+
+                  const pctx = preview.getContext('2d');
+                  preview.width = ownerTile.clientWidth || ownerTile.offsetWidth || 320;
+                  preview.height = ownerTile.clientHeight || ownerTile.offsetHeight || 180;
+                  pctx.fillStyle = '#fff';
+                  pctx.fillRect(0, 0, preview.width, preview.height);
+
+                  const sx = whiteboardCanvas.width ? (preview.width / whiteboardCanvas.width) : 1;
+                  const sy = whiteboardCanvas.height ? (preview.height / whiteboardCanvas.height) : 1;
+                  (state.whiteboardState || []).forEach(cmd => {
+                    pctx.beginPath();
+                    pctx.moveTo((cmd.fromX || 0) * sx, (cmd.fromY || 0) * sy);
+                    pctx.lineTo((cmd.toX || 0) * sx, (cmd.toY || 0) * sy);
+                    pctx.strokeStyle = cmd.color || '#000';
+                    pctx.lineWidth = Math.max(1, (cmd.lineWidth || 2) * ((sx + sy) / 2));
+                    pctx.lineCap = 'round';
+                    if (cmd.tool === 'eraser') pctx.globalCompositeOperation = 'destination-out';
+                    pctx.stroke();
+                    if (cmd.tool === 'eraser') pctx.globalCompositeOperation = 'source-over';
+                  });
                 }
               }
             } else {
@@ -3522,6 +3607,12 @@ import { supabase } from './js/supabaseClient.js';
               tiles.forEach(t => {
                 t.style.background = '';
                 t.style.color = '';
+                // Remove preview canvas and restore video
+                const ownerIdAttr = t.id && t.id.startsWith('tile-') ? t.id.replace('tile-', '') : null;
+                const preview = ownerIdAttr ? document.getElementById(`wb-preview-${ownerIdAttr}`) : null;
+                if (preview) preview.remove();
+                const playerContainer = ownerIdAttr ? document.getElementById(`player-${ownerIdAttr}`) : null;
+                if (playerContainer) playerContainer.style.display = '';
                 delete t.dataset.whiteboardOwner;
               });
             }
