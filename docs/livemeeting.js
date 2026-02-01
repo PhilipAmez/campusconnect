@@ -1348,9 +1348,11 @@ import { supabase } from './js/supabaseClient.js';
     });
 
     function closeWhiteboard() {
-      state.isWhiteboardActive = false;
-      whiteboardOverlay.classList.remove('active');
-      whiteboardTools.classList.remove('active');
+      // Only close if currently active
+      if (!state.isWhiteboardActive) return;
+      
+      // Use toggleWhiteboard to properly deactivate and broadcast
+      toggleWhiteboard();
     }
 
     function saveWhiteboard() {
