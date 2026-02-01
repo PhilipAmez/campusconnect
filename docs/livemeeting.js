@@ -1612,7 +1612,108 @@ import { supabase } from './js/supabaseClient.js';
         showNotification('Only host can view requests', 'info');
         return;
       }
-      showNotification(`${state.screenShareRequests.length} pending requests`, 'info');
+
+      const requestsModal = document.getElementById('requests-modal');
+      const requestsList = document.getElementById('requests-list');
+      
+      if (!requestsModal) {
+        showNotification('Modal not found', 'end');
+        return;
+      }
+
+      // Clear existing list
+      requestsList.innerHTML = '';
+
+      // Check if there are any requests
+      if (state.screenShareRequests.length === 0) {
+        requestsList.innerHTML = '<div style="padding:20px; text-align:center; opacity:0.7;">No pending screen share requests</div>';
+        requestsModal.style.display = 'flex';
+        return;
+      }
+
+      // Populate requests
+      state.screenShareRequests.forEach((req, index) => {
+        const div = document.createElement('div');
+        div.className = 'waiting-list-item';
+        
+        const studentName = req.studentName || `Student ${req.studentId.slice(0, 8)}`;
+        const initials = studentName.charAt(0).toUpperCase();
+
+        div.innerHTML = `
+          <div style="display:flex; align-items:center;">
+            <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color:white; display:flex; align-items:center; justify-content:center; margin-right:10px; font-size:14px; font-weight:bold;">${initials}</div>
+            <div style="flex:1;">
+              <span style="font-weight:500;">${studentName}</span>
+              <div style="font-size: 12px; opacity: 0.7; margin-top: 4px;">Requesting to share screen</div>
+            </div>
+          </div>
+          <div class="waiting-actions">
+            <button class="approve-btn" onclick="approveScreenShare(${index})" title="Approve"><i class="fas fa-check"></i></button>
+            <button class="reject-btn" onclick="rejectScreenShare(${index})" title="Reject"><i class="fas fa-times"></i></button>
+          </div>
+        `;
+        requestsList.appendChild(div);
+      });
+
+      // Show the modal
+      requestsModal.style.display = 'flex';
+    }
+
+    function closeRequestsModal() {
+      const requestsModal = document.getElementById('requests-modal');
+      if (requestsModal) {
+        requestsModal.style.display = 'none';
+      }
+    }
+
+    function approveScreenShare(index) {
+      if (index < 0 || index >= state.screenShareRequests.length) {
+        showNotification('Invalid request', 'end');
+        return;
+      }
+
+      const request = state.screenShareRequests[index];
+      
+      // Notify student that they can now share screen
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'screen-share-approved',
+          payload: { studentId: request.studentId }
+        });
+      }
+
+      // Remove from pending list
+      state.screenShareRequests.splice(index, 1);
+      showNotification(`Screen share approved for ${request.studentName}`, 'check');
+      
+      // Refresh the modal
+      showPendingRequests();
+    }
+
+    function rejectScreenShare(index) {
+      if (index < 0 || index >= state.screenShareRequests.length) {
+        showNotification('Invalid request', 'end');
+        return;
+      }
+
+      const request = state.screenShareRequests[index];
+      
+      // Notify student that their request was rejected
+      if (state.channel) {
+        state.channel.send({
+          type: 'broadcast',
+          event: 'screen-share-rejected',
+          payload: { studentId: request.studentId }
+        });
+      }
+
+      // Remove from pending list
+      state.screenShareRequests.splice(index, 1);
+      showNotification(`Screen share rejected for ${request.studentName}`, 'info');
+      
+      // Refresh the modal
+      showPendingRequests();
     }
 
     function copyClassLink() {
@@ -2677,15 +2778,39 @@ import { supabase } from './js/supabaseClient.js';
       }
       
       // NORMAL FLOW: Check if host is active before proceeding
-      const { data: hostActiveData } = await supabase
-        .from('meeting_requests')
-        .select('id')
-        .eq('group_id', gid)
-        .eq('status', 'host_active')
-        .maybeSingle();
+      let hostActiveList = null;
+      let hostCheckRetries = 0;
+      const maxHostCheckRetries = 3;
       
-      const hostActive = !!hostActiveData;
-      console.log('[checkWaitingRoom] Host active check:', hostActive);
+      while (hostCheckRetries < maxHostCheckRetries && !hostActiveList) {
+        try {
+          const { data: result, error } = await supabase
+            .from('meeting_requests')
+            .select('id')
+            .eq('group_id', gid)
+            .eq('status', 'host_active')
+            .limit(1);
+          
+          if (error) {
+            console.error('[checkWaitingRoom] Error checking host active:', error);
+          } else {
+            hostActiveList = result;
+          }
+        } catch (e) {
+          console.error('[checkWaitingRoom] Exception checking host active:', e);
+        }
+        
+        if (!hostActiveList || hostActiveList.length === 0) {
+          hostCheckRetries++;
+          console.log('[checkWaitingRoom] Host check attempt', hostCheckRetries);
+          if (hostCheckRetries < maxHostCheckRetries) {
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+      }
+      
+      const hostActive = hostActiveList && hostActiveList.length > 0;
+      console.log('[checkWaitingRoom] Host active check:', hostActive, { hostCheckRetries });
       
       if (!hostActive) {
         // Host hasn't started yet, go back to waiting
@@ -3644,15 +3769,36 @@ import { supabase } from './js/supabaseClient.js';
             setupHostWaitingRoom(gid);
             await completeSessionSetup(gid, user);
           } else {
-            // Check if host has started the meeting
-            const { data: hostActiveList } = await supabase
-              .from('meeting_requests')
-              .select('id')
-              .eq('group_id', gid)
-              .eq('status', 'host_active')
-              .limit(1);
+            // Check if host has started the meeting - with retry logic
+            let hostActiveList = null;
+            let retries = 0;
+            const maxRetries = 3;
+            
+            while (retries < maxRetries && !hostActiveList) {
+              const { data, error } = await supabase
+                .from('meeting_requests')
+                .select('id, status')
+                .eq('group_id', gid)
+                .eq('status', 'host_active')
+                .limit(1);
               
-            console.log('[Initialize] Student - checking if host active:', { hostActiveList });
+              if (error) {
+                console.error('[Initialize] Error checking host active:', error);
+              } else {
+                hostActiveList = data;
+              }
+              
+              if (!hostActiveList || hostActiveList.length === 0) {
+                retries++;
+                console.log('[Initialize] Host check attempt', retries, '- not found yet');
+                if (retries < maxRetries) {
+                  // Wait 500ms before retrying
+                  await new Promise(r => setTimeout(r, 500));
+                }
+              }
+            }
+            
+            console.log('[Initialize] Student - host active check result:', { hostActiveList, retries });
             
             if (!hostActiveList || hostActiveList.length === 0) {
               console.log('[Initialize] Host not active - showing waiting overlay');
@@ -3701,6 +3847,9 @@ import { supabase } from './js/supabaseClient.js';
     window.lockAllMedia = lockAllMedia;
     window.unlockAllMedia = unlockAllMedia;
     window.showPendingRequests = showPendingRequests;
+    window.closeRequestsModal = closeRequestsModal;
+    window.approveScreenShare = approveScreenShare;
+    window.rejectScreenShare = rejectScreenShare;
     window.copyClassLink = copyClassLink;
     window.exportAttendance = exportAttendance;
     window.closeAttendanceModal = closeAttendanceModal;
