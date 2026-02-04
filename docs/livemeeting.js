@@ -1113,6 +1113,7 @@ import { supabase } from './js/supabaseClient.js';
       }
       // Only the host should become the owner when they activate the whiteboard
       const activating = !state.isWhiteboardActive;
+      const previousOwnerId = state.whiteboardOwnerId;
       state.isWhiteboardActive = activating;
 
       if (activating) {
@@ -1144,9 +1145,10 @@ import { supabase } from './js/supabaseClient.js';
 
       // Update owner tile preview immediately for local owner
       const ownerIdLocal = state.whiteboardOwnerId;
-      if (ownerIdLocal) {
+      const ownerIdForCleanup = !activating ? previousOwnerId : ownerIdLocal;
+      if (activating && ownerIdLocal) {
         const ownerTile = document.getElementById(`tile-${ownerIdLocal}`);
-        if (activating && ownerTile) {
+        if (ownerTile) {
           const playerContainer = document.getElementById(`player-${ownerIdLocal}`);
           if (playerContainer) playerContainer.style.display = 'none';
 
@@ -1182,15 +1184,15 @@ import { supabase } from './js/supabaseClient.js';
             pctx.stroke();
             if (cmd.tool === 'eraser') pctx.globalCompositeOperation = 'source-over';
           });
-        } else if (!activating && ownerIdLocal) {
-          const preview = document.getElementById(`wb-preview-${ownerIdLocal}`);
-          if (preview) preview.remove();
-          const playerContainer = document.getElementById(`player-${ownerIdLocal}`);
-          if (playerContainer) playerContainer.style.display = '';
         }
+      } else if (!activating && ownerIdForCleanup) {
+        const preview = document.getElementById(`wb-preview-${ownerIdForCleanup}`);
+        if (preview) preview.remove();
+        const playerContainer = document.getElementById(`player-${ownerIdForCleanup}`);
+        if (playerContainer) playerContainer.style.display = '';
       }
 
-      // Broadcast the toggle including owner id
+      // Broadcast the toggle including owner id and sender id
       if (state.channel) {
         state.channel.send({
           type: 'broadcast',
@@ -1198,7 +1200,8 @@ import { supabase } from './js/supabaseClient.js';
           payload: { 
             active: state.isWhiteboardActive,
             drawingCommands: state.whiteboardState,
-            ownerId: state.whiteboardOwnerId
+            ownerId: state.whiteboardOwnerId,
+            userId: state.currentUser.id
           }
         }).catch(err => console.log('Whiteboard toggle sync:', err));
       }
@@ -3519,8 +3522,8 @@ import { supabase } from './js/supabaseClient.js';
             toggleSpotlightUI(payload.payload.active);
           })
           .on('broadcast', { event: 'whiteboard-toggle' }, (payload) => {
-            // Ignore if this toggle originated from ourselves
-            if (payload.payload.ownerId === state.currentUser.id) return;
+            // Ignore if this toggle originated from ourselves (check userId for both activation and deactivation)
+            if (payload.payload.userId === state.currentUser.id) return;
 
             const ownerId = payload.payload.ownerId || null;
             if (payload.payload.active) {
