@@ -316,7 +316,8 @@
             position: relative; /* For dropdown positioning */
         }
         .feed-switcher-current {
-            display: flex;
+            /* Hidden by default on desktop; shown on mobile via media query */
+            display: none;
             align-items: center;
             gap: 0.5rem;
             font-size: 1.1rem;
@@ -326,40 +327,51 @@
             color: var(--text-color);
             text-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Add shadow for readability on video */
             color: rgb(255, 255, 255); /* Always white regardless of theme */
-        }
-        /* Hide dropdown trigger on desktop by default */
-        .feed-switcher-current {
-            display: none;
+            position: relative; /* For child dropdown positioning */
         }
 
         .feed-switcher-current .fa-chevron-down {
             transition: transform 0.2s ease;
         }
+
         .feed-switcher-options {
             position: absolute;
-            top: calc(100% + 5px);
-            left: 50%;
-            transform: translateX(-50%);
+            top: 100%;
+            left: 0;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             box-shadow: var(--glass-shadow);
             z-index: 200;
-            width: 150px;
+            width: 160px;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+            margin-top: 8px;
+            transform: translateY(-10px);
         }
         .feed-switcher-options.active {
             opacity: 1;
             visibility: visible;
-            transform: translateX(-50%) translateY(0);
+            transform: translateY(0);
         }
         .feed-switcher-option {
             padding: 0.75rem 1rem;
             cursor: pointer;
             transition: background 0.2s ease;
+                color: var(--text-color);
+                border-bottom: 1px solid var(--glass-border);
+            }
+            .feed-switcher-option:last-child {
+                border-bottom: none;
+            }
+            .feed-switcher-option:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            .feed-switcher-option.active {
+                color: var(--primary-color);
+                font-weight: bold;
         }
         .feed-tab {
             font-size: 1.1rem;
@@ -412,6 +424,11 @@
             .feed-switcher-current {
                 display: flex; /* Show dropdown trigger on mobile */
             }
+        }
+
+        /* Visual hint for protected tabs when user is not logged in */
+        .feed-tab.locked {
+            opacity: 0.65;
         }
         .search-icon {
             background: var(--glass-bg);
@@ -1728,8 +1745,13 @@
         /* Responsive Adjustments */
         @media (max-width: 768px) {
             .feed-container {
-                padding-bottom: 5rem;
+                padding-bottom: 80px; /* Space for mobile nav bar */
             }
+            
+            .video-container {
+                height: calc(100vh - 60px); /* Reduce height to make room for nav */
+            }
+
             .back-button .fa-home {
                 display: none;
             }
@@ -1804,6 +1826,10 @@
             }
             .progress-bar-container {
                 padding-right: 0; /* Use full width when volume controls are hidden */
+            }
+            .progress-bar {
+                transform: translateY(40px);
+                position: relative;
             }
         }
 

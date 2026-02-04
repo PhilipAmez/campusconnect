@@ -1192,15 +1192,15 @@
                     <div class="feed-switcher-current" onclick="toggleFeedDropdown()">
                         <span id="currentFeedName">${feedNames[currentFeedType]}</span>
                         <i class="fas fa-chevron-down" id="feedDropdownIcon"></i>
+                        <div class="feed-switcher-options" id="feedSwitcherOptions"></div>
                     </div>
-                    <div class="feed-switcher-options" id="feedSwitcherOptions"></div>
                 `;
             } else {
                 // Render tabs for desktop
                 feedSwitcherHtml = `
                     <span class="feed-tab ${currentFeedType === 'for-you' ? 'active' : ''}" data-feed-type="for-you"><span class="feed-tab-text">For You</span><div class="tab-spinner"></div></span>
-                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'following' ? 'active' : ''}" data-feed-type="following"><span class="feed-tab-text">Following</span><div class="tab-spinner"></div></span>` : ''}
-                    ${isLoggedIn ? `<span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''}" data-feed-type="saved"><span class="feed-tab-text">Saved</span><div class="tab-spinner"></div></span>` : ''}
+                    <span class="feed-tab ${currentFeedType === 'following' ? 'active' : ''} ${!isLoggedIn ? 'locked' : ''}" data-feed-type="following" ${!isLoggedIn ? 'onclick="showGuestLoginModal()"' : ''}><span class="feed-tab-text">Following</span><div class="tab-spinner"></div></span>
+                    <span class="feed-tab ${currentFeedType === 'saved' ? 'active' : ''} ${!isLoggedIn ? 'locked' : ''}" data-feed-type="saved" ${!isLoggedIn ? 'onclick="showGuestLoginModal()"' : ''}><span class="feed-tab-text">Saved</span><div class="tab-spinner"></div></span>
                 `;
             }
             const topBarHTML = `
@@ -1230,11 +1230,17 @@
                 if (optionsContainer) {
                     optionsContainer.innerHTML = ''; // Clear previous options
                     Object.keys(feedNames).forEach(feedType => {
-                        if (feedType !== currentFeedType && (isLoggedIn || feedType === 'for-you')) {
+                        if (feedType !== currentFeedType) {
                             const option = document.createElement('div');
-                            option.className = 'feed-switcher-option';
+                            option.className = `feed-switcher-option ${!isLoggedIn && feedType !== 'for-you' ? 'locked' : ''}`;
                             option.textContent = feedNames[feedType];
                             option.dataset.feedType = feedType;
+                            if (!isLoggedIn && feedType !== 'for-you') {
+                                option.onclick = (e) => {
+                                    e.stopPropagation();
+                                    showGuestLoginModal();
+                                };
+                            }
                             optionsContainer.appendChild(option);
                         }
                     });
@@ -3043,6 +3049,24 @@
             }
 
         }
+
+        // Re-render top bar on resize (debounced)
+        function debounce(func, wait) {
+          let timeout;
+          return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+          };
+        }
+        const renderTopBarDebounced = debounce(() => {
+          try {
+            renderTopBar();
+            setupEventListeners();
+          } catch (e) {
+            // ignore
+          }
+        }, 150);
+        window.addEventListener('resize', renderTopBarDebounced);
 
         // Make functions globally available
         window.openUploadModal = openUploadModal;
