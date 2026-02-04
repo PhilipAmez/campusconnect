@@ -1131,6 +1131,16 @@ import { supabase } from './js/supabaseClient.js';
         showNotification('Whiteboard Closed', 'whiteboard');
       }
 
+      // Update whiteboard button active state
+      const whiteboardBtn = document.querySelector('[data-action="whiteboard"]');
+      if (whiteboardBtn) {
+        if (activating) {
+          whiteboardBtn.classList.add('active');
+        } else {
+          whiteboardBtn.classList.remove('active');
+        }
+      }
+
       // Update overlay and tools visibility based on ownership
       if (state.whiteboardOwnerId === state.currentUser.id) {
         whiteboardOverlay.classList.add('active');
