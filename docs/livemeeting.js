@@ -89,105 +89,19 @@ import { supabase } from './js/supabaseClient.js';
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingStatus = document.getElementById('loading-status');
 
-    // ============= GEMINI AI SETUP =============
-    let GEMINI_API_URL = null;
+    // ============= OPENAI AI SETUP =============
 
-    async function initializeAIKey() {
-      const maxRetries = 3;
-      let retryCount = 0;
-      
-      while (retryCount < maxRetries) {
-        try {
-          console.log(`[AI Init] Attempt ${retryCount + 1}/${maxRetries}: Fetching AI key from /api/ai-key`);
-          const response = await fetch('/api/ai-key', { 
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.apiKey) {
-              state.aiApiKey = data.apiKey;
-              GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${state.aiApiKey}`;
-              state.aiReady = true;
-              console.log('✅ AI Key loaded successfully');
-              return true;
-            } else {
-              console.warn('[AI Init] Response OK but no API key in response:', data);
-              retryCount++;
-              if (retryCount < maxRetries) await new Promise(r => setTimeout(r, 500));
-              continue;
-            }
-          } else {
-            console.warn(`[AI Init] Server responded with status ${response.status}`);
-            const errorText = await response.text();
-            console.warn('[AI Init] Error response:', errorText);
-            retryCount++;
-            if (retryCount < maxRetries) await new Promise(r => setTimeout(r, 500));
-            continue;
-          }
-        } catch (error) {
-          console.warn(`[AI Init] Attempt ${retryCount + 1} failed:`, error.message);
-          retryCount++;
-          if (retryCount < maxRetries) {
-            console.log('[AI Init] Retrying in 500ms...');
-            await new Promise(r => setTimeout(r, 500));
-          }
-        }
-      }
-      
-      console.error('[AI Init] Failed to initialize AI key after', maxRetries, 'attempts');
-      state.aiReady = false;
-      return false;
-    }
-
-    async function ensureAIReady() {
-      if (state.aiReady && GEMINI_API_URL) {
-        console.log('[AI] AI is ready');
-        return true;
-      }
-      
-      // If not ready, try to initialize
-      if (!state.aiReady) {
-        console.log('[AI] AI not ready, attempting initialization...');
-        const initialized = await initializeAIKey();
-        if (!initialized) {
-          const errorMsg = 'AI features are temporarily unavailable. Please ensure the backend server is running on port 3000.';
-          console.error('[AI]', errorMsg);
-          showNotification(errorMsg, 'error');
-          return false;
-        }
-      }
-      return true;
-    }
-
-    async function callGeminiAI(prompt, type = 'general') {
-      const ready = await ensureAIReady();
-      if (!ready || !GEMINI_API_URL) {
-        const errorMsg = `AI features unavailable: Ready=${ready}, URL=${GEMINI_API_URL ? 'set' : 'null'}. Backend may not be running.`;
-        console.error('[AI] Error in callGeminiAI:', errorMsg);
-        throw new Error('AI features are not available. Please ensure the backend server is running.');
-      }
+    async function callOpenAI(prompt) {
       try {
         showAILoading();
         
-        const response = await fetch(GEMINI_API_URL, {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: prompt
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 1,
-              topP: 1,
-              maxOutputTokens: 2048,
-            }
+            prompt: prompt
           })
         });
 
@@ -198,24 +112,16 @@ import { supabase } from './js/supabaseClient.js';
         const data = await response.json();
         hideAILoading();
         
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-          return data.candidates[0].content.parts[0].text;
+        if (data.reply) {
+          return data.reply;
         } else {
           throw new Error('Invalid response format from AI');
         }
       } catch (error) {
-        console.error('Gemini API Error:', error);
+        console.error('OpenAI API Error:', error);
         hideAILoading();
         
         // Provide fallback responses if API call fails
-        if (type === 'summary') {
-          return "Summary: I've analyzed the discussion and identified key points. The conversation covered important topics that would benefit from review.";
-        } else if (type === 'quiz') {
-          return "Quiz Generated:\n\n1. What was the main topic discussed today?\n2. How does this apply to real-world scenarios?\n3. What were the key takeaways?\n\nNote: This is a placeholder. For full AI functionality, ensure the backend server is running on port 3000.";
-        } else if (type === 'resources') {
-          return "Suggested Resources:\n\n• Official documentation and guides\n• Tutorial videos and webinars\n• Practice exercises and assignments\n• Community forums and discussion boards\n• Research papers and articles\n\nNote: This is a placeholder. For personalized AI recommendations, ensure the backend server is running on port 3000.";
-        }
-        
         return "I've processed your request. The information is now available in an organized format.";
       }
     }
@@ -261,7 +167,7 @@ import { supabase } from './js/supabaseClient.js';
       
       const prompt = `Generate a detailed attendance report for a live class. Format it professionally with the following data:\n\n${JSON.stringify(attendanceData, null, 2)}\n\nProvide: 1. Summary statistics, 2. List of attendees with join times, 3. Any notable patterns. Format as markdown.`;
       
-      const report = await callGeminiAI(prompt, 'attendance');
+      const report = await callOpenAI(prompt);
       
       const messagesContainer = document.getElementById('chat-messages');
       const card = createAICard(
@@ -1387,7 +1293,7 @@ import { supabase } from './js/supabaseClient.js';
       
       const prompt = `You are an AI teaching assistant. Summarize the following class discussion in 3-5 key points. Keep it concise and educational. Format as a clear summary with bullet points.\n\nDiscussion:\n${chatHistory}\n\nSummary:`;
       
-      const summary = await callGeminiAI(prompt, 'summary');
+      const summary = await callOpenAI(prompt);
       
       const messagesContainer = document.getElementById('chat-messages');
       const card = createAICard(
@@ -1414,7 +1320,7 @@ import { supabase } from './js/supabaseClient.js';
       
       const prompt = `Based on the classroom discussion, generate a 3-question multiple choice quiz to test understanding. Format as clear questions with options and indicate correct answers. Make it educational and relevant.\n\nDiscussion:\n${chatHistory}`;
       
-      const quiz = await callGeminiAI(prompt, 'quiz');
+      const quiz = await callOpenAI(prompt);
       
       const messagesContainer = document.getElementById('chat-messages');
       const card = createAICard(
@@ -1441,7 +1347,7 @@ import { supabase } from './js/supabaseClient.js';
       
       const prompt = `Based on the classroom discussion, suggest 3-5 learning resources (books, articles, videos, websites) that would help students better understand the topics discussed. Include brief descriptions and why they're valuable.\n\nDiscussion:\n${chatHistory}\n\nSuggested Resources:`;
       
-      const resources = await callGeminiAI(prompt, 'resources');
+      const resources = await callOpenAI(prompt);
       
       const messagesContainer = document.getElementById('chat-messages');
       const card = createAICard(

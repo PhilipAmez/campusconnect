@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path');
+const { OpenAI } = require('openai');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +30,12 @@ const serviceAccount = require('./firebase-service.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
+});
+
+// OpenAI setup
+const client = new OpenAI({
+  baseURL: "https://router.huggingface.co/v1",
+  apiKey: process.env.HF_API_KEY || process.env.OPENAI_API_KEY,
 });
 
 async function verifyFirebaseToken(req, res, next) {
@@ -93,13 +100,62 @@ async function verifyFirebaseToken(req, res, next) {
 // Routes
 app.get('/', (req, res) => res.send('CampusConnect backend running!'));
 
-// ============= AI API KEY ENDPOINT =============
-app.get('/api/ai-key', (req, res) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+// ============= AI CHAT ENDPOINT =============
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const chatCompletion = await client.chat.completions.create({
+      model: "zai-org/GLM-5:novita",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    res.json({
+      reply: chatCompletion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.error('OpenAI request failed:', err);
+    res.status(500).json({ error: 'AI request failed' });
   }
-  res.json({ apiKey });
+});
+
+// ============= PEERPAL AI REPLY ENDPOINT =============
+app.post('/api/peerpal-reply', async (req, res) => {
+  try {
+    const { groupId, prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const chatCompletion = await client.chat.completions.create({
+      model: "zai-org/GLM-5:novita",
+      messages: [
+        {
+          role: "user",
+          content: `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom. 
+          A user has mentioned you with this message: "${prompt}". 
+          Please respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`,
+        },
+      ],
+    });
+
+    res.json({
+      reply: chatCompletion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.error('PeerPal AI request failed:', err);
+    res.status(500).json({ error: 'AI request failed' });
+  }
 });
 
 app.post('/users', async (req, res) => {

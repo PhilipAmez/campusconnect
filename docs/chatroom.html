@@ -275,8 +275,7 @@
     // ===== CONSTANTS =====
     const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
     const AI_USER_NAME = 'PeerPal AI';
-    const GEMINI_API_KEY = 'AIzaSyBBxfar9GzA6zllgit7L4QbG6hsVp-vhf8';
-    const AI_MODELS = ['gemini-2.5-flash-lite'];
+    const AI_MODELS = ['gpt-4', 'gpt-3.5-turbo'];
     
     // ===== DOM ELEMENTS =====
     const elements = {
@@ -1423,65 +1422,31 @@
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
         
         try {
-          // Try gemini-2.0-flash first, fall back to gemini-2.0-flash-lite if needed
-          let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+          // Use OpenAI API
+          const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{
-                parts: [{
-                  text: `You are an assistant that ONLY responds when explicitly called.
+              prompt: `You are an assistant that ONLY responds when explicitly called.
 Do not speak unless the user directly asks or mentions you.
 Do not continue conversations unprompted.
 
 User message:
 ${cleanMessage}`
-                }]
-              }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 300,
-                topP: 0.9,
-              }
             })
           });
           
-          // If the first model fails, try the second one
-          if (!response.ok) {
-            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [{
-                    text: `You are an assistant that ONLY responds when explicitly called.
-Do not speak unless the user directly asks or mentions you.
-Do not continue conversations unprompted.
-
-User message:
-${cleanMessage}`
-                  }]
-                }],
-                generationConfig: {
-                  temperature: 0.7,
-                  maxOutputTokens: 300,
-                  topP: 0.9,
-                }
-              })
-            });
-          }
-          
           if (response.ok) {
             const data = await response.json();
-            if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-              aiReply = data.candidates[0].content.parts[0].text;
+            if (data?.reply) {
+              aiReply = data.reply;
             }
           } else {
-            console.log('Both AI models failed, using fallback response');
+            console.log('OpenAI API failed, using fallback response');
             aiReply = generateSmartStudyResponse(cleanMessage);
           }
         } catch (modelError) {
-          console.log('AI model error:', modelError);
+          console.log('OpenAI API error:', modelError);
           aiReply = generateSmartStudyResponse(cleanMessage);
         }
         
