@@ -35,7 +35,7 @@ admin.initializeApp({
 // OpenAI setup
 const client = new OpenAI({
   baseURL: "https://router.huggingface.co/v1",
-  apiKey: process.env.HF_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: process.env.HF_API_KEY,
 });
 
 async function verifyFirebaseToken(req, res, next) {
@@ -110,13 +110,15 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const chatCompletion = await client.chat.completions.create({
-      model: "zai-org/GLM-5:novita",
+      model: "distilgpt2",
       messages: [
         {
           role: "user",
           content: prompt,
         },
       ],
+      max_tokens: 100,
+      temperature: 0.8,
     });
 
     res.json({
@@ -138,15 +140,17 @@ app.post('/api/peerpal-reply', async (req, res) => {
     }
 
     const chatCompletion = await client.chat.completions.create({
-      model: "zai-org/GLM-5:novita",
+      model: "distilgpt2",
       messages: [
         {
           role: "user",
-          content: `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom. 
-          A user has mentioned you with this message: "${prompt}". 
-          Please respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`,
+          content: `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom.
+A user has mentioned you with this message: "${prompt}".
+Please respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`,
         },
       ],
+      max_tokens: 100,
+      temperature: 0.8,
     });
 
     res.json({
