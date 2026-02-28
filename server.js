@@ -107,7 +107,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // Call Hugging Face Inference API directly
-    const hfResponse = await fetch('https://api-inference.huggingface.co/models/distilgpt2', {
+    const hfResponse = await fetch('https://api-inference.huggingface.co/models/google/flan-t5-base', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HF_API_KEY}`,
@@ -123,8 +123,12 @@ app.post('/api/chat', async (req, res) => {
     let reply = "I'm here to help!";
     if (Array.isArray(data) && data[0]?.generated_text) {
       reply = data[0].generated_text;
+    } else if (Array.isArray(data) && data[0]?.generated_text === undefined && data[0]?.generated_text === undefined && data[0]?.summary_text) {
+      reply = data[0].summary_text;
     } else if (data?.generated_text) {
       reply = data.generated_text;
+    } else if (data?.summary_text) {
+      reply = data.summary_text;
     }
     res.json({ reply });
   } catch (err) {
@@ -144,7 +148,7 @@ app.post('/api/peerpal-reply', async (req, res) => {
 
     // Call Hugging Face Inference API directly
     const fullPrompt = `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom.\nA user has mentioned you with this message: "${prompt}".\nPlease respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`;
-    const hfResponse = await fetch('https://api-inference.huggingface.co/models/distilgpt2', {
+    const hfResponse = await fetch('https://api-inference.huggingface.co/models/google/flan-t5-base', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HF_API_KEY}`,
@@ -160,8 +164,12 @@ app.post('/api/peerpal-reply', async (req, res) => {
     let reply = "I'm here to help!";
     if (Array.isArray(data) && data[0]?.generated_text) {
       reply = data[0].generated_text;
+    } else if (Array.isArray(data) && data[0]?.generated_text === undefined && data[0]?.summary_text) {
+      reply = data[0].summary_text;
     } else if (data?.generated_text) {
       reply = data.generated_text;
+    } else if (data?.summary_text) {
+      reply = data.summary_text;
     }
     res.json({ reply });
   } catch (err) {
