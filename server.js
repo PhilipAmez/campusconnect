@@ -32,11 +32,8 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// OpenAI setup
-const client = new OpenAI({
-  baseURL: "https://router.huggingface.co/v1",
-  apiKey: process.env.HF_API_KEY,
-});
+
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 async function verifyFirebaseToken(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -109,21 +106,26 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    const chatCompletion = await client.chat.completions.create({
-      model: "distilgpt2",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_tokens: 100,
-      temperature: 0.8,
+    // Call Hugging Face Inference API directly
+    const hfResponse = await fetch('https://api-inference.huggingface.co/models/distilgpt2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HF_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: prompt })
     });
-
-    res.json({
-      reply: chatCompletion.choices[0].message.content,
-    });
+    if (!hfResponse.ok) {
+      throw new Error('Hugging Face API error: ' + hfResponse.status);
+    }
+    const data = await hfResponse.json();
+    let reply = "I'm here to help!";
+    if (Array.isArray(data) && data[0]?.generated_text) {
+      reply = data[0].generated_text;
+    } else if (data?.generated_text) {
+      reply = data.generated_text;
+    }
+    res.json({ reply });
   } catch (err) {
     console.error('OpenAI request failed:', err);
     res.status(500).json({ error: 'AI request failed' });
@@ -139,23 +141,27 @@ app.post('/api/peerpal-reply', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    const chatCompletion = await client.chat.completions.create({
-      model: "distilgpt2",
-      messages: [
-        {
-          role: "user",
-          content: `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom.
-A user has mentioned you with this message: "${prompt}".
-Please respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`,
-        },
-      ],
-      max_tokens: 100,
-      temperature: 0.8,
+    // Call Hugging Face Inference API directly
+    const fullPrompt = `You are PeerPal AI, a helpful and friendly assistant in a chat application called PeerLoom.\nA user has mentioned you with this message: "${prompt}".\nPlease respond in a helpful, concise, and friendly manner. Keep your response under 100 words.`;
+    const hfResponse = await fetch('https://api-inference.huggingface.co/models/distilgpt2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HF_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: fullPrompt })
     });
-
-    res.json({
-      reply: chatCompletion.choices[0].message.content,
-    });
+    if (!hfResponse.ok) {
+      throw new Error('Hugging Face API error: ' + hfResponse.status);
+    }
+    const data = await hfResponse.json();
+    let reply = "I'm here to help!";
+    if (Array.isArray(data) && data[0]?.generated_text) {
+      reply = data[0].generated_text;
+    } else if (data?.generated_text) {
+      reply = data.generated_text;
+    }
+    res.json({ reply });
   } catch (err) {
     console.error('PeerPal AI request failed:', err);
     res.status(500).json({ error: 'AI request failed' });
