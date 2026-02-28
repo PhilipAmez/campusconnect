@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path');
-const { OpenAI } = require('openai');
+
 
 const app = express();
 const server = http.createServer(app);
