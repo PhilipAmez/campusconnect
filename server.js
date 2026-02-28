@@ -119,6 +119,7 @@ app.post('/api/chat', async (req, res) => {
       throw new Error('Hugging Face API error: ' + hfResponse.status);
     }
     const data = await hfResponse.json();
+    console.log('Hugging Face API response (chat):', data);
     let reply = "I'm here to help!";
     if (Array.isArray(data) && data[0]?.generated_text) {
       reply = data[0].generated_text;
@@ -155,6 +156,7 @@ app.post('/api/peerpal-reply', async (req, res) => {
       throw new Error('Hugging Face API error: ' + hfResponse.status);
     }
     const data = await hfResponse.json();
+    console.log('Hugging Face API response (peerpal-reply):', data);
     let reply = "I'm here to help!";
     if (Array.isArray(data) && data[0]?.generated_text) {
       reply = data[0].generated_text;
