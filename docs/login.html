@@ -20,7 +20,6 @@
             overflow: hidden;
             position: relative;
         }
-
         .auth-card {
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(15px);
@@ -31,15 +30,17 @@
             max-width: 450px;
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.4);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
-
-        .auth-card:hover {
+        /* MODIFIED: hover split into dimmed/activated variants to avoid transform conflict */
+        .auth-card.dimmed:hover {
+            transform: scale(0.96) translateY(-5px);
+        }
+        .auth-card.activated:hover {
             transform: translateY(-5px);
         }
-
         .auth-title {
             font-weight: 400;
             color: #1f2937;
@@ -53,7 +54,6 @@
             border-radius: 0.8rem;
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
-
         .input-group input {
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.4);
@@ -63,13 +63,11 @@
             color: #1f2937;
             width: 100%;
         }
-
         .input-group input:focus {
             border-color: #7c3aed;
             background: rgba(255, 255, 255, 0.5);
             transform: scale(1.02);
         }
-
         .auth-button {
             font-weight: 400;
             color: #1f2937;
@@ -89,12 +87,10 @@
             position: relative;
             overflow: hidden;
         }
-
         .auth-button:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.5);
         }
-
         .auth-button.loading::after {
             content: '';
             position: absolute;
@@ -106,12 +102,14 @@
             animation: loadingAnimation 1.5s infinite;
             z-index: 1;
         }
-
+        /* ADDED: subtle shrink when loading starts */
+        .auth-button.loading {
+            transform: scale(0.98);
+        }
         @keyframes loadingAnimation {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
-
         .input-icon {
             transition: color 0.3s ease;
             position: absolute;
@@ -119,25 +117,33 @@
             top: 2.6rem;
             color: #64748b;
         }
-
         .input-group input:focus + .input-icon {
             color: #7c3aed;
         }
-
+        /* ADDED: password toggle icon styling */
+        .password-toggle-icon {
+            transition: color 0.3s ease, opacity 0.3s ease;
+            position: absolute;
+            right: 0.75rem;
+            top: 2.6rem;
+            color: #64748b;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .password-toggle-icon:hover {
+            color: #7c3aed;
+        }
         .error-message, .success-message {
             margin-top: 1rem;
             text-align: center;
             font-size: 0.9rem;
         }
-
         .error-message {
             color: #dc2626;
         }
-
         .success-message {
             color: #16a34a;
         }
-
         .support-button {
             position: fixed;
             bottom: 10px;
@@ -157,12 +163,10 @@
             transition: transform 0.3s ease, background 0.3s ease;
             z-index: 1000;
         }
-
         .support-button:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.5);
         }
-
         .home-link {
             display: flex;
             align-items: center;
@@ -174,12 +178,33 @@
             border-radius: 0.5rem;
             transition: all 0.3s ease;
         }
-
         .home-link:hover {
             background: rgba(255, 255, 255, 0.4);
             transform: translateY(-2px);
         }
-
+        /* ADDED: lamp‑toggle activation styles */
+        .auth-card.dimmed {
+            opacity: 0.9;
+            transform: scale(0.96);
+            transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+        }
+        .auth-card.activated {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5); /* brand purple glow */
+            position: relative;
+        }
+        .auth-card.activated::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(124, 58, 237, 0.05); /* deepens with same color family */
+            pointer-events: none; /* ensures clicks pass through */
+            border-radius: inherit;
+        }
         @media (max-width: 768px) {
             .auth-card {
                 padding: 1.5rem;
@@ -198,7 +223,6 @@
                 font-size: 0.95rem;
             }
         }
-
         @media (max-width: 480px) {
             .auth-card {
                 padding: 1rem;
@@ -221,7 +245,7 @@
 </head>
 <body>
     <div class="auth-container">
-        <div class="auth-card">
+        <div class="auth-card" id="authCard">
             <div class="auth-content">
                 <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 Login</h2>
                 <form id="loginForm" class="auth-form space-y-6">
@@ -233,6 +257,8 @@
                     <div class="input-group relative">
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password">
+                        <!-- ADDED: password visibility toggle icon -->
+                        <i class="fas fa-eye password-toggle-icon" id="passwordToggle"></i>
                     </div>
                     <button type="submit" class="auth-button w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
                         <span>Login</span>
@@ -247,7 +273,7 @@
                 <p class="text-center text-sm text-gray-600 mt-2">
                     Forgot your password? <a href="forgotpassword.html" class="text-purple-600 hover:underline">Reset it</a>
                 </p>
-                
+               
                 <!-- Added "Want to go back?" message with home link -->
                 <div class="text-center text-sm text-gray-600 mt-4">
                     <p class="mb-2">Want to go back🥹?</p>
@@ -259,68 +285,103 @@
             </div>
         </div>
     </div>
-
     <a href="support.html" class="support-button">
         <i class="fas fa-headset"></i>
         <span>Support</span>
     </a>
 <script type="module">
     import { supabase } from './js/supabaseClient.js'
-
     const form = document.getElementById('loginForm')
     const emailEl = document.getElementById('username')
     const passEl = document.getElementById('password')
     const button = document.querySelector('.auth-button')
     const errorEl = document.getElementById('errorMessage')
     const okEl = document.getElementById('successMessage')
-
     console.log('Login script loaded, Supabase:', supabase ? 'Loaded' : 'Not loaded')
-
+    // ========== ADDED: lamp‑toggle activation ==========
+    const authCard = document.getElementById('authCard') // safe, no rename
+    // start dimmed
+    authCard.classList.add('dimmed')
+    function activateCard() {
+        if (!authCard.classList.contains('activated')) {
+            authCard.classList.remove('dimmed')
+            authCard.classList.add('activated')
+        }
+    }
+    // activate on any click inside the card
+    authCard.addEventListener('click', activateCard)
+    // activate when any input inside the card receives focus
+    const inputs = authCard.querySelectorAll('input')
+    inputs.forEach(input => {
+        input.addEventListener('focus', activateCard)
+    })
+    // ========== END ADDED ==========
+    // ========== ADDED: password visibility toggle ==========
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('passwordToggle');
+    if (toggleIcon && passwordInput) {
+        toggleIcon.addEventListener('click', function() {
+            // Toggle input type
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+           
+            // Toggle icon
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+           
+            // Visual feedback: slight opacity change when visible
+            if (!isPassword) {
+                this.style.opacity = '0.8';
+            } else {
+                this.style.opacity = '1';
+            }
+        });
+    }
+    // ========== END ADDED ==========
     form.addEventListener('submit', async (e) => {
         e.preventDefault()
         console.log('Login form submitted')
-        
+       
         errorEl.textContent = okEl.textContent = ''
         button.classList.add('loading')
-        
+       
         const email = emailEl.value.trim()
         const password = passEl.value
-        
+       
         if (!email || !password) {
             errorEl.textContent = 'Please fill in all fields'
             button.classList.remove('loading')
             return
         }
-        
+       
         try {
             console.log('Attempting to sign in...')
-            const { data, error } = await supabase.auth.signInWithPassword({ 
-                email: email, 
-                password: password 
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
             })
-            
+           
             if (error) {
                 console.error('Login error:', error)
                 errorEl.textContent = error.message || 'Login failed. Please check your credentials.'
                 button.classList.remove('loading')
                 return
             }
-            
+           
             console.log('Login successful:', data)
             okEl.textContent = 'Login successful! Redirecting...'
-            
+           
             // Redirect immediately instead of waiting 10 seconds
             setTimeout(() => {
                 window.location.href = 'dashboard.html'
             }, 1000)
-            
+           
         } catch (err) {
             console.error('Unexpected error:', err)
             errorEl.textContent = 'An unexpected error occurred. Please try again.'
             button.classList.remove('loading')
         }
     })
-
     // Auto-redirect if already signed in (with better error handling)
     try {
         const { data: { session } } = await supabase.auth.getSession()
