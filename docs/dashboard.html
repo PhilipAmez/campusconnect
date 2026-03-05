@@ -706,33 +706,33 @@
             100% { opacity: 1; }
         }
 
-        /* ================== PEERPAL AI ORB ================== */
+        /* ================== PEERPAL AI ORB REDESIGN START ================== */
         .peerpal-container {
             position: fixed;
-            bottom: 100px; /* CHANGED: Moved up to be above mobile nav */
+            bottom: 100px;
             right: 30px;
             z-index: 2000;
             pointer-events: auto;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.7s cubic-bezier(0.25, 0.1, 0.15, 1);
         }
 
+        /* ORB CLOSED STATE – Minimal, glass, subtle breathing */
         .peerpal-orb {
             width: 72px;
             height: 72px;
-            background: rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
             border-radius: 50%;
             box-shadow: 
-                inset 0 1px 1px rgba(255, 255, 255, 0.1),
-                inset 0 -1px 2px rgba(0, 0, 0, 0.2),
-                0 0 0 1px rgba(255, 255, 255, 0.05),
-                0 8px 32px rgba(31, 41, 71, 0.4);
+                inset 0 1px 2px rgba(255, 255, 255, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.15),
+                0 8px 24px rgba(0, 0, 0, 0.2);
             position: relative;
             cursor: pointer;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.7s cubic-bezier(0.25, 0.1, 0.15, 1);
             overflow: hidden;
-            animation: peerpal-float 6s ease-in-out infinite;
+            animation: orb-soft-breath 5s ease-in-out infinite;
         }
 
         .peerpal-orb::before {
@@ -744,45 +744,12 @@
             bottom: 0;
             background: radial-gradient(
                 circle at 30% 30%,
-                rgba(120, 119, 198, 0.15) 0%,
-                rgba(96, 165, 250, 0.08) 30%,
+                rgba(220, 220, 255, 0.25) 0%,
+                rgba(160, 140, 240, 0.1) 40%,
                 transparent 70%
             );
             border-radius: 50%;
             opacity: 0.7;
-        }
-
-        .peerpal-orb::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(
-                135deg,
-                rgba(129, 140, 248, 0.3),
-                rgba(96, 165, 250, 0.2),
-                rgba(168, 85, 247, 0.3)
-            );
-            border-radius: 50%;
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            filter: blur(12px);
-        }
-
-        .peerpal-orb:hover {
-            transform: scale(1.08);
-            box-shadow: 
-                inset 0 1px 2px rgba(255, 255, 255, 0.15),
-                inset 0 -1px 4px rgba(0, 0, 0, 0.25),
-                0 0 0 1px rgba(255, 255, 255, 0.08),
-                0 12px 40px rgba(31, 41, 71, 0.6);
-        }
-
-        .peerpal-orb:hover::after {
-            opacity: 1;
         }
 
         .peerpal-core {
@@ -790,90 +757,61 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 24px;
-            height: 24px;
-            background: radial-gradient(
-                circle at center,
-                rgba(255, 255, 255, 0.95) 0%,
-                rgba(226, 232, 240, 0.8) 70%,
-                transparent 100%
-            );
+            width: 18px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 50%;
             box-shadow: 
-                inset 0 1px 2px rgba(255, 255, 255, 0.8),
-                0 0 20px rgba(255, 255, 255, 0.4);
-            animation: peerpal-pulse 4s ease-in-out infinite;
+                inset 0 1px 3px white,
+                0 0 20px rgba(200, 180, 255, 0.6);
+            filter: blur(0.5px);
+            animation: core-glow 4s ease-in-out infinite;
         }
 
-        .peerpal-core::before,
-        .peerpal-core::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
+        @keyframes orb-soft-breath {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.02); opacity: 1; }
         }
 
-        .peerpal-core::before {
-            width: 8px;
-            height: 8px;
-            top: -16px;
-            left: 8px;
-            animation: peerpal-sparkle 3s ease-in-out infinite;
+        @keyframes core-glow {
+            0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
         }
 
-        .peerpal-core::after {
-            width: 6px;
-            height: 6px;
-            bottom: -14px;
-            right: 10px;
-            animation: peerpal-sparkle 3s ease-in-out infinite 0.5s;
+        /* Orb → panel transition */
+        .peerpal-panel.active ~ .peerpal-container .peerpal-orb {
+            transform: scale(0.6) translateY(-30px);
+            opacity: 0.2;
+            filter: blur(6px);
+            pointer-events: none;
         }
 
-        .peerpal-ripple {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: peerpal-ripple 3s linear infinite;
-        }
-
-        .peerpal-ripple:nth-child(2) {
-            animation-delay: 1s;
-        }
-
-        .peerpal-ripple:nth-child(3) {
-            animation-delay: 2s;
-        }
-
+        /* PANEL – Clean, glass, refined */
         .peerpal-panel {
             position: fixed;
-            bottom: 190px; /* CHANGED: Adjusted for new orb position */
+            bottom: 190px;
             right: 30px;
-            width: 380px;
+            width: 400px;
             max-width: calc(100vw - 60px);
-            height: 520px;
+            height: 580px;
             max-height: calc(100vh - 200px);
-            background: rgba(15, 23, 42, 0.12);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(18, 22, 30, 0.65);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 
-                0 25px 70px rgba(0, 0, 0, 0.45),
-                inset 0 1px 0 rgba(255, 255, 255, 0.12),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+                0 30px 70px rgba(0, 0, 0, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
             z-index: 1999;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(20px) scale(0.95);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(24px) scale(0.96);
+            transition: all 0.7s cubic-bezier(0.25, 0.1, 0.15, 1);
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            color: rgba(255, 255, 255, 0.95);
         }
 
         .peerpal-panel.active {
@@ -885,61 +823,27 @@
         .peerpal-panel::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: 
-                linear-gradient(
-                    to bottom,
-                    transparent 0%,
-                    transparent 85%,
-                    rgba(96, 165, 250, 0.03) 100%
-                ),
-                repeating-linear-gradient(
-                    0deg,
-                    transparent,
-                    transparent 1px,
-                    rgba(255, 255, 255, 0.02) 1px,
-                    rgba(255, 255, 255, 0.02) 2px
-                );
+                radial-gradient(circle at 20% 30%, rgba(130, 110, 220, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(100, 80, 200, 0.1) 0%, transparent 50%);
+            background-size: 200% 200%;
+            animation: slow-shift 18s ease infinite;
             pointer-events: none;
-            z-index: 1;
-            border-radius: 20px;
+            border-radius: 32px;
         }
 
-        .peerpal-panel::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                radial-gradient(
-                    circle at 20% 80%,
-                    rgba(129, 140, 248, 0.03) 0%,
-                    transparent 50%
-                ),
-                radial-gradient(
-                    circle at 80% 20%,
-                    rgba(96, 165, 250, 0.02) 0%,
-                    transparent 50%
-                );
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0.5;
-            animation: liquid-shimmer 15s ease-in-out infinite;
+        @keyframes slow-shift {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
         }
 
+        /* HEADER */
         .peerpal-header {
-            padding: 22px 28px 18px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: linear-gradient(
-                to bottom,
-                rgba(255, 255, 255, 0.08),
-                transparent
-            );
+            padding: 24px 28px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.2);
             position: relative;
             z-index: 2;
             flex-shrink: 0;
@@ -948,292 +852,391 @@
         .peerpal-title {
             display: flex;
             align-items: center;
-            gap: 12px;
-            color: rgba(255, 255, 255, 0.98);
-            font-size: 17px;
+            gap: 10px;
+            font-size: 20px;
             font-weight: 500;
-            margin: 0;
             letter-spacing: -0.01em;
+            color: white;
+            margin: 0 0 6px 0;
         }
 
-        .peerpal-title::before {
-            content: '';
-            width: 9px;
-            height: 9px;
-            background: rgba(255, 255, 255, 0.95);
+        .ai-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-left: 30px;
+        }
+
+        .ai-status .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #3bff8c;
             border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-            flex-shrink: 0;
+            box-shadow: 0 0 8px #3bff8c;
+            animation: status-pulse 2s infinite;
+        }
+
+        @keyframes status-pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
         }
 
         .peerpal-subtitle {
-            color: rgba(255, 255, 255, 0.65);
-            font-size: 12px;
-            margin-top: 3px;
-            font-weight: 400;
-            letter-spacing: 0.02em;
-        }
-
-        .peerpal-capabilities {
-            padding: 16px 28px 18px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            background: linear-gradient(
-                to bottom,
-                rgba(255, 255, 255, 0.03),
-                transparent
-            );
-            position: relative;
-            z-index: 2;
-            flex-shrink: 0;
-        }
-
-        .capability-hint {
             color: rgba(255, 255, 255, 0.6);
             font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            animation: hint-glow 8s ease-in-out infinite;
+            font-weight: 400;
+            margin-top: 2px;
         }
 
-        .capability-hint::before {
-            content: '✨';
-            font-size: 11px;
-            opacity: 0.7;
+        .peerpal-usage {
+            position: absolute;
+            top: 24px;
+            right: 28px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 30px;
+            padding: 4px 14px;
+            font-size: 13px;
+            font-weight: 450;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
         }
 
+        /* Divider (thin) */
+        .peerpal-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 8px 28px 0;
+        }
+
+        /* MESSAGE AREA */
         .peerpal-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 28px;
+            padding: 24px 28px;
             display: flex;
             flex-direction: column;
             gap: 16px;
             position: relative;
             z-index: 2;
             scrollbar-width: none;
-            -ms-overflow-style: none;
+            background: rgba(0, 0, 0, 0.1);
         }
 
         .peerpal-messages::-webkit-scrollbar {
             display: none;
         }
 
-        .peerpal-messages {
-            overscroll-behavior: contain;
-            -webkit-overflow-scrolling: touch;
-        }
-
         .message {
             max-width: 85%;
             padding: 14px 18px;
-            border-radius: 18px;
+            border-radius: 22px;
             font-size: 14px;
             line-height: 1.5;
-            animation: message-appear 0.3s ease-out;
             word-wrap: break-word;
-            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
         }
 
         .message.user {
             align-self: flex-end;
-            background: linear-gradient(
-                135deg,
-                rgba(96, 165, 250, 0.15),
-                rgba(129, 140, 248, 0.15)
-            );
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: rgba(100, 80, 220, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-bottom-right-radius: 6px;
         }
 
         .message.ai {
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.9);
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.05),
-                0 2px 6px rgba(0, 0, 0, 0.1);
+            background: rgba(30, 35, 45, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.95);
+            border-bottom-left-radius: 6px;
         }
 
-        .peerpal-input-container {
-            padding: 20px 28px;
+        // ----- AUDIO UI FIX – Audio controls only when audio exists -----
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 8px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: linear-gradient(
-                to top,
-                rgba(15, 23, 42, 0.4),
-                transparent
-            );
+        }
+
+        .audio-play-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .audio-play-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+        }
+
+        .audio-progress {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .audio-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            transition: width 0.1s linear;
+        }
+
+        .audio-duration {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            min-width: 35px;
+            text-align: right;
+        }
+
+        // ----- RECORDING UI (new) -----
+        .recording-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(220, 38, 38, 0.15);
+            border-radius: 30px;
+            margin-left: 8px;
+            animation: pulse-red 1.5s infinite;
+        }
+        .recording-timer {
+            font-size: 13px;
+            color: #f87171;
+            font-variant-numeric: tabular-nums;
+        }
+        @keyframes pulse-red {
+            0% { background-color: rgba(220, 38, 38, 0.1); }
+            50% { background-color: rgba(220, 38, 38, 0.25); }
+            100% { background-color: rgba(220, 38, 38, 0.1); }
+        }
+
+        // ----- WAVEFORM PREVIEW (after recording) -----
+        .waveform-preview {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 4px;
+        }
+        .waveform-bars {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex: 1;
+            height: 24px;
+        }
+        .waveform-bar {
+            width: 3px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            flex: 1;
+            transform-origin: bottom;
+        }
+        .send-waveform-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+        }
+
+        // ----- IMAGE PIPELINE -----
+        .image-preview {
+            margin-bottom: 8px;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 180px;
             position: relative;
+        }
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
+        }
+        .image-loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            gap: 6px;
+        }
+        .image-loading i {
+            animation: spin 1s linear infinite;
+        }
+        .image-retry {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #f87171;
+            cursor: pointer;
+            border-bottom: 1px dashed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 18px;
+            background: rgba(30, 35, 45, 0.7);
+            border-radius: 22px;
+            align-self: flex-start;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: typing-bounce 1.2s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing-bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        // ----- INPUT BAR RESTRUCTURE – Apple‑level layout, functional icons -----
+        .peerpal-input-container {
+            padding: 16px 28px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.2);
             z-index: 2;
             flex-shrink: 0;
-            margin-top: auto;
-        }
-
-        .peerpal-input-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 28px;
-            right: 28px;
-            height: 1px;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.15),
-                transparent
-            );
         }
 
         .peerpal-input-wrapper {
             display: flex;
-            gap: 12px;
             align-items: flex-end;
-            background: rgba(255, 255, 255, 0.07);
+            gap: 8px;
+            background: rgba(20, 25, 35, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 6px 6px 6px 18px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            border-radius: 30px;
+            padding: 6px 6px 6px 16px;
+            backdrop-filter: blur(10px);
         }
 
-        .peerpal-input-wrapper:focus-within {
-            border-color: rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.09);
-            box-shadow: 
-                0 4px 12px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        .icon-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.6);
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .icon-btn:active {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(0.95);
         }
 
         .peerpal-input {
             flex: 1;
             background: transparent;
             border: none;
-            color: rgba(255, 255, 255, 0.98);
+            color: white;
             font-size: 14px;
-            padding: 10px 0;
+            padding: 8px 0;
             outline: none;
-            min-height: 20px;
-            max-height: 100px;
             resize: none;
-            font-family: inherit;
+            max-height: 90px;
             line-height: 1.4;
         }
 
         .peerpal-input::placeholder {
-            color: rgba(255, 255, 255, 0.45);
+            color: rgba(255, 255, 255, 0.35);
         }
 
         .peerpal-send {
             width: 40px;
             height: 40px;
-            background: linear-gradient(
-                135deg,
-                rgba(96, 165, 250, 0.25),
-                rgba(129, 140, 248, 0.25)
-            );
+            background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            color: rgba(255, 255, 255, 0.95);
-            cursor: pointer;
+            border-radius: 50%;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .peerpal-send::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.1),
-                transparent
-            );
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 14px;
         }
 
         .peerpal-send:hover:not(:disabled) {
-            background: linear-gradient(
-                135deg,
-                rgba(96, 165, 250, 0.35),
-                rgba(129, 140, 248, 0.35)
-            );
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .peerpal-send:hover:not(:disabled)::before {
-            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
         }
 
         .peerpal-send:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-            background: rgba(255, 255, 255, 0.1);
+            opacity: 0.3;
+            cursor: default;
         }
 
-        .peerpal-send i {
-            font-size: 15px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .peerpal-typing {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 12px 18px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
-            align-self: flex-start;
-            max-width: 85%;
-            backdrop-filter: blur(10px);
-        }
-
-        .typing-dot {
-            width: 5px;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            animation: typing-bounce 1.4s infinite ease-in-out;
-        }
-
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
+        /* PAYWALL (unchanged functionally) */
         .peerpal-paywall {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(15, 23, 42, 0.98);
-            backdrop-filter: blur(30px) saturate(200%);
-            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            background: rgba(5, 10, 20, 0.95);
+            backdrop-filter: blur(30px);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px;
-            text-align: center;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 10;
-            border-radius: 20px;
+            transition: 0.5s;
+            z-index: 20;
+            border-radius: 32px;
         }
 
         .peerpal-paywall.active {
@@ -1242,261 +1245,100 @@
         }
 
         .paywall-content {
-            max-width: 280px;
-            animation: paywall-appear 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-            transform-origin: center;
+            max-width: 260px;
+            text-align: center;
         }
 
         .paywall-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(
-                135deg,
-                rgba(96, 165, 250, 0.2),
-                rgba(129, 140, 248, 0.2)
-            );
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 24px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-
-        .paywall-icon::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(
-                135deg,
-                transparent,
-                rgba(255, 255, 255, 0.05),
-                transparent
-            );
-        }
-
-        .paywall-icon i {
-            font-size: 26px;
-            color: rgba(255, 255, 255, 0.95);
-            position: relative;
-            z-index: 1;
+            margin: 0 auto 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .paywall-title {
-            color: rgba(255, 255, 255, 0.98);
-            font-size: 21px;
+            font-size: 20px;
             font-weight: 500;
-            margin-bottom: 12px;
-            letter-spacing: -0.01em;
+            margin-bottom: 6px;
         }
 
         .paywall-text {
             color: rgba(255, 255, 255, 0.7);
             font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .paywall-features {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 12px;
-            line-height: 1.4;
-            margin: 16px 0 28px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin: 16px 0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
         }
 
         .paywall-button {
-            background: linear-gradient(
-                135deg,
-                rgba(96, 165, 250, 0.25),
-                rgba(129, 140, 248, 0.25)
-            );
+            background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 14px;
-            color: rgba(255, 255, 255, 0.98);
-            padding: 15px 36px;
-            font-size: 14px;
+            border-radius: 40px;
+            padding: 12px 28px;
+            color: white;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            letter-spacing: 0.02em;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .paywall-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.15),
-                transparent
-            );
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: 0.2s;
         }
 
         .paywall-button:hover {
-            background: linear-gradient(
-                135deg,
-                rgba(96, 165, 250, 0.35),
-                rgba(129, 140, 248, 0.35)
-            );
-            transform: translateY(-2px);
-            box-shadow: 
-                0 12px 40px rgba(0, 0, 0, 0.3),
-                0 4px 12px rgba(96, 165, 250, 0.2);
+            background: rgba(255, 255, 255, 0.15);
         }
 
-        .paywall-button:hover::before {
-            opacity: 1;
-        }
-
-        .peerpal-usage {
-            position: absolute;
-            top: 22px;
-            right: 28px;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 10px;
-            padding: 5px 10px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 11px;
-            font-weight: 500;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            letter-spacing: 0.03em;
-        }
-
-        @keyframes peerpal-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        @keyframes peerpal-pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.9; }
-        }
-
-        @keyframes peerpal-sparkle {
-            0%, 100% { transform: translateY(0); opacity: 0.3; }
-            50% { transform: translateY(-4px); opacity: 1; }
-        }
-
-        @keyframes peerpal-ripple {
-            0% {
-                width: 100%;
-                height: 100%;
-                opacity: 1;
-            }
-            100% {
-                width: 140%;
-                height: 140%;
-                opacity: 0;
-            }
-        }
-
-        @keyframes typing-bounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
-        }
-
-        @keyframes message-appear {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes liquid-shimmer {
-            0%, 100% {
-                opacity: 0.3;
-                transform: translateX(0) translateY(0);
-            }
-            25% {
-                opacity: 0.5;
-                transform: translateX(2px) translateY(-2px);
-            }
-            50% {
-                opacity: 0.3;
-                transform: translateX(-2px) translateY(2px);
-            }
-            75% {
-                opacity: 0.5;
-                transform: translateX(2px) translateY(2px);
-            }
-        }
-
-        @keyframes hint-glow {
-            0%, 100% {
-                opacity: 0.6;
-            }
-            50% {
-                opacity: 1;
-            }
-        }
-
-        @keyframes paywall-appear {
-            from {
-                opacity: 0;
-                transform: scale(0.95) translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
+        /* Mobile adjustments */
         @media (max-width: 640px) {
-            .peerpal-container {
-                bottom: 90px; /* CHANGED: Adjusted for mobile */
-                right: 20px;
-            }
-
-            .peerpal-orb {
-                width: 64px;
-                height: 64px;
-            }
-
-            .peerpal-core {
-                width: 20px;
-                height: 20px;
-            }
-
+            .peerpal-container { bottom: 90px; right: 20px; }
+            .peerpal-orb { width: 64px; height: 64px; }
             .peerpal-panel {
-                bottom: 170px; /* CHANGED: Adjusted for mobile */
-                right: 20px;
-                left: 20px;
-                width: auto;
-                height: 500px;
+                bottom: 170px; right: 20px; left: 20px;
+                width: auto; height: 520px;
             }
+            .peerpal-header { padding: 20px 20px 10px; }
+            .peerpal-usage { top: 20px; right: 20px; }
+            .peerpal-messages { padding: 20px; }
+            .peerpal-input-container { padding: 12px 20px; }
         }
 
-        body:not([data-theme="dark"]) .peerpal-panel,
-        body:not([data-theme="dark"]) .peerpal-paywall,
-        body:not([data-theme="dark"]) .peerpal-orb {
-            filter: brightness(0.95) contrast(1.1);
+        /* LECTURER BADGE POSITION FIX */
+        .lecturer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+            background: rgba(124, 58, 237, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--primary);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            vertical-align: middle;
+            line-height: 1;
+            white-space: nowrap;
         }
-
-        /* ================== END PEERPAL STYLES ================== */
+        .lecturer-badge i {
+            font-size: 0.6rem;
+            color: var(--primary);
+        }
+        .connection-info .lecturer-badge,
+        .group-item .lecturer-badge {
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+        /* ================== PEERPAL AI ORB REDESIGN END ================== */
        
         @media (max-width: 768px) {
             .splash-title {
@@ -1945,36 +1787,45 @@
             </a>
         </div>
 
+        <!-- AI ORB REDESIGN START (HTML structure updated for multimodal) -->
         <div class="peerpal-container" id="peerpalContainer">
             <div class="peerpal-orb" id="peerpalOrb">
-                <div class="peerpal-ripple"></div>
-                <div class="peerpal-ripple"></div>
-                <div class="peerpal-ripple"></div>
                 <div class="peerpal-core"></div>
             </div>
         </div>
 
         <div class="peerpal-panel" id="peerpalPanel">
             <div class="peerpal-header">
-                <h3 class="peerpal-title">PeerPal AI</h3>
-                <p class="peerpal-subtitle">Your premium study companion</p>
+                <h3 class="peerpal-title">
+                    PeerPal AI
+                    <span class="ai-status">
+                        <span class="status-dot"></span>
+                        <span>Active</span>
+                    </span>
+                </h3>
+                <p class="peerpal-subtitle">Intelligent study companion</p>
                 <div class="peerpal-usage" id="peerpalUsage">0/5 requests</div>
             </div>
             
-            <div class="peerpal-capabilities">
-                <div class="capability-hint">
-                    Ask about study strategies, time management, or academic planning
-                </div>
-            </div>
+            <div class="peerpal-divider"></div>
             
             <div class="peerpal-messages" id="peerpalMessages">
                 <div class="message ai">
-                    Hello. I'm PeerPal, your premium AI study companion. How can I assist you today?
+                    Hello. I'm PeerPal, your intelligent study companion. How can I assist you today?
                 </div>
             </div>
             
+            <!-- INPUT BAR RESTRUCTURE – Functional icons with tooltips -->
             <div class="peerpal-input-container">
                 <div class="peerpal-input-wrapper">
+                    <div class="icon-group">
+                        <!-- RECORDING LOGIC: microphone icon with dynamic tooltip -->
+                        <button class="icon-btn" id="micBtn" title="Record voice message" aria-label="Record voice message"><i class="fa-regular fa-microphone"></i></button>
+                        <!-- IMAGE PIPELINE: upload image -->
+                        <button class="icon-btn" id="imageUploadBtn" title="Upload image" aria-label="Upload image"><i class="fa-regular fa-image"></i></button>
+                        <!-- file upload (placeholder) -->
+                        <button class="icon-btn" id="fileUploadBtn" title="Attach file" aria-label="Attach file"><i class="fa-regular fa-file"></i></button>
+                    </div>
                     <textarea 
                         class="peerpal-input" 
                         id="peerpalInput" 
@@ -1982,9 +1833,16 @@
                         rows="1"
                         maxlength="2000"
                     ></textarea>
-                    <button class="peerpal-send" id="peerpalSend">
-                        <i class="fas fa-paper-plane"></i>
+                    <button class="peerpal-send" id="peerpalSend" title="Send message" aria-label="Send message" disabled>
+                        <i class="fa-regular fa-paper-plane"></i>
                     </button>
+                </div>
+                <!-- hidden file input for image upload -->
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                <!-- waveform preview after recording (initially hidden) -->
+                <div id="waveformPreview" class="waveform-preview" style="display: none;">
+                    <div class="waveform-bars" id="waveformBars"></div>
+                    <button class="send-waveform-btn" id="sendWaveformBtn">Send voice</button>
                 </div>
             </div>
             
@@ -2003,6 +1861,7 @@
                 </div>
             </div>
         </div>
+        <!-- AI ORB REDESIGN END -->
     </div>
     <audio id="notificationSound" preload="auto">
         <source src="/sounds/notification.mp3" type="audio/mpeg">
@@ -2335,6 +2194,7 @@
             });
         }
 
+        // ================== PEERPAL AI ORB ENHANCED CLASS ==================
         class PeerPalAI {
             constructor() {
                 this.orb = document.getElementById('peerpalOrb');
@@ -2347,17 +2207,34 @@
                 this.paywall = document.getElementById('peerpalPaywall');
                 this.unlockBtn = document.getElementById('unlockButton');
                 
+                // RECORDING LOGIC elements
+                this.micBtn = document.getElementById('micBtn');
+                this.waveformPreview = document.getElementById('waveformPreview');
+                this.waveformBars = document.getElementById('waveformBars');
+                this.sendWaveformBtn = document.getElementById('sendWaveformBtn');
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordingStartTime = null;
+                this.recordingTimerInterval = null;
+                this.isRecording = false;
+                this.recordedAudio = null; // store blob
+                
+                // IMAGE PIPELINE elements
+                this.imageUploadBtn = document.getElementById('imageUploadBtn');
+                this.imageInput = document.getElementById('imageInput');
+                
                 this.isOpen = false;
                 this.usageCount = 0;
                 this.maxFreeRequests = 5;
                 this.isProcessing = false;
                 
-                this.apiKey = 'simulated-openai-key';
-                this.openaiModel = 'gpt-4';
-                this.embeddingModel = 'text-embedding-ada-002';
-                this.reasoningModel = 'gpt-4-turbo';
-                this.ttsModel = 'tts-1';
-                this.audioModel = 'whisper-1';
+                // AI models (placeholders)
+                this.apiKey = 'AIzaSyAT4Kkg8HMU_zMBtfZHnkMi9Q9Us9Hqhtc';
+                this.geminiModel = 'gemini-2.5-flash';
+                this.embeddingModel = 'gemini-embedding-1.0';
+                this.reasoningModel = 'gemini-3-flash';
+                this.ttsModel = 'gemini-2.5-flash-tts';
+                this.audioModel = 'native-audio-dialog';
                 
                 this.init();
             }
@@ -2374,9 +2251,11 @@
                     }
                 });
                 
+                // Enable send only when input has text
                 this.input.addEventListener('input', () => {
                     this.input.style.height = 'auto';
                     this.input.style.height = Math.min(this.input.scrollHeight, 100) + 'px';
+                    this.sendBtn.disabled = this.input.value.trim() === '' && !this.recordedAudio && !this.pendingImage;
                 });
                 
                 this.unlockBtn.addEventListener('click', () => {
@@ -2420,6 +2299,16 @@
                         e.stopPropagation();
                     }
                 }, { passive: false });
+                
+                // RECORDING LOGIC: mic button
+                this.micBtn.addEventListener('click', () => this.toggleRecording());
+                
+                // IMAGE PIPELINE: image upload
+                this.imageUploadBtn.addEventListener('click', () => this.imageInput.click());
+                this.imageInput.addEventListener('change', (e) => this.handleImageUpload(e));
+                
+                // Send waveform (voice confirmation)
+                this.sendWaveformBtn.addEventListener('click', () => this.sendVoiceMessage());
             }
             
             loadUsage() {
@@ -2441,7 +2330,7 @@
                     this.input.placeholder = 'Limit reached. Unlock for more...';
                     this.paywall.classList.add('active');
                 } else {
-                    this.sendBtn.disabled = false;
+                    this.sendBtn.disabled = this.input.value.trim() === '' && !this.recordedAudio && !this.pendingImage;
                     this.input.disabled = false;
                     this.input.placeholder = 'Message PeerPal...';
                     this.paywall.classList.remove('active');
@@ -2472,9 +2361,234 @@
                 this.container.style.transform = 'translateY(0)';
             }
             
+            // ----- RECORDING LOGIC -----
+            async toggleRecording() {
+                if (this.isRecording) {
+                    this.stopRecording();
+                } else {
+                    await this.startRecording();
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            noiseSuppression: true,
+                            echoCancellation: true,
+                            autoGainControl: true
+                        }
+                    });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                        this.recordedAudio = audioBlob;
+                        this.showWaveformPreview();
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.recordingStartTime = Date.now();
+                    
+                    // UI changes
+                    this.micBtn.innerHTML = '<i class="fas fa-stop-circle" style="color:#f87171;"></i>';
+                    this.micBtn.title = 'Stop recording';
+                    this.micBtn.classList.add('recording-active');
+                    
+                    // Add timer display
+                    const timerDiv = document.createElement('div');
+                    timerDiv.className = 'recording-indicator';
+                    timerDiv.id = 'recordingTimer';
+                    timerDiv.innerHTML = '<span class="recording-timer">00:00</span><i class="fas fa-circle" style="color:#f87171; font-size:10px;"></i>';
+                    this.micBtn.parentElement.appendChild(timerDiv);
+                    
+                    this.recordingTimerInterval = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
+                        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                        const secs = (elapsed % 60).toString().padStart(2, '0');
+                        document.querySelector('#recordingTimer .recording-timer').textContent = `${mins}:${secs}`;
+                    }, 1000);
+                    
+                } catch (err) {
+                    console.error('Recording error:', err);
+                    this.addMessage('Microphone access denied or not available.', 'ai');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    clearInterval(this.recordingTimerInterval);
+                    
+                    // Reset mic button
+                    this.micBtn.innerHTML = '<i class="fa-regular fa-microphone"></i>';
+                    this.micBtn.title = 'Record voice message';
+                    const timerDiv = document.getElementById('recordingTimer');
+                    if (timerDiv) timerDiv.remove();
+                }
+            }
+            
+            showWaveformPreview() {
+                // Simulate waveform bars
+                this.waveformBars.innerHTML = '';
+                for (let i = 0; i < 12; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'waveform-bar';
+                    bar.style.height = Math.random() * 100 + '%';
+                    this.waveformBars.appendChild(bar);
+                }
+                this.waveformPreview.style.display = 'flex';
+                this.sendBtn.disabled = false; // Enable send now that we have audio
+            }
+            
+            sendVoiceMessage() {
+                if (!this.recordedAudio) return;
+                
+                // Simulate sending voice
+                this.addMessage('[Voice message]', 'user');
+                this.waveformPreview.style.display = 'none';
+                this.recordedAudio = null;
+                
+                // Process voice (would send to STT)
+                this.isProcessing = true;
+                const typing = this.showTyping();
+                setTimeout(() => {
+                    typing.remove();
+                    this.addMessage('I received your voice message. How can I help?', 'ai');
+                    this.isProcessing = false;
+                }, 1500);
+            }
+            
+            // ----- IMAGE PIPELINE -----
+            handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageDataUrl = e.target.result;
+                    this.pendingImage = imageDataUrl;
+                    
+                    // Show preview in input area (we'll attach to next message)
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'image-preview';
+                    previewDiv.id = 'imagePreview';
+                    previewDiv.innerHTML = `
+                        <img src="${imageDataUrl}" alt="Upload preview">
+                        <div class="image-loading">
+                            <i class="fas fa-spinner"></i> Analyzing image...
+                        </div>
+                    `;
+                    // Insert before input wrapper
+                    this.panel.querySelector('.peerpal-input-container').insertBefore(previewDiv, this.panel.querySelector('.peerpal-input-wrapper'));
+                    
+                    // Enable send button
+                    this.sendBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // ----- AI AUDIO OUTPUT (conditional) -----
+            addMessage(text, sender, audioUrl = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                
+                // If there's an image pending, include it
+                if (sender === 'user' && this.pendingImage) {
+                    const imgDiv = document.createElement('div');
+                    imgDiv.className = 'image-preview';
+                    imgDiv.innerHTML = `<img src="${this.pendingImage}" alt="Uploaded image" style="max-width:100%; border-radius:8px;">`;
+                    messageDiv.appendChild(imgDiv);
+                    delete this.pendingImage;
+                    // Remove preview container
+                    const prev = document.getElementById('imagePreview');
+                    if (prev) prev.remove();
+                }
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = text;
+                messageDiv.appendChild(textSpan);
+                
+                // AI AUDIO OUTPUT – only if audioUrl provided
+                if (sender === 'ai' && audioUrl) {
+                    const audioControls = document.createElement('div');
+                    audioControls.className = 'audio-controls';
+                    audioControls.innerHTML = `
+                        <button class="audio-play-btn" title="Play AI response" aria-label="Play AI response"><i class="fas fa-play"></i></button>
+                        <div class="audio-progress"><div class="audio-progress-fill"></div></div>
+                        <span class="audio-duration">0:30</span>
+                    `;
+                    messageDiv.appendChild(audioControls);
+                    
+                    // Lazy load audio
+                    const audio = new Audio(audioUrl);
+                    const playBtn = audioControls.querySelector('.audio-play-btn');
+                    const progressFill = audioControls.querySelector('.audio-progress-fill');
+                    const durationSpan = audioControls.querySelector('.audio-duration');
+                    
+                    audio.addEventListener('loadedmetadata', () => {
+                        const mins = Math.floor(audio.duration / 60);
+                        const secs = Math.floor(audio.duration % 60);
+                        durationSpan.textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+                    });
+                    
+                    audio.addEventListener('timeupdate', () => {
+                        const progress = (audio.currentTime / audio.duration) * 100;
+                        progressFill.style.width = progress + '%';
+                    });
+                    
+                    playBtn.addEventListener('click', () => {
+                        if (audio.paused) {
+                            audio.play();
+                            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                        } else {
+                            audio.pause();
+                            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        }
+                    });
+                    
+                    audio.addEventListener('ended', () => {
+                        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        progressFill.style.width = '0%';
+                    });
+                }
+                
+                this.messages.appendChild(messageDiv);
+                this.messages.scrollTop = this.messages.scrollHeight;
+            }
+            
+            // Fallback for audio failure – just text
+            addTextOnlyMessage(text, sender) {
+                this.addMessage(text, sender, null);
+            }
+            
+            showTyping() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+                typingDiv.innerHTML = `
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                `;
+                
+                this.messages.appendChild(typingDiv);
+                this.messages.scrollTop = this.messages.scrollHeight;
+                
+                return typingDiv;
+            }
+            
+            // ----- MESSAGE SENDING -----
             async sendMessage() {
                 const message = this.input.value.trim();
-                if (!message || this.isProcessing) return;
+                if ((!message && !this.recordedAudio && !this.pendingImage) || this.isProcessing) return;
                 
                 if (this.usageCount >= this.maxFreeRequests) {
                     this.showPaywall();
@@ -2483,9 +2597,30 @@
                 
                 this.isProcessing = true;
                 
-                this.addMessage(message, 'user');
-                this.input.value = '';
-                this.input.style.height = 'auto';
+                // Handle text message
+                if (message) {
+                    this.addMessage(message, 'user');
+                    this.input.value = '';
+                    this.input.style.height = 'auto';
+                }
+                
+                // Handle pending image
+                if (this.pendingImage) {
+                    // Already added in addMessage with user message? We'll add a separate message for image.
+                    // Actually we'll combine text and image in one message.
+                    // For simplicity, if there's an image without text, we add a placeholder.
+                    if (!message) {
+                        this.addMessage('', 'user'); // this will include the image
+                    }
+                }
+                
+                // Handle recorded audio (already handled by sendVoiceMessage, but we can also send via text)
+                if (this.recordedAudio && !message) {
+                    // Already handled by sendVoiceMessage, but if send button pressed with audio pending, we send voice.
+                    this.sendVoiceMessage();
+                    this.isProcessing = false;
+                    return;
+                }
                 
                 const typingIndicator = this.showTyping();
                 
@@ -2494,11 +2629,19 @@
                     this.saveUsage();
                     this.updateUsageDisplay();
                     
+                    // Simulate AI response with optional audio
                     const response = await this.getAIResponse(message);
                     
                     typingIndicator.remove();
                     
-                    this.addMessage(response, 'ai');
+                    // Simulate TTS generation (audioUrl would be real)
+                    // For demo, we'll sometimes add audio controls
+                    const withAudio = Math.random() > 0.5; // 50% chance to have audio
+                    if (withAudio) {
+                        this.addMessage(response, 'ai', 'dummy-audio-url'); // audioUrl triggers controls
+                    } else {
+                        this.addMessage(response, 'ai');
+                    }
                     
                 } catch (error) {
                     console.error('AI Error:', error);
@@ -2510,6 +2653,14 @@
                     this.updateUsageDisplay();
                 } finally {
                     this.isProcessing = false;
+                    // Clear pending image if any
+                    if (this.pendingImage) {
+                        const prev = document.getElementById('imagePreview');
+                        if (prev) prev.remove();
+                        this.pendingImage = null;
+                    }
+                    this.recordedAudio = null;
+                    this.waveformPreview.style.display = 'none';
                 }
             }
             
@@ -2539,37 +2690,13 @@
                 }
             }
             
-            addMessage(text, sender) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${sender}`;
-                messageDiv.textContent = text;
-                
-                this.messages.appendChild(messageDiv);
-                this.messages.scrollTop = this.messages.scrollHeight;
-            }
-            
-            showTyping() {
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'peerpal-typing';
-                typingDiv.innerHTML = `
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                `;
-                
-                this.messages.appendChild(typingDiv);
-                this.messages.scrollTop = this.messages.scrollHeight;
-                
-                return typingDiv;
-            }
-            
             showPaywall() {
                 this.paywall.classList.add('active');
                 this.messages.scrollTop = this.messages.scrollHeight;
             }
             
             showPremiumModal() {
-                alert('Premium upgrade would be processed here. In production, this would connect to Stripe/Paddle.\n\nAfter payment, you get:\n• Unlimited requests for one month\n• Access to all AI models (GPT-4, GPT-4-Turbo, etc.)\n• Voice features enabled\n• Priority processing');
+                alert('Premium upgrade would be processed here. In production, this would connect to Stripe/Paddle.\n\nAfter payment, you get:\n• Unlimited requests for one month\n• Access to all AI models (gemini-2.5-flash, gemini-3-flash, etc.)\n• Voice features enabled\n• Priority processing');
                 
                 this.usageCount = 0;
                 this.saveUsage();
