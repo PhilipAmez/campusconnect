@@ -57,8 +57,8 @@
                     <div>Record Video</div>
                 </div>
                 <div class="upload-option" onclick="showUploadForm('upload')">
-                    <div class="upload-option-icon">📁</div>
-                    <div>Upload Video</div>
+                    <div class="upload-option-icon">🖼️</div>
+                    <div>Upload Media</div>
                 </div>
             </div>
             <div class="upload-form" id="uploadForm">
@@ -77,11 +77,11 @@
               
                 <!-- Upload Gallery Button - Redesigned -->
                 <div class="form-group" id="uploadGallerySection" style="display: none;">
-                    <label class="form-label">Video</label>
+                    <label class="form-label">Media File</label>
                     <div class="upload-gallery-btn" id="uploadGalleryBtn">
                         <span class="upload-icon">📁</span>
                         <span>Upload from Gallery</span>
-                        <input type="file" class="file-input" id="videoFile" accept="video/mp4,video/webm,video/ogg,video/quicktime">
+                        <input type="file" class="file-input" id="mediaFile" accept="image/*,video/*">
                     </div>
                 </div>
               
@@ -94,15 +94,16 @@
                 </div>
               
                 <!-- Video Preview - Redesigned -->
-                <div class="video-preview-container" id="videoPreviewContainer">
-                    <button class="video-preview-close-btn" id="videoPreviewCloseBtn" title="Remove video">×</button>
-                    <video class="video-preview" id="videoPreview" controls playsinline></video>
-                    <div class="video-info-preview">
-                        <div class="video-filename">
+                <div class="media-preview-container" id="mediaPreviewContainer">
+                    <button class="media-preview-close-btn" id="mediaPreviewCloseBtn" title="Remove media">×</button>
+                    <video class="media-preview" id="videoPreview" controls playsinline style="display: none;"></video>
+                    <img class="media-preview" id="imagePreview" alt="Image preview" style="display: none;" />
+                    <div class="media-info-preview">
+                        <div class="media-filename">
                             <span class="checkmark">✓</span>
-                            <span id="videoFilename">Video Selected</span>
+                            <span id="mediaFilename">Media Selected</span>
                         </div>
-                        <div class="video-duration" id="videoDuration">0:00</div>
+                        <div class="media-duration" id="mediaDuration"></div>
                     </div>
                 </div>
               
@@ -232,8 +233,8 @@
         let savedPosts = [];
         let isLoggedIn = false; // Changed to false to test guest mode
         let replyingToCommentId = null;
-        let selectedVideoFile = null;
-        let selectedVideoDuration = null;
+        let selectedMediaFile = null;
+        let selectedMediaDuration = null;
         let mediaStream = null;
         let isAddingComment = false; // Flag to prevent double submission
         let mediaRecorder = null;
@@ -311,13 +312,14 @@
             }
           
             // Check for common video MIME types
-            const videoMimeTypes = [
+            const allowedMimeTypes = [
                 'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
-                'video/x-msvideo', 'video/3gpp', 'video/3gpp2'
+                'video/x-msvideo', 'video/3gpp', 'video/3gpp2',
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp'
             ];
           
-            if (file.type && !videoMimeTypes.some(mime => file.type.startsWith('video/'))) {
-                return { valid: false, error: 'Invalid video format' };
+            if (file.type && !allowedMimeTypes.some(mime => file.type.startsWith(mime.split('/')[0] + '/'))) {
+                return { valid: false, error: 'Invalid file format' };
             }
           
             return { valid: true };
@@ -849,22 +851,30 @@
                 return;
             }
 
-            posts.forEach(video => {
-                const videoContainer = document.createElement('div');
-                videoContainer.className = 'video-container';
-                videoContainer.id = `video-${video.id}`;
+            posts.forEach(post => {
+                const postContainer = document.createElement('div');
+                postContainer.className = 'video-container';
+                postContainer.id = `video-${post.id}`;
+
+                const isImage = post.media_type === 'image';
+                const mediaElement = isImage
+                    ? `<img src="${post.media_url}" class="video-player" alt="${post.content || 'Post image'}" style="object-fit: contain;">`
+                    : `<video class="video-player" loop muted playsinline preload="metadata">
+                           <source src="${post.media_url}" type="video/mp4">
+                       </video>`;
+
+                const scrubbingPlayerHtml = isImage ? '' :
+                    `<video class="video-player" id="scrubbingPlayer-${post.id}" muted playsinline preload="metadata" style="display: none;">
+                        <source src="${post.media_url}" type="video/mp4">
+                    </video>`;
               
                 // SIMPLE GUEST MODE TEMPLATE - Just add watermark and modify button behavior
-                videoContainer.innerHTML = `
+                postContainer.innerHTML = `
                     <div class="video-wrapper" style="position: relative; width: 100%; height: 100%;">
-                        <video class="video-player" loop muted playsinline preload="metadata">
-                            <source src="${video.media_url}" type="video/mp4">
-                        </video>
+                        ${mediaElement}
                         <!-- Hidden video for smooth thumbnail scrubbing -->
-                        <video class="video-player" id="scrubbingPlayer-${video.id}" muted playsinline preload="metadata" style="display: none;">
-                            <source src="${video.media_url}" type="video/mp4">
-                        </video>
-                        <div class="loading-overlay" id="loading-${video.id}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 6;">
+                        ${scrubbingPlayerHtml}
+                        <div class="loading-overlay" id="loading-${post.id}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 6;">
                             <div class="bouncing-loader">
                                 <div style="animation-delay: 0s;"></div>
                                 <div style="animation-delay: 0.2s;"></div>
@@ -872,39 +882,39 @@
                             </div>
                         </div>
                     </div>
-                    <div class="video-controls-overlay">
-                        <i class="fas fa-play play-pause-btn" id="playPauseBtn-${video.id}"></i>
+                    <div class="video-controls-overlay" ${isImage ? 'style="display: none;"' : ''}>
+                        <i class="fas fa-play play-pause-btn" id="playPauseBtn-${post.id}"></i>
                     </div>
                     <div class="video-info">
-                        <a href="profile.html?userId=${video.user_id}" class="post-author-avatar" style="text-decoration: none; color: inherit;">
-                            ${video.profiles?.profile_photo ? `
-                                <img src="${video.profiles.profile_photo}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                        <a href="profile.html?userId=${post.user_id}" class="post-author-avatar" style="text-decoration: none; color: inherit;">
+                            ${post.profiles?.profile_photo ? `
+                                <img src="${post.profiles.profile_photo}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
                             ` : `
-                                <div class="post-author-initials">${(video.profiles?.username || 'U').substring(0, 2).toUpperCase()}</div>
+                                <div class="post-author-initials">${(post.profiles?.username || 'U').substring(0, 2).toUpperCase()}</div>
                             `}
-                            <span class="username">@${video.profiles?.username || 'user'}</span>
+                            <span class="username">@${post.profiles?.username || 'user'}</span>
                         </a>
-                        <div class="post-title">${video.title || ''}</div>
-                        <div class="caption">${video.content || ''}</div>
-                        <div class="hashtags">${video.hashtags || ''}</div>
+                        <div class="post-title">${post.title || ''}</div>
+                        <div class="caption">${post.content || ''}</div>
+                        <div class="hashtags">${post.hashtags || ''}</div>
                     </div><div class="actions-sidebar">
-                        <div class="action-item" onclick="handleGuestAction(() => toggleLike(this, '${video.id}'))">
-                            <div class="action-icon" id="likeIcon-${video.id}" style="color: ${video.is_liked ? 'var(--primary-color)' : 'currentColor'};">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="${video.is_liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                        <div class="action-item" onclick="handleGuestAction(() => toggleLike(this, '${post.id}'))">
+                            <div class="action-icon" id="likeIcon-${post.id}" style="color: ${post.is_liked ? 'var(--primary-color)' : 'currentColor'};">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="${post.is_liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                 </svg>
                             </div>
-                            <div class="action-count like-count" id="likeCount-${video.id}">${video.likes_count ?? 0}</div>
+                            <div class="action-count like-count" id="likeCount-${post.id}">${post.likes_count ?? 0}</div>
                         </div>
-                        <div class="action-item" onclick="openComments('${video.id}')">
+                        <div class="action-item" onclick="openComments('${post.id}')">
                             <div class="action-icon">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                                 </svg>
                             </div>
-                            <div class="action-count" id="commentCount-${video.id}">${video.comments_count ?? 0}</div>
+                            <div class="action-count" id="commentCount-${post.id}">${post.comments_count ?? 0}</div>
                         </div>
-                        <div class="action-item" onclick="${isLoggedIn ? `shareVideo('${video.id}')` : `showGuestLoginModal()`}">
+                        <div class="action-item" onclick="${isLoggedIn ? `shareVideo('${post.id}')` : `showGuestLoginModal()`}">
                             <div class="action-icon">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -915,32 +925,32 @@
                             <div class="action-count">Share</div>
                         </div>
                         ${isLoggedIn ? `
-                        <div class="action-item" onclick="toggleSave('${video.id}')">
-                            <div class="action-icon" id="saveIcon-${video.id}" style="color: ${video.is_saved ? 'var(--save-color-active)' : 'currentColor'};">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="${video.is_saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                        <div class="action-item" onclick="toggleSave('${post.id}')">
+                            <div class="action-icon" id="saveIcon-${post.id}" style="color: ${post.is_saved ? 'var(--save-color-active)' : 'currentColor'};">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="${post.is_saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                                 </svg>
                             </div>
                             <div class="action-count">Save</div>
                         </div>
-                        ${video.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + video.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
+                        ${post.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + post.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
                         ` : ''}
                     </div>
-                    <div class="bottom-controls-bar">
-                        <div class="progress-bar-container" id="progressBarContainer-${video.id}">
+                    <div class="bottom-controls-bar" ${isImage ? 'style="display: none;"' : ''}>
+                        <div class="progress-bar-container" id="progressBarContainer-${post.id}">
                             <div class="progress-bar">
-                                <div class="progress-fill" id="progressFill-${video.id}"></div>
+                                <div class="progress-fill" id="progressFill-${post.id}"></div>
                             </div>
-                            <div class="thumbnail-preview" id="thumbnailPreview-${video.id}">
-                                <canvas class="thumbnail-image" id="thumbnailCanvas-${video.id}"></canvas>
-                                <span class="thumbnail-time" id="thumbnailTime-${video.id}">0:00</span>
+                            <div class="thumbnail-preview" id="thumbnailPreview-${post.id}">
+                                <canvas class="thumbnail-image" id="thumbnailCanvas-${post.id}"></canvas>
+                                <span class="thumbnail-time" id="thumbnailTime-${post.id}">0:00</span>
                             </div>
                         </div>
                         <div class="volume-controls">
                             <div class="volume-slider-container">
-                                <input type="range" min="0" max="1" step="0.01" value="1" class="volume-slider" id="volumeSlider-${video.id}">
+                                <input type="range" min="0" max="1" step="0.01" value="1" class="volume-slider" id="volumeSlider-${post.id}">
                             </div>
-                            <div class="mute-toggle" onclick="toggleMute(this, '${video.id}')">
+                            <div class="mute-toggle" onclick="toggleMute(this, '${post.id}')">
                                 <svg class="volume-icon-unmuted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
                                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
@@ -953,30 +963,30 @@
                             </div>
                         </div>
                     </div>
-                    <div class="comment-drawer" id="commentDrawer-${video.id}">
+                    <div class="comment-drawer" id="commentDrawer-${post.id}">
                         <div class="comment-header">
                             <div class="comment-title">Comments</div>
-                            <button class="close-comments" onclick="closeComments('${video.id}')">×</button>
+                            <button class="close-comments" onclick="closeComments('${post.id}')">×</button>
                         </div>
-                        <div class="comments-list" id="commentsList-${video.id}">
+                        <div class="comments-list" id="commentsList-${post.id}">
                             <!-- Comments will be dynamically inserted here -->
                         </div>
-                        <div class="reply-indicator" id="replyIndicator-${video.id}" style="display: none; padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(0,0,0,0.2);">
-                            Replying to <span id="replyingToUser-${video.id}" style="font-weight: bold;"></span>
-                            <button onclick="cancelReply('${video.id}')" style="background: none; border: none; color: white; margin-left: 1rem; cursor: pointer;">×</button>
+                        <div class="reply-indicator" id="replyIndicator-${post.id}" style="display: none; padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(0,0,0,0.2);">
+                            Replying to <span id="replyingToUser-${post.id}" style="font-weight: bold;"></span>
+                            <button onclick="cancelReply('${post.id}')" style="background: none; border: none; color: white; margin-left: 1rem; cursor: pointer;">×</button>
                         </div>
                      
                         <div class="comment-input-container">
-                            <textarea class="comment-input" id="commentInput-${video.id}" placeholder="Add a comment..." rows="1" oninput="autoGrow(this)"></textarea>
-                            <button class="comment-submit" onclick="addComment('${video.id}')">Post</button>
+                            <textarea class="comment-input" id="commentInput-${post.id}" placeholder="Add a comment..." rows="1" oninput="autoGrow(this)"></textarea>
+                            <button class="comment-submit" onclick="addComment('${post.id}')">Post</button>
                         </div>
                     </div>
                 `;
               
-                feed.appendChild(videoContainer);
+                feed.appendChild(postContainer);
               
                 // Add double tap like functionality
-                videoContainer.addEventListener('dblclick', function(e) {
+                postContainer.addEventListener('dblclick', function(e) {
                     if (!isLoggedIn) {
                         showGuestLoginModal();
                         return;
@@ -987,25 +997,27 @@
                 });
               
                 // Add single tap to pause/play - MODIFIED CODE
-                const videoPlayer = videoContainer.querySelector('.video-player');
-                const playPauseBtn = videoContainer.querySelector(`#playPauseBtn-${video.id}`);
-                const progressFill = videoContainer.querySelector(`#progressFill-${video.id}`);
-                const loadingOverlay = videoContainer.querySelector(`#loading-${video.id}`);
+                const videoPlayer = postContainer.querySelector('.video-player');
+                const playPauseBtn = postContainer.querySelector(`#playPauseBtn-${post.id}`);
+                const progressFill = postContainer.querySelector(`#progressFill-${post.id}`);
+                const loadingOverlay = postContainer.querySelector(`#loading-${post.id}`);
                 videoPlayer.addEventListener('loadstart', () => loadingOverlay.style.display = 'flex');
                 videoPlayer.addEventListener('waiting', () => loadingOverlay.style.display = 'flex'); // Show when buffering
                 videoPlayer.addEventListener('canplay', () => loadingOverlay.style.display = 'none'); // Hide when ready
-                const progressBarContainer = videoContainer.querySelector(`#progressBarContainer-${video.id}`);
+                const progressBarContainer = postContainer.querySelector(`#progressBarContainer-${post.id}`);
                 let controlsTimeout;
                 const toggleControls = () => {
-                    videoContainer.classList.toggle('controls-visible');
+                    postContainer.classList.toggle('controls-visible');
                     clearTimeout(controlsTimeout);
-                    if (videoContainer.classList.contains('controls-visible')) {
+                    if (postContainer.classList.contains('controls-visible')) {
                         controlsTimeout = setTimeout(() => {
-                            videoContainer.classList.remove('controls-visible');
+                            postContainer.classList.remove('controls-visible');
                         }, 3000);
                     }
                 };
                 const togglePlayPause = () => {
+                    if (videoPlayer.tagName !== 'VIDEO') return; // Check if it's a video
+
                     if (videoPlayer.paused) {
                         videoPlayer.play();
                         playPauseBtn.className = 'fas fa-pause play-pause-btn';
@@ -1015,7 +1027,7 @@
                     }
                     toggleControls();
                 };
-                videoContainer.addEventListener('click', (e) => {
+                postContainer.addEventListener('click', (e) => {
                     if (e.target.closest('.actions-sidebar, .top-bar, .video-info, .mute-toggle, .comment-drawer, .progress-bar-container')) {
                         return;
                     }
@@ -1034,15 +1046,16 @@
                 });
 
                 // Thumbnail preview on hover
-                const thumbnailPreview = videoContainer.querySelector(`#thumbnailPreview-${video.id}`);
-                const thumbnailCanvas = videoContainer.querySelector(`#thumbnailCanvas-${video.id}`);
-                const thumbnailTime = videoContainer.querySelector(`#thumbnailTime-${video.id}`);
-                const scrubbingPlayer = videoContainer.querySelector(`#scrubbingPlayer-${video.id}`);
-                const ctx = thumbnailCanvas.getContext('2d');
+                const thumbnailPreview = postContainer.querySelector(`#thumbnailPreview-${post.id}`);
+                const thumbnailCanvas = postContainer.querySelector(`#thumbnailCanvas-${post.id}`);
+                const thumbnailTime = postContainer.querySelector(`#thumbnailTime-${post.id}`);
+                const scrubbingPlayer = postContainer.querySelector(`#scrubbingPlayer-${post.id}`);
+                const ctx = thumbnailCanvas ? thumbnailCanvas.getContext('2d') : null;
                 let isScrubbing = false;
                 let throttleTimer;
 
-                progressBarContainer.addEventListener('mousemove', (e) => {
+                if (scrubbingPlayer && progressBarContainer) {
+                    progressBarContainer.addEventListener('mousemove', (e) => {
                     if (isNaN(videoPlayer.duration)) return;
 
                     const rect = progressBarContainer.getBoundingClientRect();
@@ -1084,15 +1097,16 @@
                 });
 
                 // Draw the frame to the canvas when the video seeks
-                scrubbingPlayer.addEventListener('seeked', () => { // Listen to the hidden player
+                scrubbingPlayer.addEventListener('seeked', () => {
                     // Only draw if the user is actively scrubbing to avoid unnecessary draws
-                    if (isScrubbing) {
+                    if (isScrubbing && ctx) {
                         ctx.drawImage(scrubbingPlayer, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
                     }
                 });
+                }
 
                 // Add volume slider event listener
-                const volumeSlider = videoContainer.querySelector(`#volumeSlider-${video.id}`);
+                const volumeSlider = postContainer.querySelector(`#volumeSlider-${post.id}`);
                 volumeSlider.addEventListener('input', (e) => {
                     videoPlayer.volume = e.target.value;
                     const progress = e.target.value * 100;
@@ -1100,8 +1114,8 @@
                 });
 
                 // FIX: Add touch event prevention for comment input and drawer
-                const commentDrawer = videoContainer.querySelector(`#commentDrawer-${video.id}`);
-                const commentInput = videoContainer.querySelector(`#commentInput-${video.id}`);
+                const commentDrawer = postContainer.querySelector(`#commentDrawer-${post.id}`);
+                const commentInput = postContainer.querySelector(`#commentInput-${post.id}`);
               
                 if (commentDrawer) {
                     commentDrawer.addEventListener('touchstart', function(e) {
@@ -1435,9 +1449,9 @@
             }
           
             // File input change
-            const videoFile = document.getElementById('videoFile');
-            if (videoFile) {
-                videoFile.addEventListener('change', function(e) {
+            const mediaFile = document.getElementById('mediaFile');
+            if (mediaFile) {
+                mediaFile.addEventListener('change', function(e) {
                     handleFileSelect(e);
                 });
             }
@@ -1524,9 +1538,9 @@
             }
 
             // Video preview close button
-            const videoPreviewCloseBtn = document.getElementById('videoPreviewCloseBtn');
-            if (videoPreviewCloseBtn) {
-                videoPreviewCloseBtn.addEventListener('click', clearSelectedVideo);
+            const mediaPreviewCloseBtn = document.getElementById('mediaPreviewCloseBtn');
+            if (mediaPreviewCloseBtn) {
+                mediaPreviewCloseBtn.addEventListener('click', clearSelectedMedia);
             }
 
             // Add Page Visibility API listener
@@ -1618,33 +1632,40 @@
             };
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    const video = entry.target.querySelector('.video-player');
+                    const mediaElement = entry.target.querySelector('.video-player');
+                    const isVideo = mediaElement && mediaElement.tagName === 'VIDEO';
                   
                     if (entry.isIntersecting) {
                         currentVideoId = entry.target.id; // Store the current video's container ID
-                        // Try to play with sound first
-                        video.muted = false;
-                        const playPromise = video.play();
-                      
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                // If autoplay with sound fails, mute and try again
-                                video.muted = true;
-                                video.play().catch(e => console.log('Autoplay prevented:', e));
-                            });
+
+                        if (isVideo) {
+                            // Try to play with sound first
+                            mediaElement.muted = false;
+                            const playPromise = mediaElement.play();
+                          
+                            if (playPromise !== undefined) {
+                                playPromise.catch(error => {
+                                    // If autoplay with sound fails, mute and try again
+                                    mediaElement.muted = true;
+                                    mediaElement.play().catch(e => console.log('Autoplay prevented:', e));
+                                });
+                            }
                         }
+
                         // Add class for visible animation
-                        entry.target.querySelector('.video-player').style.transform = 'scale(1)';
-                        entry.target.querySelector('.video-player').style.opacity = '1';
+                        mediaElement.style.transform = 'scale(1)';
+                        mediaElement.style.opacity = '1';
                     } else {
-                        video.pause();
+                        if (isVideo) {
+                            mediaElement.pause();
+                        }
                         // video.currentTime = 0; // Don't reset video to the beginning
                         if (currentVideoId === entry.target.id) {
                             currentVideoId = null;
                         }
                         // Add class for scrolled-away animation
-                        entry.target.querySelector('.video-player').style.transform = 'scale(0.9)';
-                        entry.target.querySelector('.video-player').style.opacity = '0.7';
+                        mediaElement.style.transform = 'scale(0.9)';
+                        mediaElement.style.opacity = '0.7';
                     }
                 });
             }, options);
@@ -1661,11 +1682,15 @@
             const currentVideoContainer = document.getElementById(currentVideoId);
             if (!currentVideoContainer) return;
 
-            const video = currentVideoContainer.querySelector('video');
+            const mediaElement = currentVideoContainer.querySelector('.video-player');
+            if (!mediaElement || mediaElement.tagName !== 'VIDEO') {
+                return; // Not a video, do nothing
+            }
+
             if (document.hidden) {
-                video.pause();
+                mediaElement.pause();
             } else {
-                video.play().catch(e => console.log('Autoplay on visibility change prevented:', e));
+                mediaElement.play().catch(e => console.log('Autoplay on visibility change prevented:', e));
             }
         }
         // Toggle theme between dark and light
@@ -2420,16 +2445,16 @@
             document.getElementById('postTitle').value = '';
             document.getElementById('postCaption').value = '';
             document.getElementById('postHashtags').value = '';
-            document.getElementById('videoFile').value = '';
-            document.getElementById('videoPreviewContainer').classList.remove('active');
+            document.getElementById('mediaFile').value = '';
+            document.getElementById('mediaPreviewContainer').classList.remove('active');
             document.getElementById('uploadSubmitBtn').disabled = true;
           
             // Stop camera and recording
             stopRecording();
             stopCamera();
           
-            selectedVideoFile = null;
-            selectedVideoDuration = null;
+            selectedMediaFile = null;
+            selectedMediaDuration = null;
         }
         // Start camera
         async function startCamera() {
@@ -2509,17 +2534,17 @@
                   
                     selectedVideoFile = new File([blob], 'recorded-video.webm', { type: blob.type });
                   
-                    // Show preview
-                    const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+                    // Show preview - This part is for recorded video, so it remains video.
+                    const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
                     const videoPreview = document.getElementById('videoPreview');
-                    const videoFilename = document.getElementById('videoFilename');
-                    const videoDuration = document.getElementById('videoDuration');
+                    const mediaFilename = document.getElementById('mediaFilename');
+                    const mediaDuration = document.getElementById('mediaDuration');
                   
                     if (videoPreview) {
                         try {
                             const validation = validateFileForObjectURL(blob);
                             if (!validation.valid) {
-                                showToast(validation.error || 'Invalid video file');
+                                showToast(validation.error || 'Invalid media file');
                                 return;
                             }
                           
@@ -2538,24 +2563,24 @@
                         }
                     }
                   
-                    if (videoPreviewContainer) {
-                        videoPreviewContainer.classList.add('active');
+                    if (mediaPreviewContainer) {
+                        mediaPreviewContainer.classList.add('active');
                     }
-                    if (videoFilename) {
-                        videoFilename.textContent = 'Recorded Video';
+                    if (mediaFilename) {
+                        mediaFilename.textContent = 'Recorded Video';
                     }
                   
                     // Check duration
                     if (videoPreview) {
                         videoPreview.onloadedmetadata = () => {
-                            selectedVideoDuration = videoPreview.duration;
-                            const minutes = Math.floor(selectedVideoDuration / 60);
-                            const seconds = Math.floor(selectedVideoDuration % 60);
-                            if (videoDuration) {
-                                videoDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                            selectedMediaDuration = videoPreview.duration;
+                            const minutes = Math.floor(selectedMediaDuration / 60);
+                            const seconds = Math.floor(selectedMediaDuration % 60);
+                            if (mediaDuration) {
+                                mediaDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                             }
                           
-                            if (selectedVideoDuration > 120) {
+                            if (selectedMediaDuration > 120) {
                                 showToast('Video must be 120 seconds or less');
                                 document.getElementById('uploadSubmitBtn').disabled = true;
                             } else {
@@ -2604,122 +2629,112 @@
         // Handle file selection
         function handleFileSelect(event) {
             const file = event.target.files[0];
-            if (!file) return;
-          
-            // Check if file is a video
-            if (!file.type.startsWith('video/')) {
-                showToast('Please select a video file');
+            if (!file) {
+                clearSelectedMedia();
+                return;
+            }
+
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+
+            if (!isImage && !isVideo) {
+                showToast('Please select an image or video file.');
                 document.getElementById('uploadSubmitBtn').disabled = true;
                 return;
             }
-          
-            // File size validation (100MB limit)
+
+            // File size validation (e.g., 100MB limit)
             if (file.size > 100 * 1024 * 1024) {
-                showToast('Video file must be less than 100MB');
+                showToast('File must be less than 100MB.');
                 document.getElementById('uploadSubmitBtn').disabled = true;
                 return;
             }
-          
-            // Validate file before processing
+
             const validation = validateFileForObjectURL(file);
             if (!validation.valid) {
-                showToast(validation.error || 'Invalid video file');
+                showToast(validation.error || 'Invalid file.');
                 document.getElementById('uploadSubmitBtn').disabled = true;
                 return;
             }
-          
-            selectedVideoFile = file;
-          
-            // Show preview
-            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+
+            selectedMediaFile = file;
+            selectedMediaFile.mediaType = isImage ? 'image' : 'video';
+
+            const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
             const videoPreview = document.getElementById('videoPreview');
-            const videoFilename = document.getElementById('videoFilename');
-            const videoDuration = document.getElementById('videoDuration');
-          
-            if (videoPreview) {
-                try {
-                    const objectUrl = URL.createObjectURL(file);
-                    videoPreview.src = objectUrl;
-                  
-                    // Clean up the object URL when video loads or on error
-                    videoPreview.onload = function() {
-                        // Don't revoke immediately if we need to keep it for preview
-                        // URL.revokeObjectURL(objectUrl);
-                    };
-                  
-                    videoPreview.onerror = function() {
-                        URL.revokeObjectURL(objectUrl);
-                        showToast('Error loading video file');
-                        document.getElementById('uploadSubmitBtn').disabled = true;
-                    };
-                } catch (error) {
-                    console.error('Error creating object URL:', error);
-                    showToast('Error loading video file');
-                    document.getElementById('uploadSubmitBtn').disabled = true;
-                    return;
-                }
-            }
-          
-            if (videoPreviewContainer) {
-                videoPreviewContainer.classList.add('active');
-            }
-            if (videoFilename) {
-                videoFilename.textContent = file.name;
-            }
-          
-            // Check duration
-            if (videoPreview) {
+            const imagePreview = document.getElementById('imagePreview');
+            const mediaFilename = document.getElementById('mediaFilename');
+            const mediaDuration = document.getElementById('mediaDuration');
+
+            mediaPreviewContainer.classList.add('active');
+            mediaFilename.textContent = file.name;
+
+            const objectUrl = URL.createObjectURL(file);
+
+            if (isImage) {
+                imagePreview.src = objectUrl;
+                imagePreview.style.display = 'block';
+                videoPreview.style.display = 'none';
+                mediaDuration.textContent = ''; // No duration for images
+                checkUploadButton();
+            } else { // isVideo
+                videoPreview.src = objectUrl;
+                videoPreview.style.display = 'block';
+                imagePreview.style.display = 'none';
+
                 videoPreview.onloadedmetadata = function() {
-                    selectedVideoDuration = videoPreview.duration;
-                    const minutes = Math.floor(selectedVideoDuration / 60);
-                    const seconds = Math.floor(selectedVideoDuration % 60);
-                    if (videoDuration) {
-                        videoDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    }
-                  
-                    if (selectedVideoDuration > 120) {
-                        showToast('Video must be 120 seconds or less');
+                    selectedMediaDuration = videoPreview.duration;
+                    const minutes = Math.floor(selectedMediaDuration / 60);
+                    const seconds = Math.floor(selectedMediaDuration % 60);
+                    mediaDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                    if (selectedMediaDuration > 120) { // 2-minute limit for videos
+                        showToast('Video must be 120 seconds or less.');
                         document.getElementById('uploadSubmitBtn').disabled = true;
                     } else {
-                        // Enable upload button if video is valid
                         checkUploadButton();
                     }
                 };
-              
+
                 videoPreview.onerror = function() {
                     showToast('Error loading video file');
                     document.getElementById('uploadSubmitBtn').disabled = true;
-                    clearSelectedVideo(); // Clear the invalid file
+                    clearSelectedMedia();
                 };
             }
-          
-            // Immediately check if we have a valid file (even before metadata loads)
-            checkUploadButton();
         }
-        // Clear selected video from the upload form
-        function clearSelectedVideo() {
-            selectedVideoFile = null;
-            selectedVideoDuration = null;
+        // Clear selected media from the upload form
+        function clearSelectedMedia() {
+            selectedMediaFile = null;
+            selectedMediaDuration = null;
           
-            const videoFileInput = document.getElementById('videoFile');
-            if (videoFileInput) videoFileInput.value = '';
+            const mediaFileInput = document.getElementById('mediaFile');
+            if (mediaFileInput) mediaFileInput.value = '';
           
-            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-            if (videoPreviewContainer) videoPreviewContainer.classList.remove('active');
+            const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+            if (mediaPreviewContainer) mediaPreviewContainer.classList.remove('active');
           
             const videoPreview = document.getElementById('videoPreview');
-            if (videoPreview) videoPreview.src = '';
+            const imagePreview = document.getElementById('imagePreview');
+            if (videoPreview) {
+                videoPreview.src = '';
+                videoPreview.style.display = 'none';
+            }
+            if (imagePreview) {
+                imagePreview.src = '';
+                imagePreview.style.display = 'none';
+            }
             checkUploadButton();
         }
         // Check if upload button should be enabled
         function checkUploadButton() {
             const titleInput = document.getElementById('postTitle');
             const title = titleInput ? titleInput.value.trim() : '';
-            const hasVideo = selectedVideoFile !== null;
+            const hasMedia = selectedMediaFile !== null;
           
             const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
             if (uploadSubmitBtn) {
-                uploadSubmitBtn.disabled = !(title && hasVideo);
+                uploadSubmitBtn.disabled = !(title && hasMedia);
             }
         }
         // Submit post
@@ -2737,12 +2752,12 @@
                 return;
             }
           
-            if (!selectedVideoFile) {
-                showToast('Please select or record a video');
+            if (!selectedMediaFile) {
+                showToast('Please select or record a media file');
                 return;
             }
           
-            const fileToUpload = selectedVideoFile;
+            const fileToUpload = selectedMediaFile;
             // Close upload modal and show progress
             hideUploadForm();
             await uploadPost(title, caption, hashtags, fileToUpload);
@@ -2772,9 +2787,11 @@
                 }
               
                 // 1. Upload the video file to Supabase Storage
+                const mediaType = fileToUpload.mediaType || (fileToUpload.type.startsWith('image/') ? 'image' : 'video');
+                const folder = mediaType === 'image' ? 'photos' : 'videos';
                 const fileExt = fileToUpload.name.split('.').pop();
                 const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-                const filePath = `videos/${fileName}`;
+                const filePath = `${folder}/${fileName}`;
       
                 // The progress callback is not part of the upload method anymore.
                 // We can use `await` directly and handle progress with XHR if needed,
@@ -2815,6 +2832,7 @@
                         username: user.user_metadata.username || user.email.split('@')[0],
                         content: caption || title,
                         media_url: publicUrl,
+                        media_type: mediaType, // Save the media type
                         hashtags: hashtags,
                         title: title
                     }).select().single();
@@ -2869,7 +2887,7 @@
                 setTimeout(() => {
                     if (uploadProgress) uploadProgress.classList.remove('active');
                     if (progressFill) progressFill.style.width = '0%';
-                    showToast('Video posted successfully!');
+                    showToast('Post created successfully!');
                     fetchPostsFromDatabase(); // Refresh the feed
                 }, 1000);
             } catch (error) {
@@ -3088,6 +3106,7 @@
         window.autoGrow = autoGrow;
         window.checkUploadButton = checkUploadButton;
         window.handleFileSelect = handleFileSelect;
+        window.clearSelectedMedia = clearSelectedMedia;
         window.showReactionPicker = showReactionPicker;
         window.toggleCommentReaction = toggleCommentReaction;
         window.showWhoReacted = showWhoReacted;
