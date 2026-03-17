@@ -1368,6 +1368,8 @@
                 scroll-behavior: smooth;
                 max-height: none;
                 height: auto;
+                /* FIX: Mobile scrolling bug - prevent internal scroll containers */
+                overflow-y: visible;
             }
             .card {
                 padding: 0.8rem;
@@ -2607,7 +2609,6 @@
                 // Handle pending image
                 if (this.pendingImage) {
                     // Already added in addMessage with user message? We'll add a separate message for image.
-                    // Actually we'll combine text and image in one message.
                     // For simplicity, if there's an image without text, we add a placeholder.
                     if (!message) {
                         this.addMessage('', 'user'); // this will include the image
