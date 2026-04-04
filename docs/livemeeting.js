@@ -89,6 +89,28 @@ import { supabase } from './js/supabaseClient.js';
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingStatus = document.getElementById('loading-status');
 
+    // ============= MEDIA ACCESS WITH RETRY FOR WEBVIEW =============
+    async function requestMediaWithRetry(maxRetries = 2, delay = 500) {
+      let lastError;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+          return tracks;
+        } catch (error) {
+          lastError = error;
+          // Retry only on permission or device errors that might resolve after a delay
+          if (error.name === 'NotAllowedError' || error.name === 'NotReadableError') {
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+          }
+          throw error;
+        }
+      }
+      throw lastError;
+    }
+
     // ============= OPENAI AI SETUP =============
 
     async function callOpenAI(prompt) {
@@ -579,7 +601,7 @@ import { supabase } from './js/supabaseClient.js';
         
         // Create and publish tracks if not already done
         if (state.client && !state.localAudioTrack && !state.localVideoTrack) {
-          AgoraRTC.createMicrophoneAndCameraTracks().then(([audioTrack, videoTrack]) => {
+          requestMediaWithRetry(2, 500).then(([audioTrack, videoTrack]) => {
             state.localAudioTrack = audioTrack;
             state.localVideoTrack = videoTrack;
             state.localAudioTrack.setEnabled(false);
@@ -595,6 +617,9 @@ import { supabase } from './js/supabaseClient.js';
               const player = localPlayerDiv.querySelector(`#player-${state.currentUser.id}`);
               if (player) player.style.opacity = state.isCameraOn ? '1' : '0';
             }
+          }).catch(err => {
+            console.error('Failed to get media for presenter:', err);
+            showNotification('Could not access camera/microphone', 'error');
           });
         }
       }
@@ -2192,7 +2217,7 @@ import { supabase } from './js/supabaseClient.js';
           
           try {
             updateLoadingStatus("Accessing camera and microphone...");
-            [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+            [state.localAudioTrack, state.localVideoTrack] = await requestMediaWithRetry(2, 500);
             state.localAudioTrack.setEnabled(false);
             state.localVideoTrack.setEnabled(false);
             await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
@@ -2203,7 +2228,7 @@ import { supabase } from './js/supabaseClient.js';
           // Host always has tracks
           try {
             updateLoadingStatus("Accessing camera and microphone...");
-            [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+            [state.localAudioTrack, state.localVideoTrack] = await requestMediaWithRetry(2, 500);
             state.localAudioTrack.setEnabled(true);
             state.localVideoTrack.setEnabled(true);
             state.isMicOn = true;
@@ -3328,7 +3353,7 @@ import { supabase } from './js/supabaseClient.js';
         // TRUE 10,000 USER LOCKDOWN: Only create preview for host or promoted speakers
         if (state.isHost || state.promotedSpeakers.has(user.id)) {
           if (!state.localAudioTrack || !state.localVideoTrack) {
-             [state.localAudioTrack, state.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+             [state.localAudioTrack, state.localVideoTrack] = await requestMediaWithRetry(2, 500);
              
              // Set initial state based on role
              if (!state.isHost) {
