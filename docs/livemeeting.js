@@ -640,6 +640,15 @@ import { supabase } from './js/supabaseClient.js';
       }
     }
 
+    // ============= SCREEN SHARING HELPERS =============
+    function isIOS() {
+      return /iP(hone|od|ad)/.test(navigator.userAgent) && !window.MSStream;
+    }
+
+    function isScreenShareSupportedByBrowser() {
+      return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+    }
+
     // ============= SCREEN SHARING =============
     function handleScreenShare() {
       // SINGLE PRESENTER ENFORCEMENT: Check if someone is already sharing
@@ -648,9 +657,12 @@ import { supabase } from './js/supabaseClient.js';
         return;
       }
       
-      // MOBILE SUPPORT CHECK: Avoid unsupported mobile screen share attempts
-      if (state.isMobile || !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) {
-        showNotification('Screen sharing is not supported on mobile devices', 'info');
+      // SCREEN SHARE support: Show detailed warning when browser does not support it
+      if (!isScreenShareSupportedByBrowser()) {
+        const message = isIOS()
+          ? 'iPhone browsers rarely support web screen sharing. Use a native app or a supported browser if available.'
+          : 'Screen sharing is not supported by this browser. Try a different browser or device.';
+        showNotification(message, 'info');
         return;
       }
       
@@ -721,10 +733,22 @@ import { supabase } from './js/supabaseClient.js';
       screenShareModal.style.display = 'none';
       
       try {
-        const screenTrack = await AgoraRTC.createScreenVideoTrack({
-          encoderConfig: "1080p_1",
-          optimizationMode: "detail"
-        });
+        let screenTrack;
+        try {
+          screenTrack = await AgoraRTC.createScreenVideoTrack({
+            encoderConfig: "1080p_1",
+            optimizationMode: "detail"
+          });
+        } catch (screenError) {
+          console.warn('Agora screen track failed, trying getDisplayMedia fallback:', screenError);
+          if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+            const videoTrack = stream.getVideoTracks()[0];
+            screenTrack = AgoraRTC.createCustomVideoTrack({ mediaStreamTrack: videoTrack });
+          } else {
+            throw screenError;
+          }
+        }
 
         if (Array.isArray(screenTrack)) {
           state.localScreenTrack = screenTrack[0];
