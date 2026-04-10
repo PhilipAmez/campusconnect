@@ -1670,6 +1670,14 @@
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
+
+        .logo a, .logo {
+            pointer-events: none;
+            cursor: default;
+        }
+        .logo img {
+            pointer-events: none;
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -1691,8 +1699,8 @@
     </div>
     <div class="dashboard-content">
         <nav class="navbar" id="navbar">
-            <a href="index.html" class="logo">
-                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
+            <a href="index.html" class="logo" style="pointer-events: none;">
+                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')" style="pointer-events: none;">
             </a>
             <div class="nav-links" id="navLinks">
                 <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
@@ -1768,6 +1776,19 @@
         </div>
         <div id="notificationModal" class="modal">
             <span id="modalMessage">Group inserted</span>
+        </div>
+        <div id="joinGroupModal" class="modal" style="display: none; max-width: 400px;">
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0;">Join Group</h3>
+                    <button id="closeJoinModalBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-dark);">&times;</button>
+                </div>
+                <p id="joinGroupMessage" style="margin: 0;">Join Group: <span id="joinGroupName"></span></p>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button id="cancelJoinBtn" class="btn" style="background: rgba(0,0,0,0.05);">Cancel</button>
+                    <button id="confirmJoinBtn" class="btn search-btn" style="background: var(--primary); color: white;">Join</button>
+                </div>
+            </div>
         </div>
         <div class="mobile-bottom-nav">
             <a href="dashboard.html" class="active">
@@ -2729,6 +2750,11 @@
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 console.log("No active session found");
+                const urlParams = new URLSearchParams(window.location.search);
+                const groupId = urlParams.get('joinGroup');
+                if (groupId) {
+                    localStorage.setItem('pendingGroupJoin', groupId);
+                }
                 return;
             }
            
@@ -2756,7 +2782,108 @@
             initPullToRefresh();
 
             setupGroupSearch();
+
+            const pendingGroupId = localStorage.getItem('pendingGroupJoin');
+            if (pendingGroupId) {
+                localStorage.removeItem('pendingGroupJoin');
+                const { data: groupData, error: groupError } = await supabase
+                    .from('groups')
+                    .select('name')
+                    .eq('id', pendingGroupId)
+                    .single();
+                if (!groupError && groupData) {
+                    showJoinGroupModal(pendingGroupId, groupData.name);
+                }
+            } else {
+                const urlParams = new URLSearchParams(window.location.search);
+                const groupId = urlParams.get('joinGroup');
+                if (groupId) {
+                    const { data: groupData, error: groupError } = await supabase
+                        .from('groups')
+                        .select('name')
+                        .eq('id', groupId)
+                        .single();
+                    if (!groupError && groupData) {
+                        showJoinGroupModal(groupId, groupData.name);
+                    }
+                }
+            }
         });
+
+        function showJoinGroupModal(groupId, groupName) {
+            const modal = document.getElementById('joinGroupModal');
+            const groupNameSpan = document.getElementById('joinGroupName');
+            const confirmBtn = document.getElementById('confirmJoinBtn');
+            const cancelBtn = document.getElementById('cancelJoinBtn');
+            const closeBtn = document.getElementById('closeJoinModalBtn');
+            const body = document.querySelector('.dashboard');
+            
+            if (!modal || !groupNameSpan || !confirmBtn || !cancelBtn || !closeBtn) return;
+            
+            groupNameSpan.textContent = groupName;
+            modal.style.display = 'block';
+            body.classList.add('blur-background');
+            
+            const closeModal = () => {
+                modal.style.display = 'none';
+                body.classList.remove('blur-background');
+            };
+            
+            const handleJoin = async () => {
+                closeModal();
+                await joinGroupById(groupId);
+            };
+            
+            confirmBtn.onclick = handleJoin;
+            cancelBtn.onclick = closeModal;
+            closeBtn.onclick = closeModal;
+        }
+
+        async function joinGroupById(groupId) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showNotification('Please log in to join groups.');
+                return;
+            }
+            try {
+                const { data: existingMember, error: checkError } = await supabase
+                    .from('group_members')
+                    .select('*')
+                    .eq('group_id', groupId)
+                    .eq('user_id', user.id)
+                    .single();
+                if (existingMember) {
+                    showNotification('You are already a member of this group.');
+                    return;
+                }
+                const { error } = await supabase
+                    .from('group_members')
+                    .insert({
+                        group_id: groupId,
+                        user_id: user.id,
+                        joined_at: new Date().toISOString(),
+                        role: 'member'
+                    });
+                if (error) {
+                    console.error('Error joining group:', error);
+                    if (error.code === '23505') {
+                        showNotification('You are already a member of this group.');
+                    } else {
+                        showNotification('Failed to join group. Please try again.');
+                    }
+                } else {
+                    showNotification('Successfully joined group!');
+                    loadSuggestedGroups();
+                    triggerPushNotification('Group Joined', 'You have successfully joined a new study group!');
+                    if (typeof window.redirectToChatroom === 'function') {
+                        window.redirectToChatroom(groupId);
+                    }
+                }
+            } catch (error) {
+                console.error('Unexpected error joining group:', error);
+                showNotification('An unexpected error occurred while joining the group.');
+            }
+        }
 
         const logoutButtons = ['logout', 'logoutMobile']
             .map(id => document.getElementById(id))
