@@ -1230,26 +1230,29 @@ import { supabase } from './js/supabaseClient.js';
       state.lastY = y;
     });
 
+    function resetCanvasContext() {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = '#0066cc';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+    }
+
     whiteboardCanvas.addEventListener('mousemove', (e) => {
       if (!state.drawing || state.whiteboardOwnerId !== state.currentUser.id) return;
 
       const { x, y } = getCanvasCoordinates(e);
 
+      resetCanvasContext();
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
       ctx.lineTo(x, y);
 
       if (state.currentWhiteboardTool === 'pen') {
-        ctx.strokeStyle = 'var(--accent-blue)';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
         ctx.stroke();
       } else if (state.currentWhiteboardTool === 'eraser') {
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.lineWidth = 20;
         ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 20;
         ctx.stroke();
-        ctx.globalCompositeOperation = 'source-over';
       }
 
       state.drawingCommands.push({
@@ -1258,7 +1261,7 @@ import { supabase } from './js/supabaseClient.js';
         toX: x,
         toY: y,
         tool: state.currentWhiteboardTool,
-        color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
+        color: state.currentWhiteboardTool === 'pen' ? '#0066cc' : 'eraser',
         lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
       });
 
@@ -1272,21 +1275,17 @@ import { supabase } from './js/supabaseClient.js';
       
       const { x, y } = getCanvasCoordinates(e);
       
+      resetCanvasContext();
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
       ctx.lineTo(x, y);
       
       if (state.currentWhiteboardTool === 'pen') {
-        ctx.strokeStyle = 'var(--accent-blue)';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
         ctx.stroke();
       } else if (state.currentWhiteboardTool === 'eraser') {
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.lineWidth = 20;
         ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 20;
         ctx.stroke();
-        ctx.globalCompositeOperation = 'source-over';
       }
       
       state.drawingCommands.push({
@@ -1295,7 +1294,7 @@ import { supabase } from './js/supabaseClient.js';
         toX: x,
         toY: y,
         tool: state.currentWhiteboardTool,
-        color: state.currentWhiteboardTool === 'pen' ? 'var(--accent-blue)' : 'rgba(0,0,0,0.1)',
+        color: state.currentWhiteboardTool === 'pen' ? '#0066cc' : 'eraser',
         lineWidth: state.currentWhiteboardTool === 'pen' ? 3 : 20
       });
       
@@ -1315,7 +1314,12 @@ import { supabase } from './js/supabaseClient.js';
         
         if (state.currentWhiteboardTool === 'clear') {
           ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+          resetCanvasContext();
           state.whiteboardState = [];
+          // Switch back to pen after clearing
+          state.currentWhiteboardTool = 'pen';
+          document.querySelectorAll('.whiteboard-tool').forEach(t => t.classList.remove('active'));
+          document.querySelector('.whiteboard-tool[data-tool="pen"]').classList.add('active');
           if (state.channel) {
             state.channel.send({
               type: 'broadcast',
