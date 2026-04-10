@@ -648,6 +648,12 @@ import { supabase } from './js/supabaseClient.js';
         return;
       }
       
+      // MOBILE SUPPORT CHECK: Avoid unsupported mobile screen share attempts
+      if (state.isMobile || !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) {
+        showNotification('Screen sharing is not supported on mobile devices', 'info');
+        return;
+      }
+      
       // Check permissions
       if (!state.isHost && !state.canPresent) {
         requestScreenShare();
@@ -768,9 +774,15 @@ import { supabase } from './js/supabaseClient.js';
         showNotification('Screen sharing started', 'share');
       } catch (error) {
         console.error("Error starting screen share:", error);
-        if (error.code !== 'PERMISSION_DENIED') {
-          showNotification('Failed to start screen share', 'end');
+        let errorMessage = 'Failed to start screen share';
+        if (error.code === 'PERMISSION_DENIED') {
+          errorMessage = 'Screen share permission denied';
+        } else if (error.name === 'NotAllowedError') {
+          errorMessage = 'Screen share not allowed by browser';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = 'Screen sharing not supported on this device';
         }
+        showNotification(errorMessage, 'end');
       }
     }
 
