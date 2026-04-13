@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>My Active Groups - PeerLoom</title>
     <style>
         :root {
@@ -160,6 +160,8 @@
             position: relative;
             cursor: pointer;
             transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
         }
 
         .progress-bar-wrapper:hover {
@@ -170,7 +172,7 @@
             height: 100%;
             background: linear-gradient(90deg, var(--primary), var(--accent));
             border-radius: var(--radius-full);
-            width: 65%;
+            width: 0%;
             position: relative;
             overflow: hidden;
             transition: width var(--transition-slow);
@@ -182,6 +184,47 @@
             color: var(--primary);
             min-width: 40px;
             text-align: right;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Circular progress for mobile */
+        .progress-ring-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            cursor: pointer;
+        }
+
+        .progress-ring {
+            width: 40px;
+            height: 40px;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            stroke: var(--border);
+            stroke-width: 3;
+            fill: none;
+        }
+
+        .progress-ring-fill {
+            stroke: var(--primary);
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s ease;
+        }
+
+        .progress-ring-text {
+            font-size: 10px;
+            font-weight: 600;
+            fill: var(--text-primary);
+            dominant-baseline: middle;
+            text-anchor: middle;
+            transform: rotate(90deg);
         }
 
         /* Breadcrumb for Mobile */
@@ -750,6 +793,9 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-md);
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
         }
 
         .progress-step {
@@ -1678,6 +1724,10 @@
                 display: none;
             }
             
+            .progress-ring-container {
+                display: flex;
+            }
+            
             .progress-percent {
                 display: none;
             }
@@ -1830,6 +1880,10 @@
             .progress-bar-wrapper:hover .progress-bar {
                 transform: scaleY(1.2);
             }
+            
+            .progress-ring-container {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -1841,12 +1895,21 @@
         </button>
         <div class="nav-title">My Active Groups</div>
         
-        <!-- Progress Tracking -->
+        <!-- Progress Tracking (Desktop) -->
         <div class="progress-container">
             <div class="progress-bar-wrapper" id="progressBar" title="Tap to view progress">
                 <div class="progress-bar" id="progressFill"></div>
             </div>
             <div class="progress-percent" id="progressPercent">0%</div>
+        </div>
+        
+        <!-- Progress Tracking (Mobile Ring) -->
+        <div class="progress-ring-container" id="mobileProgressRing" title="Tap to view progress">
+            <svg class="progress-ring" viewBox="0 0 40 40">
+                <circle class="progress-ring-bg" cx="20" cy="20" r="16"></circle>
+                <circle class="progress-ring-fill" id="progressRingFill" cx="20" cy="20" r="16" stroke-dasharray="100.53" stroke-dashoffset="100.53"></circle>
+                <text class="progress-ring-text" id="progressRingText" x="20" y="20">0%</text>
+            </svg>
         </div>
     </nav>
 
@@ -2010,6 +2073,40 @@
         </div>
     </div>
 
+    <!-- Progress Tracking Modal -->
+    <div class="modal-overlay" id="progressModal">
+        <div class="modal-content progress-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Your Progress</h3>
+                <button class="modal-close" id="closeProgressModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="progress-tracker">
+                <div class="tracker-header">
+                    <span class="tracker-title">Overall Engagement</span>
+                </div>
+                <div class="tracker-stats">
+                    <div class="tracker-stat">
+                        <div class="tracker-value" id="modalProgressPercent">0%</div>
+                        <div class="tracker-label">Completion</div>
+                    </div>
+                    <div class="tracker-stat">
+                        <div class="tracker-value" id="modalGroupsCount">0</div>
+                        <div class="tracker-label">Groups</div>
+                    </div>
+                    <div class="tracker-stat">
+                        <div class="tracker-value" id="modalActiveCount">0</div>
+                        <div class="tracker-label">Active Now</div>
+                    </div>
+                </div>
+                <div class="progress-steps" id="progressStepsList">
+                    <!-- Dynamic steps will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PEERPAL AI ORB -->
     <div class="peerpal-container" id="peerpalContainer">
         <div class="peerpal-orb" id="peerpalOrb">
@@ -2089,15 +2186,24 @@
         const createGroupForm = document.getElementById('createGroupForm');
         const progressFill = document.getElementById('progressFill');
         const progressPercent = document.getElementById('progressPercent');
+        const progressRingFill = document.getElementById('progressRingFill');
+        const progressRingText = document.getElementById('progressRingText');
         const navBar = document.getElementById('navBar');
         const swipeIndicator = document.getElementById('swipeIndicator');
         const createGroupBtn = document.getElementById('createGroupBtn');
+        const progressBar = document.getElementById('progressBar');
+        const mobileProgressRing = document.getElementById('mobileProgressRing');
+        const progressModal = document.getElementById('progressModal');
+        const closeProgressModal = document.getElementById('closeProgressModal');
+        const modalProgressPercent = document.getElementById('modalProgressPercent');
+        const modalGroupsCount = document.getElementById('modalGroupsCount');
+        const modalActiveCount = document.getElementById('modalActiveCount');
+        const progressStepsList = document.getElementById('progressStepsList');
         
         // User data
         let currentUser = null;
         let userGroups = [];
-        
-        // OpenAI API Configuration
+        const CIRCUMFERENCE = 100.53; // 2 * PI * 16
         
         // Initialize the page
         async function init() {
@@ -2134,6 +2240,7 @@
                 if (!userGroupMemberships || userGroupMemberships.length === 0) {
                     emptyState.style.display = 'block';
                     groupsList.style.display = 'none';
+                    updateStats();
                     return;
                 }
                 
@@ -2163,6 +2270,22 @@
                     }
                 }
                 
+                // Get real online counts in one query: all group members with users.last_seen within last 5 min
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+                const { data: onlineData, error: onlineError } = await supabase
+                    .from('group_members')
+                    .select('group_id, users!inner(last_seen)')
+                    .in('group_id', groupIds)
+                    .gte('users.last_seen', fiveMinutesAgo);
+                
+                const onlineCounts = {};
+                groupIds.forEach(id => onlineCounts[id] = 0);
+                if (!onlineError && onlineData) {
+                    onlineData.forEach(item => {
+                        if (item.group_id) onlineCounts[item.group_id] = (onlineCounts[item.group_id] || 0) + 1;
+                    });
+                }
+                
                 // Format the data
                 userGroups = groupsData.map(group => {
                     const membership = userGroupMemberships.find(m => m.group_id === group.id);
@@ -2172,8 +2295,8 @@
                         category: group.course_code || 'General',
                         description: group.description || 'No description',
                         members: memberCounts[group.id] || 1,
-                        online: Math.floor(Math.random() * 10) + 1, // Random for demo
-                        unread: Math.floor(Math.random() * 5), // Random for demo
+                        online: onlineCounts[group.id] || 0,
+                        unread: Math.floor(Math.random() * 5), // Placeholder
                         lastActive: formatTimeAgo(group.created_at),
                         role: membership?.role || 'member',
                         isMuted: false,
@@ -2322,28 +2445,22 @@
                 
                 const swipeDistance = touchEndX - touchStartX;
                 
-                // Hide swipe indicator
                 setTimeout(() => {
                     swipeIndicator.style.display = 'none';
                 }, 300);
                 
-                // Check if swipe distance meets threshold
                 if (Math.abs(swipeDistance) > swipeThreshold) {
                     if (swipeDistance > 0) {
-                        // Swipe right - light mode
                         setTheme('light');
                     } else {
-                        // Swipe left - dark mode
                         setTheme('dark');
                     }
                 }
                 
-                // Reset values
                 touchStartX = 0;
                 touchEndX = 0;
             }, { passive: true });
             
-            // Also support mouse drag for desktop
             let mouseDownX = 0;
             let mouseUpX = 0;
             
@@ -2370,8 +2487,6 @@
             document.body.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
             
-            // Show confirmation
-            const originalContent = swipeIndicator.innerHTML;
             swipeIndicator.innerHTML = theme === 'dark' ? 
                 '<i class="fas fa-moon"></i> Dark Mode Activated' : 
                 '<i class="fas fa-sun"></i> Light Mode Activated';
@@ -2390,40 +2505,30 @@
             const sortBy = sortSelect.value;
             
             let filtered = userGroups.filter(group => {
-                // Search filter
                 const matchesSearch = 
                     group.name.toLowerCase().includes(searchTerm) ||
                     group.description.toLowerCase().includes(searchTerm) ||
                     group.category.toLowerCase().includes(searchTerm);
                 
-                // Category filter
                 const matchesCategory = category === 'all' || group.category.toLowerCase().includes(category);
-                
-                // Role filter
                 const matchesRole = role === 'all' || group.role === role;
                 
                 return matchesSearch && matchesCategory && matchesRole;
             });
             
-            // Sort groups
             filtered.sort((a, b) => {
                 switch(sortBy) {
-                    case 'active':
-                        return b.online - a.online;
-                    case 'name':
-                        return a.name.localeCompare(b.name);
-                    case 'members':
-                        return b.members - a.members;
-                    case 'recent':
-                    default:
-                        return new Date(b.created_at) - new Date(a.created_at);
+                    case 'active': return b.online - a.online;
+                    case 'name': return a.name.localeCompare(b.name);
+                    case 'members': return b.members - a.members;
+                    default: return new Date(b.created_at) - new Date(a.created_at);
                 }
             });
             
             renderGroups(filtered);
         }
         
-        // Update statistics
+        // Update statistics and progress indicators
         function updateStats() {
             const totalGroups = userGroups.length;
             const adminGroups = userGroups.filter(g => g.role === 'admin').length;
@@ -2435,45 +2540,44 @@
             document.getElementById('activeNow').textContent = activeNow;
             document.getElementById('unreadMessages').textContent = unreadMessages;
             
-            // Update progress bar based on group activity
+            // Update progress (max 100% based on 10 groups)
             const progress = Math.min(Math.floor((userGroups.length / 10) * 100), 100);
-            progressFill.style.width = `${progress}%`;
-            progressPercent.textContent = `${progress}%`;
+            const progressValue = progress;
+            
+            // Desktop bar
+            progressFill.style.width = `${progressValue}%`;
+            progressPercent.textContent = `${progressValue}%`;
+            
+            // Mobile ring
+            const offset = CIRCUMFERENCE - (progressValue / 100) * CIRCUMFERENCE;
+            progressRingFill.style.strokeDashoffset = offset;
+            progressRingText.textContent = `${progressValue}%`;
         }
         
         // Setup event listeners
         function setupEventListeners() {
-            // Search input
             searchInput.addEventListener('input', filterAndSortGroups);
-            
-            // Filter selects
             sortSelect.addEventListener('change', filterAndSortGroups);
             categoryFilter.addEventListener('change', filterAndSortGroups);
             roleFilter.addEventListener('change', filterAndSortGroups);
             
-            // Back button
             document.getElementById('backButton').addEventListener('click', () => {
                 window.history.back();
             });
             
-            // Create group button (small circle with plus)
             createGroupBtn.addEventListener('click', () => {
                 createGroupModal.classList.add('active');
             });
             
-            // Close modal buttons
             document.getElementById('closeModal').addEventListener('click', closeModal);
             document.getElementById('cancelCreate').addEventListener('click', closeModal);
             
-            // Create group form
             createGroupForm.addEventListener('submit', handleCreateGroup);
             
-            // Discover groups button
             document.getElementById('discoverGroupsBtn').addEventListener('click', () => {
                 window.location.href = 'dashboard.html';
             });
             
-            // Toggle sort
             document.getElementById('toggleSort').addEventListener('click', () => {
                 const currentSort = sortSelect.value;
                 const options = ['recent', 'active', 'name', 'members'];
@@ -2481,7 +2585,6 @@
                 const nextIndex = (currentIndex + 1) % options.length;
                 sortSelect.value = options[nextIndex];
                 
-                // Update toggle button text
                 const toggleBtn = document.getElementById('toggleSort');
                 const sortText = toggleBtn.querySelector('span');
                 sortText.textContent = options[nextIndex].charAt(0).toUpperCase() + options[nextIndex].slice(1);
@@ -2489,15 +2592,55 @@
                 filterAndSortGroups();
             });
             
-            // Click outside modal to close
             document.addEventListener('click', (e) => {
-                if (e.target === createGroupModal) {
-                    closeModal();
-                }
+                if (e.target === createGroupModal) closeModal();
+                if (e.target === progressModal) closeProgressModalHandler();
             });
+            
+            // Progress bar click handlers (both desktop and mobile)
+            progressBar.addEventListener('click', openProgressModal);
+            mobileProgressRing.addEventListener('click', openProgressModal);
+            
+            closeProgressModal.addEventListener('click', closeProgressModalHandler);
         }
         
-        // Close modal
+        // Open progress modal and populate
+        function openProgressModal() {
+            const progress = progressPercent.textContent;
+            const totalGroups = userGroups.length;
+            const activeNow = userGroups.reduce((sum, group) => sum + group.online, 0);
+            
+            modalProgressPercent.textContent = progress;
+            modalGroupsCount.textContent = totalGroups;
+            modalActiveCount.textContent = activeNow;
+            
+            const steps = [
+                { title: 'Join Groups', description: `You are a member of ${totalGroups} group${totalGroups !== 1 ? 's' : ''}.` },
+                { title: 'Participate Actively', description: activeNow > 0 ? `${activeNow} member${activeNow !== 1 ? 's' : ''} online now in your groups.` : 'No active members currently.' },
+                { title: 'Complete Tasks', description: 'Track your contributions and stay engaged.' }
+            ];
+            
+            progressStepsList.innerHTML = '';
+            steps.forEach((step, idx) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = `progress-step ${idx === 0 ? 'active' : ''}`;
+                stepDiv.innerHTML = `
+                    <div class="step-number">${idx + 1}</div>
+                    <div class="step-content">
+                        <div class="step-title">${step.title}</div>
+                        <div class="step-description">${step.description}</div>
+                    </div>
+                `;
+                progressStepsList.appendChild(stepDiv);
+            });
+            
+            progressModal.classList.add('active');
+        }
+        
+        function closeProgressModalHandler() {
+            progressModal.classList.remove('active');
+        }
+        
         function closeModal() {
             createGroupModal.classList.remove('active');
             createGroupForm.reset();
@@ -2518,7 +2661,6 @@
             }
             
             try {
-                // Create the group in Supabase
                 const { data: newGroup, error: groupError } = await supabase
                     .from('groups')
                     .insert({
@@ -2537,7 +2679,6 @@
                     return;
                 }
                 
-                // Add creator as admin member
                 const { error: memberError } = await supabase
                     .from('group_members')
                     .insert({
@@ -2550,16 +2691,10 @@
                 if (memberError) {
                     console.error('Error adding creator as member:', memberError);
                     showNotification('Group created but failed to add you as admin.');
-                    // Continue anyway
                 }
                 
-                // Show success message
                 showNotification(`Group "${groupName}" created successfully!`);
-                
-                // Reload groups
                 await loadUserGroups();
-                
-                // Close modal and reset form
                 closeModal();
                 
             } catch (error) {
@@ -2594,7 +2729,6 @@
             
             document.body.appendChild(notification);
             
-            // Remove after 3 seconds
             setTimeout(() => {
                 notification.style.animation = 'fadeIn 0.3s ease reverse';
                 setTimeout(() => notification.remove(), 300);
@@ -2603,41 +2737,30 @@
         
         // Delegate event listeners for dynamic buttons
         document.addEventListener('click', async (e) => {
-            // Open chat button
             if (e.target.closest('.open-chat-btn')) {
                 const button = e.target.closest('.open-chat-btn');
                 button.style.animation = 'pulse 0.3s ease';
-                setTimeout(() => {
-                    button.style.animation = '';
-                }, 300);
+                setTimeout(() => button.style.animation = '', 300);
                 
                 const groupId = button.dataset.groupId;
                 const group = userGroups.find(g => g.id == groupId);
-                if (group) {
-                    window.location.href = `chatroom.html?groupId=${groupId}`;
-                }
+                if (group) window.location.href = `chatroom.html?groupId=${groupId}`;
             }
             
-            // Manage members button
             if (e.target.closest('.manage-members-btn')) {
                 const button = e.target.closest('.manage-members-btn');
                 button.style.animation = 'pulse 0.3s ease';
-                setTimeout(() => {
-                    button.style.animation = '';
-                }, 300);
+                setTimeout(() => button.style.animation = '', 300);
                 
                 const groupId = button.dataset.groupId;
                 const group = userGroups.find(g => g.id == groupId);
                 showNotification(`Managing members for "${group.name}"...`);
             }
             
-            // Leave group button
             if (e.target.closest('.leave-group-btn')) {
                 const button = e.target.closest('.leave-group-btn');
                 button.style.animation = 'pulse 0.3s ease';
-                setTimeout(() => {
-                    button.style.animation = '';
-                }, 300);
+                setTimeout(() => button.style.animation = '', 300);
                 
                 const groupId = button.dataset.groupId;
                 const group = userGroups.find(g => g.id == groupId);
@@ -2656,7 +2779,6 @@
                             return;
                         }
                         
-                        // Remove from local array
                         const index = userGroups.findIndex(g => g.id == groupId);
                         userGroups.splice(index, 1);
                         
@@ -2672,7 +2794,7 @@
             }
         });
         
-        // Load saved theme on page load
+        // Load saved theme
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.body.setAttribute('data-theme', savedTheme);
         
@@ -2694,7 +2816,6 @@
                 this.maxFreeRequests = 5;
                 this.isProcessing = false;
                 
-                // OpenAI API configuration (simulated for demo)
                 this.apiKey = 'simulated-openai-key';
                 this.openaiModel = 'gpt-4';
                 this.embeddingModel = 'text-embedding-ada-002';
@@ -2706,10 +2827,8 @@
             }
             
             init() {
-                // Load usage count from localStorage
                 this.loadUsage();
                 
-                // Event listeners
                 this.orb.addEventListener('click', () => this.togglePanel());
                 this.sendBtn.addEventListener('click', () => this.sendMessage());
                 this.input.addEventListener('keypress', (e) => {
@@ -2719,18 +2838,13 @@
                     }
                 });
                 
-                // Auto-resize textarea
                 this.input.addEventListener('input', () => {
                     this.input.style.height = 'auto';
                     this.input.style.height = Math.min(this.input.scrollHeight, 100) + 'px';
                 });
                 
-                // Unlock button
-                this.unlockBtn.addEventListener('click', () => {
-                    this.showPremiumModal();
-                });
+                this.unlockBtn.addEventListener('click', () => this.showPremiumModal());
                 
-                // Close panel when clicking outside
                 document.addEventListener('click', (e) => {
                     if (this.isOpen && 
                         !this.panel.contains(e.target) && 
@@ -2739,19 +2853,14 @@
                     }
                 });
                 
-                // Prevent page scroll when scrolling inside PeerPal messages
                 this.messages.addEventListener('wheel', (e) => {
                     const isAtTop = this.messages.scrollTop === 0;
                     const isAtBottom = this.messages.scrollHeight - this.messages.clientHeight <= this.messages.scrollTop + 1;
                     
-                    if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
-                        return;
-                    }
-                    
+                    if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) return;
                     e.stopPropagation();
                 }, { passive: true });
                 
-                // Touch scrolling for mobile
                 let startY = 0;
                 this.messages.addEventListener('touchstart', (e) => {
                     startY = e.touches[0].clientY;
@@ -2762,13 +2871,8 @@
                     const isAtTop = this.messages.scrollTop === 0;
                     const isAtBottom = this.messages.scrollHeight - this.messages.clientHeight <= this.messages.scrollTop + 1;
                     
-                    if ((isAtTop && currentY > startY) || (isAtBottom && currentY < startY)) {
-                        return;
-                    }
-                    
-                    if (e.cancelable) {
-                        e.stopPropagation();
-                    }
+                    if ((isAtTop && currentY > startY) || (isAtBottom && currentY < startY)) return;
+                    if (e.cancelable) e.stopPropagation();
                 }, { passive: false });
             }
             
@@ -2799,22 +2903,15 @@
             }
             
             togglePanel() {
-                if (this.isOpen) {
-                    this.closePanel();
-                } else {
-                    this.openPanel();
-                }
+                if (this.isOpen) this.closePanel();
+                else this.openPanel();
             }
             
             openPanel() {
                 this.isOpen = true;
                 this.panel.classList.add('active');
                 this.container.style.transform = 'translateY(-10px)';
-                
-                // Focus input after animation
-                setTimeout(() => {
-                    this.input.focus();
-                }, 300);
+                setTimeout(() => this.input.focus(), 300);
             }
             
             closePanel() {
@@ -2827,43 +2924,31 @@
                 const message = this.input.value.trim();
                 if (!message || this.isProcessing) return;
                 
-                // Check usage limit
                 if (this.usageCount >= this.maxFreeRequests) {
                     this.showPaywall();
                     return;
                 }
                 
                 this.isProcessing = true;
-                
-                // Add user message
                 this.addMessage(message, 'user');
                 this.input.value = '';
                 this.input.style.height = 'auto';
                 
-                // Show typing indicator
                 const typingIndicator = this.showTyping();
                 
                 try {
-                    // Increment usage count
                     this.usageCount++;
                     this.saveUsage();
                     this.updateUsageDisplay();
                     
-                    // Get AI response
                     const response = await this.getAIResponse(message);
-                    
-                    // Remove typing indicator
                     typingIndicator.remove();
-                    
-                    // Add AI response
                     this.addMessage(response, 'ai');
                     
                 } catch (error) {
                     console.error('AI Error:', error);
                     typingIndicator.remove();
                     this.addMessage('I apologize, but I encountered an error. Please try again.', 'ai');
-                    
-                    // Decrement usage count on error
                     this.usageCount--;
                     this.saveUsage();
                     this.updateUsageDisplay();
@@ -2873,12 +2958,7 @@
             }
             
             async getAIResponse(message) {
-                // In a production environment, you would make actual API calls here
-                // For demonstration, we'll simulate responses based on keywords
-                
-                // Simulate API delay
                 await new Promise(resolve => setTimeout(resolve, 1500));
-                
                 const lowerMessage = message.toLowerCase();
                 
                 if (lowerMessage.includes('group') || lowerMessage.includes('study')) {
@@ -2904,7 +2984,6 @@
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${sender}`;
                 messageDiv.textContent = text;
-                
                 this.messages.appendChild(messageDiv);
                 this.messages.scrollTop = this.messages.scrollHeight;
             }
@@ -2917,10 +2996,8 @@
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                 `;
-                
                 this.messages.appendChild(typingDiv);
                 this.messages.scrollTop = this.messages.scrollHeight;
-                
                 return typingDiv;
             }
             
@@ -2930,10 +3007,7 @@
             }
             
             showPremiumModal() {
-                // In production, integrate with payment processor
                 alert('Premium upgrade would be processed here. In production, this would connect to Stripe/Paddle.\n\nAfter payment, you get:\n• Unlimited requests for one month\n• Access to all AI models (GPT-4, GPT-4-Turbo, etc.)\n• Voice features enabled\n• Priority processing');
-                
-                // For demo purposes, reset usage
                 this.usageCount = 0;
                 this.saveUsage();
                 this.updateUsageDisplay();
@@ -2941,15 +3015,12 @@
             }
         }
         
-        // Initialize PeerPal
         let peerPal;
         function initializePeerPal() {
             peerPal = new PeerPalAI();
         }
         
-        // ================== END PEERPAL AI ==================
-        
-        // Initialize the page
+        // Initialize
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
