@@ -228,6 +228,7 @@
     
     const session = await supabase.auth.getSession();
     const _gidParam = new URLSearchParams(window.location.search).get('groupId');
+
     if (!session.data.session) {
       // Persist intent using localStorage so it survives cross-page navigation
       if (_gidParam) {
@@ -237,8 +238,19 @@
       const returnUrl = encodeURIComponent(window.location.href);
       window.location.href = `login.html?redirect=${returnUrl}`;
     }
-    
+
     const user = session.data.session.user;
+
+    // Logged-in but no groupId in URL (e.g. user landed on dashboard then came here,
+    // or login.html redirected here without the groupId param)
+    const _earlyPending = localStorage.getItem('pendingJoinGroupId');
+    if (!_gidParam && _earlyPending) {
+      localStorage.removeItem('pendingJoinGroupId');
+      window.location.href = `chatroom.html?groupId=${_earlyPending}`;
+    } else if (!_gidParam) {
+      window.location.href = 'dashboard.html';
+    }
+
     const gid = _gidParam;
     
     let state = {
@@ -498,16 +510,62 @@
       }
     }
     
+    // Shows join modal for the CURRENT group (gid).
+    // Called when the user is logged in but is not yet a member.
+    async function promptJoinCurrentGroup() {
+      const grpInfo = state.groupInfo;
+
+      return new Promise((resolve) => {
+        const modal     = document.getElementById('joinGroupModal');
+        const titleEl   = document.getElementById('joinGroupModalTitle');
+        const descEl    = document.getElementById('joinGroupModalDesc');
+        const acceptBtn = document.getElementById('joinGroupAccept');
+        const cancelBtn = document.getElementById('joinGroupCancel');
+
+        titleEl.textContent = `Join "${grpInfo.name || 'this group'}"`;
+        descEl.textContent  = grpInfo.description
+          ? `${grpInfo.description} — Accept to join this group.`
+          : 'You were invited. Accept to join this group.';
+        modal.classList.add('visible');
+
+        acceptBtn.onclick = async () => {
+          modal.classList.remove('visible');
+          try {
+            const { error: joinErr } = await supabase
+              .from('group_members')
+              .insert({ group_id: gid, user_id: user.id, role: 'member' });
+            if (joinErr && joinErr.code !== '23505') throw joinErr;
+            showSuccess(`Joined "${grpInfo.name || 'group'}"!`);
+            // Reload so initialize() runs again with isMember = true
+            setTimeout(() => window.location.reload(), 700);
+          } catch (e) {
+            showError('Failed to join: ' + e.message);
+            modal.classList.add('visible'); // re-show on error
+          }
+          resolve();
+        };
+
+        cancelBtn.onclick = () => {
+          modal.classList.remove('visible');
+          window.location.href = 'dashboard.html';
+          resolve();
+        };
+      });
+    }
+
     async function checkPendingGroupJoin() {
       const pendingId = localStorage.getItem('pendingJoinGroupId');
-      if (!pendingId) return;
+      // Only act when there's a pending group AND it's different from the current page
+      if (!pendingId || pendingId === gid) {
+        if (pendingId === gid) localStorage.removeItem('pendingJoinGroupId'); // clean up
+        return;
+      }
 
-      // Only act if this chatroom page is for the pending group, OR pending is a different group
-      // In both cases we need membership check — clear the key first to avoid loops
+      // Clear immediately to avoid infinite loops
       localStorage.removeItem('pendingJoinGroupId');
 
       try {
-        // Fetch group info
+        // Fetch group info for the pending (different) group
         const { data: grpInfo, error: grpErr } = await supabase
           .from('groups')
           .select('id, name, description')
@@ -515,7 +573,7 @@
           .single();
         if (grpErr || !grpInfo) return;
 
-        // Check if already a member
+        // Check membership in the pending group
         const { data: memCheck } = await supabase
           .from('group_members')
           .select('user_id')
@@ -524,20 +582,16 @@
           .maybeSingle();
 
         if (memCheck) {
-          // Already a member
-          if (pendingId !== gid) {
-            // They were sharing a different group — redirect there
-            window.location.href = `chatroom.html?groupId=${pendingId}`;
-          }
-          // If pendingId === gid, we're already in the right room — do nothing
+          // Already a member of that group — redirect there
+          window.location.href = `chatroom.html?groupId=${pendingId}`;
           return;
         }
 
-        // Not a member — show join modal regardless of which room we're currently in
+        // Not a member — show join modal for the pending group
         return new Promise((resolve) => {
-          const modal    = document.getElementById('joinGroupModal');
-          const titleEl  = document.getElementById('joinGroupModalTitle');
-          const descEl   = document.getElementById('joinGroupModalDesc');
+          const modal     = document.getElementById('joinGroupModal');
+          const titleEl   = document.getElementById('joinGroupModalTitle');
+          const descEl    = document.getElementById('joinGroupModalDesc');
           const acceptBtn = document.getElementById('joinGroupAccept');
           const cancelBtn = document.getElementById('joinGroupCancel');
 
@@ -566,7 +620,7 @@
 
           cancelBtn.onclick = () => {
             modal.classList.remove('visible');
-            resolve();
+            resolve(); // stay on current group page
           };
         });
       } catch (e) {
@@ -576,11 +630,21 @@
 
     async function initialize() {
       try {
-        // Handle deep-link group join (from shared link)
+        // Handle deep-link group join for a DIFFERENT group stored in localStorage
         await checkPendingGroupJoin();
-        
+
         await loadGroupData();
         await loadMembers();
+
+        // ── Non-member guard ──────────────────────────────────────────────────
+        // Handles: logged-in user opens share link directly, OR bounced back here
+        // after login via login.html?redirect=... param.
+        if (!state.isMember) {
+          await promptJoinCurrentGroup();
+          return; // stop — page will reload as a member if they accept
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         await loadHistory();
         markMessagesAsDelivered();
         markMessagesAsSeen();
