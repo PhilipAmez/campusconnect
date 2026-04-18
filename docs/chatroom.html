@@ -13,20 +13,8 @@
   <script type="module" src="js/supabaseClient.js"></script>
   
   <style>
-    /* Seen status indicator */
-    .seen-status {
-      margin-left: 6px;
-      font-size: 0.85em;
-    }
-    .seen-status.sent i {
-      color: #9ca3af; /* Gray single check */
-    }
-    .seen-status.delivered i {
-      color: #9ca3af; /* Gray double check */
-    }
-    .seen-status.seen i {
-      color: #4ade80; /* Green checkmark */
-    }
+    /* Liquid glass polish for message content */
+    .message-content { word-break: break-word; }
   </style>
 </head>
 <body>
@@ -55,11 +43,20 @@
 
     <!-- Messages Container -->
     <div class="chat-messages" id="messagePanel">
-      <!-- Messages will be loaded here -->
     </div>
 
     <!-- Input Area -->
     <div class="chat-input-area">
+      <!-- Reply context: sits ABOVE the composer (WhatsApp/Telegram style) -->
+      <div class="reply-context" id="replyContextBox" style="display: none;">
+        <div class="reply-context-bar"></div>
+        <div class="reply-context-content">
+          <div class="reply-context-sender" id="replyContextSender"></div>
+          <div class="reply-context-text" id="replyContextText"></div>
+        </div>
+        <button class="reply-context-close" id="replyContextClose"><i class="fas fa-times"></i></button>
+      </div>
+
       <div class="composer-container">
         <div class="composer-actions">
           <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
@@ -83,7 +80,7 @@
         ></textarea>
         
         <div class="composer-actions">
-          <button class="composer-action-btn" id="recordAudioButton" title="Record voice message">
+          <button class="composer-action-btn" id="recordAudioButton" title="Hold to record voice message">
             <i class="fas fa-microphone"></i>
           </button>
           <button class="send-button" id="sendMessageButton">
@@ -92,39 +89,28 @@
         </div>
       </div>
       
-      <!-- Emoji and Mention Pickers -->
       <div class="emoji-picker" id="emojiPickerBox"></div>
       <div class="mention-list" id="mentionListBox"></div>
-      
-      <!-- Reply Context -->
-      <div class="reply-context" id="replyContextBox" style="display: none;">
-        <div class="reply-context-content">
-          <div class="reply-context-sender" id="replyContextSender"></div>
-          <div class="reply-context-text" id="replyContextText"></div>
-        </div>
-        <button class="reply-context-close" id="replyContextClose">×</button>
-      </div>
     </div>
   </div>
 
-  <!-- Modern Recording Indicator -->
   <div class="recording-indicator" id="recordingIndicator">
     <div class="pulse"></div>
-    <span>Recording... Tap to stop</span>
+    <span id="recordingLabel">Recording...</span>
     <div class="recording-time" id="recordingTime">00:00</div>
+    <button class="rec-stop-btn" id="recStopBtn" title="Stop recording"><i class="fas fa-stop"></i></button>
+    <button class="rec-send-btn" id="recSendBtn" title="Send voice message"><i class="fas fa-paper-plane"></i></button>
+    <button class="rec-cancel-btn" id="recCancelBtn" title="Cancel recording"><i class="fas fa-trash-alt"></i></button>
   </div>
 
-  <!-- Backdrop -->
   <div id="drawerBackdrop" class="drawer-backdrop"></div>
 
-  <!-- Group Drawer -->
   <div class="group-drawer" id="groupDrawer" aria-hidden="true" role="dialog" aria-label="Group members">
     <div class="drawer-header">
       <h2>Group Members</h2>
       <p>Connect with your team</p>
     </div>
     <div class="members-list" id="membersList">
-      <!-- Members will be loaded here -->
     </div>
     <div class="drawer-footer">
       <button class="share-btn" id="shareGroupBtn">
@@ -138,15 +124,12 @@
     </div>
   </div>
 
-  <!-- Lightbox for viewing images/videos -->
   <div class="lightbox" id="lightbox">
     <span class="lightbox-close" id="lightboxClose">&times;</span>
     <div class="lightbox-content" id="lightboxContent">
-      <!-- Image or video will be inserted here -->
     </div>
   </div>
 
-  <!-- Share Group Modal -->
   <div class="modal-backdrop" id="shareGroupModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -161,7 +144,6 @@
     </div>
   </div>
 
-  <!-- Edit Message Modal -->
   <div class="modal-backdrop" id="editMessageModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -176,7 +158,6 @@
     </div>
   </div>
 
-  <!-- Delete Message Modal -->
   <div class="modal-backdrop" id="deleteMessageModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -190,7 +171,6 @@
     </div>
   </div>
 
-  <!-- File Preview Modal -->
   <div class="modal-backdrop" id="filePreviewModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -198,7 +178,6 @@
         <div class="modal-description">Review your file before sending.</div>
       </div>
       <div id="filePreviewContent" style="text-align: center; margin-bottom: 1.5rem;">
-        <!-- Preview will be inserted here -->
       </div>
       <div class="modal-actions">
         <button class="modal-btn cancel" id="filePreviewCancel">Cancel</button>
@@ -207,7 +186,6 @@
     </div>
   </div>
 
-  <!-- Admin Panel Modal -->
   <div class="modal-backdrop" id="adminModal">
     <div class="modal-content" style="width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;">
       <div class="modal-header">
@@ -220,7 +198,19 @@
     </div>
   </div>
 
-  <!-- Delete Group Modal -->
+  <div class="modal-backdrop" id="joinGroupModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="joinGroupModalTitle">Join Group</div>
+        <div class="modal-description" id="joinGroupModalDesc">You've been invited to join this group.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="joinGroupCancel">Decline</button>
+        <button class="modal-btn confirm" id="joinGroupAccept">Join Group</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="deleteGroupModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -234,19 +224,23 @@
     </div>
   </div>
   <script type="module">
-    // Import Supabase client
     import { supabase } from './js/supabaseClient.js';
     
-    // ===== INITIALIZE SESSION =====
     const session = await supabase.auth.getSession();
+    const _gidParam = new URLSearchParams(window.location.search).get('groupId');
     if (!session.data.session) {
-      window.location.href = 'login.html';
+      // Persist intent using localStorage so it survives cross-page navigation
+      if (_gidParam) {
+        localStorage.setItem('pendingJoinGroupId', _gidParam);
+      }
+      // Redirect to login and encode the chatroom URL as the return destination
+      const returnUrl = encodeURIComponent(window.location.href);
+      window.location.href = `login.html?redirect=${returnUrl}`;
     }
     
     const user = session.data.session.user;
-    const gid = new URLSearchParams(window.location.search).get('groupId');
+    const gid = _gidParam;
     
-    // ===== STATE MANAGEMENT =====
     let state = {
       replyingMsg: null,
       isRecording: false,
@@ -271,25 +265,18 @@
       downloadedFiles: new Set(JSON.parse(localStorage.getItem('downloadedFiles') || '[]'))
     };
     
-    // ===== CONSTANTS =====
     const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
     const AI_USER_NAME = 'PeerPal AI';
     const AI_MODELS = ['gpt-4', 'gpt-3.5-turbo'];
     
-    // ===== DOM ELEMENTS =====
     const elements = {
-      // Main containers
       messagePanel: document.getElementById('messagePanel'),
       groupTitle: document.getElementById('groupTitle'),
-      
-      // Header
       backButton: document.getElementById('backButton'),
       themeToggleButton: document.getElementById('themeToggleButton'),
       adminPanelButton: document.getElementById('adminPanelButton'),
       voiceCallButton: document.getElementById('voiceCallButton'),
       videoCallButton: document.getElementById('videoCallButton'),
-      
-      // Input area
       emojiButton: document.getElementById('emojiButton'),
       fileShareButton: document.getElementById('fileShareButton'),
       pollButton: document.getElementById('pollButton'),
@@ -297,64 +284,46 @@
       messageBar: document.getElementById('messageBar'),
       sendMessageButton: document.getElementById('sendMessageButton'),
       fileInput: document.getElementById('fileInput'),
-      
-      // Pickers
       emojiPickerBox: document.getElementById('emojiPickerBox'),
       mentionListBox: document.getElementById('mentionListBox'),
-      
-      // Reply context
       replyContextBox: document.getElementById('replyContextBox'),
       replyContextSender: document.getElementById('replyContextSender'),
       replyContextText: document.getElementById('replyContextText'),
       replyContextClose: document.getElementById('replyContextClose'),
-      
-      // Group drawer
       groupDrawer: document.getElementById('groupDrawer'),
       membersList: document.getElementById('membersList'),
       shareGroupBtn: document.getElementById('shareGroupBtn'),
       leaveGroupBtn: document.getElementById('leaveGroupBtn'),
       drawerBackdrop: document.getElementById('drawerBackdrop'),
-      
-      // Recording
       recordingIndicator: document.getElementById('recordingIndicator'),
       recordingTime: document.getElementById('recordingTime'),
-      
-      // Modals
       shareGroupModal: document.getElementById('shareGroupModal'),
       shareGroupInput: document.getElementById('shareGroupInput'),
       shareGroupCancel: document.getElementById('shareGroupCancel'),
       shareGroupCopy: document.getElementById('shareGroupCopy'),
-      
       editMessageModal: document.getElementById('editMessageModal'),
       editMessageInput: document.getElementById('editMessageInput'),
       editMessageCancel: document.getElementById('editMessageCancel'),
       editMessageConfirm: document.getElementById('editMessageConfirm'),
-      
       deleteMessageModal: document.getElementById('deleteMessageModal'),
       deleteMessageCancel: document.getElementById('deleteMessageCancel'),
       deleteMessageConfirm: document.getElementById('deleteMessageConfirm'),
-      
       filePreviewModal: document.getElementById('filePreviewModal'),
       filePreviewContent: document.getElementById('filePreviewContent'),
       filePreviewCancel: document.getElementById('filePreviewCancel'),
       filePreviewSend: document.getElementById('filePreviewSend'),
-      
       adminModal: document.getElementById('adminModal'),
       adminActions: document.getElementById('adminActions'),
       closeAdmin: document.getElementById('closeAdmin'),
-      
       deleteGroupModal: document.getElementById('deleteGroupModal'),
       cancelDeleteGroup: document.getElementById('cancelDeleteGroup'),
       confirmDeleteGroup: document.getElementById('confirmDeleteGroup'),
-      
       lightbox: document.getElementById('lightbox'),
       lightboxClose: document.getElementById('lightboxClose'),
       lightboxContent: document.getElementById('lightboxContent'),
-      
       body: document.body
     };
     
-    // ===== THEME MANAGEMENT =====
     const applyTheme = (theme) => {
       elements.body.dataset.theme = theme;
       const icon = elements.themeToggleButton.querySelector('i');
@@ -372,16 +341,13 @@
       applyTheme(newTheme);
     };
     
-    // Apply saved theme
     const savedTheme = localStorage.getItem('peerloom-theme') || 'dark';
     applyTheme(savedTheme);
     
-    // ===== BACK BUTTON =====
     elements.backButton.onclick = () => {
       window.location.href = 'dashboard.html';
     };
     
-    // ===== UTILITY FUNCTIONS =====
     function createDefaultAvatar(name) {
       const canvas = document.createElement('canvas');
       canvas.width = 64;
@@ -498,7 +464,6 @@
       button.appendChild(circle);
     }
     
-    // ===== NOTIFICATION HELPERS =====
     function playNotificationSound() {
       try {
         const audio = new Audio('/sounds/notification.mp3');
@@ -533,49 +498,106 @@
       }
     }
     
-    // ===== INITIALIZATION =====
+    async function checkPendingGroupJoin() {
+      const pendingId = localStorage.getItem('pendingJoinGroupId');
+      if (!pendingId) return;
+
+      // Only act if this chatroom page is for the pending group, OR pending is a different group
+      // In both cases we need membership check — clear the key first to avoid loops
+      localStorage.removeItem('pendingJoinGroupId');
+
+      try {
+        // Fetch group info
+        const { data: grpInfo, error: grpErr } = await supabase
+          .from('groups')
+          .select('id, name, description')
+          .eq('id', pendingId)
+          .single();
+        if (grpErr || !grpInfo) return;
+
+        // Check if already a member
+        const { data: memCheck } = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', pendingId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (memCheck) {
+          // Already a member
+          if (pendingId !== gid) {
+            // They were sharing a different group — redirect there
+            window.location.href = `chatroom.html?groupId=${pendingId}`;
+          }
+          // If pendingId === gid, we're already in the right room — do nothing
+          return;
+        }
+
+        // Not a member — show join modal regardless of which room we're currently in
+        return new Promise((resolve) => {
+          const modal    = document.getElementById('joinGroupModal');
+          const titleEl  = document.getElementById('joinGroupModalTitle');
+          const descEl   = document.getElementById('joinGroupModalDesc');
+          const acceptBtn = document.getElementById('joinGroupAccept');
+          const cancelBtn = document.getElementById('joinGroupCancel');
+
+          titleEl.textContent = `Join "${grpInfo.name}"`;
+          descEl.textContent  = grpInfo.description
+            ? `${grpInfo.description} — Accept to join this group.`
+            : 'You were invited. Accept to join this group.';
+          modal.classList.add('visible');
+
+          acceptBtn.onclick = async () => {
+            modal.classList.remove('visible');
+            try {
+              const { error: joinErr } = await supabase
+                .from('group_members')
+                .insert({ group_id: pendingId, user_id: user.id, role: 'member' });
+              if (joinErr && joinErr.code !== '23505') throw joinErr;
+              showSuccess(`Joined "${grpInfo.name}"!`);
+              setTimeout(() => {
+                window.location.href = `chatroom.html?groupId=${pendingId}`;
+              }, 800);
+            } catch (e) {
+              showError('Failed to join group: ' + e.message);
+            }
+            resolve();
+          };
+
+          cancelBtn.onclick = () => {
+            modal.classList.remove('visible');
+            resolve();
+          };
+        });
+      } catch (e) {
+        console.error('checkPendingGroupJoin error:', e);
+      }
+    }
+
     async function initialize() {
       try {
-        // Load group data
+        // Handle deep-link group join (from shared link)
+        await checkPendingGroupJoin();
+        
         await loadGroupData();
-        
-        // Load members
         await loadMembers();
-        
-        // Load messages
         await loadHistory();
-        
-        // Mark unread messages as seen
         markMessagesAsDelivered();
         markMessagesAsSeen();
-        
-        // Ensure AI user is in group
         await ensureAIUserInGroup();
-        
-        // Initialize mention system
         initMentionSystem();
-        
-        // Initialize emoji picker
         initEmojiPicker();
-        
-        // Set up event listeners
         setupEventListeners();
-        
-        // Set up real-time subscriptions
         setupRealtimeSubscriptions();
-        
-        // Scroll to bottom
         setTimeout(() => {
           elements.messagePanel.scrollTop = elements.messagePanel.scrollHeight;
         }, 100);
-        
       } catch (error) {
         console.error('Initialization error:', error);
         showError('Failed to initialize chat');
       }
     }
     
-    // ===== GROUP DATA LOADING =====
     async function loadGroupData() {
       try {
         const { data: grp, error: grpError } = await supabase
@@ -600,7 +622,6 @@
     
     async function loadMembers() {
       try {
-        // Step 1: Get members
         const { data: members, error: membersError } = await supabase
           .from('group_members')
           .select('user_id, role, joined_at')
@@ -608,7 +629,6 @@
         
         if (membersError) throw membersError;
 
-        // Step 2: Get profiles for these members manually to avoid FK relationship issues
         let profiles = [];
         if (members && members.length > 0) {
           const userIds = members.map(m => m.user_id);
@@ -621,7 +641,6 @@
           profiles = profilesData || [];
         }
 
-        // Step 3: Merge data
         state.memberDetails = (members || []).map(member => {
           const profile = profiles.find(p => p.id === member.user_id);
           return { ...member, profiles: profile };
@@ -629,14 +648,12 @@
 
         state.isMember = state.memberDetails.some(m => m.user_id === user.id);
         
-        // Determine user role
         const userMember = state.memberDetails.find(m => m.user_id === user.id);
         state.userRole = userMember ? (userMember.role || 'member') : 'member';
         if (user.id === state.groupCreatorId) {
           state.userRole = 'owner';
         }
         
-        // Show/hide admin panel button
         if (state.userRole === 'member') {
           elements.adminPanelButton.style.display = 'none';
         } else {
@@ -711,7 +728,6 @@
       }
     }
     
-    // ===== MESSAGE SYSTEM =====
     async function loadHistory() {
       try {
         const { data } = await supabase
@@ -736,7 +752,7 @@
       
       let senderName;
       if (mine) {
-        senderName = user.user_metadata.firstName || user.user_metadata.full_name || 'You';
+        senderName = user.user_metadata?.firstName || user.user_metadata?.full_name || 'You';
       } else if (isAI) {
         senderName = AI_USER_NAME;
       } else {
@@ -748,21 +764,32 @@
       div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
       div.dataset.id = m.id;
       
-      // Add reply banner if exists
       if (m.reply_to) {
         const replyDiv = document.createElement('div');
         replyDiv.className = 'reply-banner';
-        replyDiv.textContent = `${m.reply_to_sender}: ${m.reply_to_text}`;
+        let replyText = m.reply_to_text || '';
+        // Sanitize: never show raw URLs
+        if (replyText && (replyText.startsWith('http') || replyText.startsWith('blob:'))) {
+          try {
+            const urlParts = replyText.split('/');
+            const rawFilename = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]);
+            replyText = rawFilename || '📎 File attachment';
+          } catch(e) { replyText = '📎 File attachment'; }
+        }
+        if (!replyText) replyText = '(message)';
+        const preview = replyText.length > 60 ? replyText.substring(0, 60) + '…' : replyText;
+        replyDiv.innerHTML = `
+          <div class="reply-banner-sender">${m.reply_to_sender || 'Unknown'}</div>
+          <div class="reply-banner-text">${preview}</div>
+        `;
         div.appendChild(replyDiv);
       }
       
-      // Add sender name
       const nameTag = document.createElement('div');
       nameTag.className = 'sender-name';
       nameTag.textContent = senderName;
       div.appendChild(nameTag);
       
-      // Add message content
       const ct = document.createElement('div');
       ct.className = 'message-content';
       
@@ -787,7 +814,6 @@
       
       div.appendChild(ct);
       
-      // Add timestamp
       const ts = document.createElement('div');
       ts.className = 'timestamp';
       let statusHtml = '';
@@ -806,10 +832,8 @@
       ts.innerHTML = `${formatTime(m.created_at)}${statusHtml}`;
       div.appendChild(ts);
       
-      // Add to message panel
       elements.messagePanel.appendChild(div);
       
-      // Add event listeners for AI mentions
       const aiMentions = div.querySelectorAll('.mention.ai-mention');
       aiMentions.forEach(mention => {
         mention.addEventListener('click', (e) => {
@@ -823,16 +847,13 @@
         });
       });
       
-      // Add swipe gestures for messages
       if (m.message_type !== 'audio' || mine) {
         attachGestures(div, mine, m);
       }
       
-      // Scroll to bottom
       elements.messagePanel.scrollTop = elements.messagePanel.scrollHeight;
     }
     
-    // ===== MESSAGE ELEMENT CREATORS =====
     function createUploadingFileElement(m) {
       return `
         <div class="file-attachment-card">
@@ -850,14 +871,19 @@
       `;
     }
     
+    // Global registry of active audio players for exclusive playback
+    // Single global active audio tracker — only ONE entry at a time
+    // Each entry: { audio, stop: fn }
+    let _activeAudioEntry = null;
+
     function createVoiceMessageElement(m, isSent) {
       const bubble = document.createElement('div');
       bubble.className = 'voice-message-bubble';
-      
+
       const playBtn = document.createElement('button');
       playBtn.className = 'voice-play-btn';
       playBtn.innerHTML = '<i class="fas fa-play"></i>';
-      
+
       const waveform = document.createElement('div');
       waveform.className = 'voice-waveform';
       for (let i = 0; i < 10; i++) {
@@ -866,16 +892,37 @@
         bar.style.height = `${8 + Math.random() * 22}px`;
         waveform.appendChild(bar);
       }
-      
+
       const durationSpan = document.createElement('div');
       durationSpan.className = 'voice-duration';
-      durationSpan.textContent = formatTime(m.duration || 0);
-      
+      durationSpan.textContent = '0:00';
+
+      // Create audio WITHOUT src so event listeners are registered before any metadata fires
+      const audio = new Audio();
+      audio.preload = 'metadata';
+
+      const _setDuration = () => {
+        if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+          const secs = Math.floor(audio.duration);
+          const mm = Math.floor(secs / 60);
+          const ss = secs % 60;
+          durationSpan.textContent = `${mm}:${ss.toString().padStart(2, '0')}`;
+        }
+      };
+
+      // Attach ALL duration-related events before setting src
+      audio.addEventListener('loadedmetadata', _setDuration);
+      audio.addEventListener('durationchange', _setDuration);
+      audio.addEventListener('canplay', _setDuration);
+
+      // NOW set src and force a metadata load (critical for iOS / cached responses)
+      audio.src = m.audio_url;
+      audio.load();
+
       bubble.appendChild(playBtn);
       bubble.appendChild(waveform);
       bubble.appendChild(durationSpan);
-      
-      // Add delete button if sent or admin
+
       if (isSent || state.userRole !== 'member') {
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'voice-delete-btn';
@@ -887,32 +934,90 @@
         });
         bubble.appendChild(deleteBtn);
       }
-      
-      // Audio playback logic
-      const audio = new Audio(m.audio_url);
-      audio.preload = 'metadata';
+
+      // Per-instance play promise tracker to avoid interrupted-play race
+      let _playPromise = null;
       let isPlaying = false;
-      
-      playBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (isPlaying) {
-          audio.pause();
-          playBtn.innerHTML = '<i class="fas fa-play"></i>';
-          bubble.classList.remove('playing');
-        } else {
-          audio.play();
-          playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-          bubble.classList.add('playing');
-        }
-        isPlaying = !isPlaying;
-      });
-      
-      audio.addEventListener('ended', () => {
+
+      // Resets this player's UI to stopped state
+      const resetUI = () => {
         playBtn.innerHTML = '<i class="fas fa-play"></i>';
         bubble.classList.remove('playing');
         isPlaying = false;
+      };
+
+      // Safely stop: wait for any in-flight play() promise before pausing
+      const safeStop = () => {
+        if (_playPromise !== null) {
+          _playPromise.then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+          }).catch(() => {});
+        } else {
+          if (!audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+        }
+        _playPromise = null;
+        resetUI();
+      };
+
+      playBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        if (isPlaying) {
+          // Stop this audio safely
+          safeStop();
+          _activeAudioEntry = null;
+        } else {
+          // Stop whatever is currently playing globally first
+          if (_activeAudioEntry && _activeAudioEntry.audio !== audio) {
+            _activeAudioEntry.stop();
+            _activeAudioEntry = null;
+          }
+
+          // Start playing this audio
+          _playPromise = audio.play();
+          if (_playPromise !== undefined) {
+            _playPromise.then(() => {
+              // Play started successfully — UI already updated below
+              _playPromise = null;
+            }).catch((err) => {
+              // Play was interrupted or blocked — reset silently
+              _playPromise = null;
+              resetUI();
+              if (_activeAudioEntry && _activeAudioEntry.audio === audio) {
+                _activeAudioEntry = null;
+              }
+            });
+          } else {
+            _playPromise = null;
+          }
+
+          playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+          bubble.classList.add('playing');
+          isPlaying = true;
+
+          // Register as the active global entry
+          _activeAudioEntry = { audio, stop: safeStop };
+        }
       });
-      
+
+      audio.addEventListener('ended', () => {
+        resetUI();
+        if (_activeAudioEntry && _activeAudioEntry.audio === audio) {
+          _activeAudioEntry = null;
+        }
+      });
+
+      audio.addEventListener('pause', () => {
+        // Sync UI if audio was paused externally (e.g. page hidden)
+        if (isPlaying) {
+          resetUI();
+        }
+      });
+
       return bubble;
     }
     
@@ -951,16 +1056,29 @@
     
     function createFileElement(m) {
       const fileExt = m.file_name?.split('.').pop()?.toUpperCase() || 'FILE';
+      // Get a safe display name (never show raw URL)
+      let displayName = m.file_name;
+      if (!displayName || displayName.startsWith('http') || displayName.startsWith('blob:')) {
+        // Try extracting from URL
+        try {
+          const urlParts = (m.content || '').split('/');
+          displayName = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]) || 'File';
+        } catch(e) {
+          displayName = 'File';
+        }
+      }
+      const sizeStr = m.file_size ? formatFileSize(m.file_size) : '';
+      const metaStr = [sizeStr, fileExt + ' Document'].filter(Boolean).join(' • ');
       return `
         <div class="file-attachment-card">
           <div class="file-icon-wrapper">
             <i class="fas fa-file-alt"></i>
           </div>
           <div class="file-info">
-            <div class="file-name">${m.file_name || 'File'}</div>
-            <div class="file-meta">${formatFileSize(m.file_size)} • ${fileExt} Document</div>
+            <div class="file-name">${displayName}</div>
+            <div class="file-meta">${metaStr}</div>
           </div>
-          <a href="${m.content}" download="${m.file_name || 'File'}" class="download-btn-wrapper" title="Download">
+          <a href="${m.content}" download="${displayName}" class="download-btn-wrapper" title="Download">
             <i class="fas fa-download"></i>
           </a>
         </div>
@@ -970,88 +1088,164 @@
     async function loadPollData(m, container) {
       try {
         const pollId = m.content;
-        const { data: poll, error: pollError } = await supabase
-          .from('group_polls')
-          .select('*')
-          .eq('id', pollId)
-          .single();
-        
-        if (pollError || !poll) {
-          container.innerHTML = '<p>Invalid poll</p>';
+        if (!pollId || typeof pollId !== 'string' || pollId.trim() === '') {
+          container.innerHTML = '<p>Invalid poll ID</p>';
           return;
         }
-        
+
+        const { data: poll, error: pollError } = await supabase
+          .from('polls')
+          .select('id, question, options, created_by, group_id, created_at')
+          .eq('id', pollId.trim())
+          .eq('group_id', gid)
+          .maybeSingle();
+
+        if (pollError) {
+          console.error('Error fetching poll:', pollError);
+          container.innerHTML = '<p>Error loading poll</p>';
+          return;
+        }
+
+        if (!poll) {
+          // Fallback: try without group_id filter in case it was created cross-group
+          const { data: pollFallback, error: pollFallbackError } = await supabase
+            .from('polls')
+            .select('id, question, options, created_by, group_id, created_at')
+            .eq('id', pollId.trim())
+            .maybeSingle();
+
+          if (pollFallbackError || !pollFallback) {
+            container.innerHTML = '<p>Poll not found</p>';
+            return;
+          }
+
+          return await _renderPoll(m, container, pollFallback, pollId.trim());
+        }
+
+        await _renderPoll(m, container, poll, pollId.trim());
+      } catch (error) {
+        console.error('Error loading poll:', error);
+        container.innerHTML = '<p>Error loading poll</p>';
+      }
+    }
+
+    async function _renderPoll(m, container, poll, pollId) {
+      try {
+        let options = [];
+        try {
+          if (typeof poll.options === 'string') {
+            options = JSON.parse(poll.options);
+          } else if (Array.isArray(poll.options)) {
+            options = poll.options;
+          } else if (poll.options && typeof poll.options === 'object') {
+            options = Object.values(poll.options);
+          }
+          if (!Array.isArray(options)) options = [];
+        } catch (e) {
+          console.error('Error parsing poll options:', e);
+          options = [];
+        }
+
         const { data: votes, error: votesError } = await supabase
           .from('poll_votes')
-          .select('selected_option, count(*)')
-          .eq('poll_id', pollId)
-          .group('selected_option');
+          .select('selected_option')
+          .eq('poll_id', pollId);
         
         if (votesError) {
           console.error('Error fetching votes:', votesError);
         }
-        
-        const voteCounts = new Array(poll.options.length).fill(0);
-        votes?.forEach(v => {
-          voteCounts[v.selected_option] = v.count;
+
+        const voteCounts = new Array(options.length).fill(0);
+        (votes || []).forEach(v => {
+          if (typeof v.selected_option === 'number' && v.selected_option >= 0 && v.selected_option < options.length) {
+            voteCounts[v.selected_option]++;
+          }
         });
-        
+
         const totalVotes = voteCounts.reduce((sum, v) => sum + v, 0);
-        
-        const { data: myVote, error: myVoteError } = await supabase
+
+        const { data: myVote } = await supabase
           .from('poll_votes')
           .select('selected_option')
           .eq('poll_id', pollId)
           .eq('user_id', user.id)
-          .single();
-        
-        const hasVoted = !!myVote;
-        
+          .maybeSingle();
+
+        const hasVoted = myVote !== null && myVote !== undefined;
+
         const pollDiv = document.createElement('div');
-        pollDiv.className = 'poll-container';
-        
+        pollDiv.className = 'poll-container poll-fade-in';
+
         pollDiv.innerHTML = `
-          <div class="poll-question">${poll.question}</div>
+          <div class="poll-question">${poll.question || 'No question'}</div>
           <div class="poll-options"></div>
           <div class="poll-total-votes">Total votes: ${totalVotes}</div>
         `;
-        
+
         const optionsContainer = pollDiv.querySelector('.poll-options');
-        poll.options.forEach((opt, index) => {
-          const votes = voteCounts[index];
-          const percent = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
-          
+        options.forEach((opt, index) => {
+          const voteCount = voteCounts[index] || 0;
+          const percent = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
+          const isMyVote = hasVoted && myVote.selected_option === index;
+
           const optionDiv = document.createElement('div');
-          optionDiv.className = `poll-option ${hasVoted && myVote?.selected_option === index ? 'voted' : ''}`;
+          optionDiv.className = `poll-option${isMyVote ? ' voted' : ''}`;
           optionDiv.innerHTML = `
             <div class="poll-option-bar" style="width: ${percent}%"></div>
             <div class="poll-option-text">${opt}</div>
-            <div class="poll-option-votes">${votes} votes (${percent.toFixed(1)}%)</div>
+            <div class="poll-option-votes">${voteCount} vote${voteCount !== 1 ? 's' : ''} (${percent.toFixed(1)}%)</div>
           `;
-          
+
           if (!hasVoted) {
+            optionDiv.style.cursor = 'pointer';
             optionDiv.onclick = async () => {
               try {
+                // Use the validated poll.id from the polls table (not group_polls)
                 const { error } = await supabase
                   .from('poll_votes')
                   .insert({
-                    poll_id: pollId,
+                    poll_id: poll.id,
                     user_id: user.id,
                     selected_option: index
                   });
-                
-                if (error) throw error;
-                await loadHistory();
-              } catch (error) {
-                showError('Error voting: ' + error.message);
+
+                if (error) {
+                  if (error.code === '23505') {
+                    // Already voted — just reload
+                    await loadHistory();
+                  } else {
+                    throw error;
+                  }
+                } else {
+                  // Immediately update the UI in-place without reloading
+                  optionDiv.classList.add('correct-pulse');
+                  optionDiv.classList.add('voted');
+
+                  // Disable all options instantly
+                  optionsContainer.querySelectorAll('.poll-option').forEach(od => {
+                    od.style.cursor = 'default';
+                    od.onclick = null;
+                  });
+
+                  // Refresh only this poll's container in background
+                  setTimeout(async () => {
+                    const updatedContainer = container;
+                    updatedContainer.innerHTML = '<p>Loading poll...</p>';
+                    await _renderPoll(m, updatedContainer, poll, pollId);
+                  }, 700);
+                }
+              } catch (err) {
+                console.error('Error voting:', err);
+                optionDiv.classList.add('wrong-shatter');
+                setTimeout(() => optionDiv.classList.remove('wrong-shatter'), 600);
+                showError('Error voting: ' + err.message);
               }
             };
           }
-          
+
           optionsContainer.appendChild(optionDiv);
         });
-        
-        // Add delete button for admins
+
         if (m.sender_id === user.id || state.userRole !== 'member') {
           const deleteBtn = document.createElement('button');
           deleteBtn.className = 'poll-delete-btn';
@@ -1062,18 +1256,16 @@
           };
           pollDiv.appendChild(deleteBtn);
         }
-        
+
         container.innerHTML = '';
         container.appendChild(pollDiv);
       } catch (error) {
-        console.error('Error loading poll:', error);
+        console.error('Error loading poll (_renderPoll):', error);
         container.innerHTML = '<p>Error loading poll</p>';
       }
     }
     
-    // ===== MENTION SYSTEM =====
     function initMentionSystem() {
-      // Add AI user to mention list
       state.mentionUsers = [
         {
           id: AI_USER_ID,
@@ -1084,7 +1276,6 @@
         }
       ];
       
-      // Add all group members
       state.memberDetails.forEach(member => {
         if (member.user_id !== AI_USER_ID) {
           const displayName = getDisplayName(member);
@@ -1098,11 +1289,9 @@
         }
       });
       
-      // Set up mention input handler
       elements.messageBar.addEventListener('input', handleMentionInput);
       elements.messageBar.addEventListener('keydown', handleMentionNavigation);
       
-      // Close mention list when clicking outside
       document.addEventListener('click', (e) => {
         if (!elements.mentionListBox.contains(e.target) && e.target !== elements.messageBar) {
           elements.mentionListBox.style.display = 'none';
@@ -1149,29 +1338,33 @@
         return;
       }
       
-      users.forEach(user => {
+      users.forEach((u, index) => {
         const item = document.createElement('div');
-        item.className = `mention-item ${user.isAI ? 'ai-mention' : ''}`;
+        item.className = `mention-item${u.isAI ? ' ai-mention-item' : ''}${index === 0 ? ' active' : ''}`;
         item.innerHTML = `
-          <img src="${user.avatar}" class="mention-avatar" alt="${user.name}">
-          <span>${user.name}</span>
-          ${user.isAI ? '<span class="mention-badge">AI</span>' : ''}
+          <img src="${u.avatar}" class="mention-avatar" alt="${u.name}" onerror="this.style.display='none'">
+          <div class="mention-item-info">
+            <span class="mention-item-name">${u.name}</span>
+          </div>
+          ${u.isAI ? '<span class="mention-badge">AI</span>' : ''}
         `;
-        
-        item.addEventListener('click', () => selectMention(user));
+        item.addEventListener('click', () => selectMention(u));
         elements.mentionListBox.appendChild(item);
       });
       
-      // Position the mention list
-      const rect = elements.messageBar.getBoundingClientRect();
-      elements.mentionListBox.style.left = `${rect.left}px`;
-      elements.mentionListBox.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-      elements.mentionListBox.style.width = `${rect.width}px`;
-      elements.mentionListBox.style.display = 'flex';
+      // Position above the input area
+      const inputArea = document.querySelector('.chat-input-area');
+      const inputRect = inputArea.getBoundingClientRect();
+      const listHeight = Math.min(users.length * 52 + 16, 240);
+      elements.mentionListBox.style.bottom = (window.innerHeight - inputRect.top + 8) + 'px';
+      elements.mentionListBox.style.left   = '16px';
+      elements.mentionListBox.style.right  = '16px';
+      elements.mentionListBox.style.width  = 'auto';
+      elements.mentionListBox.style.display = 'block';
     }
     
     function handleMentionNavigation(e) {
-      if (elements.mentionListBox.style.display !== 'flex') return;
+      if (elements.mentionListBox.style.display === 'none' || !elements.mentionListBox.style.display) return;
       
       const items = elements.mentionListBox.querySelectorAll('.mention-item');
       const activeItem = elements.mentionListBox.querySelector('.mention-item.active');
@@ -1189,9 +1382,10 @@
         case 'Enter':
           e.preventDefault();
           if (activeItem) {
-            const userName = activeItem.querySelector('span').textContent;
-            const user = state.mentionUsers.find(u => u.name === userName);
-            if (user) selectMention(user);
+            const nameEl = activeItem.querySelector('.mention-item-name');
+            const userName = nameEl ? nameEl.textContent : '';
+            const found = state.mentionUsers.find(u => u.name === userName);
+            if (found) selectMention(found);
           }
           return;
         case 'Escape':
@@ -1202,6 +1396,7 @@
       items.forEach(item => item.classList.remove('active'));
       if (items[activeIndex]) {
         items[activeIndex].classList.add('active');
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
       }
     }
     
@@ -1250,9 +1445,7 @@
       return processedContent;
     }
     
-    // ===== EMOJI PICKER =====
     function initEmojiPicker() {
-      // Populate with common emojis
       const emojis = ['😀', '😂', '🥰', '😎', '🤔', '👏', '🎉', '💯', '🔥', '🌟', '💖', '👍', '👎', '🙏', '🤝', '💪', '🧠', '🎯', '🚀', '💡'];
       
       emojis.forEach(emoji => {
@@ -1268,27 +1461,43 @@
       });
     }
     
-    // ===== MESSAGE SENDING =====
     async function sendMessage() {
       const text = elements.messageBar.value.trim();
       if (!text) return;
       
-      // Send typing stop signal
       if (state.typingTimeout) {
         clearTimeout(state.typingTimeout);
         state.typingTimeout = null;
       }
       
       try {
+        const senderName = (user.user_metadata?.firstName || user.user_metadata?.full_name || 'You').trim() || 'You';
         const messageData = {
           group_id: gid,
           sender_id: user.id,
-          sender_name: user.user_metadata.firstName || user.user_metadata.full_name || 'You',
+          sender_name: senderName,
           content: text,
-          reply_to: state.replyingMsg?.id,
-          reply_to_sender: state.replyingMsg?.sender_name,
-          reply_to_text: state.replyingMsg?.content
+          message_type: 'text'
         };
+        
+        if (state.replyingMsg) {
+          messageData.reply_to = state.replyingMsg.id;
+          messageData.reply_to_sender = state.replyingMsg.sender_name;
+          let rText = state.replyingMsg.content;
+          const rType = state.replyingMsg.message_type;
+          if (rType === 'audio') rText = '🎵 Voice message';
+          else if (rType === 'image') rText = state.replyingMsg.file_name || '🖼️ Image';
+          else if (rType === 'video') rText = state.replyingMsg.file_name || '🎬 Video';
+          else if (rType === 'file') rText = state.replyingMsg.file_name || '📎 File';
+          else if (rType === 'poll') rText = '📊 Poll';
+          else if (rText && (rText.startsWith('http') || rText.startsWith('blob:'))) {
+            try {
+              const parts = rText.split('/');
+              rText = decodeURIComponent(parts[parts.length - 1].split('?')[0]) || 'File attachment';
+            } catch(e) { rText = 'File attachment'; }
+          }
+          messageData.reply_to_text = rText;
+        }
         
         const { data, error } = await supabase
           .from('group_messages')
@@ -1298,21 +1507,17 @@
         
         if (error) throw error;
         
-        // Render the message immediately
         render(data);
         
-        // Clear input and reset state
         elements.messageBar.value = '';
         elements.messageBar.style.height = 'auto';
         elements.sendMessageButton.disabled = true;
         
-        // Clear reply context
         if (state.replyingMsg) {
           state.replyingMsg = null;
           elements.replyContextBox.style.display = 'none';
         }
         
-        // Check for AI trigger
         const hasAIMention = text.toLowerCase().includes('@peerpal ai');
         const hasAIKeywords = hasAIKeywordsInText(text);
         if (hasAIMention || hasAIKeywords) {
@@ -1335,7 +1540,6 @@
       return aiKeywords.some(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
     }
     
-    // ===== TYPING INDICATORS =====
     const typingChannel = supabase.channel('typing-indicators', {
       config: { broadcast: { self: false } }
     });
@@ -1364,7 +1568,7 @@
         payload: {
           user_id: user.id,
           isTyping: true,
-          user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'You'
+          user_name: user.user_metadata?.firstName || user.user_metadata?.full_name || 'You'
         }
       });
       
@@ -1375,19 +1579,17 @@
           payload: {
             user_id: user.id,
             isTyping: false,
-            user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'You'
+            user_name: user.user_metadata?.firstName || user.user_metadata?.full_name || 'You'
           }
         });
       }, 1000);
     });
     
     function renderTypingIndicators() {
-      // Remove existing typing indicators (except AI)
       document.querySelectorAll('.typing-indicator').forEach(el => {
         if (!el.classList.contains('ai')) el.remove();
       });
       
-      // Add new typing indicators
       state.typingUsers.forEach(typingUser => {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'typing-indicator';
@@ -1406,22 +1608,17 @@
       elements.messagePanel.scrollTop = elements.messagePanel.scrollHeight;
     }
     
-    // ===== AI INTEGRATION =====
     async function checkPeerloomAI(message) {
       try {
-        // Show typing indicator
         showAITypingIndicator();
         
-        // Clean the message
         const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
         
         let aiReply = "I'm here to help! How can I assist you today?";
         
-        // Simulate typing delay
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
         
         try {
-          // Use OpenAI API
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1449,10 +1646,8 @@ ${cleanMessage}`
           aiReply = generateSmartStudyResponse(cleanMessage);
         }
         
-        // Hide typing indicator
         hideAITypingIndicator();
         
-        // Insert AI message
         const { data: aiMessage, error: aiError } = await supabase
           .from('group_messages')
           .insert({
@@ -1460,14 +1655,19 @@ ${cleanMessage}`
             sender_id: AI_USER_ID,
             sender_name: AI_USER_NAME,
             content: aiReply,
-            role: 'ai'
+            message_type: 'text'
           })
           .select()
           .single();
         
         if (aiError) {
           console.error('Error inserting AI message:', aiError);
-          hideAITypingIndicator();
+        } else if (aiMessage) {
+          // Render immediately; the realtime INSERT guard will skip it as duplicate
+          const existingEl = document.querySelector(`.msg[data-id="${aiMessage.id}"]`);
+          if (!existingEl) {
+            render(aiMessage);
+          }
         }
         
       } catch (error) {
@@ -1523,9 +1723,7 @@ ${cleanMessage}`
       if (typingIndicator) typingIndicator.remove();
     }
     
-    // ===== REAL-TIME MESSAGES =====
     function setupRealtimeSubscriptions() {
-      // Messages subscription
       const messageChannel = supabase.channel(`grp_${gid}`)
         .on('postgres_changes', {
           event: 'INSERT',
@@ -1540,12 +1738,10 @@ ${cleanMessage}`
             hideAITypingIndicator();
             render(payload.new);
             
-            // Play sound and show desktop notification
             playNotificationSound();
             const message = payload.new.content || '(New message)';
             showDesktopNotification(state.groupInfo?.name || 'Group Chat', payload.new.sender_name || 'User', message);
             
-            // Check for AI response
             if (payload.new.reply_to) {
               const isReplyToAI = await checkIfReplyToAI(payload.new);
               if (isReplyToAI) {
@@ -1555,7 +1751,6 @@ ${cleanMessage}`
               checkForAIResponse(payload.new);
             }
             
-            // Mark new incoming message as delivered and seen immediately
             markMessageAsDelivered(payload.new.id);
             markMessageAsSeen(payload.new.id);
           }
@@ -1566,7 +1761,6 @@ ${cleanMessage}`
           table: 'group_messages',
           filter: `group_id=eq.${gid}`
         }, (payload) => {
-          // Update UI when a message is marked as seen (or edited)
           const msgEl = document.querySelector(`.msg[data-id="${payload.new.id}"]`);
           if (msgEl) {
             const ts = msgEl.querySelector('.timestamp');
@@ -1591,7 +1785,6 @@ ${cleanMessage}`
         })
         .subscribe();
       
-      // Members subscription
       const membersChannel = supabase.channel(`group-members:${gid}`)
         .on('postgres_changes', {
           event: '*',
@@ -1640,7 +1833,6 @@ ${cleanMessage}`
       }
     }
     
-    // ===== AUDIO RECORDING =====
     async function requestMicrophoneWithRetry(maxRetries = 2, delay = 500) {
       let lastError;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -1659,70 +1851,186 @@ ${cleanMessage}`
       throw lastError;
     }
     
-    async function toggleRecording() {
-      if (state.isRecording) {
-        stopRecording();
-      } else {
-        await startRecording();
+    // Recording state: 'idle' | 'recording' | 'stopped'
+    // Flow: mic button → start → stop button (stops only) → send button sends, cancel discards
+    state.recordingState = 'idle';
+    state._pendingAudioBlob = null; // holds blob after stop, before send/cancel
+
+    // Wire up recording indicator buttons
+    function _wireRecordingIndicatorBtns() {
+      const recStopBtn   = document.getElementById('recStopBtn');
+      const recSendBtn   = document.getElementById('recSendBtn');
+      const recCancelBtn = document.getElementById('recCancelBtn');
+
+      if (recStopBtn) {
+        recStopBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          stopOnlyRecording();
+        });
+      }
+      if (recSendBtn) {
+        recSendBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await sendPendingAudio();
+        });
+      }
+      if (recCancelBtn) {
+        recCancelBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          cancelRecording();
+        });
       }
     }
-    
+
+    async function toggleRecording() {
+      if (state.recordingState === 'idle') {
+        await startRecording();
+      } else if (state.recordingState === 'recording') {
+        // Mic button tap while recording = stop only (do not send)
+        stopOnlyRecording();
+      } else if (state.recordingState === 'stopped') {
+        // Mic button tap after stopped = send pending audio
+        await sendPendingAudio();
+      }
+    }
+
     async function startRecording() {
       try {
         const stream = await requestMicrophoneWithRetry(2, 500);
-        state.mediaRecorder = new MediaRecorder(stream);
+        state._recordingStream = stream;
+        state._pendingAudioBlob = null;
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : '';
+
+        state.mediaRecorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+
         state.audioChunks = [];
         state.recordingStart = Date.now();
-        
+
         state.mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
+          if (event.data && event.data.size > 0) {
             state.audioChunks.push(event.data);
           }
         };
-        
-        state.mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
-          await uploadAudioMessage(audioBlob);
+
+        state.mediaRecorder.onstop = () => {
           stream.getTracks().forEach(track => track.stop());
+          state._recordingStream = null;
+          // Store blob for later explicit send
+          const mType = state.mediaRecorder.mimeType || 'audio/webm';
+          state._pendingAudioBlob = new Blob(state.audioChunks, { type: mType });
+          state.audioChunks = [];
+          // Show send/cancel UI
+          _showStoppedUI();
         };
-        
-        state.mediaRecorder.start();
+
+        state.mediaRecorder.start(100);
+        state.recordingState = 'recording';
         state.isRecording = true;
-        
-        // Update UI
+
         elements.recordAudioButton.classList.add('active');
+        elements.recordAudioButton.title = 'Stop recording';
+        elements.recordAudioButton.innerHTML = '<i class="fas fa-microphone"></i>';
         elements.recordingIndicator.classList.add('active');
-        
-        // Start recording timer
+
+        const labelEl = document.getElementById('recordingLabel');
+        if (labelEl) labelEl.textContent = 'Recording...';
+
+        // Show only stop button during recording
+        const recStopBtn   = document.getElementById('recStopBtn');
+        const recSendBtn   = document.getElementById('recSendBtn');
+        const recCancelBtn = document.getElementById('recCancelBtn');
+        if (recStopBtn)   recStopBtn.style.display   = 'flex';
+        if (recSendBtn)   recSendBtn.style.display   = 'none';
+        if (recCancelBtn) recCancelBtn.style.display = 'none';
+
         state.recordingSeconds = 0;
         state.recordingTimer = setInterval(updateRecordingTime, 1000);
-        
-        // Stop recording when clicking indicator
-        elements.recordingIndicator.onclick = stopRecording;
-        
+
       } catch (error) {
         console.error('Error starting recording:', error);
         showError('Microphone access denied');
-      }
-    }
-    
-    function stopRecording() {
-      if (state.mediaRecorder && state.isRecording) {
-        state.mediaRecorder.stop();
+        state.recordingState = 'idle';
         state.isRecording = false;
-        
-        // Update UI
-        elements.recordAudioButton.classList.remove('active');
-        elements.recordingIndicator.classList.remove('active');
-        
-        // Clear timer
-        clearInterval(state.recordingTimer);
-        elements.recordingTime.textContent = '00:00';
       }
     }
+
+    // Stop recording — does NOT send
+    function stopOnlyRecording() {
+      if (state.mediaRecorder && state.recordingState === 'recording') {
+        clearInterval(state.recordingTimer);
+
+        if (state.mediaRecorder.state !== 'inactive') {
+          state.mediaRecorder.requestData();
+          state.mediaRecorder.stop(); // onstop will call _showStoppedUI
+        }
+
+        state.recordingState = 'stopped';
+        state.isRecording = false;
+
+        elements.recordAudioButton.classList.remove('active');
+        elements.recordAudioButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        elements.recordAudioButton.title = 'Send voice message';
+      }
+    }
+
+    function _showStoppedUI() {
+      const labelEl    = document.getElementById('recordingLabel');
+      const recStopBtn   = document.getElementById('recStopBtn');
+      const recSendBtn   = document.getElementById('recSendBtn');
+      const recCancelBtn = document.getElementById('recCancelBtn');
+
+      if (labelEl) labelEl.textContent = 'Tap ✉ to send';
+      if (recStopBtn)   recStopBtn.style.display   = 'none';
+      if (recSendBtn)   recSendBtn.style.display   = 'flex';
+      if (recCancelBtn) recCancelBtn.style.display = 'flex';
+      // Keep indicator visible until user acts
+      elements.recordingIndicator.classList.add('active');
+    }
+
+    // Send the pending audio blob
+    async function sendPendingAudio() {
+      const blob = state._pendingAudioBlob;
+      state._pendingAudioBlob = null;
+      _hideRecordingIndicator();
+      if (blob && blob.size > 0) {
+        await uploadAudioMessage(blob);
+      } else {
+        showError('No audio recorded.');
+      }
+    }
+
+    // Cancel — discard blob
+    function cancelRecording() {
+      state._pendingAudioBlob = null;
+      _hideRecordingIndicator();
+    }
+
+    function _hideRecordingIndicator() {
+      state.recordingState = 'idle';
+      state.isRecording = false;
+      elements.recordAudioButton.classList.remove('active');
+      elements.recordAudioButton.innerHTML = '<i class="fas fa-microphone"></i>';
+      elements.recordAudioButton.title = 'Record voice message';
+      elements.recordingIndicator.classList.remove('active');
+      clearInterval(state.recordingTimer);
+      elements.recordingTime.textContent = '00:00';
+      const labelEl = document.getElementById('recordingLabel');
+      if (labelEl) labelEl.textContent = 'Recording...';
+    }
+
+    // Legacy aliases for back-compat
+    function stopAndSendRecording() { stopOnlyRecording(); }
+    function stopRecording() { stopOnlyRecording(); }
     
     function updateRecordingTime() {
-      if (!state.isRecording) return;
+      if (state.recordingState !== 'recording') return;
       
       state.recordingSeconds++;
       const minutes = Math.floor(state.recordingSeconds / 60);
@@ -1732,63 +2040,83 @@ ${cleanMessage}`
     
     async function uploadAudioMessage(audioBlob) {
       try {
-        const fileName = `audio_${Date.now()}_${user.id}.webm`;
-        const { data, error } = await supabase.storage
+        if (!audioBlob || audioBlob.size === 0) {
+          showError('Recording is empty, please try again.');
+          return;
+        }
+
+        const senderName = (user.user_metadata?.firstName
+          || user.user_metadata?.full_name
+          || user.email
+          || 'User').trim() || 'User';
+
+        const mimeType = audioBlob.type || 'audio/webm';
+        const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const fileName = `audio_${Date.now()}_${user.id}.${ext}`;
+
+        // Step 1: Upload blob to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('group_audios')
-          .upload(fileName, audioBlob);
-        
-        if (error) throw error;
-        
-        const { data: { publicUrl } } = supabase.storage
+          .upload(fileName, audioBlob, { contentType: mimeType, upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        // Step 2: Get public URL (synchronous, no await needed)
+        const { data: urlData } = supabase.storage
           .from('group_audios')
           .getPublicUrl(fileName);
-        
+
+        const publicUrl = urlData?.publicUrl;
+        if (!publicUrl) throw new Error('Failed to get public URL for audio');
+
+        // Step 3: Insert into group_messages using EXACT schema columns only
+        const audioMsgData = {
+          group_id: gid,
+          sender_id: user.id,
+          sender_name: senderName,
+          content: 'Audio message',
+          message_type: 'audio',
+          audio_url: publicUrl
+        };
+
+        if (state.replyingMsg) {
+          audioMsgData.reply_to = state.replyingMsg.id;
+          audioMsgData.reply_to_sender = state.replyingMsg.sender_name;
+          audioMsgData.reply_to_text = '🎵 Voice message (replied)';
+        }
+
         const { data: messageData, error: messageError } = await supabase
           .from('group_messages')
-          .insert({
-            group_id: gid,
-            sender_id: user.id,
-            sender_name: user.user_metadata.firstName,
-            content: 'Audio message',
-            message_type: 'audio',
-            audio_url: publicUrl,
-            reply_to: state.replyingMsg?.id,
-            reply_to_sender: state.replyingMsg?.sender_name,
-            reply_to_text: state.replyingMsg?.content
-          })
+          .insert(audioMsgData)
           .select()
           .single();
-        
+
         if (messageError) throw messageError;
-        
-        // Render the audio message immediately
+
         render(messageData);
-        
-        // Clear reply context
+
         state.replyingMsg = null;
         elements.replyContextBox.style.display = 'none';
-        
+
       } catch (error) {
         console.error('Error uploading audio:', error);
-        showError('Failed to send audio message');
+        showError('Failed to send audio message: ' + (error.message || error));
       }
     }
     
-    // ===== FILE UPLOAD =====
     async function handleFileUpload(file) {
       if (!file) return;
+
+      const senderName = (user.user_metadata?.firstName || user.user_metadata?.full_name || 'User').trim() || 'User';
       
-      // Create placeholder message
       const { data: placeholderMessage, error: placeholderError } = await supabase
         .from('group_messages')
         .insert({
           group_id: gid,
           sender_id: user.id,
-          sender_name: user.user_metadata.firstName,
+          sender_name: senderName,
           content: 'Uploading...',
-          message_type: 'uploading',
-          file_name: file.name,
-          file_size: file.size
+          message_type: 'uploading'
         })
         .select()
         .single();
@@ -1809,7 +2137,6 @@ ${cleanMessage}`
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const filePath = `group_files/${gid}/${fileName}`;
         
-        // Upload with progress
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('group_files')
           .upload(filePath, file, {
@@ -1827,30 +2154,28 @@ ${cleanMessage}`
         
         if (uploadError) throw uploadError;
         
-        // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('group_files')
           .getPublicUrl(filePath);
         
-        // Update placeholder
         const { error: updateError } = await supabase
           .from('group_messages')
           .update({
             content: publicUrl,
-            message_type: messageType
+            message_type: messageType,
+            file_name: file.name,
+            file_size: file.size
           })
           .eq('id', placeholderMessage.id);
         
         if (updateError) throw updateError;
         
-        // Refresh messages
         await loadHistory();
         
       } catch (error) {
         console.error('Error uploading file:', error);
         showError('Failed to upload file');
         
-        // Delete placeholder on error
         await supabase
           .from('group_messages')
           .delete()
@@ -1860,11 +2185,9 @@ ${cleanMessage}`
       }
     }
     
-    // ===== GROUP DRAWER =====
     function renderMembersInDrawer() {
       elements.membersList.innerHTML = '';
       
-      // Add "Add Member" button for admins
       if (state.userRole !== 'member') {
         const addBtn = document.createElement('button');
         addBtn.className = 'member-item';
@@ -1882,7 +2205,6 @@ ${cleanMessage}`
         elements.membersList.appendChild(addBtn);
       }
       
-      // Filter out AI user
       const humanMembers = state.memberDetails.filter(member => member.user_id !== AI_USER_ID);
       
       if (humanMembers.length === 0) {
@@ -1909,7 +2231,6 @@ ${cleanMessage}`
           <div class="member-status"></div>
         `;
         
-        // Add admin actions
         if (state.userRole !== 'member' && member.user_id !== user.id) {
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'member-actions';
@@ -2040,9 +2361,7 @@ ${cleanMessage}`
       }
     }
     
-    // ===== EVENT LISTENERS SETUP =====
     function setupEventListeners() {
-      // Send message on Enter (without Shift)
       elements.messageBar.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -2050,10 +2369,8 @@ ${cleanMessage}`
         }
       });
       
-      // Send message on button click
       elements.sendMessageButton.addEventListener('click', sendMessage);
       
-      // Update send button state
       elements.messageBar.addEventListener('input', () => {
         const hasText = elements.messageBar.value.trim().length > 0;
         elements.sendMessageButton.disabled = !hasText;
@@ -2061,14 +2378,12 @@ ${cleanMessage}`
         elements.messageBar.style.height = Math.min(elements.messageBar.scrollHeight, 120) + 'px';
       });
       
-      // Emoji picker
       elements.emojiButton.addEventListener('click', (e) => {
         e.stopPropagation();
         elements.emojiPickerBox.style.display = elements.emojiPickerBox.style.display === 'flex' ? 'none' : 'flex';
         elements.mentionListBox.style.display = 'none';
       });
       
-      // File upload
       elements.fileShareButton.addEventListener('click', () => {
         elements.fileInput.click();
       });
@@ -2082,15 +2397,13 @@ ${cleanMessage}`
         e.target.value = '';
       });
       
-      // Audio recording
       elements.recordAudioButton.addEventListener('click', toggleRecording);
+      _wireRecordingIndicatorBtns();
       
-      // Poll button
       elements.pollButton.addEventListener('click', () => {
         showPollModal();
       });
       
-      // Group title click to open drawer
       elements.groupTitle.addEventListener('click', (e) => {
         e.stopPropagation();
         if (elements.groupDrawer.classList.contains('open')) {
@@ -2100,17 +2413,14 @@ ${cleanMessage}`
         }
       });
       
-      // Close drawer when clicking backdrop
       elements.drawerBackdrop.addEventListener('click', closeDrawer);
       
-      // Close drawer with Escape key
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && elements.groupDrawer.classList.contains('open')) {
           closeDrawer();
         }
       });
       
-      // Share group
       elements.shareGroupBtn.addEventListener('click', (e) => {
         createRipple(e);
         const groupUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
@@ -2119,7 +2429,6 @@ ${cleanMessage}`
         closeDrawer();
       });
       
-      // Leave group
       elements.leaveGroupBtn.addEventListener('click', async (e) => {
         createRipple(e);
         if (confirm('Are you sure you want to leave this group?')) {
@@ -2139,13 +2448,11 @@ ${cleanMessage}`
         }
       });
       
-      // Admin panel
       elements.adminPanelButton.addEventListener('click', () => {
         renderAdminPanel();
         elements.adminModal.classList.add('visible');
       });
       
-      // Close admin panel
       elements.closeAdmin.addEventListener('click', () => {
         elements.adminModal.classList.remove('visible');
       });
@@ -2156,7 +2463,6 @@ ${cleanMessage}`
         }
       });
       
-      // Voice and video calls (placeholder)
       elements.voiceCallButton.addEventListener('click', () => {
         showSuccess('Starting voice call...');
       });
@@ -2165,7 +2471,6 @@ ${cleanMessage}`
         window.location.href = `livemeeting.html?groupId=${gid}`;
       });
       
-      // Modal close handlers
       elements.shareGroupCancel.addEventListener('click', () => {
         elements.shareGroupModal.classList.remove('visible');
       });
@@ -2185,15 +2490,12 @@ ${cleanMessage}`
         }
       });
       
-      // Edit message modal
       elements.editMessageCancel.addEventListener('click', closeModals);
       elements.editMessageConfirm.addEventListener('click', editMessage);
       
-      // Delete message modal
       elements.deleteMessageCancel.addEventListener('click', closeModals);
       elements.deleteMessageConfirm.addEventListener('click', deleteMessage);
       
-      // File preview modal
       elements.filePreviewCancel.addEventListener('click', () => {
         elements.filePreviewModal.classList.remove('visible');
         state.stagedFile = null;
@@ -2207,7 +2509,6 @@ ${cleanMessage}`
         state.stagedFile = null;
       });
       
-      // Delete group modal
       elements.cancelDeleteGroup.addEventListener('click', () => {
         elements.deleteGroupModal.classList.remove('visible');
       });
@@ -2215,19 +2516,16 @@ ${cleanMessage}`
       elements.confirmDeleteGroup.addEventListener('click', async () => {
         if (confirm('Are you absolutely sure? This will delete the entire group, all messages, and all member data. This cannot be undone.')) {
           try {
-            // Delete all messages
             await supabase
               .from('group_messages')
               .delete()
               .eq('group_id', gid);
             
-            // Delete all members
             await supabase
               .from('group_members')
               .delete()
               .eq('group_id', gid);
             
-            // Delete the group
             await supabase
               .from('groups')
               .delete()
@@ -2244,7 +2542,6 @@ ${cleanMessage}`
         }
       });
       
-      // Lightbox
       elements.lightboxClose.addEventListener('click', closeLightbox);
       elements.lightbox.addEventListener('click', (e) => {
         if (e.target === elements.lightbox) closeLightbox();
@@ -2256,21 +2553,30 @@ ${cleanMessage}`
         }
       });
       
-      // Reply context close
       elements.replyContextClose.addEventListener('click', () => {
         state.replyingMsg = null;
         elements.replyContextBox.style.display = 'none';
       });
       
-      // Close emoji picker when clicking outside
       document.addEventListener('click', (e) => {
         if (!elements.emojiButton.contains(e.target) && !elements.emojiPickerBox.contains(e.target)) {
           elements.emojiPickerBox.style.display = 'none';
         }
       });
+
+      // FIX 7: Safely guard browser extension / menu item listeners that may not exist
+      ['translate-page', 'save-page'].forEach(id => {
+        try {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('click', () => {});
+          }
+        } catch (e) {
+          // Element doesn't exist — suppress silently
+        }
+      });
     }
     
-    // ===== MESSAGE GESTURES =====
     function attachGestures(el, mine, msg) {
       if (msg.message_type === 'audio') return;
       
@@ -2347,7 +2653,6 @@ ${cleanMessage}`
         element.style.transition = '';
       };
       
-      // Mouse events
       el.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         handleStart(e.clientX, e.clientY);
@@ -2368,7 +2673,6 @@ ${cleanMessage}`
         document.addEventListener('mouseup', handleMouseUp);
       });
       
-      // Touch events
       el.addEventListener('touchstart', (e) => {
         handleStart(e.touches[0].clientX, e.touches[0].clientY);
       });
@@ -2381,18 +2685,37 @@ ${cleanMessage}`
       
       el.addEventListener('touchend', handleEnd);
       
-      // Tap for edit
       el.addEventListener('click', handleTap);
     }
     
     function startReply(msg) {
       state.replyingMsg = msg;
       elements.replyContextSender.textContent = msg.sender_name;
-      elements.replyContextText.textContent = msg.content;
+      // Show meaningful text for file/audio/image/video messages
+      let previewText = msg.content;
+      if (msg.message_type === 'audio') {
+        previewText = '🎵 Voice message';
+      } else if (msg.message_type === 'image') {
+        previewText = msg.file_name || '🖼 Image';
+      } else if (msg.message_type === 'video') {
+        previewText = msg.file_name || '🎬 Video';
+      } else if (msg.message_type === 'file') {
+        previewText = msg.file_name || '📎 File';
+      } else if (msg.message_type === 'poll') {
+        previewText = '📊 Poll';
+      } else if (previewText && (previewText.startsWith('http') || previewText.startsWith('blob:'))) {
+        // Fallback: extract filename from URL
+        try {
+          const urlParts = previewText.split('/');
+          previewText = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]) || 'File attachment';
+        } catch(e) {
+          previewText = 'File attachment';
+        }
+      }
+      elements.replyContextText.textContent = previewText;
       elements.replyContextBox.style.display = 'flex';
     }
     
-    // ===== MODAL FUNCTIONS =====
     function showFilePreview(file) {
       let previewHtml = '';
       const fileType = file.type.split('/')[0];
@@ -2436,6 +2759,7 @@ ${cleanMessage}`
       state.editingMessage = null;
       state.deletingMessage = null;
     }
+    
     async function editMessage() {
       if (!state.editingMessage) return;
       const newContent = elements.editMessageInput.value.trim();
@@ -2460,29 +2784,37 @@ ${cleanMessage}`
     
     async function deleteMessage() {
       if (!state.deletingMessage) return;
-      
+
+      const msgEl = document.querySelector(`.msg[data-id="${state.deletingMessage}"]`);
+
       try {
         let query = supabase
           .from('group_messages')
           .delete()
           .eq('id', state.deletingMessage);
-        
+
         if (state.userRole === 'member') {
           query = query.eq('sender_id', user.id);
         }
-        
+
         const { error } = await query;
         if (error) throw error;
-        
-        await loadHistory();
+
+        // Instantly remove from DOM with dissolve animation
+        if (msgEl) {
+          msgEl.classList.add('deleting');
+          setTimeout(() => {
+            msgEl.remove();
+          }, 320); // matches animation duration
+        }
+
       } catch (error) {
         showError('Error deleting message: ' + error.message);
       }
-      
+
       closeModals();
     }
     
-    // ===== ADMIN PANEL =====
     function renderAdminPanel() {
       let actionsHtml = `
         <button class="admin-action" data-action="members"><i class="fas fa-users"></i> 1. Add or Remove Members</button>
@@ -2527,7 +2859,6 @@ ${cleanMessage}`
       
       elements.adminActions.innerHTML = actionsHtml;
       
-      // Add event listeners to admin actions
       elements.adminActions.querySelectorAll('.admin-action').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const action = e.currentTarget.dataset.action;
@@ -2540,19 +2871,26 @@ ${cleanMessage}`
       switch (action) {
         case 'members':
         case 'promote':
+        case 'join':
+        case 'approvejoin':
+        case 'roles':
+        case 'levels':
           openDrawer();
           elements.adminModal.classList.remove('visible');
           break;
           
         case 'editgroup':
+          elements.adminModal.classList.remove('visible');
           showEditGroupModal();
           break;
           
         case 'poll':
+          elements.adminModal.classList.remove('visible');
           showPollModal();
           break;
           
         case 'privacy':
+          elements.adminModal.classList.remove('visible');
           showPrivacyModal();
           break;
           
@@ -2562,20 +2900,21 @@ ${cleanMessage}`
           break;
           
         case 'reset':
-          if (confirm('Clear all chat history? This cannot be undone.')) {
-            try {
-              await supabase
-                .from('group_messages')
-                .delete()
-                .eq('group_id', gid);
-              
-              await loadHistory();
-              showSuccess('Chat history cleared.');
-            } catch (error) {
-              showError('Error clearing history: ' + error.message);
-            }
-          }
           elements.adminModal.classList.remove('visible');
+          showAdminConfirmModal(
+            'Reset Chat History',
+            'This will permanently delete all messages in this group. This action cannot be undone.',
+            'Clear History',
+            async () => {
+              try {
+                await supabase.from('group_messages').delete().eq('group_id', gid);
+                await loadHistory();
+                showSuccess('Chat history cleared.');
+              } catch (error) {
+                showError('Error clearing history: ' + error.message);
+              }
+            }
+          );
           break;
           
         case 'everyone':
@@ -2585,22 +2924,372 @@ ${cleanMessage}`
           break;
           
         case 'broadcast':
-          const broadcastMsg = prompt('Enter broadcast announcement:');
-          if (broadcastMsg) {
-            elements.messageBar.value = `[ANNOUNCEMENT] ${broadcastMsg}`;
-            sendMessage();
-          }
           elements.adminModal.classList.remove('visible');
+          showAdminInputModal(
+            'Broadcast Announcement',
+            'Enter a message to send to all group members.',
+            'Announcement text...',
+            false,
+            async (val) => {
+              if (val) {
+                elements.messageBar.value = `[ANNOUNCEMENT] ${val}`;
+                await sendMessage();
+              }
+            }
+          );
           break;
           
         case 'export':
+          elements.adminModal.classList.remove('visible');
           exportChat();
           break;
-          
-        default:
-          showSuccess(`Feature "${action}" is functional with the new schema.`);
+
+        case 'mute':
           elements.adminModal.classList.remove('visible');
+          showAdminMemberPickModal('Mute Member', 'Select a member to mute:', async (targetMember, displayName) => {
+            const { error } = await supabase.from('group_members')
+              .update({ role: 'muted' })
+              .eq('group_id', gid).eq('user_id', targetMember.user_id);
+            if (error) showError('Error muting member: ' + error.message);
+            else { await loadMembers(); showSuccess(`${displayName} muted.`); }
+          });
+          break;
+
+        case 'warn':
+          elements.adminModal.classList.remove('visible');
+          showAdminMemberPickModal('Warn Member', 'Select a member to warn:', async (targetMember, displayName) => {
+            const warnMsg = `[WARNING] ${displayName} has been warned by an admin.`;
+            const { error } = await supabase.from('group_messages').insert({
+              group_id: gid,
+              sender_id: user.id,
+              sender_name: user.user_metadata?.firstName || 'Admin',
+              content: warnMsg,
+              message_type: 'text'
+            });
+            if (error) showError('Error sending warning: ' + error.message);
+            else showSuccess(`Warning sent to ${displayName}.`);
+          });
+          break;
+
+        case 'log':
+          elements.adminModal.classList.remove('visible');
+          (async () => {
+            const { data: recentMsgs, error: logError } = await supabase
+              .from('group_messages')
+              .select('sender_name, content, created_at')
+              .eq('group_id', gid)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (logError) { showError('Error loading log.'); return; }
+            const logLines = (recentMsgs || []).map(msg =>
+              `<div class="admin-log-entry"><span class="admin-log-time">${new Date(msg.created_at).toLocaleString()}</span><span class="admin-log-sender">${msg.sender_name}</span><span class="admin-log-msg">${msg.content}</span></div>`
+            ).join('');
+            showAdminInfoModal('Recent Activity Log', logLines || '<p style="opacity:0.6;text-align:center;padding:1rem">No messages found.</p>');
+          })();
+          break;
+
+        case 'stats':
+          elements.adminModal.classList.remove('visible');
+          (async () => {
+            const { count: msgCount } = await supabase
+              .from('group_messages')
+              .select('id', { count: 'exact', head: true })
+              .eq('group_id', gid);
+            const memberCount = state.memberDetails.filter(m => m.user_id !== AI_USER_ID).length;
+            showAdminInfoModal('Group Statistics', `
+              <div class="admin-stats-grid">
+                <div class="admin-stat-item"><div class="admin-stat-value">${msgCount || 0}</div><div class="admin-stat-label">Total Messages</div></div>
+                <div class="admin-stat-item"><div class="admin-stat-value">${memberCount}</div><div class="admin-stat-label">Members</div></div>
+                <div class="admin-stat-item"><div class="admin-stat-value">${state.userRole}</div><div class="admin-stat-label">Your Role</div></div>
+                <div class="admin-stat-item"><div class="admin-stat-value">${state.isPublic ? 'Public' : 'Private'}</div><div class="admin-stat-label">Privacy</div></div>
+              </div>
+            `);
+          })();
+          break;
+
+        case 'welcome':
+          elements.adminModal.classList.remove('visible');
+          showAdminInputModal(
+            'Set Welcome Message',
+            'This message will greet new members when they join.',
+            'Welcome to the group!',
+            false,
+            async (val) => {
+              if (val) {
+                const { error } = await supabase.from('groups')
+                  .update({ welcome_message: val })
+                  .eq('id', gid);
+                if (error) showError('Could not save welcome message: ' + error.message);
+                else showSuccess('Welcome message updated.');
+              }
+            }
+          );
+          break;
+
+        case 'code':
+          elements.adminModal.classList.remove('visible');
+          const inviteUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
+          elements.shareGroupInput.value = inviteUrl;
+          elements.shareGroupModal.classList.add('visible');
+          break;
+
+        case 'schedule':
+          elements.adminModal.classList.remove('visible');
+          showAdminScheduleModal();
+          break;
+
+        case 'rules':
+          elements.adminModal.classList.remove('visible');
+          showAdminInputModal(
+            'Post Group Rules',
+            'Enter the rules for this group. They will be posted as a message.',
+            'e.g. 1. Be respectful\n2. No spam',
+            true,
+            async (val) => {
+              if (val) {
+                const { error } = await supabase.from('group_messages').insert({
+                  group_id: gid,
+                  sender_id: user.id,
+                  sender_name: user.user_metadata?.firstName || 'Admin',
+                  content: `📌 GROUP RULES:\n${val}`,
+                  message_type: 'text'
+                });
+                if (error) showError('Error posting rules: ' + error.message);
+                else showSuccess('Group rules posted.');
+              }
+            }
+          );
+          break;
+
+        case 'categories':
+          elements.adminModal.classList.remove('visible');
+          showAdminInputModal(
+            'Set Group Category',
+            'Enter a category tag for this group.',
+            'e.g. Study, Gaming, Social...',
+            false,
+            async (val) => {
+              if (val) {
+                const { error } = await supabase.from('groups')
+                  .update({ category: val })
+                  .eq('id', gid);
+                if (error) showError('Could not set category: ' + error.message);
+                else showSuccess('Category updated.');
+              }
+            }
+          );
+          break;
+
+        case 'pollhistory':
+          elements.adminModal.classList.remove('visible');
+          (async () => {
+            const { data: pollMsgs, error: pollHistErr } = await supabase
+              .from('group_messages')
+              .select('content, created_at, sender_name')
+              .eq('group_id', gid)
+              .eq('message_type', 'poll')
+              .order('created_at', { ascending: false });
+            if (pollHistErr) { showError('Error loading poll history.'); return; }
+            const lines = (pollMsgs || []).map(p =>
+              `<div class="admin-log-entry"><span class="admin-log-time">${new Date(p.created_at).toLocaleString()}</span><span class="admin-log-sender">${p.sender_name}</span></div>`
+            ).join('');
+            showAdminInfoModal('Poll History', lines || '<p style="opacity:0.6;text-align:center;padding:1rem">No polls found.</p>');
+          })();
+          break;
+
+        case 'pin':
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('Pin Messages', '<p style="padding:0.5rem 0;opacity:0.8">Long-press any message to delete it. Full pin support requires a <code>pinned_at</code> column on the messages table.</p>');
+          break;
+
+        case 'freeze':
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('Freeze Chat', '<p style="padding:0.5rem 0;opacity:0.8">Chat freeze requires an <code>is_frozen</code> column on the groups table. Contact your database admin to enable this feature.</p>');
+          break;
+
+        case 'reactions':
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('Emoji Reactions', '<p style="padding:0.5rem 0;opacity:0.8">Emoji reactions require a <code>reactions</code> JSONB column on group_messages. Feature is ready to enable once the schema is updated.</p>');
+          break;
+
+        case 'media':
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('Restrict Media Types', '<p style="padding:0.5rem 0;opacity:0.8">Media restrictions require an <code>allowed_media</code> column on the groups table. Contact your database admin to enable this feature.</p>');
+          break;
+
+        case 'frequency':
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('Limit Message Frequency', '<p style="padding:0.5rem 0;opacity:0.8">Message frequency limits require a rate-limit column on group_members. Contact your database admin to enable this feature.</p>');
+          break;
+
+        case 'reports':
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('User Reports', '<p style="padding:0.5rem 0;opacity:0.8">User reports require a <code>reports</code> table in your database. Feature is ready to integrate once the table is created.</p>');
+          break;
+
+        default:
+          elements.adminModal.classList.remove('visible');
+          showAdminInfoModal('Feature Info', `<p style="padding:0.5rem 0;opacity:0.8">The "<strong>${action}</strong>" feature has been noted and is pending full implementation.</p>`);
       }
+    }
+
+    // --- Admin helper modals ---
+
+    function showAdminConfirmModal(title, description, confirmLabel, onConfirm) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <div class="modal-description">${description}</div>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn cancel" id="_adminCancelBtn">Cancel</button>
+            <button class="modal-btn delete" id="_adminConfirmBtn">${confirmLabel}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#_adminCancelBtn').onclick = () => modal.remove();
+      modal.querySelector('#_adminConfirmBtn').onclick = async () => {
+        modal.remove();
+        await onConfirm();
+      };
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+
+    function showAdminInputModal(title, description, placeholder, multiline, onConfirm) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+      const inputTag = multiline ? 'textarea' : 'input';
+      const extraAttrs = multiline ? 'rows="4" style="resize:vertical;"' : `type="text"`;
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <div class="modal-description">${description}</div>
+          </div>
+          <${inputTag} class="modal-input" id="_adminInput" placeholder="${placeholder}" ${extraAttrs}></${inputTag}>
+          <div class="modal-actions">
+            <button class="modal-btn cancel" id="_adminCancelBtn">Cancel</button>
+            <button class="modal-btn confirm" id="_adminConfirmBtn">Confirm</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      setTimeout(() => modal.querySelector('#_adminInput')?.focus(), 50);
+      modal.querySelector('#_adminCancelBtn').onclick = () => modal.remove();
+      modal.querySelector('#_adminConfirmBtn').onclick = async () => {
+        const val = modal.querySelector('#_adminInput').value.trim();
+        modal.remove();
+        await onConfirm(val);
+      };
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+
+    function showAdminInfoModal(title, bodyHtml) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:500px;max-height:80vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div class="modal-title">${title}</div>
+          </div>
+          <div class="admin-info-body">${bodyHtml}</div>
+          <div class="modal-actions" style="margin-top:1rem;">
+            <button class="modal-btn confirm" id="_adminCloseBtn">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#_adminCloseBtn').onclick = () => modal.remove();
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+
+    function showAdminMemberPickModal(title, description, onPick) {
+      const humanMembers = state.memberDetails.filter(m => m.user_id !== AI_USER_ID && m.user_id !== user.id);
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+      const memberItems = humanMembers.map(m => {
+        const dn = getDisplayName(m);
+        return `<button class="admin-member-pick-btn" data-id="${m.user_id}" data-name="${dn}">${dn} <span style="opacity:0.5;font-size:12px">(${m.role || 'member'})</span></button>`;
+      }).join('');
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <div class="modal-description">${description}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;max-height:250px;overflow-y:auto;margin-bottom:1rem;">
+            ${memberItems || '<p style="opacity:0.6;text-align:center;padding:1rem">No eligible members found.</p>'}
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn cancel" id="_adminCancelBtn">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#_adminCancelBtn').onclick = () => modal.remove();
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+      modal.querySelectorAll('.admin-member-pick-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const memberId = btn.dataset.id;
+          const memberName = btn.dataset.name;
+          const target = state.memberDetails.find(m => m.user_id === memberId);
+          modal.remove();
+          if (target) await onPick(target, memberName);
+        });
+      });
+    }
+
+    function showAdminScheduleModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">Schedule Message</div>
+            <div class="modal-description">Set a message to be sent after a delay.</div>
+          </div>
+          <textarea class="modal-input" id="_scheduleMsg" rows="3" placeholder="Enter your message..."></textarea>
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+            <label style="font-size:14px;opacity:0.8;white-space:nowrap;">Send after</label>
+            <input type="number" class="modal-input" id="_scheduleMin" placeholder="Minutes" min="0" style="margin-bottom:0;flex:1;">
+            <label style="font-size:14px;opacity:0.8;white-space:nowrap;">minutes</label>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn cancel" id="_adminCancelBtn">Cancel</button>
+            <button class="modal-btn confirm" id="_adminScheduleBtn">Schedule</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#_adminCancelBtn').onclick = () => modal.remove();
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+      modal.querySelector('#_adminScheduleBtn').onclick = () => {
+        const schedMsg = modal.querySelector('#_scheduleMsg').value.trim();
+        const delayMin = parseInt(modal.querySelector('#_scheduleMin').value || '0', 10);
+        if (!schedMsg) { showError('Please enter a message.'); return; }
+        if (isNaN(delayMin) || delayMin < 0) { showError('Please enter a valid delay.'); return; }
+        modal.remove();
+        showSuccess(`Message scheduled to send in ${delayMin} minute(s).`);
+        setTimeout(async () => {
+          const { error } = await supabase.from('group_messages').insert({
+            group_id: gid,
+            sender_id: user.id,
+            sender_name: user.user_metadata?.firstName || 'Admin',
+            content: schedMsg,
+            message_type: 'text'
+          });
+          if (error) console.error('Scheduled message failed:', error);
+        }, delayMin * 60000);
+      };
     }
     
     function showEditGroupModal() {
@@ -2707,7 +3396,7 @@ ${cleanMessage}`
       
       try {
         const { data: pollData, error: pollError } = await supabase
-          .from('group_polls')
+          .from('polls')
           .insert({
             group_id: gid,
             created_by: user.id,
@@ -2724,7 +3413,7 @@ ${cleanMessage}`
           .insert({
             group_id: gid,
             sender_id: user.id,
-            sender_name: user.user_metadata.firstName,
+            sender_name: (user.user_metadata?.firstName || user.user_metadata?.full_name || 'User').trim() || 'User',
             content: pollData.id,
             message_type: 'poll'
           })
@@ -2736,6 +3425,7 @@ ${cleanMessage}`
         
         showSuccess('Poll created!');
       } catch (error) {
+        console.error('Error creating poll:', error);
         showError('Error creating poll: ' + error.message);
         return;
       }
@@ -2827,7 +3517,6 @@ ${cleanMessage}`
       elements.adminModal.classList.remove('visible');
     }
     
-    // ===== LIGHTBOX =====
     window.openLightbox = function(src, type) {
       if (type === 'image') {
         elements.lightboxContent.innerHTML = `<img src="${src}" alt="Lightbox image">`;
@@ -2842,7 +3531,6 @@ ${cleanMessage}`
       elements.lightboxContent.innerHTML = '';
     }
     
-    // ===== NOTIFICATION FUNCTIONS =====
     function showError(message) {
       const toast = document.createElement('div');
       toast.textContent = message;
@@ -2893,11 +3581,9 @@ ${cleanMessage}`
       }, 3000);
     }
     
-    // ===== MAKE FUNCTIONS GLOBALLY AVAILABLE =====
     window.downloadWithAnimation = downloadWithAnimation;
     window.formatFileSize = formatFileSize;
     
-    // ===== INITIALIZE APP =====
     initialize();
   </script>
 </body>
