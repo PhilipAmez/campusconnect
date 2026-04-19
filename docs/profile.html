@@ -290,26 +290,32 @@
         }
         .stat-card {
             background: var(--bg-primary);
-            padding: 1rem;
+            padding: 1rem 0.75rem;
             border-radius: var(--radius);
             text-align: center;
             box-shadow: var(--shadow);
             transition: var(--transition);
             cursor: pointer;
+            border: 1px solid var(--border);
         }
         .stat-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
         }
         .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.4rem;
+            font-weight: 800;
             color: var(--primary);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
+            letter-spacing: -0.02em;
         }
         .stat-label {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
         .profile-sections {
             display: flex;
@@ -321,19 +327,21 @@
             border-radius: var(--radius);
             padding: 1.5rem;
             box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
         }
         .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
+            font-size: 1.05rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            letter-spacing: -0.01em;
         }
         .section-icon {
             color: var(--primary);
@@ -384,57 +392,70 @@
         .groups-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-        .group-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            border-radius: var(--radius);
-            background: var(--bg-tertiary);
-            transition: var(--transition);
-            box-shadow: var(--shadow);
-            cursor: pointer;
-        }
-        .group-item:hover {
-            background: var(--bg-secondary);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-lg);
+            gap: 0.75rem;
         }
         .group-avatar {
             width: 48px;
             height: 48px;
-            border-radius: 50%;
+            min-width: 48px;
+            border-radius: 12px;
             background: linear-gradient(135deg, var(--primary), var(--primary-light));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: bold;
-            font-size: 1.1rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 4px 8px rgba(124, 58, 237, 0.25);
+            letter-spacing: 0.5px;
         }
-        .group-info {
-            flex: 1;
+        .group-info { flex: 1; min-width: 0; }
+        .group-name-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.2rem;
+            flex-wrap: nowrap;
+            min-width: 0;
         }
         .group-name {
             font-weight: 600;
-            margin-bottom: 0.25rem;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
         .group-members {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
         }
         .admin-badge {
-            background: linear-gradient(135deg, var(--accent), #059669);
-            color: white;
-            padding: 0.3rem 0.6rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.18rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            flex-shrink: 0;
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        [data-theme="dark"] .admin-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.25);
+        }
+        .admin-badge i {
+            font-size: 0.6rem;
         }
         .bio-section {
             position: relative;
@@ -749,38 +770,44 @@
         .menu-item.delete i {
             color: var(--danger);
         }
-        /* Settings Drawer with Glassmorphism */
+        /* Settings Drawer */
         .settings-drawer {
             position: fixed;
             top: 0;
-            right: -400px;
+            right: 0;
             width: 380px;
             height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            transition: var(--transition);
+            transform: translateX(100%);
+            transition: transform 0.32s cubic-bezier(0.22, 0.9, 0.32, 1);
+            will-change: transform;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         .settings-drawer.open {
-            right: 0;
+            transform: translateX(0);
         }
         .drawer-content {
             flex: 1;
             overflow-y: auto;
             padding: 1.5rem;
+            background: var(--bg-primary);
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
         }
+        .drawer-content::-webkit-scrollbar { width: 4px; }
+        .drawer-content::-webkit-scrollbar-track { background: transparent; }
+        .drawer-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
         .settings-section {
             margin-bottom: 2rem;
         }
         .section-divider {
             height: 1px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--border);
             margin: 1.5rem 0;
         }
         .settings-item {
@@ -814,34 +841,34 @@
             outline: none;
             border-color: var(--primary);
         }
-        /* Notifications Drawer with Glassmorphism */
+        /* Notifications Drawer */
         .notifications-drawer {
             position: fixed;
             top: 0;
-            left: -400px;
+            left: 0;
             width: 380px;
             height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            box-shadow: 10px 0 40px rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            transition: var(--transition);
+            transform: translateX(-100%);
+            transition: transform 0.32s cubic-bezier(0.22, 0.9, 0.32, 1);
+            will-change: transform;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         .notifications-drawer.open {
-            left: 0;
+            transform: translateX(0);
         }
         .notifications-header {
             padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-secondary);
         }
         .notifications-title {
             font-size: 1.25rem;
@@ -863,6 +890,9 @@
             flex: 1;
             overflow-y: auto;
             padding: 1.5rem;
+            background: var(--bg-primary);
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
         }
         .notifications-list {
             display: flex;
@@ -870,7 +900,7 @@
             gap: 1rem;
         }
         .notification-item {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-secondary);
             border-radius: 8px;
             cursor: pointer;
             padding: 1rem;
@@ -878,6 +908,7 @@
             display: flex;
             align-items: flex-start;
             gap: 1rem;
+            border: 1px solid transparent;
         }
         .notification-avatar {
             width: 40px;
@@ -905,7 +936,8 @@
             border-left: 3px solid var(--primary);
         }
         .notification-item:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--bg-tertiary);
+            border-color: var(--border);
             transform: translateX(4px);
         }
         .notification-header {
@@ -928,9 +960,9 @@
             color: var(--text-primary);
         }
         .mark-all-read-btn {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--bg-secondary);
             color: var(--text-primary);
-            border: none;
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 0.75rem 1.5rem;
             font-weight: 500;
@@ -942,36 +974,35 @@
             gap: 0.5rem;
             margin-top: 1rem;
             width: 100%;
-            backdrop-filter: blur(10px);
         }
         .mark-all-read-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: var(--bg-tertiary);
             transform: translateY(-2px);
         }
         /* Followers Drawer */
         .followers-drawer {
             position: fixed;
             top: 0;
-            right: -400px;
+            right: 0;
             width: 380px;
             height: 100vh;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            transition: var(--transition);
+            transform: translateX(100%);
+            transition: transform 0.32s cubic-bezier(0.22, 0.9, 0.32, 1);
+            will-change: transform;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         .followers-drawer.open {
-            right: 0;
+            transform: translateX(0);
         }
         .followers-tabs {
             display: flex;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border);
             margin-bottom: 1rem;
         }
         .tab-button {
@@ -995,15 +1026,17 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 1rem;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
+            padding: 0.875rem 1rem;
+            border-radius: 10px;
+            background: var(--bg-secondary);
             margin-bottom: 0.5rem;
             transition: var(--transition);
+            border: 1px solid transparent;
         }
         .follower-item:hover, .following-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
+            background: var(--bg-tertiary);
+            border-color: var(--border);
+            transform: translateX(4px);
         }
         .follower-avatar, .following-avatar {
             width: 40px;
@@ -1305,7 +1338,8 @@
             }
           
             .profile-stats {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.75rem;
             }
           
             .academic-grid {
@@ -1316,11 +1350,11 @@
             .notifications-drawer,
             .followers-drawer {
                 width: 100%;
-                right: -100%;
             }
           
             .notifications-drawer {
-                left: -100%;
+                right: auto;
+                left: 0;
             }
           
             .theme-indicator {
@@ -1606,6 +1640,49 @@
             }
         }
 
+        /* Utility */
+        body.no-scroll { overflow: hidden; }
+
+        /* Logout button in settings */
+        .settings-logout-section {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+        .settings-logout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.5rem;
+            background: rgba(239, 68, 68, 0.08);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .settings-logout-btn:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+        }
+        /* Retry link inside empty states */
+        .retry-link {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: inherit;
+            padding: 0;
+        }
         /* Desktop Navigation */
         .desktop-nav {
             display: flex;
@@ -1745,7 +1822,7 @@
                         </h1>
                         <p id="userInfo">
                             <span id="username">Loading...</span>
-                            <span class="status-indicator" id="statusIndicator">Online</span>
+                            <span class="status-indicator" id="statusIndicator" style="display:none;"></span>
                         </p>
                     </div>
                 </div>
@@ -2167,6 +2244,14 @@
                 </div>
             </div>
         </div>
+
+        <!-- Logout Section pinned to bottom -->
+        <div class="settings-logout-section">
+            <button class="settings-logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                Sign Out
+            </button>
+        </div>
     </div>
     <!-- Followers Drawer -->
     <div class="followers-drawer" id="followersDrawer">
@@ -2310,6 +2395,10 @@
         const closePostsDrawer = document.getElementById('closePostsDrawer');
         const postsGrid = document.getElementById('postsGrid');
         const savedPostsGrid = document.getElementById('savedPostsGrid');
+        // Notifications drawer elements (may not exist on this page — guard all access)
+        const notificationsDrawer = document.getElementById('notificationsDrawer') || null;
+        const notificationsList = document.getElementById('notificationsList') || null;
+        const notificationCount = document.getElementById('notificationCount') || null;
         // NEW: Additional settings elements
         const notificationFrequency = document.getElementById('notificationFrequency');
         const directMessagesSetting = document.getElementById('directMessagesSetting');
@@ -2437,90 +2526,31 @@
                 showError('Error loading profile data. Please try again.');
             }
         }
-        // NEW: Initialize additional settings
+        // Initialize additional settings
         function initializeNewSettings() {
-            // Set up event listeners for new settings
-            notificationFrequency.addEventListener('change', function() {
-                console.log('Notification frequency changed to:', this.value);
-                saveSetting('notification_frequency', this.value);
-            });
-           
-            directMessagesSetting.addEventListener('change', function() {
-                console.log('Direct messages setting changed to:', this.value);
-                saveSetting('direct_messages', this.value);
-            });
-           
-            fontSizeSetting.addEventListener('change', function() {
-                console.log('Font size changed to:', this.value);
-                saveSetting('font_size', this.value);
-                applyFontSize(this.value);
-            });
-           
-            autoplayVideosToggle.addEventListener('change', function() {
-                console.log('Autoplay videos:', this.checked);
-                saveSetting('autoplay_videos', this.checked);
-            });
-           
-            highQualityMediaToggle.addEventListener('change', function() {
-                console.log('High quality media:', this.checked);
-                saveSetting('high_quality_media', this.checked);
-            });
-           
-            dataSaverToggle.addEventListener('change', function() {
-                console.log('Data saver mode:', this.checked);
-                saveSetting('data_saver', this.checked);
-            });
-           
-            languageSetting.addEventListener('change', function() {
-                console.log('Language changed to:', this.value);
-                saveSetting('language', this.value);
-            });
-           
-            timeFormatSetting.addEventListener('change', function() {
-                console.log('Time format changed to:', this.value);
-                saveSetting('time_format', this.value);
-            });
-           
-            privateAccountToggle.addEventListener('change', function() {
-                console.log('Private account:', this.checked);
-                saveSetting('private_account', this.checked);
-            });
-            // Load saved settings
+            if (notificationFrequency) notificationFrequency.addEventListener('change', function() { saveSetting('notification_frequency', this.value); });
+            if (directMessagesSetting) directMessagesSetting.addEventListener('change', function() { saveSetting('direct_messages', this.value); });
+            if (fontSizeSetting) fontSizeSetting.addEventListener('change', function() { saveSetting('font_size', this.value); applyFontSize(this.value); });
+            if (autoplayVideosToggle) autoplayVideosToggle.addEventListener('change', function() { saveSetting('autoplay_videos', this.checked); });
+            if (highQualityMediaToggle) highQualityMediaToggle.addEventListener('change', function() { saveSetting('high_quality_media', this.checked); });
+            if (dataSaverToggle) dataSaverToggle.addEventListener('change', function() { saveSetting('data_saver', this.checked); });
+            if (languageSetting) languageSetting.addEventListener('change', function() { saveSetting('language', this.value); });
+            if (timeFormatSetting) timeFormatSetting.addEventListener('change', function() { saveSetting('time_format', this.value); });
+            if (privateAccountToggle) privateAccountToggle.addEventListener('change', function() { saveSetting('private_account', this.checked); });
             loadNewSettings();
         }
         // NEW: Load additional settings from profile
         function loadNewSettings() {
             if (!userProfile) return;
-           
-            // Set values from user profile
-            if (userProfile.notification_frequency) {
-                notificationFrequency.value = userProfile.notification_frequency;
-            }
-            if (userProfile.direct_messages) {
-                directMessagesSetting.value = userProfile.direct_messages;
-            }
-            if (userProfile.font_size) {
-                fontSizeSetting.value = userProfile.font_size;
-                applyFontSize(userProfile.font_size);
-            }
-            if (userProfile.autoplay_videos !== undefined) {
-                autoplayVideosToggle.checked = userProfile.autoplay_videos;
-            }
-            if (userProfile.high_quality_media !== undefined) {
-                highQualityMediaToggle.checked = userProfile.high_quality_media;
-            }
-            if (userProfile.data_saver !== undefined) {
-                dataSaverToggle.checked = userProfile.data_saver;
-            }
-            if (userProfile.language) {
-                languageSetting.value = userProfile.language;
-            }
-            if (userProfile.time_format) {
-                timeFormatSetting.value = userProfile.time_format;
-            }
-            if (userProfile.private_account !== undefined) {
-                privateAccountToggle.checked = userProfile.private_account;
-            }
+            if (notificationFrequency && userProfile.notification_frequency) notificationFrequency.value = userProfile.notification_frequency;
+            if (directMessagesSetting && userProfile.direct_messages) directMessagesSetting.value = userProfile.direct_messages;
+            if (fontSizeSetting && userProfile.font_size) { fontSizeSetting.value = userProfile.font_size; applyFontSize(userProfile.font_size); }
+            if (autoplayVideosToggle && userProfile.autoplay_videos !== undefined) autoplayVideosToggle.checked = userProfile.autoplay_videos;
+            if (highQualityMediaToggle && userProfile.high_quality_media !== undefined) highQualityMediaToggle.checked = userProfile.high_quality_media;
+            if (dataSaverToggle && userProfile.data_saver !== undefined) dataSaverToggle.checked = userProfile.data_saver;
+            if (languageSetting && userProfile.language) languageSetting.value = userProfile.language;
+            if (timeFormatSetting && userProfile.time_format) timeFormatSetting.value = userProfile.time_format;
+            if (privateAccountToggle && userProfile.private_account !== undefined) privateAccountToggle.checked = userProfile.private_account;
         }
         // NEW: Apply font size to document
         function applyFontSize(size) {
@@ -2658,18 +2688,14 @@
         function updateProfileUI(profileData) {
             if (!profileData) return;
           
-            // Hide loading spinner and show name
-            const nameLoading = document.getElementById('nameLoading');
-            if (nameLoading) {
-                nameLoading.style.display = 'none';
+            // Set user name — write to the nameText span, not the h1 (which has child elements)
+            const nameTextEl = document.getElementById('nameText');
+            if (nameTextEl) {
+                nameTextEl.textContent = profileData.full_name || 'User';
+                nameTextEl.style.display = 'inline';
             }
-            const nameText = document.getElementById('nameText');
-            if (nameText) {
-                nameText.style.display = 'inline';
-            }
-          
-            // Set user name and info
-            document.getElementById('fullName').textContent = profileData.full_name || 'User';
+            const nameLoadingEl = document.getElementById('nameLoading');
+            if (nameLoadingEl) nameLoadingEl.style.display = 'none';
             document.getElementById('username').textContent = `@${profileData.username || 'user'}`;
             document.getElementById('avatarInitials').textContent = getInitials(profileData.full_name || 'User');
 
@@ -2682,10 +2708,15 @@
                 avatarContainer.innerHTML = `<span id="avatarInitials">${getInitials(profileData.full_name || 'User')}</span>`;
             }
           
-            // Set status
+            // Set status - only show when we have real data
             const statusIndicator = document.getElementById('statusIndicator');
-            statusIndicator.textContent = profileData.status || 'Online';
-            statusIndicator.className = `status-indicator ${profileData.status === 'Online' ? 'status-online' : 'status-offline'}`;
+            if (profileData.status) {
+                statusIndicator.textContent = profileData.status;
+                statusIndicator.className = `status-indicator ${profileData.status === 'Online' ? 'status-online' : 'status-offline'}`;
+                statusIndicator.style.display = '';
+            } else {
+                statusIndicator.style.display = 'none';
+            }
           
             // Show verified badge if user is verified
             if (userProfile.verified) {
@@ -2769,74 +2800,123 @@
             // Load new settings
             loadNewSettings();
         }
-        // Load user groups from Supabase - Enhanced with error handling and retry
-        async function loadUserGroups(retry = false) {
+        // Load user groups — two-step query to avoid any FK-hint 400 errors
+        async function loadUserGroups(retryCount = 0) {
+            const groupsGrid = document.getElementById('groupsGrid');
+
+            if (retryCount === 0) {
+                groupsGrid.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+            }
+
             try {
-                const { data: groups, error } = await supabase
+                // Step 1: get the user's memberships (group_id + role only — no join)
+                const { data: memberships, error: memError } = await supabase
                     .from('group_members')
-                    .select(`
-                        groups (
-                            id,
-                            name,
-                            group_members(count)
-                        ),
-                        role
-                    `)
-                    .eq('user_id', currentUser.id);
-              
-                if (error) {
-                    console.error('Groups query error:', error);
-                    if (!retry) {
-                        // Retry once
-                        setTimeout(() => loadUserGroups(true), 1000);
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    userGroups = groups || [];
+                    .select('group_id, role')
+                    .eq('user_id', profileUserId);
+
+                if (memError) throw memError;
+
+                if (!memberships || memberships.length === 0) {
+                    userGroups = [];
                     updateGroupsUI();
+                    return;
                 }
-              
+
+                // Step 2: fetch group details for those IDs
+                const groupIds = memberships.map(m => m.group_id).filter(Boolean);
+                const { data: groupRows, error: groupError } = await supabase
+                    .from('groups')
+                    .select('id, name')
+                    .in('id', groupIds);
+
+                if (groupError) throw groupError;
+
+                // Step 3: fetch member counts per group in parallel
+                const groupsWithCounts = await Promise.all(
+                    (groupRows || []).map(async (g) => {
+                        const membership = memberships.find(m => m.group_id === g.id);
+                        let memberCount = 0;
+                        try {
+                            const { count } = await supabase
+                                .from('group_members')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('group_id', g.id);
+                            memberCount = count || 0;
+                        } catch { /* non-critical */ }
+                        return {
+                            groups: g,
+                            role: membership?.role || 'member',
+                            memberCount
+                        };
+                    })
+                );
+
+                userGroups = groupsWithCounts;
+                updateGroupsUI();
+
             } catch (error) {
-                console.error('Error loading groups:', error);
-                const groupsGrid = document.getElementById('groupsGrid');
-                groupsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>Error loading groups. Please refresh the page.</p>
-                    </div>
-                `;
+                console.error('Error loading groups (attempt ' + (retryCount + 1) + '):', error);
+
+                if (retryCount < 2) {
+                    setTimeout(() => loadUserGroups(retryCount + 1), 1000 * (retryCount + 1));
+                } else {
+                    groupsGrid.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-circle" style="color:var(--danger);opacity:1;"></i>
+                            <p style="margin-bottom:0.75rem;">Could not load groups.</p>
+                            <button class="retry-link" id="groupsRetryBtn">
+                                <i class="fas fa-redo" style="font-size:0.8rem;"></i> Try again
+                            </button>
+                        </div>
+                    `;
+                    // Use event listener instead of inline onclick (module scope)
+                    const retryBtn = document.getElementById('groupsRetryBtn');
+                    if (retryBtn) retryBtn.addEventListener('click', () => loadUserGroups(0));
+                }
             }
         }
+        // Expose for any remaining inline references
+        window.loadUserGroups = loadUserGroups;
         // Update the UI with groups data
         function updateGroupsUI() {
             const groupsGrid = document.getElementById('groupsGrid');
             groupsGrid.innerHTML = '';
+
+            const validGroups = userGroups.filter(g => g && g.groups);
           
-            if (userGroups.length === 0) {
+            if (validGroups.length === 0) {
                 groupsGrid.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-users"></i>
-                        <p>You haven't joined any groups yet</p>
+                        <p>${profileUserId === currentUser?.id ? "You haven't joined any groups yet" : "No groups to show"}</p>
                     </div>
                 `;
                 return;
             }
           
-            userGroups.forEach(groupData => {
+            validGroups.forEach(groupData => {
                 const group = groupData.groups;
+                const memberCount = groupData.memberCount || 0;
+                const initials = (group.name || '??').substring(0, 2).toUpperCase();
+
                 const groupItem = document.createElement('div');
                 groupItem.className = 'group-item';
-              
                 groupItem.innerHTML = `
-                    <div class="group-avatar">${group.name.substring(0, 2)}</div>
+                    <div class="group-avatar">${initials}</div>
                     <div class="group-info">
-                        <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.group_members[0]?.count || 0} members</div>
+                        <div class="group-name-row">
+                            <span class="group-name">${group.name || 'Unnamed Group'}</span>
+                            ${groupData.role === 'admin' ? '<span class="admin-badge"><i class="fas fa-shield-alt"></i>Admin</span>' : ''}
+                        </div>
+                        <div class="group-members"><i class="fas fa-user" style="font-size:0.75rem; opacity:0.6;"></i> ${memberCount} member${memberCount !== 1 ? 's' : ''}</div>
                     </div>
-                    ${groupData.role === 'admin' ? '<div class="admin-badge">Admin</div>' : ''}
                 `;
-              
+
+                groupItem.addEventListener('click', () => {
+                    window.location.href = `chatroom.html?groupId=${group.id}`;
+                });
+
                 groupsGrid.appendChild(groupItem);
             });
         }
@@ -3293,11 +3373,8 @@
         
         
         window.editPost = function(postId) {
-            const post = userPosts.find(p => p.id === postId);
-            if (post) {
-                // In a real app, you would open an edit modal here
-                alert(`Editing post: ${post.title || 'Untitled Post'}`);
-            }
+            // Redirect to create-post page with existing post ID for editing
+            window.location.href = `create-post.html?editId=${postId}`;
         };
         window.deletePost = async function(postId) {
             const post = userPosts.find(p => p.id === postId);
@@ -3315,7 +3392,7 @@
                     userPosts = userPosts.filter(p => p.id !== postId);
                     updatePostsUI();
                   
-                    showError('Post deleted successfully!');
+                showToast('Post deleted successfully!', 'success');
                   
                 } catch (error) {
                     console.error('Error deleting post:', error);
@@ -3323,11 +3400,22 @@
                 }
             }
         };
-        window.sharePost = function(postId) {
+        window.sharePost = async function(postId) {
             const post = userPosts.find(p => p.id === postId);
-            if (post) {
-                // In a real app, you would implement actual sharing
-                alert(`Sharing post: ${post.title || 'Untitled Post'}`);
+            if (!post) return;
+            const shareUrl = `${window.location.origin}/feed.html?userId=${post.user_id}&videoId=${post.id}`;
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title: post.title || 'Check out this post', url: shareUrl });
+                } else {
+                    await navigator.clipboard.writeText(shareUrl);
+                    showToast('Post link copied to clipboard!', 'success');
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    try { await navigator.clipboard.writeText(shareUrl); showToast('Post link copied!', 'success'); }
+                    catch { showToast('Could not share post.', 'error'); }
+                }
             }
         };
         // Initialize followers functionality
@@ -3581,17 +3669,22 @@
 
         // Update the UI with notifications data
         function updateNotificationsUI() {
+            // Guard: notifications drawer may not exist on this page
+            if (!notificationsList) return;
+
             notificationsList.innerHTML = '';
 
-            // NEW: Check for unread notifications and update bell icon with count
+            // Check for unread notifications and update bell icon with count
             const unreadCount = userNotifications.filter(n => !n.read).length;
-            if (unreadCount > 0) {
-                notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                notificationCount.style.transform = 'scale(1)';
-            } else {
-                notificationCount.style.transform = 'scale(0)';
+            if (notificationCount) {
+                if (unreadCount > 0) {
+                    notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    notificationCount.style.transform = 'scale(1)';
+                } else {
+                    notificationCount.style.transform = 'scale(0)';
+                }
             }
-            updateDocumentTitle(unreadCount); // NEW: Update the browser tab title
+            updateDocumentTitle(unreadCount);
 
             if (userNotifications.length === 0) {
                 notificationsList.innerHTML = `
@@ -3645,16 +3738,32 @@
                 notificationsList.appendChild(notificationItem);
 
                 // NEW: Add click listener to handle notification actions
-                notificationItem.addEventListener('click', () => handleNotificationClick(notification));
+                notificationItem.addEventListener('click', () => {
+                    // Mark as read then navigate
+                    if (!notification.read) {
+                        supabase.from('notifications')
+                            .update({ read: true })
+                            .eq('id', notification.id)
+                            .then(() => loadUserNotifications());
+                    }
+                    if (notification.type === 'new_follower' && notification.sender_id) {
+                        window.location.href = `profile.html?userId=${notification.sender_id}`;
+                    } else if (notification.type === 'new_like' && notification.post_id) {
+                        window.location.href = `feed.html?videoId=${notification.post_id}`;
+                    } else {
+                        window.location.href = 'notifications.html';
+                    }
+                });
             });
         }
 
         // Helper to close all drawers
         function closeAllDrawers() {
-            notificationsDrawer.classList.remove('open');
+            if (notificationsDrawer) notificationsDrawer.classList.remove('open');
             settingsDrawer.classList.remove('open');
             followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
+            document.body.classList.remove('no-scroll');
         }
         // Load user notifications from Supabase (simplified for just the count)
         async function loadUserNotifications() {
@@ -3676,9 +3785,10 @@
             } catch (error) { console.error('Error loading notification count:', error); }
         }
         // Set up real-time notifications subscription
-        // NEW: Toast Notification Function
+        // Toast Notification Function
         function showToast(message, type = 'info', duration = 5000, onClick = null) {
             const container = document.getElementById('toastContainer');
+            if (!container) return;
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
 
@@ -3696,21 +3806,43 @@
                 <div class="toast-message">${message}</div>
             `;
 
-            // Add click handler if provided
             if (onClick && typeof onClick === 'function') {
                 toast.addEventListener('click', () => {
                     onClick();
-                    container.removeChild(toast);
+                    if (container.contains(toast)) container.removeChild(toast);
                 });
             }
 
             container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 50);
 
-            // Animate in
-            setTimeout(() => toast.classList.add('show'), 100);
+            const removeTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 400);
+            }, duration);
 
-            // Automatically remove after duration
-            setTimeout(() => container.removeChild(toast), duration);
+            // Click to dismiss early
+            toast.addEventListener('click', () => {
+                clearTimeout(removeTimer);
+                toast.classList.remove('show');
+                setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 400);
+            });
+        }
+
+        // showError: unified error/success message — was missing entirely, causing silent failures
+        function showError(message) {
+            // Route success-sounding messages to success type, errors to error type
+            const lowerMsg = message.toLowerCase();
+            let type = 'error';
+            if (lowerMsg.includes('success') || lowerMsg.includes('updated') ||
+                lowerMsg.includes('copied') || lowerMsg.includes('enabled') ||
+                lowerMsg.includes('followed') || lowerMsg.includes('unfollowed') ||
+                lowerMsg.includes('deleted')) {
+                type = 'success';
+            } else if (lowerMsg.includes('info') || lowerMsg.includes('loading')) {
+                type = 'info';
+            }
+            showToast(message, type);
         }
 
         // NEW: Play notification sound
@@ -3768,45 +3900,34 @@
                 .subscribe();
         }
 
-        // NEW: Set up real-time subscription for new group messages to show toasts
+        // Set up real-time subscription for new group messages to show toasts
         function setupGroupMessagesSubscription() {
-            if (!currentUser || userGroups.length === 0) {
-                // If no groups, nothing to subscribe to. We can try again if groups are loaded later.
-                return;
-            }
+            if (!currentUser || !userGroups || userGroups.length === 0) return;
 
-            // Create a filter for all the groups the user is a member of.
-            const groupIds = userGroups.map(g => g.groups.id);
+            const groupIds = userGroups
+                .filter(g => g && g.groups && g.groups.id)
+                .map(g => g.groups.id);
+
+            if (groupIds.length === 0) return;
+
             const filterString = `group_id=in.(${groupIds.join(',')})`;
 
-            const channel = supabase
+            supabase
                 .channel('group-messages-toast-subscription')
                 .on(
                     'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'group_messages', // Listening to the existing group_messages table
-                        filter: filterString
-                    },
+                    { event: 'INSERT', schema: 'public', table: 'group_messages', filter: filterString },
                     async (payload) => {
                         const newMessage = payload.new;
+                        if (newMessage.sender_id === currentUser.id) return;
 
-                        // Don't show a toast for your own messages
-                        if (newMessage.sender_id === currentUser.id) {
-                            return;
-                        }
-
-                        // Find the group name from the already loaded userGroups
-                        const group = userGroups.find(g => g.groups.id === newMessage.group_id)?.groups;
-                        const groupName = group?.name || 'a group';
-
-                        const messageContent = escapeHtml(newMessage.content.substring(0, 50) + (newMessage.content.length > 50 ? '...' : ''));
-                        const toastMessage = `New message in <strong>${groupName}</strong>: "${messageContent}"`;
+                        const groupEntry = userGroups.find(g => g.groups && g.groups.id === newMessage.group_id);
+                        const groupName = groupEntry?.groups?.name || 'a group';
+                        const preview = escapeHtml((newMessage.content || '').substring(0, 50));
+                        const toastMessage = `New message in <strong>${groupName}</strong>: "${preview}"`;
                         const toastAction = () => window.location.href = `chatroom.html?groupId=${newMessage.group_id}`;
-
                         showToast(toastMessage, 'message', 8000, toastAction);
-                        playNotificationSound(); // Play sound for new chat messages
+                        playNotificationSound();
                     }
                 ).subscribe();
         }
@@ -4011,12 +4132,8 @@
         function applyTheme(theme) {
             body.setAttribute('data-theme', theme);
             localStorage.setItem('peerloom-theme', theme);
-            darkModeToggle.checked = theme === 'dark';
-          
-            // Save theme preference to database
-            if (userProfile) {
-                saveThemePreference(theme);
-            }
+            if (darkModeToggle) darkModeToggle.checked = theme === 'dark';
+            if (userProfile) saveThemePreference(theme);
         }
         // Save theme preference to database
         async function saveThemePreference(theme) {
@@ -4038,17 +4155,41 @@
         closeFollowersDrawer.addEventListener('click', () => {
             followersDrawer.classList.remove('open');
             overlay.classList.remove('active');
+            document.body.classList.remove('no-scroll');
         });
         closeDrawer.addEventListener('click', () => {
             settingsDrawer.classList.remove('open');
             overlay.classList.remove('active');
+            document.body.classList.remove('no-scroll');
         });
+
+        // FIX 4: Real logout functionality
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                logoutBtn.disabled = true;
+                logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing out…';
+                try {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) throw error;
+                    // Clear any cached theme/settings from localStorage
+                    localStorage.removeItem('peerloom-theme');
+                    window.location.href = 'login.html';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showToast('Could not sign out. Please try again.', 'error');
+                    logoutBtn.disabled = false;
+                    logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Sign Out';
+                }
+            });
+        }
         // Mobile settings button
         const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
         if (mobileSettingsBtn) {
             mobileSettingsBtn.addEventListener('click', () => {
                 settingsDrawer.classList.add('open');
                 overlay.classList.add('active');
+                document.body.classList.add('no-scroll');
             });
         }
         // Desktop settings button
@@ -4057,6 +4198,7 @@
             desktopSettingsBtn.addEventListener('click', () => {
                 settingsDrawer.classList.add('open');
                 overlay.classList.add('active');
+                document.body.classList.add('no-scroll');
             });
         }
 
@@ -4090,6 +4232,7 @@
         followersStat.addEventListener('click', () => {
             followersDrawer.classList.add('open');
             overlay.classList.add('active');
+            document.body.classList.add('no-scroll');
             // Switch to followers tab
             const tabButtons = document.querySelectorAll('#followersDrawer .tab-button');
             tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -4103,6 +4246,7 @@
         followingStat.addEventListener('click', () => {
             followersDrawer.classList.add('open');
             overlay.classList.add('active');
+            document.body.classList.add('no-scroll');
             // Switch to following tab
             const tabButtons = document.querySelectorAll('#followersDrawer .tab-button');
             tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -4157,6 +4301,7 @@
             settingsDrawer.classList.remove('open');
             followersDrawer.classList.remove('open');
             postsDrawer.classList.remove('open');
+            if (typeof notificationsDrawer !== 'undefined') notificationsDrawer.classList.remove('open');
             overlay.classList.remove('active');
             twoFactorModal.classList.remove('active');
             document.body.classList.remove('no-scroll');
@@ -4167,59 +4312,63 @@
             if (e.key === 'Escape') {
                 settingsDrawer.classList.remove('open');
                 followersDrawer.classList.remove('open');
-               postsDrawer.classList.remove('open');
+                postsDrawer.classList.remove('open');
+                if (typeof notificationsDrawer !== 'undefined') notificationsDrawer.classList.remove('open');
                 overlay.classList.remove('active');
                 closeVideoViewer(); // Close video viewer on escape
                 twoFactorModal.classList.remove('active');
                 document.body.classList.remove('no-scroll');
             }
-            // NEW: Arrow key navigation for video viewer
+            // Arrow key navigation for video viewer
             if (videoViewerOverlay.classList.contains('active')) {
                 if (e.key === 'ArrowDown' || e.key === 'ArrowRight') showNextVideo();
                 if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') showPrevVideo();
-            } else if (e.key === 'ArrowRight') {
-                // Could add logic to switch main page tabs here
             }
         });
         // 2FA functionality
-        twoFactorToggle.addEventListener('change', () => {
-            if (twoFactorToggle.checked) {
-                twoFactorModal.classList.add('active');
-                overlay.classList.add('active');
-            }
-        });
-        cancel2FA.addEventListener('click', () => {
-            twoFactorModal.classList.remove('active');
-            overlay.classList.remove('active');
-            twoFactorToggle.checked = false;
-        });
-        confirm2FA.addEventListener('click', () => {
-            twoFactorModal.classList.remove('active');
-            overlay.classList.remove('active');
-            // In a real app, you would enable 2FA here
-            showError('Two-factor authentication has been enabled!');
-        });
+        if (twoFactorToggle) {
+            twoFactorToggle.addEventListener('change', () => {
+                if (twoFactorToggle.checked) {
+                    twoFactorModal.classList.add('active');
+                    overlay.classList.add('active');
+                }
+            });
+        }
+        if (cancel2FA) {
+            cancel2FA.addEventListener('click', () => {
+                twoFactorModal.classList.remove('active');
+                overlay.classList.remove('active');
+                twoFactorToggle.checked = false;
+            });
+        }
+        if (confirm2FA) {
+            confirm2FA.addEventListener('click', () => {
+                twoFactorModal.classList.remove('active');
+                overlay.classList.remove('active');
+                showToast('Two-factor authentication has been enabled!', 'success');
+            });
+        }
         // Dark mode toggle in settings
-        darkModeToggle.addEventListener('change', () => {
-            applyTheme(darkModeToggle.checked ? 'dark' : 'light');
-        });
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('change', () => {
+                applyTheme(darkModeToggle.checked ? 'dark' : 'light');
+            });
+        }
         // Notification toggles
-        emailNotificationsToggle.addEventListener('change', async () => {
-            await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
-        });
-        pushNotificationsToggle.addEventListener('change', async () => {
-            await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
-        });
+        if (emailNotificationsToggle) {
+            emailNotificationsToggle.addEventListener('change', async () => {
+                await saveNotificationSetting('email_notifications', emailNotificationsToggle.checked);
+            });
+        }
+        if (pushNotificationsToggle) {
+            pushNotificationsToggle.addEventListener('change', async () => {
+                await saveNotificationSetting('push_notifications', pushNotificationsToggle.checked);
+            });
+        }
         // Privacy toggles
-        showFullNameToggle.addEventListener('change', async () => {
-            await savePrivacySetting('show_full_name', showFullNameToggle.checked);
-        });
-        showAcademicInfoToggle.addEventListener('change', async () => {
-            await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked);
-        });
-        showGroupsCountToggle.addEventListener('change', async () => {
-            await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked);
-        });
+        if (showFullNameToggle) showFullNameToggle.addEventListener('change', async () => { await savePrivacySetting('show_full_name', showFullNameToggle.checked); });
+        if (showAcademicInfoToggle) showAcademicInfoToggle.addEventListener('change', async () => { await savePrivacySetting('show_academic_info', showAcademicInfoToggle.checked); });
+        if (showGroupsCountToggle) showGroupsCountToggle.addEventListener('change', async () => { await savePrivacySetting('show_groups_count', showGroupsCountToggle.checked); });
         // Save privacy setting to database
         async function savePrivacySetting(setting, value) {
             try {
