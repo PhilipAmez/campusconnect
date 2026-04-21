@@ -2163,7 +2163,7 @@
                     .from('notifications')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id)
-                    .eq('read', false);
+                    .is('seen_at', null);
 
                 if (error) throw error;
 
@@ -3790,7 +3790,7 @@
         window.triggerPushNotification = triggerPushNotification;
 
         if (typeof window.openUploadModal === 'undefined') {
-            window.openUploadModal = function() { alert('Create post functionality is not available on this page.'); }
+            window.openUploadModal = function() { window.location.href = 'create-post.html'; };
         }
 document.addEventListener('DOMContentLoaded', async function() {
     const elements = document.querySelectorAll('[data-user-id]');
