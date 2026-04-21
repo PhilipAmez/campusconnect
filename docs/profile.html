@@ -2014,6 +2014,16 @@
               
                 <div class="settings-item">
                     <div class="settings-info">
+                        <div class="settings-label">Edit Profile</div>
+                        <div class="settings-desc">Update your name, username &amp; password</div>
+                    </div>
+                    <button class="btn btn-secondary btn-small" id="editProfileBtn">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-info">
                         <div class="settings-label">Show Full Name</div>
                         <div class="settings-desc">Display your full name on profile</div>
                     </div>
@@ -2278,6 +2288,30 @@
                 <div class="loading">
                     <div class="spinner"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="editProfileModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-user-edit" style="color:var(--primary);margin-right:.5rem;"></i>Edit Profile</h2>
+                <p class="modal-desc">Update your display name and username</p>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem;">
+                <div>
+                    <label style="font-size:.875rem;color:var(--text-secondary);display:block;margin-bottom:.35rem;">Full Name</label>
+                    <input type="text" id="editProfileFullName" placeholder="Your full name" class="academic-input" style="display:block;">
+                </div>
+                <div>
+                    <label style="font-size:.875rem;color:var(--text-secondary);display:block;margin-bottom:.35rem;">Username</label>
+                    <input type="text" id="editProfileUsername" placeholder="@username" class="academic-input" style="display:block;">
+                </div>
+                <div id="editProfileError" style="color:var(--danger);font-size:.875rem;display:none;"></div>
+            </div>
+            <div class="modal-actions" style="margin-top:1.5rem;">
+                <button class="btn btn-secondary" id="cancelEditProfile">Cancel</button>
+                <button class="btn btn-primary" id="saveEditProfile"><i class="fas fa-save"></i> Save</button>
             </div>
         </div>
     </div>
@@ -3675,7 +3709,7 @@
             notificationsList.innerHTML = '';
 
             // Check for unread notifications and update bell icon with count
-            const unreadCount = userNotifications.filter(n => !n.read).length;
+            const unreadCount = userNotifications.filter(n => !n.seen_at).length;
             if (notificationCount) {
                 if (unreadCount > 0) {
                     notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
@@ -3698,7 +3732,7 @@
           
             userNotifications.forEach(notification => {
                 const notificationItem = document.createElement('div');
-                notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                notificationItem.className = `notification-item ${!notification.seen_at ? 'unread' : ''}`;
                 notificationItem.dataset.notificationId = notification.id;
               
                 // Format time
@@ -3740,11 +3774,14 @@
                 // NEW: Add click listener to handle notification actions
                 notificationItem.addEventListener('click', () => {
                     // Mark as read then navigate
-                    if (!notification.read) {
+                    if (!notification.seen_at) {
                         supabase.from('notifications')
-                            .update({ read: true })
+                            .update({ seen_at: new Date().toISOString() })
                             .eq('id', notification.id)
-                            .then(() => loadUserNotifications());
+                            .then(({ error }) => {
+                                if (error) console.error('Error marking notification read:', error);
+                                else loadUserNotifications();
+                            });
                     }
                     if (notification.type === 'new_follower' && notification.sender_id) {
                         window.location.href = `profile.html?userId=${notification.sender_id}`;
@@ -3773,7 +3810,7 @@
                     .from('notifications')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', currentUser.id)
-                    .eq('read', false);
+                    .is('seen_at', null);
 
                 if (error) throw error;
                 if (count > 0) {
@@ -4162,6 +4199,76 @@
             overlay.classList.remove('active');
             document.body.classList.remove('no-scroll');
         });
+
+        // ── Edit Profile Modal ──────────────────────────────────────────────
+        const editProfileBtn    = document.getElementById('editProfileBtn');
+        const editProfileModal  = document.getElementById('editProfileModal');
+        const cancelEditProfile = document.getElementById('cancelEditProfile');
+        const saveEditProfile   = document.getElementById('saveEditProfile');
+        const editProfileError  = document.getElementById('editProfileError');
+
+        function openEditProfileModal() {
+            if (!userProfile) return;
+            document.getElementById('editProfileFullName').value = userProfile.full_name || '';
+            document.getElementById('editProfileUsername').value  = userProfile.username  || '';
+            editProfileError.style.display = 'none';
+            editProfileModal.classList.add('active');
+            overlay.classList.add('active');
+            document.body.classList.add('no-scroll');
+        }
+
+        function closeEditProfileModal() {
+            editProfileModal.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.classList.remove('no-scroll');
+        }
+
+        if (editProfileBtn)    editProfileBtn.addEventListener('click',    openEditProfileModal);
+        if (cancelEditProfile) cancelEditProfile.addEventListener('click', closeEditProfileModal);
+
+        if (saveEditProfile) {
+            saveEditProfile.addEventListener('click', async () => {
+                const newName     = document.getElementById('editProfileFullName').value.trim();
+                const newUsername = document.getElementById('editProfileUsername').value.trim().replace(/^@/, '');
+
+                if (!newName || !newUsername) {
+                    editProfileError.textContent = 'Name and username cannot be empty.';
+                    editProfileError.style.display = 'block';
+                    return;
+                }
+
+                saveEditProfile.disabled = true;
+                saveEditProfile.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+                editProfileError.style.display = 'none';
+
+                try {
+                    const { error } = await supabase
+                        .from('profiles')
+                        .update({ full_name: newName, username: newUsername })
+                        .eq('id', currentUser.id);
+
+                    if (error) throw error;
+
+                    // Update local state and UI
+                    userProfile.full_name = newName;
+                    userProfile.username  = newUsername;
+                    const nameText = document.getElementById('nameText');
+                    if (nameText) nameText.textContent = newName;
+                    const usernameEl = document.getElementById('username');
+                    if (usernameEl) usernameEl.textContent = `@${newUsername}`;
+
+                    closeEditProfileModal();
+                    showToast('Profile updated successfully!', 'success');
+                } catch (err) {
+                    console.error('Error updating profile:', err);
+                    editProfileError.textContent = err.message || 'Failed to update profile. Please try again.';
+                    editProfileError.style.display = 'block';
+                } finally {
+                    saveEditProfile.disabled = false;
+                    saveEditProfile.innerHTML = '<i class="fas fa-save"></i> Save';
+                }
+            });
+        }
 
         // FIX 4: Real logout functionality
         const logoutBtn = document.getElementById('logoutBtn');
@@ -4639,7 +4746,7 @@
 
         // Placeholder for openUploadModal
         if (typeof window.openUploadModal === 'undefined') {
-            window.openUploadModal = function() { alert('Create post functionality is not available on this page.'); }
+            window.openUploadModal = function() { window.location.href = 'create-post.html'; };
         }
     </script>
 </body>
