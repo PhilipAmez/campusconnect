@@ -90,7 +90,7 @@
       transition: background var(--transition), transform 0.1s;
     }
     .back-btn:hover {
-      background: rgba(var(--accent), 0.1);
+      background: rgba(52, 152, 219, 0.1);
     }
     .back-btn:active {
       transform: scale(0.95);
@@ -118,7 +118,7 @@
       transition: background var(--transition), transform 0.1s;
     }
     .header-actions button:hover, .settings-btn:hover {
-      background: rgba(var(--accent), 0.1);
+      background: rgba(52, 152, 219, 0.1);
     }
     .header-actions button:active {
       transform: scale(0.95);
@@ -189,33 +189,67 @@
       overflow-y: auto;
       scroll-behavior: smooth;
     }
+    /* Staggered entry animation for list items */
+    @keyframes slideInItem {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .notification-item {
+      animation: slideInItem 0.25s ease both;
+    }
     .notification-item {
       display: flex;
       align-items: center;
-      padding: 16px;
-      margin-bottom: 16px;
-      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-radius: 14px;
       background: var(--glass-gradient);
       backdrop-filter: blur(var(--blur));
       border: 1px solid var(--border);
-      transition: transform var(--transition), box-shadow var(--transition);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
       cursor: pointer;
+      position: relative;
+      opacity: 1;
     }
     .notification-item:hover {
-      transform: translateY(-4px);
+      transform: translateY(-3px);
       box-shadow: var(--shadow);
     }
     .notification-item:active {
       transform: scale(0.98);
     }
+    /* Unread: left accent bar + subtle highlight background */
+    .notification-item.unread {
+      border-left: 3px solid var(--unread-dot);
+      padding-left: 13px;
+    }
+    body.dark .notification-item.unread {
+      background: linear-gradient(to right, rgba(231,76,60,0.10), rgba(44, 62, 80, 0.55));
+    }
+    body:not(.dark) .notification-item.unread {
+      background: linear-gradient(to right, rgba(231,76,60,0.06), rgba(255,255,255,0.70));
+    }
     .notification-item.unread::before {
       content: '';
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       background: var(--unread-dot);
       border-radius: 50%;
-      margin-right: 12px;
+      margin-right: 10px;
       flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(231,76,60,0.5);
+      animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.35); opacity: 0.7; }
+    }
+    /* Read items: slightly dimmed */
+    .notification-item:not(.unread) {
+      opacity: 0.78;
+    }
+    .notification-item:not(.unread):hover {
+      opacity: 1;
     }
     .avatar {
       width: 48px;
@@ -267,37 +301,38 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.45);
       display: none;
       justify-content: center;
       align-items: center;
       z-index: 10;
-      backdrop-filter: blur(8px);
-      transition: opacity var(--transition);
-      animation: fadeIn var(--transition);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    .settings-panel.visible {
+      opacity: 1;
     }
     .settings-content {
-      background: var(--glass-gradient);
+      background: var(--glass-bg);
       backdrop-filter: blur(var(--blur));
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: var(--shadow);
-      transition: transform var(--transition), opacity var(--transition);
+      border-radius: 20px;
+      padding: 28px 24px;
+      max-width: 420px;
+      width: 92%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      transform: scale(0.93) translateY(18px);
       opacity: 0;
-      transform: scale(0.95) translateY(20px); /* Premium scale-in */
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .settings-panel.visible .settings-content {
       opacity: 1;
       transform: scale(1) translateY(0);
     }
     .settings-content:hover {
-      transform: scale(1.02);
+      transform: scale(1.005);
     }
     .settings-header {
       display: flex;
@@ -330,7 +365,8 @@
       transition: background var(--transition);
     }
     .settings-item:hover {
-      background: rgba(var(--accent), 0.05);
+      background: rgba(52, 152, 219, 0.06);
+      border-radius: 8px;
     }
     .toggle {
       position: relative;
@@ -630,12 +666,399 @@
   <!-- Container for Global Toast Notifications -->
   <div id="toast-container" class="toast-container"></div>
 
-  <script type="module" src="./js/global-notifications.js"></script>
-  <script type="module" src="./js/notifications.js"></script>
-  <script>
-      if (typeof window.openUploadModal === 'undefined') {
-          window.openUploadModal = function() { alert('Create post functionality is not available on this page.'); }
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
+    /* ─────────────────────────────────────────────────────
+       STATE
+    ───────────────────────────────────────────────────── */
+    let currentUser   = null;
+    let notifications = [];    // full list fetched from DB
+    let activeTab     = 'all';
+    let offset        = 0;
+    const PAGE_SIZE   = 20;
+    let isFetching    = false;
+
+    /* ─────────────────────────────────────────────────────
+       DOM REFS
+    ───────────────────────────────────────────────────── */
+    const listEl          = document.getElementById('notification-list');
+    const markAllBtn      = document.getElementById('markAllReadBtn');
+    const clearAllBtn     = document.getElementById('clearAllBtn');
+    const loadMoreBtn     = document.getElementById('loadMoreBtn');
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const closeSettingsBtn= document.getElementById('closeSettingsBtn');
+    const settingsPanel   = document.getElementById('settings-panel');
+    const tabs            = document.querySelectorAll('.tab');
+    const pill            = document.getElementById('pill');
+    const toastContainer  = document.getElementById('toast-container');
+
+    /* ─────────────────────────────────────────────────────
+       TOAST
+    ───────────────────────────────────────────────────── */
+    function showToast(msg, icon = 'fa-info-circle', color = '#3498db') {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `<i class="fas ${icon}" style="color:${color};font-size:1.2rem;"></i><span>${msg}</span>`;
+      toastContainer.appendChild(t);
+      setTimeout(() => { if (toastContainer.contains(t)) toastContainer.removeChild(t); }, 4000);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SETTINGS — persist toggles to localStorage
+    ───────────────────────────────────────────────────── */
+    const PREFS_KEY = 'peerloom_notif_prefs';
+
+    function loadPrefs() {
+      try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch { return {}; }
+    }
+    function savePrefs(prefs) {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    function initSettingsToggles() {
+      const prefs = loadPrefs();
+      document.querySelectorAll('.settings-item input[data-pref]').forEach(input => {
+        const key = input.dataset.pref;
+        // Load stored value; if missing fall back to the HTML default (checked attr)
+        if (key in prefs) {
+          input.checked = prefs[key];
+        }
+        input.addEventListener('change', () => {
+          const updated = loadPrefs();
+          updated[key] = input.checked;
+          savePrefs(updated);
+          showToast(
+            `${input.checked ? 'Enabled' : 'Disabled'}: ${input.closest('.settings-item').querySelector('span').textContent}`,
+            input.checked ? 'fa-check-circle' : 'fa-times-circle',
+            input.checked ? '#2ecc71' : '#e74c3c'
+          );
+        });
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SETTINGS PANEL OPEN / CLOSE
+    ───────────────────────────────────────────────────── */
+    openSettingsBtn.addEventListener('click', () => {
+      settingsPanel.style.display = 'flex';
+      requestAnimationFrame(() => settingsPanel.classList.add('visible'));
+    });
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    settingsPanel.addEventListener('click', e => { if (e.target === settingsPanel) closeSettings(); });
+
+    function closeSettings() {
+      settingsPanel.classList.remove('visible');
+      setTimeout(() => { settingsPanel.style.display = 'none'; }, 400);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       TABS
+    ───────────────────────────────────────────────────── */
+    function movePill(tabEl) {
+      pill.style.left  = `${tabEl.offsetLeft}px`;
+      pill.style.width = `${tabEl.offsetWidth}px`;
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeTab = tab.dataset.tab;
+        offset = 0;
+        movePill(tab);
+        renderList();
+      });
+    });
+
+    // Set pill on load
+    window.addEventListener('load', () => {
+      const activeEl = document.querySelector('.tab.active');
+      if (activeEl) movePill(activeEl);
+    });
+
+    /* ─────────────────────────────────────────────────────
+       FETCH NOTIFICATIONS FROM SUPABASE
+    ───────────────────────────────────────────────────── */
+    async function fetchNotifications(reset = false) {
+      if (isFetching || !currentUser) return;
+      isFetching = true;
+
+      if (reset) {
+        offset = 0;
+        notifications = [];
       }
+
+      try {
+        let query = supabase
+          .from('notifications')
+          .select(`
+            id,
+            type,
+            content,
+            seen_at,
+            created_at,
+            post_id,
+            sender_id,
+            sender:profiles!notifications_sender_id_fkey(id, full_name, username, profile_photo)
+          `)
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (activeTab !== 'all') {
+          query = query.eq('type', activeTab);
+        }
+
+        const { data, error } = await query;
+        if (error) { console.error('Error fetching notifications:', error); return; }
+
+        notifications = reset ? data : [...notifications, ...data];
+        offset += data.length;
+        loadMoreBtn.style.display = data.length < PAGE_SIZE ? 'none' : 'block';
+      } finally {
+        isFetching = false;
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────
+       RENDER LIST
+    ───────────────────────────────────────────────────── */
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1)  return 'Just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      const d = Math.floor(h / 24);
+      if (d < 30) return `${d}d ago`;
+      return new Date(dateStr).toLocaleDateString();
+    }
+
+    function notifIcon(type) {
+      const map = {
+        new_follower:      '👤',
+        new_like:          '❤️',
+        new_post:          '📸',
+        new_comment:       '💬',
+        new_group_message: '💬',
+        comment:           '💬',
+        default:           '🔔',
+      };
+      return map[type] || map.default;
+    }
+
+    function renderList() {
+      listEl.innerHTML = '';
+
+      if (notifications.length === 0) {
+        listEl.innerHTML = `
+          <div style="text-align:center;padding:3rem;color:var(--text-secondary);">
+            <i class="fas fa-bell-slash" style="font-size:3rem;opacity:.4;margin-bottom:1rem;display:block;"></i>
+            <p>No notifications yet</p>
+          </div>`;
+        return;
+      }
+
+      notifications.forEach(n => {
+        const isUnread = !n.seen_at;
+        const sender   = n.sender;
+        const name     = sender?.full_name || 'System';
+        const photo    = sender?.profile_photo;
+
+        const avatarHtml = photo
+          ? `<img class="avatar" src="${photo}" alt="${name}" onerror="this.outerHTML='<div class=\\'avatar\\'><span style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-weight:700;\\'>${getInitials(name)}</span></div>'">`
+          : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;background:#3498db22;color:var(--text-primary);">${getInitials(name)}</div>`;
+
+        const item = document.createElement('div');
+        item.className = `notification-item${isUnread ? ' unread' : ''}`;
+        item.dataset.id = n.id;
+        item.innerHTML = `
+          ${avatarHtml}
+          <div class="content">
+            <p><strong>${name}</strong> ${n.content || n.type?.replace(/_/g, ' ') || 'notification'} ${notifIcon(n.type)}</p>
+            <div class="timestamp">${timeAgo(n.created_at)}</div>
+          </div>
+        `;
+
+        item.addEventListener('click', () => markOneRead(n));
+        listEl.appendChild(item);
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────
+       MARK ONE AS READ
+    ───────────────────────────────────────────────────── */
+    async function markOneRead(notif) {
+      if (notif.seen_at) return; // already read
+      const ts = new Date().toISOString();
+      const { error } = await supabase
+        .from('notifications')
+        .update({ seen_at: ts })
+        .eq('id', notif.id)
+        .eq('user_id', currentUser.id);
+
+      if (error) { console.error('Error marking notification read:', error); return; }
+
+      notif.seen_at = ts;
+      renderList();
+      updateBadge();
+    }
+
+    /* ─────────────────────────────────────────────────────
+       MARK ALL AS READ — updates DB, then refreshes from DB
+    ───────────────────────────────────────────────────── */
+    markAllBtn.addEventListener('click', async () => {
+      if (!currentUser) return;
+      markAllBtn.disabled = true;
+      markAllBtn.textContent = 'Marking…';
+
+      try {
+        const ts = new Date().toISOString();
+        const { error } = await supabase
+          .from('notifications')
+          .update({ seen_at: ts })
+          .eq('user_id', currentUser.id)
+          .is('seen_at', null);       // only unseen rows
+
+        if (error) { console.error('Error marking all as read:', error); throw error; }
+
+        // Re-fetch from DB to ensure UI reflects true state
+        await fetchNotifications(true);
+        renderList();
+        updateBadge();
+        showToast('All notifications marked as read', 'fa-check-circle', '#2ecc71');
+      } catch (err) {
+        showToast('Could not mark all as read', 'fa-exclamation-circle', '#e74c3c');
+      } finally {
+        markAllBtn.disabled = false;
+        markAllBtn.textContent = 'Mark All Read';
+      }
+    });
+
+    /* ─────────────────────────────────────────────────────
+       CLEAR ALL (soft delete — marks seen + could delete rows)
+    ───────────────────────────────────────────────────── */
+    clearAllBtn.addEventListener('click', async () => {
+      if (!currentUser) return;
+      clearAllBtn.disabled = true;
+      clearAllBtn.textContent = 'Clearing…';
+
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', currentUser.id);
+
+        if (error) { console.error('Error clearing notifications:', error); throw error; }
+
+        notifications = [];
+        offset = 0;
+        renderList();
+        updateBadge();
+        showToast('All notifications cleared', 'fa-trash-alt', '#e74c3c');
+      } catch {
+        showToast('Could not clear notifications', 'fa-exclamation-circle', '#e74c3c');
+      } finally {
+        clearAllBtn.disabled = false;
+        clearAllBtn.textContent = 'Clear All';
+      }
+    });
+
+    /* ─────────────────────────────────────────────────────
+       LOAD MORE
+    ───────────────────────────────────────────────────── */
+    loadMoreBtn.addEventListener('click', async () => {
+      await fetchNotifications(false);
+      renderList();
+    });
+
+    /* ─────────────────────────────────────────────────────
+       NOTIFICATION BADGE (bottom nav)
+    ───────────────────────────────────────────────────── */
+    function updateBadge() {
+      const unread = notifications.filter(n => !n.seen_at).length;
+      document.querySelectorAll('.notification-badge').forEach(el => {
+        el.classList.toggle('visible', unread > 0);
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────
+       REAL-TIME SUBSCRIPTION
+    ───────────────────────────────────────────────────── */
+    function setupRealtime() {
+      supabase
+        .channel(`notif-page-${currentUser.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUser.id}`
+        }, async () => {
+          await fetchNotifications(true);
+          renderList();
+          updateBadge();
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUser.id}`
+        }, async () => {
+          await fetchNotifications(true);
+          renderList();
+          updateBadge();
+        })
+        .subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR') console.error('Notifications realtime error:', err);
+        });
+    }
+
+    /* ─────────────────────────────────────────────────────
+       DARK MODE — sync with localStorage from profile/dashboard
+    ───────────────────────────────────────────────────── */
+    function applyTheme() {
+      const theme = localStorage.getItem('peerloom-theme') || 'light';
+      if (theme === 'dark') {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────
+       INIT
+    ───────────────────────────────────────────────────── */
+    async function init() {
+      applyTheme();
+      initSettingsToggles();
+
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) {
+        console.error('Auth error:', authErr);
+        window.location.href = 'login.html';
+        return;
+      }
+      currentUser = user;
+
+      listEl.innerHTML = `
+        <div style="text-align:center;padding:3rem;">
+          <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--accent);"></i>
+        </div>`;
+
+      await fetchNotifications(true);
+      renderList();
+      updateBadge();
+      setupRealtime();
+    }
+
+    init();
   </script>
 </body>
 </html>
