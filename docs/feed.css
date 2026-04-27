@@ -1,4 +1,4 @@
-        /* Base Styles & Variables */
+/* Base Styles & Variables */
         :root {
             --primary-color: #6A5ACD; /* Purple-bluish */
             --secondary-color: #8A2BE2;
@@ -52,15 +52,24 @@
         /* Main Feed Container */
         .feed-container {
             height: 100vh;
+            height: 100dvh;
             overflow-y: scroll;
+            overflow-x: hidden;
             scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
+            /* DO NOT use scroll-behavior:smooth here — it fights snap on mobile
+               and causes multi-post skipping on hard swipes. Use 'auto'. */
+            scroll-behavior: auto;
             position: relative;
+            -webkit-overflow-scrolling: touch;
+            will-change: scroll-position;
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
         }
         /* Disable scroll snap when comment drawer is open */
+        /* CRITICAL: must NOT set overflow:hidden — that freezes the feed entirely */
         .feed-container.no-snap {
             scroll-snap-type: none;
-            overflow: hidden;
+            overflow-y: scroll; /* Keep scrollable, just disable snap */
         }
 
         /* Pull to Refresh Indicator */
@@ -149,12 +158,15 @@
         /* Video Container */
         .video-container {
             height: 100vh;
+            height: 100dvh; /* Dynamic viewport for mobile */
             scroll-snap-align: start;
+            scroll-snap-stop: always; /* Prevent snap-skipping on fast swipe */
             position: relative;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-shrink: 0; /* Prevent compression by flex parent */
         }
         .video-container .video-player {
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
@@ -162,11 +174,20 @@
             opacity: 1;
         }
 
-        /* Video Element */
+        /* Video/Image media element */
         .video-player {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            /* Prevent layout shift during load */
+            display: block;
+        }
+        /* Image posts use contain for proper aspect ratio */
+        img.video-player {
+            object-fit: contain;
+            background: #000; /* Black bars rather than stretched */
+            max-width: 100%;
+            max-height: 100%;
         }
         /* Modern Video Controls */
         .video-controls-overlay {
@@ -628,7 +649,8 @@
         .action-count {
             font-size: 0.75rem;
             font-weight: bold;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Add shadow for readability */
+            color: #ffffff !important;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
             font-family: Arial Black, Arial, sans-serif;
         }
         .like-count {
@@ -665,13 +687,39 @@
         /* Bottom Info */
         .video-info {
             position: absolute;
-            bottom: calc(3.5rem + env(safe-area-inset-bottom, 0)); /* Moved up to accommodate progress bar */
+            bottom: calc(3.5rem + env(safe-area-inset-bottom, 0));
             left: var(--spacing-md);
-            right: 80px; /* Add space on the right to avoid overlap with actions */
+            right: 80px;
             z-index: 10;
             padding: var(--spacing-sm) 0;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Add shadow for readability */
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            background: none;
+            /* Force white text always — this text sits over video/image,
+               never over the page background, so it must ignore theme colour. */
+            color: #ffffff !important;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.5);
+        }
+        /* Every child inside video-info inherits forced white */
+        .video-info *,
+        .video-info .username,
+        .video-info .post-title,
+        .video-info .post-caption,
+        .video-info .hashtags,
+        .video-info a {
+            color: #ffffff !important;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+        }
+        /* Wide cinematic bottom-fade on the post wrapper — no box edge */
+        .video-wrapper::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 55%;
+            background: linear-gradient(to top,
+                rgba(0,0,0,0.72) 0%,
+                rgba(0,0,0,0.3) 45%,
+                transparent 100%);
+            pointer-events: none;
+            z-index: 5;
         }
         .username {
             font-weight: bold;
@@ -931,7 +979,7 @@
         }
         /* Delete Button */
         .delete-post {
-            background: rgba(255, 0, 0, 0.7);
+            background: rgba(220, 38, 38, 0.85) !important;
             color: white;
             border: none;
             border-radius: 50%;
@@ -944,8 +992,15 @@
             cursor: pointer;
             z-index: 10;
             box-shadow: var(--glass-shadow);
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, background 0.2s ease;
             font-weight: bold;
+        }
+        .delete-post:hover {
+            background: rgba(220, 38, 38, 1) !important;
+            transform: scale(1.1);
+        }
+        .delete-action {
+            /* Give delete its own distinct styling in the sidebar */
         }
         .delete-post:hover {
             transform: scale(1.1);
@@ -1041,6 +1096,8 @@
             object-fit: cover;
             border-radius: 8px;
             background: #333;
+            flex-shrink: 0;
+            display: block;
         }
         .search-result-info .title {
             font-weight: bold;
@@ -1745,12 +1802,17 @@
 
         /* Responsive Adjustments */
         @media (max-width: 768px) {
+            /* CRITICAL: padding-bottom on the scroll container shifts snap points.
+               Use margin on children instead, or use a spacer element.
+               Each .video-container must be exactly one viewport-height "step" tall. */
             .feed-container {
-                padding-bottom: 80px; /* Space for mobile nav bar */
+                padding-bottom: 0;
             }
-            
+
             .video-container {
-                height: calc(100vh - 60px); /* Reduce height to make room for nav */
+                /* Account for bottom nav (60px) so snap points align correctly */
+                height: calc(100dvh - 60px);
+                min-height: calc(100dvh - 60px);
             }
 
             .back-button .fa-home {
@@ -1765,21 +1827,35 @@
           .mobile-bottom-nav {
                 display: flex;
             }
-            /* Adjust video controls to make room for bottom nav */
+            /* On mobile the .video-container is already calc(100dvh - 60px),
+               so absolute positions inside it are already above the nav.
+               Place controls flush at the bottom of that container. */
             .bottom-controls-bar {
-                bottom: calc(3.5rem + env(safe-area-inset-bottom, 0));
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-radius: 0;
+                padding: 6px var(--spacing-md);
+                background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%);
             }
             .video-info {
-                bottom: calc(6rem + env(safe-area-inset-bottom, 0));
+                bottom: calc(44px + env(safe-area-inset-bottom, 0));
             }
             .actions-sidebar {
-                bottom: calc(7rem + env(safe-area-inset-bottom, 0));
+                bottom: calc(80px + env(safe-area-inset-bottom, 0));
             }
          
           
             .action-icon {
-                width: 2.5rem;
-                height: 2.5rem;
+                width: 2.8rem;
+                height: 2.8rem;
+                /* Ensure minimum 44px touch target (Apple HIG) */
+                min-width: 44px;
+                min-height: 44px;
+            }
+            .action-item {
+                /* Expand tap area */
+                padding: 4px;
             }
             .comment-drawer {
                 height: 70vh; /* Slightly taller on mobile */
@@ -1829,8 +1905,7 @@
                 padding-right: 0; /* Use full width when volume controls are hidden */
             }
             .progress-bar {
-                transform: translateY(40px);
-                position: relative;
+                /* Removed broken translateY hack */
             }
         }
 
@@ -1866,6 +1941,7 @@
         /* Skeleton Loader Styles */
         .skeleton-container {
             height: 100vh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -2019,17 +2095,95 @@
             visibility: visible;
         }
 
-        /* Fix for iOS Safari */
+        /* Fix for iOS Safari — uses fill-available to avoid address-bar gaps */
         @supports (-webkit-touch-callout: none) {
             .feed-container {
                 height: -webkit-fill-available;
             }
-          
             .video-container {
                 height: -webkit-fill-available;
             }
             .comment-drawer {
-                bottom: env(safe-area-inset-bottom);
+                bottom: env(safe-area-inset-bottom, 0);
+                padding-bottom: env(safe-area-inset-bottom, 0);
+            }
+            /* Compensate for mobile nav on iOS */
+            @media (max-width: 768px) {
+                .video-container {
+                    height: calc(-webkit-fill-available - 60px);
+                }
             }
         }
   
+        /* ===== ADDITIONAL FIXES ===== */
+
+        /* Loading overlay should not block user interaction */
+        .loading-overlay {
+            pointer-events: none;
+        }
+
+        /* Ensure image posts don't show progress bar or volume controls */
+        .video-container[data-media-type="image"] .bottom-controls-bar,
+        .video-container[data-media-type="image"] .volume-controls {
+            display: none !important;
+        }
+
+        /* Better mobile comment drawer keyboard handling */
+        @media (max-width: 768px) {
+            .comment-drawer {
+                /* Prevent drawer from going under virtual keyboard */
+                max-height: 70vh;
+            }
+            /* Ensure the comment input area is always visible */
+            .comment-input-container {
+                position: sticky;
+                bottom: 0;
+                background: var(--glass-bg);
+                backdrop-filter: blur(20px);
+                padding-bottom: max(var(--spacing-sm), env(safe-area-inset-bottom, 0));
+                z-index: 5;
+            }
+        }
+
+        /* Touch-friendly interaction improvements */
+        @media (max-width: 768px) {
+            /* Minimum tap target for all interactive elements */
+            .action-item,
+            .mute-toggle,
+            .close-comments,
+            .comment-submit,
+            .comment-reaction-btn,
+            .reply-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            .reply-btn,
+            .replies-count,
+            .comment-reaction-btn {
+                min-height: 32px; /* slightly relaxed for inline text items */
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 8px;
+            }
+        }
+
+        /* Prevent content from going under notch/home indicator on modern phones */
+        .feed-container {
+            padding-top: env(safe-area-inset-top, 0);
+        }
+        .top-bar {
+            padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0));
+        }
+
+        /* Fix post-title display */
+        .post-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.15rem;
+            line-height: 1.3;
+        }
+
+        /* Transition for delete animation */
+        .video-container {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
