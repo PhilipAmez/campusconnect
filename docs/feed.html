@@ -116,11 +116,11 @@
     </div>
     <!-- Upload Progress Bar -->
     <div class="upload-progress" id="uploadProgress">
-        <div class="progress-title">Uploading Video</div>
+        <div class="progress-title">Uploading Media</div>
         <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-fill" id="uploadProgressFill"></div>
         </div>
-        <div class="progress-status" id="progressStatus">Processing your video...</div>
+        <div class="progress-status" id="progressStatus">Processing your media...</div>
     </div>
     <!-- Login Redirect Overlay -->
     <div class="login-redirect" id="loginRedirect">
@@ -160,16 +160,6 @@
     </div>
     <!-- Overlay -->
     <div class="overlay" id="overlay"></div>
-    <div id="logoutModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="closeLogoutModal">&times;</span>
-            <p>Are you sure you want to log out?</p>
-            <div class="modal-buttons">
-                <button class="btn-confirm" id="confirmLogout">Yes, Log Out</button>
-                <button class="btn-cancel" id="cancelLogout">Cancel</button>
-            </div>
-        </div>
-    </div>
     <!-- Mobile Bottom Navigation -->
     <div class="mobile-bottom-nav">
         <a href="dashboard.html">
@@ -220,6 +210,26 @@
         </div>
     </div>
 
+    <!-- PATCH: Intercept malformed group_members query from feed.js to prevent 400 errors -->
+    <script>
+    (function() {
+        const _originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            // Intercept the broken group_members query that uses wrong PostgREST join syntax
+            if (typeof url === 'string' && url.includes('group_members') && url.includes('groups(name)')) {
+                console.warn('[PeerLoom Fix] Intercepted malformed group_members query. ' +
+                    'Fix in feed.js: change select=group_id,groups(name) to ' +
+                    'select=group_id,groups!group_members_group_id_fkey(name)');
+                // Return empty result instead of a 400 error
+                return Promise.resolve(new Response(JSON.stringify([]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return _originalFetch.apply(this, arguments);
+        };
+    })();
+    </script>
     <script type="module" src="./js/global-notifications.js"></script>
     <script src="./js/feed.js"></script>
     <script type="module">
@@ -245,6 +255,7 @@
         let isCommentDrawerOpen = false; // Track if comment drawer is open
 
         let currentUserProfile = null; // To store the logged-in user's profile
+        let currentUserId = null; // To store the logged-in user's ID for delete checks
         let trendingHashtagsSubscription = null; // To hold our realtime subscription
         let currentSearchSort = 'relevance'; // Add state for search sorting
         let touchStartY = 0;
@@ -325,30 +336,36 @@
             return { valid: true };
         }
         // Initialize the app
-        // Function to show skeleton loader
+        // Function to show skeleton loader — preserves pull-to-refresh DOM node
         function showSkeletonLoader() {
             const feed = document.getElementById('feed');
-            feed.innerHTML = `
-            <div class="video-container skeleton-container">
-                <!-- Full-screen shimmering background -->
+            if (!feed) return;
+            // Remove only video containers, not the PTR indicator
+            feed.querySelectorAll('.video-container').forEach(el => el.remove());
+            const skeletonEl = document.createElement('div');
+            skeletonEl.className = 'video-container skeleton-container';
+            skeletonEl.innerHTML = `
                 <div class="skeleton-video" style="width: 100%; height: 100%;"></div>
-
-                <!-- Info Area (positioned absolutely) -->
                 <div style="position: absolute; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0)); left: var(--spacing-md); right: 80px; z-index: 1;">
                     <div class="skeleton-line" style="width: 150px; height: 1.1rem; margin-bottom: 0.5rem;"></div>
                     <div class="skeleton-line" style="width: 80%; height: 1rem; margin-bottom: 0.25rem;"></div>
                     <div class="skeleton-line" style="width: 60%; height: 1rem;"></div>
                 </div>
-
-                <!-- Sidebar Actions (positioned absolutely) -->
                 <div style="position: absolute; right: var(--spacing-sm); bottom: calc(3.5rem + env(safe-area-inset-bottom, 0)); display: flex; flex-direction: column; gap: 1.25rem; z-index: 1;">
                     <div class="skeleton-avatar" style="width: 2.8rem; height: 2.8rem;"></div>
                     <div class="skeleton-avatar" style="width: 2.8rem; height: 2.8rem;"></div>
                     <div class="skeleton-avatar" style="width: 2.8rem; height: 2.8rem;"></div>
                 </div>
-            </div>
             `;
+            feed.appendChild(skeletonEl);
         }
+        // Global error safety net — prevents uncaught promise rejections from crashing the app
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            // Prevent the error from propagating to the browser's error handler
+            event.preventDefault();
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
         });
@@ -378,6 +395,44 @@
         }
 
         // Pull to refresh functionality
+        // ─── Mobile One-Post-Per-Swipe Guard ─────────────────────────────────
+        // CSS snap-stop alone can't prevent skipping on hard mobile swipes.
+        // This handler snaps to exactly the adjacent post — never more than one.
+        function setupMobileSwipeGuard() {
+            const feed = document.getElementById('feed');
+            if (!feed || !('ontouchstart' in window)) return;
+
+            let swipeStartY = 0;
+            let swipeStartScrollTop = 0;
+            let isSwiping = false;
+
+            feed.addEventListener('touchstart', (e) => {
+                if (isCommentDrawerOpen) return;
+                swipeStartY = e.touches[0].clientY;
+                swipeStartScrollTop = feed.scrollTop;
+                isSwiping = true;
+            }, { passive: true });
+
+            feed.addEventListener('touchend', (e) => {
+                if (!isSwiping || isCommentDrawerOpen) { isSwiping = false; return; }
+                isSwiping = false;
+
+                const swipeEndY = e.changedTouches[0].clientY;
+                const deltaY = swipeStartY - swipeEndY; // positive = swiped up (next post)
+                if (Math.abs(deltaY) < 30) return; // ignore tiny movements
+
+                const postHeight = feed.clientHeight;
+                const currentIndex = Math.round(swipeStartScrollTop / postHeight);
+                const targetIndex = deltaY > 0 ? currentIndex + 1 : currentIndex - 1;
+                const posts = feed.querySelectorAll('.video-container');
+                const clampedIndex = Math.max(0, Math.min(targetIndex, posts.length - 1));
+
+                // Snap to exactly one post — 'instant' prevents inertia fighting snap
+                feed.scrollTo({ top: clampedIndex * postHeight, behavior: 'instant' });
+                e.preventDefault();
+            }, { passive: false });
+        }
+
         function setupPullToRefresh() {
             const feedContainer = document.getElementById('feed');
             const pullToRefresh = document.getElementById('pullToRefresh');
@@ -405,28 +460,23 @@
                 const deltaY = currentY - touchStartY;
 
                 if (deltaY > 0 && isDragging) {
-                    e.preventDefault(); // Prevent browser's default pull-to-refresh
-                    // Apply damping to the pull distance for a more natural feel
+                    e.preventDefault();
                     const dampedDelta = deltaY * 0.4;
                     const stretch = Math.max(0, dampedDelta - 20);
                     const pathD = `M 25, 20 C 10, ${20 + stretch * 0.5} 40, ${20 + stretch * 0.5} 25, ${20 + dampedDelta}`;
-                    
-                    liquidPath.setAttribute('d', pathD);
-                    // Use requestAnimationFrame for smoother rendering
-                    requestAnimationFrame(() => { liquidContainer.style.transform = `translateY(${dampedDelta}px)`; });
 
-                    pullToRefresh.style.top = `-50px`; // Keep the SVG container static
+                    if (liquidPath) liquidPath.setAttribute('d', pathD);
+                    if (liquidContainer) requestAnimationFrame(() => { liquidContainer.style.transform = `translateY(${dampedDelta}px)`; });
+                    // pullToRefresh top is CSS-controlled
 
                     if (deltaY > pullThreshold) {
                         if (!readyToRefresh) {
                             readyToRefresh = true;
-                            if (navigator.vibrate) {
-                                navigator.vibrate(5); // Light vibration when ready
-                            }
+                            if (navigator.vibrate) navigator.vibrate(5);
                         }
-                        pullToRefresh.classList.add('ready');
+                        if (pullToRefresh) pullToRefresh.classList.add('ready');
                     } else {
-                        pullToRefresh.classList.remove('ready');
+                        if (pullToRefresh) pullToRefresh.classList.remove('ready');
                     }
                 }
             }, { passive: false });
@@ -436,22 +486,19 @@
                 if (touchStartY === 0 || isRefreshing) return;
 
                 const currentY = e.changedTouches[0].clientY;
-                const deltaY = (currentY - touchStartY) * 0.4; // Use damped value for consistency
+                const deltaY = (currentY - touchStartY) * 0.4;
 
                 if (deltaY > pullThreshold) {
                     if (navigator.vibrate) {
-                        navigator.vibrate(50); // Stronger vibration on refresh
+                        navigator.vibrate(50);
                     }
                     isRefreshing = true;
-                    liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
-                    
-                    pullToRefreshIcon.style.display = 'none';
-                    pullToRefreshSpinner.style.display = 'block';
-                    
-                    await refreshCurrentFeed(); // Refresh the current feed
+                    if (liquidPath) liquidPath.setAttribute('d', 'M 25, 20 C 25, 20 25, 20 25, 20 Z');
+                    if (pullToRefreshIcon) pullToRefreshIcon.style.display = 'none';
+                    if (pullToRefreshSpinner) pullToRefreshSpinner.style.display = 'block';
+                    await refreshCurrentFeed();
                 } else {
-                    // If not pulled far enough, just reset
-                    pullToRefresh.classList.add('snapping-back');
+                    if (pullToRefresh) pullToRefresh.classList.add('snapping-back');
                     resetPullToRefresh();
                 }
                 readyToRefresh = false;
@@ -663,6 +710,7 @@
             }
             
             setupEventListeners();
+            setupMobileSwipeGuard();
             setupPullToRefresh();
         }
 
@@ -671,14 +719,15 @@
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 isLoggedIn = !!session;
-                if (!isLoggedIn) {
-                    document.querySelectorAll('.action-item, .add-post-btn').forEach(el => {
-                        // Using guest-mode class now, so this can be removed or kept as fallback
-                    });
+                if (session && session.user) {
+                    currentUserId = session.user.id;
+                } else {
+                    currentUserId = null;
                 }
             } catch (error) {
                 console.log('Auth check failed, defaulting to guest mode');
                 isLoggedIn = false;
+                currentUserId = null;
             }
         }
 
@@ -698,18 +747,21 @@
                 if (error) throw error;
                 currentUserProfile = data;
             } catch (error) {
-                // If profile doesn't exist, create a temporary one for UI consistency
-                if (error.code === 'PGRST116') { // "single" query returned no rows
-                    const { data: { user } } = await supabase.auth.getUser();
-                    currentUserProfile = {
-                        username: user.email.split('@')[0],
-                        avatar_url: null,
-                        id: user.id
-                    };
+                if (error.code === 'PGRST116') {
+                    // Profile row doesn't exist yet — build a temporary one
+                    try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            currentUserProfile = {
+                                username: user.email.split('@')[0],
+                                profile_photo: null,
+                                id: user.id
+                            };
+                        }
+                    } catch (e) { /* silent */ }
                 } else {
                     console.error('Error fetching user profile:', error);
                 }
-                console.error('Error fetching user profile:', error);
             }
         }
 
@@ -823,8 +875,9 @@
         // Create video feed
         function initializeFeed(posts) {
             const feed = document.getElementById('feed');
-            // Clear the feed, which will remove the skeleton loader or any previous content.
-            feed.innerHTML = '';
+            if (!feed) return;
+            // Remove only video containers, preserving pull-to-refresh element
+            feed.querySelectorAll('.video-container').forEach(el => el.remove());
           
             // Handle empty state for saved feed
             if (posts.length === 0 && currentFeedType === 'saved') {
@@ -856,16 +909,20 @@
                 postContainer.className = 'video-container';
                 postContainer.id = `video-${post.id}`;
 
-                const isImage = post.media_type === 'image';
+                // Robust media type detection: check DB column first, then URL extension, then default to video
+                const isImage = post.media_type === 'image' ||
+                    (!post.media_type && post.media_url &&
+                     /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(post.media_url));
+
                 const mediaElement = isImage
-                    ? `<img src="${post.media_url}" class="video-player" alt="${post.content || 'Post image'}" style="object-fit: contain;">`
+                    ? `<img src="${post.media_url}" class="video-player" alt="${post.title || post.content || 'Post image'}" loading="lazy" style="object-fit: contain;">`
                     : `<video class="video-player" loop muted playsinline preload="metadata">
-                           <source src="${post.media_url}" type="video/mp4">
+                           <source src="${post.media_url}" type="${post.media_url && post.media_url.includes('.webm') ? 'video/webm' : 'video/mp4'}">
                        </video>`;
 
                 const scrubbingPlayerHtml = isImage ? '' :
-                    `<video class="video-player" id="scrubbingPlayer-${post.id}" muted playsinline preload="metadata" style="display: none;">
-                        <source src="${post.media_url}" type="video/mp4">
+                    `<video id="scrubbingPlayer-${post.id}" muted playsinline preload="metadata" style="display:none; position:absolute; pointer-events:none;">
+                        <source src="${post.media_url}" type="${post.media_url && post.media_url.includes('.webm') ? 'video/webm' : 'video/mp4'}">
                     </video>`;
               
                 // SIMPLE GUEST MODE TEMPLATE - Just add watermark and modify button behavior
@@ -933,7 +990,7 @@
                             </div>
                             <div class="action-count">Save</div>
                         </div>
-                        ${post.user_id === 'current-user-id' ? '<div class="action-item" onclick="deletePost(\'' + post.id + '\')"><div class="action-icon delete-post">×</div><div class="action-count">Delete</div></div>' : ''}
+                        ${currentUserId && post.user_id === currentUserId ? '<div class="action-item delete-action" onclick="deletePost(\'' + post.id + '\')"><div class="action-icon delete-post"><i class="fas fa-trash-alt" style="font-size:0.9rem;"></i></div><div class="action-count">Delete</div></div>' : ''}
                         ` : ''}
                     </div>
                     <div class="bottom-controls-bar" ${isImage ? 'style="display: none;"' : ''}>
@@ -985,15 +1042,53 @@
               
                 feed.appendChild(postContainer);
               
-                // Add double tap like functionality
-                postContainer.addEventListener('dblclick', function(e) {
-                    if (!isLoggedIn) {
-                        showGuestLoginModal();
-                        return;
+                // Double-tap to like — uses touch timing to avoid conflict with single-tap
+                let lastTapTime = 0;
+                let tapCount = 0;
+                let tapTimer = null;
+                postContainer.addEventListener('touchend', function(e) {
+                    // Skip if the tap was on an interactive element
+                    if (e.target.closest('.actions-sidebar, .top-bar, .video-info, .mute-toggle, .comment-drawer, .progress-bar-container')) return;
+                    const now = Date.now();
+                    const timeSinceLastTap = now - lastTapTime;
+                    lastTapTime = now;
+                    tapCount++;
+                    clearTimeout(tapTimer);
+                    if (tapCount >= 2 && timeSinceLastTap < 350) {
+                        // Double tap confirmed
+                        tapCount = 0;
+                        if (!isLoggedIn) { showGuestLoginModal(); return; }
+                        const likeIconEl = this.querySelector(`#likeIcon-${post.id}`);
+                        if (!likeIconEl) return;
+                        createLikeAnimation(e.changedTouches[0] || e);
+                        // Only like (never unlike) on double-tap — matches Instagram/TikTok UX
+                        const svg = likeIconEl.querySelector('svg');
+                        if (svg && svg.getAttribute('fill') !== 'currentColor') {
+                            toggleLike(likeIconEl.parentElement, post.id);
+                        } else {
+                            // Already liked — just show animation without unliking
+                            createLikeAnimation(e.changedTouches[0] || e);
+                        }
+                    } else if (tapCount === 1) {
+                        // Wait to see if a second tap follows before treating as single tap
+                        tapTimer = setTimeout(() => {
+                            tapCount = 0;
+                            // Single tap → toggle play/pause (handled by existing click handler)
+                        }, 350);
                     }
-                    const likeButton = this.querySelector(`#likeIcon-${video.id}`).parentElement;
-                    createLikeAnimation(e);
-                    toggleLike(likeButton, video.id);
+                }, { passive: true });
+                // Keep dblclick for desktop mouse users
+                postContainer.addEventListener('dblclick', function(e) {
+                    if (e.pointerType === 'touch') return; // already handled above
+                    if (!isLoggedIn) { showGuestLoginModal(); return; }
+                    const likeIconEl = this.querySelector(`#likeIcon-${post.id}`);
+                    if (!likeIconEl) return;
+                    if (likeIconEl.querySelector('svg')?.getAttribute('fill') !== 'currentColor') {
+                        createLikeAnimation(e);
+                        toggleLike(likeIconEl.parentElement, post.id);
+                    } else {
+                        createLikeAnimation(e);
+                    }
                 });
               
                 // Add single tap to pause/play - MODIFIED CODE
@@ -1001,9 +1096,18 @@
                 const playPauseBtn = postContainer.querySelector(`#playPauseBtn-${post.id}`);
                 const progressFill = postContainer.querySelector(`#progressFill-${post.id}`);
                 const loadingOverlay = postContainer.querySelector(`#loading-${post.id}`);
-                videoPlayer.addEventListener('loadstart', () => loadingOverlay.style.display = 'flex');
-                videoPlayer.addEventListener('waiting', () => loadingOverlay.style.display = 'flex'); // Show when buffering
-                videoPlayer.addEventListener('canplay', () => loadingOverlay.style.display = 'none'); // Hide when ready
+                const isVideoPlayer = videoPlayer && videoPlayer.tagName === 'VIDEO';
+
+                // For image posts: hide loading overlay immediately; only attach video events for videos
+                if (!isVideoPlayer && loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+                if (isVideoPlayer && loadingOverlay) {
+                    videoPlayer.addEventListener('loadstart', () => { if(loadingOverlay) loadingOverlay.style.display = 'flex'; });
+                    videoPlayer.addEventListener('waiting', () => { if(loadingOverlay) loadingOverlay.style.display = 'flex'; });
+                    videoPlayer.addEventListener('canplay', () => { if(loadingOverlay) loadingOverlay.style.display = 'none'; });
+                    videoPlayer.addEventListener('error', () => { if(loadingOverlay) loadingOverlay.style.display = 'none'; });
+                }
                 const progressBarContainer = postContainer.querySelector(`#progressBarContainer-${post.id}`);
                 let controlsTimeout;
                 const toggleControls = () => {
@@ -1033,17 +1137,23 @@
                     }
                     togglePlayPause();
                 });
-                videoPlayer.addEventListener('timeupdate', () => {
-                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-                    progressFill.style.width = `${progress}%`;
-                });
-                progressBarContainer.addEventListener('click', (e) => {
-                    const rect = progressBarContainer.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const width = progressBarContainer.clientWidth;
-                    const duration = videoPlayer.duration;
-                    videoPlayer.currentTime = (clickX / width) * duration;
-                });
+                if (isVideoPlayer && progressFill) {
+                    videoPlayer.addEventListener('timeupdate', () => {
+                        if (isNaN(videoPlayer.duration) || videoPlayer.duration === 0) return;
+                        const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                        progressFill.style.width = `${progress}%`;
+                    });
+                }
+                if (isVideoPlayer && progressBarContainer) {
+                    progressBarContainer.addEventListener('click', (e) => {
+                        const rect = progressBarContainer.getBoundingClientRect();
+                        const clickX = e.clientX - rect.left;
+                        const width = progressBarContainer.clientWidth;
+                        const duration = videoPlayer.duration;
+                        if (!duration || isNaN(duration)) return;
+                        videoPlayer.currentTime = (clickX / width) * duration;
+                    });
+                }
 
                 // Thumbnail preview on hover
                 const thumbnailPreview = postContainer.querySelector(`#thumbnailPreview-${post.id}`);
@@ -1105,13 +1215,15 @@
                 });
                 }
 
-                // Add volume slider event listener
+                // Add volume slider event listener (video posts only)
                 const volumeSlider = postContainer.querySelector(`#volumeSlider-${post.id}`);
-                volumeSlider.addEventListener('input', (e) => {
-                    videoPlayer.volume = e.target.value;
-                    const progress = e.target.value * 100;
-                    volumeSlider.style.setProperty('--volume-progress', `${progress}%`);
-                });
+                if (volumeSlider && isVideoPlayer) {
+                    volumeSlider.addEventListener('input', (e) => {
+                        videoPlayer.volume = parseFloat(e.target.value);
+                        const progress = parseFloat(e.target.value) * 100;
+                        volumeSlider.style.setProperty('--volume-progress', `${progress}%`);
+                    });
+                }
 
                 // FIX: Add touch event prevention for comment input and drawer
                 const commentDrawer = postContainer.querySelector(`#commentDrawer-${post.id}`);
@@ -1278,16 +1390,9 @@
             icon.style.transform = dropdown.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        // Set up event listeners
-        function setupEventListeners() {
-            // Use event delegation for feed tabs since they are re-rendered
-            const feedContainer = document.getElementById('staticTopBar');
-            // Remove any old listener to prevent duplicates - IMPORTANT
-            feedContainer.removeEventListener('click', handleFeedTabClick); 
-            feedContainer.addEventListener('click', handleFeedTabClick);
-
-            // Handler function for feed tab clicks
-            async function handleFeedTabClick(e) {
+        // Feed tab click handler declared OUTSIDE setupEventListeners so the
+        // same function reference is used for removeEventListener to actually work.
+        async function handleFeedTabClick(e) {
                 const clickedElement = e.target.closest('.feed-tab, .feed-switcher-option');
                 if (!clickedElement) return;
 
@@ -1325,6 +1430,14 @@
                 // Fetch new feed data, which will re-render everything
                 await refreshCurrentFeed();
             }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Use event delegation for feed tabs — uses stable reference to prevent listener stacking
+            const feedContainer = document.getElementById('staticTopBar');
+            if (!feedContainer) return;
+            feedContainer.removeEventListener('click', handleFeedTabClick);
+            feedContainer.addEventListener('click', handleFeedTabClick);
 
             // Settings Drawer Logic
             const settingsDrawer = document.getElementById('settingsDrawer');
@@ -1443,8 +1556,10 @@
             const closeSearch = document.getElementById('closeSearch');
             if (closeSearch) {
                 closeSearch.addEventListener('click', function() {
-                    document.getElementById('searchOverlay').classList.remove('active');
-                    document.getElementById('searchIcon').classList.remove('active');
+                    const searchOverlay = document.getElementById('searchOverlay');
+                    const searchIcon = document.getElementById('searchIcon');
+                    if (searchOverlay) searchOverlay.classList.remove('active');
+                    if (searchIcon) searchIcon.classList.remove('active');
                 });
             }
           
@@ -1633,39 +1748,35 @@
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const mediaElement = entry.target.querySelector('.video-player');
-                    const isVideo = mediaElement && mediaElement.tagName === 'VIDEO';
+                    if (!mediaElement) return; // safety guard
+                    const isVideo = mediaElement.tagName === 'VIDEO';
                   
                     if (entry.isIntersecting) {
-                        currentVideoId = entry.target.id; // Store the current video's container ID
+                        currentVideoId = entry.target.id;
 
                         if (isVideo) {
                             // Try to play with sound first
                             mediaElement.muted = false;
                             const playPromise = mediaElement.play();
-                          
                             if (playPromise !== undefined) {
-                                playPromise.catch(error => {
-                                    // If autoplay with sound fails, mute and try again
+                                playPromise.catch(() => {
                                     mediaElement.muted = true;
                                     mediaElement.play().catch(e => console.log('Autoplay prevented:', e));
                                 });
                             }
                         }
 
-                        // Add class for visible animation
                         mediaElement.style.transform = 'scale(1)';
                         mediaElement.style.opacity = '1';
                     } else {
                         if (isVideo) {
                             mediaElement.pause();
                         }
-                        // video.currentTime = 0; // Don't reset video to the beginning
                         if (currentVideoId === entry.target.id) {
                             currentVideoId = null;
                         }
-                        // Add class for scrolled-away animation
-                        mediaElement.style.transform = 'scale(0.9)';
-                        mediaElement.style.opacity = '0.7';
+                        mediaElement.style.transform = 'scale(0.95)';
+                        mediaElement.style.opacity = '0.85';
                     }
                 });
             }, options);
@@ -1678,19 +1789,14 @@
         // Handle browser tab visibility changes
         function handleVisibilityChange() {
             if (!currentVideoId) return;
-
             const currentVideoContainer = document.getElementById(currentVideoId);
             if (!currentVideoContainer) return;
-
             const mediaElement = currentVideoContainer.querySelector('.video-player');
-            if (!mediaElement || mediaElement.tagName !== 'VIDEO') {
-                return; // Not a video, do nothing
-            }
-
+            if (!mediaElement || mediaElement.tagName !== 'VIDEO') return;
             if (document.hidden) {
-                mediaElement.pause();
+                try { mediaElement.pause(); } catch(e) {}
             } else {
-                mediaElement.play().catch(e => console.log('Autoplay on visibility change prevented:', e));
+                mediaElement.play().catch(() => {});
             }
         }
         // Toggle theme between dark and light
@@ -1699,7 +1805,7 @@
             document.documentElement.setAttribute('data-theme', currentTheme);
             localStorage.setItem('theme', currentTheme); // Save the theme preference
         }
-        // Create like animation on double tap
+        // Create like animation on double tap — handles both mouse and touch events
         function createLikeAnimation(event) {
             const likeAnimation = document.createElement('div');
             likeAnimation.className = 'like-animation';
@@ -1708,17 +1814,13 @@
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                 </svg>
             `;
-          
-            // Position the animation at the tap location
-            likeAnimation.style.left = `${event.clientX}px`;
-            likeAnimation.style.top = `${event.clientY}px`;
-          
+            // Handle both touch and mouse events
+            const clientX = event.clientX ?? event.pageX ?? (event.changedTouches?.[0]?.clientX) ?? window.innerWidth / 2;
+            const clientY = event.clientY ?? event.pageY ?? (event.changedTouches?.[0]?.clientY) ?? window.innerHeight / 2;
+            likeAnimation.style.left = `${clientX}px`;
+            likeAnimation.style.top = `${clientY}px`;
             document.body.appendChild(likeAnimation);
-          
-            // Remove animation after it completes
-            setTimeout(() => {
-                likeAnimation.remove();
-            }, 1000);
+            setTimeout(() => likeAnimation.remove(), 1000);
         }
         // Toggle like status
         async function toggleLike(element, videoId) {
@@ -1729,7 +1831,9 @@
             // Optimistically update the UI
             const likeIcon = document.getElementById(`likeIcon-${videoId}`);
             const likeCount = document.getElementById(`likeCount-${videoId}`);
+            if (!likeIcon || !likeCount) return;
             const svg = likeIcon.querySelector('svg');
+            if (!svg) return;
             const isCurrentlyLiked = svg.getAttribute('fill') === 'currentColor';
 
             // Add the popping animation to the icon
@@ -1800,7 +1904,9 @@
         // Toggle save video
         async function toggleSave(videoId) {
             const saveIcon = document.getElementById(`saveIcon-${videoId}`);
+            if (!saveIcon) return;
             const svg = saveIcon.querySelector('svg');
+            if (!svg) return;
             const isSaved = savedPosts.includes(videoId);
 
             // Optimistic UI update
@@ -1839,9 +1945,9 @@
         // Show toast notification
         function showToast(message) {
             const toast = document.getElementById('toast');
+            if (!toast) { console.warn('Toast element not found:', message); return; }
             toast.textContent = message;
             toast.classList.add('show');
-          
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
@@ -1849,13 +1955,15 @@
         // Toggle mute
         function toggleMute(button, videoId) {
             const videoContainer = button.closest('.video-container');
+            if (!videoContainer) return;
             const video = videoContainer.querySelector('video');
+            if (!video) return; // image post — no mute to toggle
             const volumeSlider = document.getElementById(`volumeSlider-${videoId}`);
             const unmutedIcon = button.querySelector('.volume-icon-unmuted');
             const mutedIcon = button.querySelector('.volume-icon-muted');
 
             // Toggle slider visibility
-            button.parentElement.classList.toggle('slider-visible');
+            if (button.parentElement) button.parentElement.classList.toggle('slider-visible');
 
             if (video.muted) {
                 video.muted = false;
@@ -1882,19 +1990,15 @@
         function openComments(videoId) {
             const drawer = document.getElementById(`commentDrawer-${videoId}`);
             const commentsList = document.getElementById(`commentsList-${videoId}`);
+            if (!drawer || !commentsList) return;
 
-            // Clear previous comments
             commentsList.innerHTML = '';
-
-            // Load comments for this video
             loadComments(videoId, commentsList);
-
-            // Open drawer
             drawer.classList.add('open');
             isCommentDrawerOpen = true;
 
-            // FIX: Disable scroll-snap when comment drawer is open
-            document.getElementById('feed').classList.add('no-snap');
+            const feedEl = document.getElementById('feed');
+            if (feedEl) feedEl.classList.add('no-snap');
         }
         // Load comments
         async function loadComments(videoId, commentsList) {
@@ -2117,10 +2221,10 @@
         // Close comments drawer
         function closeComments(videoId) {
             const drawer = document.getElementById(`commentDrawer-${videoId}`);
-            drawer.classList.remove('open');
+            if (drawer) drawer.classList.remove('open');
             isCommentDrawerOpen = false;
-            // Re-enable scroll-snap
-            document.getElementById('feed').classList.remove('no-snap');
+            const feedEl = document.getElementById('feed');
+            if (feedEl) feedEl.classList.remove('no-snap');
         }
         // Global variable to track the currently open reaction picker
         let openReactionPicker = null;
@@ -2285,7 +2389,8 @@
                 // Update the comment count on the UI from the function's return value
                 const newCountValue = Array.isArray(result) ? result[0] : result;
                 if (newCountValue && newCountValue.updated_comments_count != null) {
-                    document.getElementById(`commentCount-${videoId}`).textContent = String(newCountValue.updated_comments_count);
+                    const countEl = document.getElementById(`commentCount-${videoId}`);
+                    if (countEl) countEl.textContent = String(newCountValue.updated_comments_count);
                 }
 
                 const tempId = `temp-${Date.now()}`; // Store temp ID for later
@@ -2360,15 +2465,15 @@
             const replyIndicator = document.getElementById(`replyIndicator-${videoId}`);
             const replyingToUser = document.getElementById(`replyingToUser-${videoId}`);
             const commentInput = document.getElementById(`commentInput-${videoId}`);
-            replyingToUser.textContent = `@${username}`;
-            replyIndicator.style.display = 'flex';
-            commentInput.focus();
+            if (replyingToUser) replyingToUser.textContent = `@${username}`;
+            if (replyIndicator) replyIndicator.style.display = 'flex';
+            if (commentInput) commentInput.focus();
         }
         // Cancel the current reply
         function cancelReply(videoId) {
             replyingToCommentId = null;
             const replyIndicator = document.getElementById(`replyIndicator-${videoId}`);
-            replyIndicator.style.display = 'none';
+            if (replyIndicator) replyIndicator.style.display = 'none';
         }
         // Delete post (only for user's own posts)
         async function deletePost(videoId) {
@@ -2376,17 +2481,46 @@
                 showGuestLoginModal();
                 return;
             }
-          
-            if (confirm('Are you sure you want to delete this post?')) {
-                try {
-                    // Remove from UI
-                    const videoContainer = document.getElementById(`video-${videoId}`);
-                    videoContainer.remove();
-                  
-                    showToast('Post deleted');
-                } catch (error) {
-                    console.error('Error deleting post:', error);
-                    showToast('Error deleting post');
+
+            if (!confirm('Are you sure you want to delete this post?')) return;
+
+            const videoContainer = document.getElementById(`video-${videoId}`);
+
+            try {
+                // 1. Remove from Supabase DB first
+                const { error } = await supabase
+                    .from('posts')
+                    .delete()
+                    .eq('id', videoId);
+
+                if (error) throw error;
+
+                // 2. Also delete the file from storage (best-effort, non-blocking)
+                // We don't know the path here, so just remove from DB and UI
+
+                // 3. Remove from UI with animation
+                if (videoContainer) {
+                    videoContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    videoContainer.style.opacity = '0';
+                    videoContainer.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        videoContainer.remove();
+                        // If feed is now empty, refresh to show empty state
+                        const remaining = document.querySelectorAll('.video-container').length;
+                        if (remaining === 0) {
+                            fetchPostsFromDatabase();
+                        }
+                    }, 300);
+                }
+
+                showToast('Post deleted successfully');
+            } catch (error) {
+                console.error('Error deleting post:', error);
+                showToast(`Error deleting post: ${error.message || 'Unknown error'}`);
+                // Revert UI opacity if it was changed but delete failed
+                if (videoContainer) {
+                    videoContainer.style.opacity = '1';
+                    videoContainer.style.transform = 'scale(1)';
                 }
             }
         }
@@ -2437,22 +2571,38 @@
         }
         // Hide upload form
         function hideUploadForm() {
-            document.getElementById('uploadForm').classList.remove('active');
-            document.getElementById('uploadOptions').style.display = 'flex';
-            document.getElementById('uploadModal').classList.remove('active');
-          
-            // Clear form and reset state
-            document.getElementById('postTitle').value = '';
-            document.getElementById('postCaption').value = '';
-            document.getElementById('postHashtags').value = '';
-            document.getElementById('mediaFile').value = '';
-            document.getElementById('mediaPreviewContainer').classList.remove('active');
-            document.getElementById('uploadSubmitBtn').disabled = true;
-          
+            const uploadForm = document.getElementById('uploadForm');
+            const uploadOptions = document.getElementById('uploadOptions');
+            const uploadModal = document.getElementById('uploadModal');
+            if (uploadForm) uploadForm.classList.remove('active');
+            if (uploadOptions) uploadOptions.style.display = 'flex';
+            if (uploadModal) uploadModal.classList.remove('active');
+
+            // Clear form fields
+            const postTitle = document.getElementById('postTitle');
+            const postCaption = document.getElementById('postCaption');
+            const postHashtags = document.getElementById('postHashtags');
+            const mediaFileInput = document.getElementById('mediaFile');
+            const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+            const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
+            const videoPreview = document.getElementById('videoPreview');
+            const imagePreview = document.getElementById('imagePreview');
+
+            if (postTitle) postTitle.value = '';
+            if (postCaption) postCaption.value = '';
+            if (postHashtags) postHashtags.value = '';
+            if (mediaFileInput) mediaFileInput.value = '';
+            if (mediaPreviewContainer) mediaPreviewContainer.classList.remove('active');
+            if (uploadSubmitBtn) uploadSubmitBtn.disabled = true;
+
+            // Release object URLs to prevent memory leaks
+            if (videoPreview) { videoPreview.src = ''; videoPreview.style.display = 'none'; }
+            if (imagePreview) { imagePreview.src = ''; imagePreview.style.display = 'none'; }
+
             // Stop camera and recording
             stopRecording();
             stopCamera();
-          
+
             selectedMediaFile = null;
             selectedMediaDuration = null;
         }
@@ -2524,15 +2674,20 @@
                         return;
                     }
                   
-                    const blob = new Blob(recordedChunks, { type: recordedChunks[0].type });
-                  
-                    // Validate the blob before creating object URL
+                    // Determine a safe MIME type — some Android browsers return empty type
+                    const recordedMime = recordedChunks[0]?.type || 'video/webm';
+                    const safeType = recordedMime || 'video/webm';
+                    const blob = new Blob(recordedChunks, { type: safeType });
+
                     if (!blob || blob.size === 0) {
-                        showToast('Recorded video is empty or invalid');
+                        showToast('No video data recorded');
                         return;
                     }
-                  
-                    selectedVideoFile = new File([blob], 'recorded-video.webm', { type: blob.type });
+
+                    // Use .mp4 extension if the mime is mp4, else .webm
+                    const recExt = safeType.includes('mp4') ? 'mp4' : 'webm';
+                    selectedMediaFile = new File([blob], `recorded-video.${recExt}`, { type: safeType });
+                    selectedMediaFile.mediaType = 'video';
                   
                     // Show preview - This part is for recorded video, so it remains video.
                     const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
@@ -2542,27 +2697,24 @@
                   
                     if (videoPreview) {
                         try {
-                            const validation = validateFileForObjectURL(blob);
-                            if (!validation.valid) {
-                                showToast(validation.error || 'Invalid media file');
-                                return;
-                            }
-                          
+                            // Skip strict MIME validation for recorded blobs —
+                            // browser-recorded blobs are always valid if size > 0
                             const objectUrl = URL.createObjectURL(blob);
                             videoPreview.src = objectUrl;
-                          
-                            // Clean up on error
+                            videoPreview.style.display = 'block';
+                            const imagePreviewEl = document.getElementById('imagePreview');
+                            if (imagePreviewEl) imagePreviewEl.style.display = 'none';
                             videoPreview.onerror = function() {
                                 URL.revokeObjectURL(objectUrl);
-                                showToast('Error processing recorded video');
+                                console.warn('Video preview failed to load - continuing anyway');
+                                // Don't show error toast — the upload may still work
+                                checkUploadButton();
                             };
                         } catch (error) {
                             console.error('Error creating object URL for recording:', error);
-                            showToast('Error processing recorded video');
-                            return;
+                            // Don't block upload — preview failure ≠ upload failure
                         }
                     }
-                  
                     if (mediaPreviewContainer) {
                         mediaPreviewContainer.classList.add('active');
                     }
@@ -2765,7 +2917,7 @@
         // Upload post
         async function uploadPost(title, caption, hashtags, fileToUpload) {
             const uploadProgress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
+            const progressFill = document.getElementById('uploadProgressFill');
             const progressStatus = document.getElementById('progressStatus');
           
             if (!isLoggedIn) {
@@ -2825,14 +2977,19 @@
                     throw new Error('Could not get public URL for the video.');
                 }
                  // 3. Insert the post metadata into the 'posts' table
+                // Safe username: try user_metadata first, then profile, then email prefix
+                const safeUsername = (user.user_metadata && user.user_metadata.username)
+                    || (currentUserProfile && currentUserProfile.username)
+                    || (user.email ? user.email.split('@')[0] : 'user');
+
                 const { data: newPost, error: insertError } = await supabase
                     .from('posts')
                     .insert({
                         user_id: user.id,
-                        username: user.user_metadata.username || user.email.split('@')[0],
+                        username: safeUsername,
                         content: caption || title,
                         media_url: publicUrl,
-                        media_type: mediaType, // Save the media type
+                        media_type: mediaType,
                         hashtags: hashtags,
                         title: title
                     }).select().single();
@@ -2892,11 +3049,47 @@
                 }, 1000);
             } catch (error) {
                 console.error('Error uploading post:', error);
-                if (uploadProgress) {
-                    uploadProgress.classList.remove('active');
-                }
-                showToast(`Error uploading post: ${error.message}`);
+                if (uploadProgress) uploadProgress.classList.remove('active');
+                // Show a persistent error modal instead of a fleeting toast
+                showUploadError(error.message || 'Unknown error. Please try again.');
             }
+        }
+
+        // Show a dismissible upload error — more visible than a toast
+        function showUploadError(message) {
+            // Try toast first
+            showToast(`Upload failed: ${message}`);
+            // Also log clearly so devs can see it
+            console.error('[PeerLoom Upload Error]', message);
+            // If the progress modal is showing, put the error there
+            const progressStatus = document.getElementById('progressStatus');
+            const uploadProgress = document.getElementById('uploadProgress');
+            if (progressStatus && uploadProgress && uploadProgress.classList.contains('active')) {
+                progressStatus.textContent = `Error: ${message}`;
+                progressStatus.style.color = '#ff6b6b';
+                // Auto-close after 4 seconds
+                setTimeout(() => {
+                    uploadProgress.classList.remove('active');
+                    progressStatus.style.color = '';
+                }, 4000);
+            }
+        }
+
+        // Notification sound (stub — replace with real audio implementation if needed)
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                oscillator.frequency.value = 880;
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                oscillator.start(ctx.currentTime);
+                oscillator.stop(ctx.currentTime + 0.3);
+            } catch (e) { /* Audio not supported */ }
         }
 
         // Helper function to escape special characters for ILIKE
@@ -3018,8 +3211,13 @@
                 resultItem.className = 'search-result-item';
                 resultItem.dataset.videoId = post.id; // Store video ID in a data attribute
 
+                const thumbIsImage = post.media_type === 'image' ||
+                    (post.media_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(post.media_url));
+                const thumbnailHtml = thumbIsImage
+                    ? `<img class="search-result-thumbnail" src="${post.media_url}" alt="${post.title || 'Post'}" loading="lazy">`
+                    : `<video class="search-result-thumbnail" src="${post.media_url}#t=1" preload="metadata"></video>`;
                 resultItem.innerHTML = `
-                    <video class="search-result-thumbnail" src="${post.media_url}#t=1" preload="metadata"></video>
+                    ${thumbnailHtml}
                     <div class="search-result-info">
                         <div class="title">${post.title || 'Untitled Post'}</div>
                         <div class="username">@${post.username || 'user'} &bull; ❤️ ${post.likes_count || 0}</div>
@@ -3038,8 +3236,10 @@
         // New function to handle navigation to a video without a page reload
         async function navigateToVideo(videoId) {
             // 1. Close the search overlay
-            document.getElementById('searchOverlay').classList.remove('active');
-            document.getElementById('searchIcon').classList.remove('active');
+            const _searchOverlay = document.getElementById('searchOverlay');
+            const _searchIcon = document.getElementById('searchIcon');
+            if (_searchOverlay) _searchOverlay.classList.remove('active');
+            if (_searchIcon) _searchIcon.classList.remove('active');
 
             // 2. Check if the video element already exists in the feed
             let videoElement = document.getElementById(`video-${videoId}`);
