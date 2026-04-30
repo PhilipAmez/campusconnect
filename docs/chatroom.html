@@ -279,7 +279,6 @@
     
     const AI_USER_ID = 'bdb2a62c-7ef7-4f1d-a67a-a3290d276cbe';
     const AI_USER_NAME = 'PeerPal AI';
-    const AI_MODELS = ['gpt-4', 'gpt-3.5-turbo'];
     
     const elements = {
       messagePanel: document.getElementById('messagePanel'),
@@ -1673,45 +1672,47 @@
     }
     
     async function checkPeerloomAI(message) {
-      try {
-        showAITypingIndicator();
-        
-        const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
-        
-        let aiReply = "I'm here to help! How can I assist you today?";
-        
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-        
-        try {
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: `You are an assistant that ONLY responds when explicitly called.
-Do not speak unless the user directly asks or mentions you.
-Do not continue conversations unprompted.
+      if (state.aiResponseInProgress) return;
+      state.aiResponseInProgress = true;
 
-User message:
-${cleanMessage}`
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data?.reply) {
-              aiReply = data.reply;
-            }
+      const cleanMessage = message.replace(/@peerpal ai/gi, '').trim();
+      if (!cleanMessage) {
+        state.aiResponseInProgress = false;
+        return;
+      }
+
+      showAITypingIndicator();
+
+      let aiReply = null;
+
+      try {
+        const response = await fetch('/api/peerpal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: cleanMessage })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && typeof data.reply === 'string' && data.reply.trim()) {
+            aiReply = data.reply.trim();
           } else {
-            console.log('AI API failed, using fallback response');
-            aiReply = generateSmartStudyResponse(cleanMessage);
+            console.warn('PeerPal: unexpected response shape', data);
+            aiReply = getPeerPalFallback(cleanMessage);
           }
-        } catch (modelError) {
-          console.log('AI API error:', modelError);
-          aiReply = generateSmartStudyResponse(cleanMessage);
+        } else {
+          const errorBody = await response.text().catch(() => '');
+          console.warn(`PeerPal: backend returned ${response.status}`, errorBody);
+          aiReply = getPeerPalFallback(cleanMessage);
         }
-        
+      } catch (networkError) {
+        console.error('PeerPal: network error', networkError);
+        aiReply = getPeerPalFallback(cleanMessage);
+      } finally {
         hideAITypingIndicator();
-        
+      }
+
+      try {
         const { data: aiMessage, error: aiError } = await supabase
           .from('group_messages')
           .insert({
@@ -1723,46 +1724,36 @@ ${cleanMessage}`
           })
           .select()
           .single();
-        
+
         if (aiError) {
-          console.error('Error inserting AI message:', aiError);
+          console.error('PeerPal: error inserting AI message', aiError);
         } else if (aiMessage) {
           // Render immediately; the realtime INSERT guard will skip it as duplicate
           const existingEl = document.querySelector(`.msg[data-id="${aiMessage.id}"]`);
-          if (!existingEl) {
-            render(aiMessage);
-          }
+          if (!existingEl) render(aiMessage);
         }
-        
-      } catch (error) {
-        console.error('PeerPal AI Error:', error);
-        hideAITypingIndicator();
+      } catch (dbError) {
+        console.error('PeerPal: database error', dbError);
+      } finally {
+        setTimeout(() => { state.aiResponseInProgress = false; }, 2000);
       }
     }
-    
-    function generateSmartStudyResponse(message) {
-      const lowerMessage = message.toLowerCase();
-      
-      if (lowerMessage.includes('explain') || lowerMessage.includes('what is') || lowerMessage.includes('how does')) {
-        return "I'd be happy to explain that! Could you provide more specific details about what you'd like me to break down?";
+
+    function getPeerPalFallback(message) {
+      const lm = message.toLowerCase();
+      if (lm.includes('explain') || lm.includes('what is') || lm.includes('how does') || lm.includes('how do')) {
+        return "I'd love to help explain that! Please share more details so I can give you a thorough and accurate answer.";
       }
-      
-      if (lowerMessage.includes('practice') || lowerMessage.includes('question') || lowerMessage.includes('quiz')) {
-        return "Great! Let me generate some practice questions for you. What specific topic would you like to practice?";
+      if (lm.includes('practice') || lm.includes('quiz') || lm.includes('test me')) {
+        return "Practice makes perfect! Share the topic you want to drill, and I'll put together some questions for you.";
       }
-      
-      if (lowerMessage.includes('summary') || lowerMessage.includes('summarize') || lowerMessage.includes('notes')) {
-        return "I can help summarize your study materials! Please share the content you'd like me to summarize.";
+      if (lm.includes('summary') || lm.includes('summarize') || lm.includes('notes')) {
+        return "Sure — paste the content you'd like summarized and I'll condense it into clear, concise notes.";
       }
-      
-      const studyResponses = [
-        "I'm here to help you learn! Feel free to ask me to explain concepts, generate practice questions, or help with exam prep.",
-        "As your study buddy, I can break down complex topics or create practice exercises. What would you like to work on?",
-        "Learning is more effective with support! I can assist with understanding difficult concepts or creating study guides.",
-        "Education is a journey! I'm here to make it easier by explaining concepts clearly and supporting your study efforts."
-      ];
-      
-      return studyResponses[Math.floor(Math.random() * studyResponses.length)];
+      if (lm.includes('assignment') || lm.includes('homework') || lm.includes('deadline')) {
+        return "I can help with your assignment! Share the task details and I'll guide you step by step.";
+      }
+      return "I'm here and ready to assist! Ask me anything about your studies, assignments, or academic goals.";
     }
     
     function showAITypingIndicator() {
@@ -1884,15 +1875,10 @@ ${cleanMessage}`
     }
     
     async function checkForAIResponse(message) {
-      if (state.aiResponseInProgress) return;
-      
       const messageText = message.content ? message.content.toLowerCase() : '';
       if (messageText.includes('@peerpal ai') || hasAIKeywordsInText(messageText)) {
-        state.aiResponseInProgress = true;
-        
         setTimeout(async () => {
           await checkPeerloomAI(message.content || 'Hello');
-          setTimeout(() => { state.aiResponseInProgress = false; }, 2000);
         }, 1000);
       }
     }
