@@ -1,7 +1,7 @@
 /**
- * backend/api/peerpal.js
+ * api/peerpal.js
  * ──────────────────────────────────────────────────────────────
- * Secure backend proxy for PeerPal AI (Gemini 1.5 Flash).
+ * Secure backend proxy for PeerPal AI (Gemini 2.5 Flash).
  *
  * Environment variables required:
  *   GEMINI_API_KEY  – your Google AI Studio / Vertex AI key
@@ -187,8 +187,4 @@ async function handler(req, res) {
   }
 }
 
-module.exports = handler;
-
-// ── Next.js / Vercel named export support ────────────────────
-// If you are using Next.js App Router or Vercel Edge, replace the
-// module.exports line with:  export default handler;
+export default handler;
