@@ -1206,7 +1206,13 @@
                         role: 'student',
                         userType: 'student'
                     },
-                    emailRedirectTo: `${window.location.origin}/login.html`
+                    emailRedirectTo: (() => {
+                            const _p = new URLSearchParams(window.location.search)
+                            const _g = _p.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
+                            return _g
+                                ? `${window.location.origin}/login.html?joinGroup=${_g}`
+                                : `${window.location.origin}/login.html`
+                        })()
                 }
             });
 
@@ -1239,6 +1245,7 @@
                         email: email,
                         phone: contact,
                         profile_photo: profilePhotoUrl,
+                        campus: campus,
                         institution: campus,
                         department: department,
                         level: level,
@@ -1315,6 +1322,13 @@
             this.style.transition = 'transform 0.2s ease';
         });
     }
+
+    // Preserve pending group join across signup + email verification
+    try {
+        const _sp = new URLSearchParams(window.location.search)
+        const _sg = _sp.get('joinGroup')
+        if (_sg) localStorage.setItem('pendingGroupJoin', _sg)
+    } catch(_e) {}
 
     // Add floating animation to shapes
     const shapes = document.querySelectorAll('.shape');

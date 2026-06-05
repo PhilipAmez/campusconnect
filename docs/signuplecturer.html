@@ -1243,7 +1243,13 @@
                             role: 'lecturer',
                             user_type: 'lecturer'
                         },
-                        emailRedirectTo: `${window.location.origin}/login.html`
+                        emailRedirectTo: (() => {
+                            const _p = new URLSearchParams(window.location.search)
+                            const _g = _p.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
+                            return _g
+                                ? `${window.location.origin}/login.html?joinGroup=${_g}`
+                                : `${window.location.origin}/login.html`
+                        })()
                     }
                 });
 

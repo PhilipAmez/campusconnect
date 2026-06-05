@@ -26,8 +26,9 @@
         [data-theme="dark"] {
             --bg-primary: #1f2937;
             --bg-secondary: #374151;
-            --text-dark: #f9fafb;
-            --text-light: #9ca3af;
+            --text-dark: #f5f5f5;
+            --text-light: #d1d5db;
+            --text-muted: #9ca3af;
             --hover-bg: #4b5563;
             --primary: #7c3aed;
             --secondary: #4f46e5;
@@ -57,6 +58,11 @@
         }
         ::-webkit-scrollbar-thumb {
             background: transparent;
+        }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
         }
         * {
             scrollbar-width: none;
@@ -364,13 +370,21 @@
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 1rem;
-            padding: 1.5rem;
+            padding: 1.25rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: var(--transition);
-            overflow-y: auto;
+            overflow: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: contain;
             max-height: calc(100vh - 5rem);
+            line-height: 1.5;
+        }
+        [data-theme="dark"] .sidebar,
+        [data-theme="dark"] .main-content,
+        [data-theme="dark"] .connections {
+            color: #f5f5f5;
+            background: rgba(17, 24, 39, 0.58);
+            border-color: rgba(255, 255, 255, 0.14);
         }
         .sidebar:active,
         .sidebar:focus,
@@ -405,25 +419,51 @@
             border-left: 4px solid var(--primary);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: var(--transition);
+            line-height: 1.5;
+        }
+        [data-theme="dark"] .auth-title {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        [data-theme="dark"] .auth-title i {
+            color: var(--accent);
         }
         .auth-title:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+            background: transparent;
             border-radius: 0.8rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            padding: 0.75rem 0;
+            margin-bottom: 0.5rem;
             transition: transform 0.2s;
+            line-height: 1.5;
+            overflow: visible;
+            border: none;
+        }
+        .card h4 {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        [data-theme="dark"] .card {
+            color: #f5f5f5;
+            background: rgba(17, 24, 39, 0.52);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+        [data-theme="dark"] .card h4,
+        [data-theme="dark"] .card .text-purple-600 {
+            color: #ffffff !important;
+        }
+        [data-theme="dark"] .card h4 i {
+            color: var(--accent);
         }
         .card:hover {
             transform: translateY(-2px);
         }
         .search-bar, .input-field, .textarea-field {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.75rem 1rem;
             margin-bottom: 1rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 0.6rem;
@@ -432,6 +472,26 @@
             color: var(--text-dark);
             transition: border 0.2s;
             font-family: inherit;
+            line-height: 1.5;
+            min-height: 48px;
+        }
+        .search-bar::placeholder,
+        .input-field::placeholder,
+        .textarea-field::placeholder {
+            color: rgba(31, 41, 55, 0.68);
+        }
+        [data-theme="dark"] .search-bar,
+        [data-theme="dark"] .input-field,
+        [data-theme="dark"] .textarea-field {
+            color: #f5f5f5;
+            background: rgba(17, 24, 39, 0.66);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+        [data-theme="dark"] .search-bar::placeholder,
+        [data-theme="dark"] .input-field::placeholder,
+        [data-theme="dark"] .textarea-field::placeholder {
+            color: #d1d5db;
+            opacity: 1;
         }
         .search-bar:focus, .input-field:focus, .textarea-field:focus {
             border-color: var(--primary);
@@ -444,18 +504,19 @@
         }
         .search-container {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.875rem;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
         }
         .search-bar {
             flex: 1;
+            margin-bottom: 0;
         }
         .btn {
             font-style: italic;
             font-weight: 400;
             color: var(--text-dark);
-            padding: 0.6rem 1.2rem;
+            padding: 0.75rem 1rem;
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -464,11 +525,27 @@
             transition: transform 0.2s, background 0.2s, color 0.2s;
             white-space: nowrap;
             min-width: fit-content;
+            min-height: 44px;
+            line-height: 1.5;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            text-align: center;
+        }
+        [data-theme="dark"] .btn {
+            color: #f5f5f5;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.18);
         }
         .btn:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.3);
             color: var(--primary);
+        }
+        [data-theme="dark"] .btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.16);
         }
         .my-active-groups-btn {
             background: transparent !important;
@@ -478,6 +555,10 @@
             margin-bottom: 1.5rem;
             width: 100%;
             animation: pulseBorder 3s infinite ease-in-out;
+        }
+        [data-theme="dark"] .my-active-groups-btn {
+            color: #ffffff !important;
+            background: rgba(124, 58, 237, 0.12) !important;
         }
         @keyframes pulseBorder {
             0%, 100% {
@@ -493,51 +574,174 @@
             background: linear-gradient(45deg, #00c4ff, #007bff);
             border: none;
             border-radius: 0.5rem;
-            padding: 0.6rem 1.2rem;
+            padding: 0.75rem 1rem;
             color: white;
             transition: transform 0.2s, background 0.2s;
+            min-height: 44px;
+            line-height: 1.5;
         }
         .search-btn:hover {
             transform: translateY(-2px);
             background: linear-gradient(45deg, #00e4ff, #009bff);
         }
-        .group-item, .connection-item {
-            display: flex;
+        /* ── Group card ── */
+        .group-item {
+            display: grid;
+            grid-template-columns: 44px 1fr auto;
+            grid-template-rows: 1fr;
             align-items: center;
-            gap: 0.8rem;
-            padding: 0.8rem;
-            border-radius: 0.8rem;
+            gap: 0.75rem;
+            padding: 0.75rem 0.875rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(6px);
+            margin-bottom: 0.625rem;
             transition: background 0.2s, transform 0.2s;
-            flex-wrap: nowrap;
-            margin-bottom: 0.8rem;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 64px;
         }
-        .group-item:hover, .connection-item:hover {
-            background: rgba(237, 233, 254, 0.3);
-            transform: translateX(4px);
-            border-color: rgba(124, 58, 237, 0.2);
+        .group-item .avatar {
+            grid-column: 1;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            font-size: 1.1rem;
         }
+        .dashboard-row-copy {
+            grid-column: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }
+        .dashboard-row-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1.35;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .dashboard-row-copy .text-gray-600 {
+            font-size: 0.78rem;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .dashboard-row-copy .text-gray-500 {
+            font-size: 0.72rem;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .dashboard-row-actions {
+            grid-column: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            flex-shrink: 0;
+        }
+        .dashboard-row-actions .campus-indicator {
+            flex-shrink: 0;
+        }
+        .dashboard-row-actions .join-btn {
+            flex-shrink: 0;
+            white-space: nowrap;
+            padding: 0.4rem 0.7rem;
+            font-size: 0.78rem;
+            min-height: 32px;
+            border-radius: 0.45rem;
+        }
+
+        /* ── Connection card ── */
         .connection-item {
             display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 1rem;
+            grid-template-columns: 44px 1fr auto;
             align-items: center;
-            min-height: 72px;
+            gap: 0.75rem;
+            padding: 0.75rem 0.875rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(6px);
+            margin-bottom: 0.625rem;
+            transition: background 0.2s, transform 0.2s;
+            min-height: 64px;
         }
         .connection-avatar {
             grid-column: 1;
-            flex-shrink: 0;
+            display: flex;
+            align-items: center;
         }
         .connection-info {
             grid-column: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
             min-width: 0;
             overflow: hidden;
         }
+        .connection-info p {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
         .connection-actions {
             grid-column: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
             flex-shrink: 0;
+        }
+        .connection-actions .campus-indicator {
+            flex-shrink: 0;
+        }
+        .connection-actions .follow-btn {
+            flex-shrink: 0;
+            white-space: nowrap;
+            padding: 0.4rem 0.7rem !important;
+            font-size: 0.78rem !important;
+            min-height: 32px;
+            border-radius: 0.45rem;
+        }
+        [data-theme="dark"] .group-item,
+        [data-theme="dark"] .connection-item {
+            color: #f5f5f5;
+            background: rgba(17, 24, 39, 0.5);
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+        [data-theme="dark"] .group-item:hover,
+        [data-theme="dark"] .connection-item:hover {
+            background: rgba(31, 41, 55, 0.76);
+            border-color: rgba(167, 139, 250, 0.34);
+        }
+        [data-theme="dark"] .group-item .font-semibold,
+        [data-theme="dark"] .connection-item .font-semibold,
+        [data-theme="dark"] #courseList .font-semibold,
+        [data-theme="dark"] .text-gray-800 {
+            color: #f5f5f5 !important;
+        }
+        [data-theme="dark"] .group-item .text-gray-600,
+        [data-theme="dark"] .connection-item .text-gray-600,
+        [data-theme="dark"] .text-gray-600 {
+            color: #d1d5db !important;
+        }
+        [data-theme="dark"] .group-item .text-gray-500,
+        [data-theme="dark"] .connection-item .text-gray-500,
+        [data-theme="dark"] .text-gray-500,
+        [data-theme="dark"] .discovery-section-note,
+        [data-theme="dark"] .discovery-empty {
+            color: #9ca3af !important;
+        }
+        .group-item:hover, .connection-item:hover {
+            background: rgba(237, 233, 254, 0.28);
+            border-color: rgba(124, 58, 237, 0.22);
         }
         .avatar {
             width: 48px;
@@ -592,11 +796,19 @@
         .video-grid {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
         }
         #courseList {
             position: relative;
             min-height: 400px;
+            line-height: 1.5;
+        }
+        [data-theme="dark"] #courseList .card,
+        [data-theme="dark"] #courseList .card h4 {
+            color: #ffffff !important;
+        }
+        [data-theme="dark"] #courseList .card h4 i {
+            color: var(--accent);
         }
         .ptr-indicator {
             position: absolute;
@@ -1319,15 +1531,20 @@
             margin-left: 8px;
             background: rgba(124, 58, 237, 0.15);
             backdrop-filter: blur(4px);
-            padding: 2px 8px;
+            padding: 6px 12px;
             border-radius: 30px;
             font-size: 0.7rem;
             font-weight: 500;
             color: var(--primary);
             border: 1px solid rgba(124, 58, 237, 0.3);
             vertical-align: middle;
-            line-height: 1;
+            line-height: 1.5;
             white-space: nowrap;
+        }
+        [data-theme="dark"] .lecturer-badge {
+            color: #ffffff;
+            background: rgba(124, 58, 237, 0.22);
+            border-color: rgba(167, 139, 250, 0.42);
         }
         .lecturer-badge i {
             font-size: 0.6rem;
@@ -1363,7 +1580,7 @@
                 margin-bottom: 1rem;
             }
             .sidebar, .main-content, .connections {
-                padding: 1rem;
+                padding: 1.5rem;
                 -webkit-overflow-scrolling: touch;
                 scroll-behavior: smooth;
                 max-height: none;
@@ -1372,7 +1589,7 @@
                 overflow-y: visible;
             }
             .card {
-                padding: 0.8rem;
+                padding: 1.5rem;
             }
             .dashboard {
                 padding: 3.5rem 0.5rem 1rem;
@@ -1386,7 +1603,18 @@
             }
             .group-item, .connection-item {
                 flex-wrap: wrap;
-                gap: 0.5rem;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .group-item {
+                flex-wrap: nowrap;
+                gap: 0.75rem;
+            }
+            .group-item .join-btn {
+                width: auto;
+            }
+            .dashboard-row-actions {
+                max-width: 52%;
             }
             .avatar {
                 width: 40px;
@@ -1425,28 +1653,28 @@
                 order: 3;
             }
             .connection-item {
-                grid-template-columns: auto 1fr;
-                grid-template-rows: auto auto;
-            }
-            .connection-avatar {
-                grid-column: 1;
-                grid-row: 1 / span 2;
-            }
-            .connection-info {
-                grid-column: 2;
-                grid-row: 1;
+                grid-template-columns: 40px 1fr auto;
+                gap: 0.625rem;
             }
             .connection-actions {
-                grid-column: 2;
-                grid-row: 2;
-                justify-self: start;
-                margin-top: 0.5rem;
+                flex-direction: column;
+                gap: 0.3rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .group-item,
+            .connection-item {
+                grid-template-columns: 38px 1fr auto;
+                gap: 0.5rem;
+                padding: 0.625rem;
             }
         }
        
         @media (min-width: 1024px) {
             .dashboard {
                 flex-direction: row;
+                align-items: flex-start;
             }
             .nav-links {
                 display: flex;
@@ -1455,12 +1683,30 @@
                 display: none !important;
             }
             .sidebar, .connections {
-                flex: 1 1 350px;
-                max-width: 350px;
+                flex: 0 0 300px;
+                width: 300px;
+                min-width: 0;
             }
             .main-content {
-                flex: 2 1 500px;
-                max-width: 500px;
+                flex: 1 1 0;
+                min-width: 0;
+            }
+            .group-item,
+            .connection-item {
+                grid-template-columns: 40px 1fr auto;
+                gap: 0.625rem;
+                padding: 0.625rem 0.75rem;
+            }
+            .group-item .avatar {
+                width: 40px;
+                height: 40px;
+                min-width: 40px;
+                font-size: 1rem;
+            }
+            .avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
             }
         }
        
@@ -1497,12 +1743,12 @@
                 padding: 3.5rem 0.5rem 1rem;
             }
             .sidebar, .main-content, .connections {
-                padding: 0.7rem;
+                padding: 1.5rem;
                 max-height: none;
                 height: auto;
             }
             .card {
-                padding: 0.9rem;
+                padding: 1.5rem;
             }
             .avatar {
                 width: 44px;
@@ -1545,18 +1791,18 @@
                 padding: 3.2rem 0.2rem 0.5rem;
             }
             .sidebar, .main-content, .connections {
-                padding: 0.5rem;
+                padding: 1.5rem;
                 max-height: none;
                 height: auto;
             }
             .card {
-                padding: 0.6rem;
+                padding: 1.5rem;
             }
             .search-bar, .input-field, .textarea-field {
-                padding: 0.6rem;
+                padding: 0.75rem 1rem;
             }
             .btn, .search-btn {
-                padding: 0.4rem 0.8rem;
+                padding: 0.75rem 1rem;
             }
             .avatar {
                 width: 36px;
@@ -1612,13 +1858,14 @@
         .skeleton-item {
             display: flex;
             align-items: center;
-            gap: 0.8rem;
-            padding: 0.8rem;
+            gap: 1rem;
+            padding: 1rem;
             border-radius: 0.8rem;
-            margin-bottom: 0.8rem;
+            margin-bottom: 1rem;
             background: rgba(255, 255, 255, 0.1);
             overflow: hidden;
             position: relative;
+            min-height: 80px;
         }
         [data-theme="dark"] .skeleton-item {
             background: rgba(255, 255, 255, 0.05);
@@ -1891,6 +2138,17 @@
     </audio>
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
+        import { initGlobalTheme, onThemeChange, toggleLightDarkTheme } from './js/themeManager.js';
+        import {
+            createDiscoverySection,
+            enrichGroupsWithInstitution,
+            getCurrentUserContext,
+            isSameInstitution,
+            mixCampusFirstItems,
+            rankConnectionCandidates,
+            renderCampusIndicator,
+            resolveCampus
+        } from './js/campusDiscovery.js';
        
         const notificationBadgeDesktop = document.getElementById('notificationBadgeDesktop');
         const notificationBadgeMobile = document.getElementById('notificationBadgeMobile');
@@ -1899,17 +2157,12 @@
         let logoutTimer;
         const AUTO_LOGOUT_TIME = 60 * 60 * 1000;
         let sessionUpdateInterval;
+        let currentViewerProfile = null;
        
         let snowflakeElements = [];
        
         function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            if (theme === 'dark') {
-                createSnowflakes();
-            } else {
-                removeSnowflakes();
-            }
+            return window.peerloomTheme?.setThemePreference(theme);
         }
        
         function createSnowflakes() {
@@ -1934,9 +2187,7 @@
         }
        
         function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            applyTheme(newTheme);
+            return toggleLightDarkTheme();
         }
        
         let touchStartX = 0;
@@ -1953,11 +2204,18 @@
                 }
             });
         }
+
+        const themeController = await initGlobalTheme({ supabase });
+        window.peerloomTheme = themeController;
+        onThemeChange(({ resolvedTheme }) => {
+            if (resolvedTheme === 'dark') {
+                createSnowflakes();
+            } else {
+                removeSnowflakes();
+            }
+        });
        
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-        }
+        function loadTheme() {}
        
         function enterSite() {
             const splashContainer = document.getElementById('splashContainer');
@@ -2760,6 +3018,9 @@
            
             console.log("User authenticated");
            
+            const context = await getCurrentUserContext(supabase, { force: true });
+            currentViewerProfile = context.profile;
+
             resetLogoutTimer();
             setupActivityListeners();
             setupColumnScrollPrevention();
@@ -2913,6 +3174,65 @@
             navLinksMobile.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
         }
 
+        function uniqueItemsById(items) {
+            const seenIds = new Set();
+            return (items || []).filter((item) => {
+                if (!item?.id || seenIds.has(item.id)) return false;
+                seenIds.add(item.id);
+                return true;
+            });
+        }
+
+        function createGroupCardHtml(group, currentProfile) {
+            return `
+                <div class="group-item">
+                    <div class="avatar">${(group.name || 'G').charAt(0).toUpperCase()}</div>
+                    <div class="dashboard-row-copy">
+                        <p class="dashboard-row-title font-semibold text-gray-800">${group.name || 'Untitled Group'}</p>
+                        <p class="text-gray-600 text-sm truncate">${group.course_code || 'General'}</p>
+                        ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${group.description}</p>` : ''}
+                    </div>
+                    <div class="dashboard-row-actions">
+                        ${renderCampusIndicator(currentProfile, group)}
+                        <a href="#" class="btn join-btn" data-groupid="${group.id}">Join</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function bindJoinButtons(scope = document) {
+            scope.querySelectorAll('.join-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    resetLogoutTimer();
+                    await joinGroup(btn.dataset.groupid, btn);
+                });
+            });
+        }
+
+        async function fetchGroupsWithInstitutionFallback(builderFactory) {
+            const primary = await builderFactory(true);
+            if (!primary.error) {
+                return {
+                    data: await enrichGroupsWithInstitution(supabase, primary.data || []),
+                    error: null
+                };
+            }
+
+            const fallback = await builderFactory(false);
+            if (fallback.error) {
+                return {
+                    data: [],
+                    error: fallback.error
+                };
+            }
+
+            return {
+                data: await enrichGroupsWithInstitution(supabase, fallback.data || []),
+                error: null
+            };
+        }
+
         async function loadSuggestedGroups() {
             const suggestedGroupsDiv = document.getElementById('suggestedGroups');
             if (!suggestedGroupsDiv) return;
@@ -2932,7 +3252,9 @@
             }
             suggestedGroupsDiv.innerHTML = skeletonHTML;
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const context = await getCurrentUserContext(supabase);
+            const user = context.user;
+            currentViewerProfile = context.profile;
             if (!user) {
                 console.error('No user found');
                 return;
@@ -2947,53 +3269,75 @@
                 return;
             }
            
-            const userGroupIds = userGroups.map(g => g.group_id);
-           
-            let query = supabase
-                .from('groups')
-                .select('id, name, course_code, description, created_by')
-                .neq('created_by', user.id);
-            
-            if (userGroupIds.length > 0) {
-                query = query.not('id', 'in', `(${userGroupIds.join(',')})`);
-            }
+            const userGroupIds = (userGroups || []).map(g => g.group_id);
+            const viewerCampus = resolveCampus(currentViewerProfile);
+            const [
+                { data: sameCampusGroups, error: sameCampusError },
+                { data: globalGroups, error: globalError }
+            ] = await Promise.all([
+                fetchGroupsWithInstitutionFallback(async (includeInstitution) => {
+                    const query = supabase
+                        .from('groups')
+                        .select(includeInstitution
+                            ? 'id, name, course_code, description, created_by, institution, created_at'
+                            : 'id, name, course_code, description, created_by, created_at')
+                        .neq('created_by', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(8);
 
-            const { data, error } = await query.limit(5);
-              
-            if (error) {
-                console.error('Error loading suggested groups:', error);
+                    if (userGroupIds.length > 0) {
+                        query.not('id', 'in', `(${userGroupIds.join(',')})`);
+                    }
+
+                    return query;
+                }),
+                fetchGroupsWithInstitutionFallback(async (includeInstitution) => {
+                    const query = supabase
+                        .from('groups')
+                        .select(includeInstitution
+                            ? 'id, name, course_code, description, created_by, institution, created_at'
+                            : 'id, name, course_code, description, created_by, created_at')
+                        .neq('created_by', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(12);
+
+                    if (userGroupIds.length > 0) {
+                        query.not('id', 'in', `(${userGroupIds.join(',')})`);
+                    }
+
+                    return query;
+                })
+            ]);
+
+            if (sameCampusError || globalError) {
+                console.error('Error loading suggested groups:', sameCampusError || globalError);
+                suggestedGroupsDiv.innerHTML = '<p class="text-center text-red-500">Unable to load group suggestions right now.</p>';
                 return;
             }
-          
-            suggestedGroupsDiv.innerHTML = '';
-          
-            if (data && data.length > 0) {
-                data.forEach(group => {
-                    const div = document.createElement('div');
-                    div.className = 'group-item';
-                    div.innerHTML = `
-                        <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-                        <div style="flex: 1; min-width: 0;">
-                            <p class="font-semibold text-gray-800 truncate">${group.name}</p>
-                            <p class="text-gray-600 text-sm truncate">${group.course_code}</p>
-                            ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${group.description}</p>` : ''}
-                        </div>
-                        <a href="#" class="btn join-btn" data-groupid="${group.id}" style="flex-shrink: 0;">Join</a>
-                    `;
-                    suggestedGroupsDiv.appendChild(div);
-                });
-               
-                document.querySelectorAll('.join-btn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        e.preventDefault();
-                        resetLogoutTimer();
-                        const groupId = btn.dataset.groupid;
-                        await joinGroup(groupId, btn);
-                    });
-                });
-            } else {
-                suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No suggested groups found.</p>';
-            }
+
+            const campusCandidates = uniqueItemsById([...(sameCampusGroups || []), ...(globalGroups || [])]);
+            const filteredCampusGroups = viewerCampus
+                ? campusCandidates.filter(group => isSameInstitution(currentViewerProfile, group))
+                : [];
+
+            const campusHtml = filteredCampusGroups.length
+                ? filteredCampusGroups.map(group => createGroupCardHtml(group, currentViewerProfile)).join('')
+                : '<p class="discovery-empty">No campus-first groups yet. Global discovery is still open below.</p>';
+
+            const filteredGlobalGroups = (globalGroups || []).filter(group =>
+                !isSameInstitution(currentViewerProfile, group)
+            );
+
+            const globalHtml = filteredGlobalGroups.length
+                ? filteredGlobalGroups.map(group => createGroupCardHtml(group, currentViewerProfile)).join('')
+                : '<p class="discovery-empty">No global groups available right now.</p>';
+
+            suggestedGroupsDiv.innerHTML = `
+                ${createDiscoverySection('Your Campus', '', campusHtml)}
+                ${createDiscoverySection('Global Groups', '', globalHtml)}
+            `;
+
+            bindJoinButtons(suggestedGroupsDiv);
         }
 
         function loadDefaultVideos() {
@@ -3081,7 +3425,9 @@
             searchGroupsBtn.disabled = true;
             groupLoading.style.display = 'block';
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const context = await getCurrentUserContext(supabase);
+            const user = context.user;
+            currentViewerProfile = context.profile;
             if (!user) {
                 searchGroupsBtn.disabled = false;
                 groupLoading.style.display = 'none';
@@ -3100,15 +3446,24 @@
                 return;
             }
            
-            const userGroupIds = userGroups.map(g => g.group_id);
+            const userGroupIds = (userGroups || []).map(g => g.group_id);
 
-            const { data, error } = await supabase
-                .from('groups')
-                .select('id, name, course_code, description, created_by')
-                .neq('created_by', user.id)
-                .not('id', 'in', `(${userGroupIds.join(',')})`)
-                .or(`name.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`)
-                .limit(5);
+            const { data, error } = await fetchGroupsWithInstitutionFallback(async (includeInstitution) => {
+                let query = supabase
+                    .from('groups')
+                    .select(includeInstitution
+                        ? 'id, name, course_code, description, created_by, institution'
+                        : 'id, name, course_code, description, created_by')
+                    .neq('created_by', user.id)
+                    .or(`name.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`)
+                    .limit(5);
+
+                if (userGroupIds.length > 0) {
+                    query = query.not('id', 'in', `(${userGroupIds.join(',')})`);
+                }
+
+                return query;
+            });
 
             const suggestedGroupsDiv = document.getElementById('suggestedGroups');
             if (!suggestedGroupsDiv) {
@@ -3125,32 +3480,14 @@
                 return;
             }
 
-            suggestedGroupsDiv.innerHTML = '';
-
             if (data && data.length > 0) {
-                data.forEach(group => {
-                    const div = document.createElement('div');
-                    div.className = 'group-item';
-                    div.innerHTML = `
-                        <div class="avatar">${group.name.charAt(0).toUpperCase()}</div>
-                        <div style="flex: 1; min-width: 0;">
-                            <p class="font-semibold text-gray-800 truncate">${group.name}</p>
-                            <p class="text-gray-600 text-sm truncate">${group.course_code}</p>
-                            ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${group.description}</p>` : ''}
-                        </div>
-                        <a href="#" class="btn join-btn" data-groupid="${group.id}" style="flex-shrink: 0;">Join</a>
-                    `;
-                    suggestedGroupsDiv.appendChild(div);
-                });
-
-                document.querySelectorAll('.join-btn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        e.preventDefault();
-                        resetLogoutTimer();
-                        const groupId = btn.dataset.groupid;
-                        await joinGroup(groupId, btn);
-                    });
-                });
+                const resultsHtml = data.map(group => createGroupCardHtml(group, currentViewerProfile)).join('');
+                suggestedGroupsDiv.innerHTML = createDiscoverySection(
+                    'Search Results',
+                    '',
+                    resultsHtml
+                );
+                bindJoinButtons(suggestedGroupsDiv);
             } else {
                 suggestedGroupsDiv.innerHTML = '<p class="text-center text-gray-500">No groups found matching your search.</p>';
             }
@@ -3216,25 +3553,57 @@
             }
         }
        
+        function renderConnectionCard(profile, viewerProfile) {
+            const fullName = profile.full_name || 'Unknown User';
+            const status = profile.status || 'Recently active';
+            const profilePhoto = profile.profile_photo;
+            const initials = fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            const department = profile.department || 'No department';
+            const level = profile.custom_level || profile.level || 'Student';
+            // Use explicitly-passed viewerProfile; fall back to module-level only as last resort
+            const viewer = viewerProfile || currentViewerProfile;
+
+            return `
+                <div class="connection-item">
+                    <div class="connection-avatar">
+                        <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
+                            ${profilePhoto ? `<img src="${profilePhoto}" alt="${fullName}" />` : initials}
+                        </div>
+                    </div>
+                    <div class="connection-info" style="min-width: 0;">
+                        <p class="font-semibold text-gray-800 truncate">${fullName}</p>
+                        <p class="text-gray-600 text-sm truncate">${department} • ${level}</p>
+                        <p class="text-xs text-gray-500 mt-1 truncate">${status}</p>
+                    </div>
+                    <div class="connection-actions">
+                        ${renderCampusIndicator(viewer, profile)}
+                        <button class="btn follow-btn" data-userid="${profile.id}">Follow</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function bindFollowButtons(scope = document) {
+            scope.querySelectorAll('.follow-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    resetLogoutTimer();
+                    await toggleFollowUser(btn, btn.dataset.userid);
+                });
+            });
+        }
+
         async function loadConnections() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const context = await getCurrentUserContext(supabase);
+            const user = context.user;
+            currentViewerProfile = context.profile;
+
             if (!user) {
                 console.error('No user found');
                 return;
             }
            
             try {
-                const { data: profiles, error } = await supabase
-                    .from('profiles')
-                    .select('id, full_name, status, profile_photo, username, department')
-                    .neq('id', user.id)
-                    .limit(8);
-                  
-                if (error) {
-                    console.error('Supabase error loading connections:', error);
-                    throw error;
-                }
-               
                 const connectionList = document.getElementById('connectionList');
                 if (!connectionList) return;
               
@@ -3253,61 +3622,49 @@
                 }
                 connectionList.innerHTML = skeletonHTML;
 
+                const campusQuery = supabase
+                    .from('profiles')
+                    .select('id, full_name, status, profile_photo, username, department, institution, campus, custom_campus, level, custom_level')
+                    .neq('id', user.id)
+                    .limit(16);
+
+                const globalQuery = supabase
+                    .from('profiles')
+                    .select('id, full_name, status, profile_photo, username, department, institution, campus, custom_campus, level, custom_level')
+                    .neq('id', user.id)
+                    .limit(12);
+
+                const [
+                    { data: campusProfiles, error: campusError },
+                    { data: globalProfiles, error: globalError }
+                ] = await Promise.all([campusQuery, globalQuery]);
+                  
+                if (campusError || globalError) {
+                    console.error('Supabase error loading connections:', campusError || globalError);
+                    throw (campusError || globalError);
+                }
+
+                const profileCandidates = uniqueItemsById([...(campusProfiles || []), ...(globalProfiles || [])]);
+                const rankedCampusProfiles = resolveCampus(currentViewerProfile)
+                    ? rankConnectionCandidates(
+                        profileCandidates.filter(profile => isSameInstitution(currentViewerProfile, profile)),
+                        currentViewerProfile
+                    )
+                    : [];
+                const rankedGlobalProfiles = rankConnectionCandidates(
+                    profileCandidates.filter(profile =>
+                        !isSameInstitution(currentViewerProfile, profile)
+                    ),
+                    currentViewerProfile
+                );
+                const mixedProfiles = mixCampusFirstItems(rankedCampusProfiles, rankedGlobalProfiles, 8);
+
                 connectionList.innerHTML = '';
                
-                if (profiles && profiles.length > 0) {
-                    const sampleDepartments = [
-                        'Computer Science',
-                        'Engineering',
-                        'Business Administration',
-                        'Psychology',
-                        'Biology',
-                        'Mathematics',
-                        'Political Science',
-                        'English Literature'
-                    ];
-                    
-                    const sampleStatuses = ['Online', 'Active 2h ago', 'Active 1d ago', 'Active now'];
-                    
-                    profiles.forEach((profile, index) => {
-                        const fullName = profile.full_name || `Student ${index + 1}`;
-                        const status = sampleStatuses[index % sampleStatuses.length];
-                        const profilePhoto = profile.profile_photo;
-                        const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
-                        const department = sampleDepartments[index % sampleDepartments.length];
-                      
-                        const div = document.createElement('div');
-                        div.className = 'connection-item';
-                        div.innerHTML = `
-                            <div class="connection-avatar">
-                                <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
-                                    ${profilePhoto ?
-                                        `<img src="${profilePhoto}" alt="${fullName}" />` :
-                                        initials
-                                    }
-                                </div>
-                            </div>
-                            <div class="connection-info" style="min-width: 0;">
-                                <p class="font-semibold text-gray-800 truncate">${fullName}</p>
-                                <p class="text-gray-600 text-sm truncate">${department}</p>
-                                <p class="text-xs text-gray-500 mt-1 truncate">${status}</p>
-                            </div>
-                            <div class="connection-actions">
-                                <button class="btn follow-btn" data-userid="${profile.id}" style="flex-shrink: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">Follow</button>
-                            </div>
-                        `;
-                        connectionList.appendChild(div);
-                    });
-                   
-                    document.querySelectorAll('.follow-btn').forEach(btn => {
-                        btn.addEventListener('click', async (e) => {
-                            e.preventDefault();
-                            resetLogoutTimer();
-                            const userId = btn.dataset.userid;
-                            await toggleFollowUser(btn, userId);
-                        });
-                    });
-                   
+                const localViewer = currentViewerProfile;
+                if (mixedProfiles.length > 0) {
+                    connectionList.innerHTML = mixedProfiles.map(p => renderConnectionCard(p, localViewer)).join('');
+                    bindFollowButtons(connectionList);
                     checkFollowStatus();
                 } else {
                     createSampleConnections();
@@ -3398,7 +3755,7 @@
                         <p class="text-xs text-gray-500 mt-1 truncate">${connection.status}</p>
                     </div>
                     <div class="connection-actions">
-                        <button class="btn follow-btn" data-userid="${connection.id}" style="flex-shrink: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">Follow</button>
+                        <button class="btn follow-btn" data-userid="${connection.id}" style="flex-shrink: 0; padding: 0.75rem 1rem; font-size: 0.9rem;">Follow</button>
                     </div>
                 `;
                 connectionList.appendChild(div);
@@ -3469,18 +3826,21 @@
             connectionLoading.style.display = 'block';
            
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const context = await getCurrentUserContext(supabase);
+                const user = context.user;
+                currentViewerProfile = context.profile;
+
                 if (!user) {
                     searchConnectionsBtn.disabled = false;
                     connectionLoading.style.display = 'none';
                     return;
                 }
-               
+
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('id, full_name, status, profile_photo, username, department')
+                    .select('id, full_name, status, profile_photo, username, department, institution, campus, custom_campus, level, custom_level')
                     .neq('id', user.id)
-                    .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%`)
+                    .or(`full_name.ilike.%${connectionSearch}%,username.ilike.%${connectionSearch}%,department.ilike.%${connectionSearch}%,campus.ilike.%${connectionSearch}%,custom_campus.ilike.%${connectionSearch}%`)
                     .limit(8);
                   
                 connectionList.innerHTML = '';
@@ -3491,45 +3851,10 @@
                 }
                
                 if (data && data.length > 0) {
-                    data.forEach(profile => {
-                        const fullName = profile.full_name || 'Unknown User';
-                        const status = profile.status || 'Offline';
-                        const profilePhoto = profile.profile_photo;
-                        const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase();
-                        const department = profile.department || 'No department';
-                      
-                        const div = document.createElement('div');
-                        div.className = 'connection-item';
-                        div.innerHTML = `
-                            <div class="connection-avatar">
-                                <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
-                                    ${profilePhoto ?
-                                        `<img src="${profilePhoto}" alt="${fullName}" />` :
-                                        initials
-                                    }
-                                </div>
-                            </div>
-                            <div class="connection-info" style="min-width: 0;">
-                                <p class="font-semibold text-gray-800 truncate">${fullName}</p>
-                                <p class="text-gray-600 text-sm truncate">${department}</p>
-                                <p class="text-xs text-gray-500 mt-1 truncate">${status}</p>
-                            </div>
-                            <div class="connection-actions">
-                                <button class="btn follow-btn" data-userid="${profile.id}" style="flex-shrink: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">Follow</button>
-                            </div>
-                        `;
-                        connectionList.appendChild(div);
-                    });
-                   
-                    document.querySelectorAll('.follow-btn').forEach(btn => {
-                        btn.addEventListener('click', async (e) => {
-                            e.preventDefault();
-                            resetLogoutTimer();
-                            const userId = btn.dataset.userid;
-                            await toggleFollowUser(btn, userId);
-                        });
-                    });
-                   
+                    const searchViewer = currentViewerProfile;
+                    const rankedProfiles = rankConnectionCandidates(data, searchViewer);
+                    connectionList.innerHTML = rankedProfiles.map(p => renderConnectionCard(p, searchViewer)).join('');
+                    bindFollowButtons(connectionList);
                     checkFollowStatus();
                 } else {
                     connectionList.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';

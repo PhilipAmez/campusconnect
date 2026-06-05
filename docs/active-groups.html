@@ -2174,6 +2174,8 @@
     <!-- Supabase Client -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
+        import { enrichGroupsWithInstitution, getCurrentUserContext, renderCampusIndicator } from './js/campusDiscovery.js';
+        import { initGlobalTheme, setThemePreference } from './js/themeManager.js';
         
         // DOM Elements
         const groupsList = document.getElementById('groupsList');
@@ -2202,8 +2204,11 @@
         
         // User data
         let currentUser = null;
+        let currentUserProfile = null;
         let userGroups = [];
         const CIRCUMFERENCE = 100.53; // 2 * PI * 16
+
+        await initGlobalTheme({ supabase });
         
         // Initialize the page
         async function init() {
@@ -2215,6 +2220,8 @@
             }
             
             currentUser = user;
+            const context = await getCurrentUserContext(supabase, { force: true });
+            currentUserProfile = context.profile;
             await loadUserGroups();
             setupEventListeners();
             updateStats();
@@ -2246,16 +2253,32 @@
                 
                 // Get group details for each membership
                 const groupIds = userGroupMemberships.map(m => m.group_id);
-                const { data: groupsData, error: groupsError } = await supabase
+                let { data: groupsData, error: groupsError } = await supabase
                     .from('groups')
-                    .select('id, name, course_code, description, created_by, is_public, created_at')
+                    .select('id, name, course_code, description, created_by, is_public, created_at, institution')
                     .in('id', groupIds);
+
+                if (groupsError) {
+                    const fallback = await supabase
+                        .from('groups')
+                        .select('id, name, course_code, description, created_by, is_public, created_at')
+                        .in('id', groupIds);
+
+                    groupsData = fallback.data;
+                    groupsError = fallback.error;
+
+                    if (!groupsError) {
+                        groupsData = await enrichGroupsWithInstitution(supabase, groupsData || []);
+                    }
+                }
                 
                 if (groupsError) {
                     console.error('Error loading group details:', groupsError);
                     showNotification('Error loading group details. Please try again.');
                     return;
                 }
+
+                groupsData = await enrichGroupsWithInstitution(supabase, groupsData || []);
                 
                 // Get member counts for each group
                 const memberCounts = {};
@@ -2302,7 +2325,12 @@
                         isMuted: false,
                         created_at: group.created_at,
                         is_public: group.is_public,
-                        created_by: group.created_by
+                        created_by: group.created_by,
+                        institution: group.institution,
+                        creator: group.creator,
+                        creator_custom_campus: group.creator_custom_campus,
+                        creator_campus: group.creator_campus,
+                        creator_institution: group.creator_institution
                     };
                 });
                 
@@ -2378,6 +2406,7 @@
                 </div>
                 
                 <p class="group-description">${group.description}</p>
+                ${renderCampusIndicator(currentUserProfile, group)}
                 
                 <div class="group-meta">
                     <div class="meta-item">
@@ -2484,8 +2513,7 @@
         
         // Set theme
         function setTheme(theme) {
-            document.body.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
+            setThemePreference(theme);
             
             swipeIndicator.innerHTML = theme === 'dark' ? 
                 '<i class="fas fa-moon"></i> Dark Mode Activated' : 
@@ -2668,13 +2696,34 @@
                         course_code: groupCourse,
                         description: groupDescription || null,
                         created_by: currentUser.id,
-                        is_public: groupPrivacy === 'public'
+                        is_public: groupPrivacy === 'public',
+                        institution: currentUserProfile?.institution || null
                     })
                     .select()
                     .single();
+
+                let safeNewGroup = newGroup;
+                let safeGroupError = groupError;
+
+                if (safeGroupError) {
+                    const fallbackInsert = await supabase
+                        .from('groups')
+                        .insert({
+                            name: groupName,
+                            course_code: groupCourse,
+                            description: groupDescription || null,
+                            created_by: currentUser.id,
+                            is_public: groupPrivacy === 'public'
+                        })
+                        .select()
+                        .single();
+
+                    safeNewGroup = fallbackInsert.data;
+                    safeGroupError = fallbackInsert.error;
+                }
                 
-                if (groupError) {
-                    console.error('Error creating group:', groupError);
+                if (safeGroupError) {
+                    console.error('Error creating group:', safeGroupError);
                     showNotification('Failed to create group. Please try again.');
                     return;
                 }
@@ -2682,7 +2731,7 @@
                 const { error: memberError } = await supabase
                     .from('group_members')
                     .insert({
-                        group_id: newGroup.id,
+                        group_id: safeNewGroup.id,
                         user_id: currentUser.id,
                         role: 'admin',
                         joined_at: new Date().toISOString()
@@ -2795,7 +2844,7 @@
         });
         
         // Load saved theme
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedTheme = document.documentElement.getAttribute('data-theme') || 'light';
         document.body.setAttribute('data-theme', savedTheme);
         
         // ================== PEERPAL AI FUNCTIONALITY ==================

@@ -236,6 +236,8 @@
         
         // Import supabase client
         import { supabase } from './js/supabaseClient.js';
+        import { initGlobalTheme, toggleLightDarkTheme } from './js/themeManager.js';
+        import { getCurrentUserContext, isSameInstitution, mixCampusFirstItems, renderCampusIndicator, resolveCampus } from './js/campusDiscovery.js';
         
         // App state
         let currentTheme = 'dark';
@@ -259,6 +261,7 @@
         let trendingHashtagsSubscription = null; // To hold our realtime subscription
         let currentSearchSort = 'relevance'; // Add state for search sorting
         let touchStartY = 0;
+        const themeController = await initGlobalTheme({ supabase });
         let isRefreshing = false;
         const pullThreshold = 70; // Pixels to pull before refresh triggers
 
@@ -525,7 +528,7 @@
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data, error } = await supabase
                     .from('posts') // Fetch profile_photo for post author
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo, institution, campus, custom_campus)`)
                     .in('id', savedPosts) // Filter by saved post IDs
                     .order('created_at', { ascending: false });
                 if (error) throw error;
@@ -579,7 +582,7 @@
                 // Now, fetch posts from those users.
                 const { data, error } = await supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo, institution, campus, custom_campus)`)
                     .in('user_id', followingIds)
                     .order('created_at', { ascending: false });
 
@@ -604,7 +607,7 @@
                 // 1. Fetch the specific video that was clicked/shared.
                 const { data: specificVideoData, error: videoError } = await supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo, institution, campus, custom_campus)`)
                     .eq('id', videoId)
                     .single();
 
@@ -628,7 +631,7 @@
                 // 2. Fetch the rest of the posts.
                 let query = supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo, institution, campus, custom_campus)`)
                     .neq('id', videoId) // Exclude the one we already fetched
                     .order('created_at', { ascending: false });
 
@@ -675,10 +678,7 @@
             // Show the skeleton loader immediately while we fetch data.
             showSkeletonLoader();
 
-            // Apply theme from localStorage
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            currentTheme = savedTheme;
+            currentTheme = themeController.resolvedTheme;
 
             await checkLoginStatus();
             await fetchUserProfile(); // Fetch user profile after checking login
@@ -738,14 +738,13 @@
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('username, profile_photo')
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) throw error;
-                currentUserProfile = data;
+                const context = await getCurrentUserContext(supabase, { force: true });
+                currentUserProfile = context.profile || {
+                    id: user.id,
+                    username: user.email?.split('@')[0] || 'user',
+                    profile_photo: null,
+                    institution: null
+                };
             } catch (error) {
                 if (error.code === 'PGRST116') {
                     // Profile row doesn't exist yet — build a temporary one
@@ -755,7 +754,8 @@
                             currentUserProfile = {
                                 username: user.email.split('@')[0],
                                 profile_photo: null,
-                                id: user.id
+                                id: user.id,
+                                institution: null
                             };
                         }
                     } catch (e) { /* silent */ }
@@ -819,7 +819,7 @@
                 // Fetch all posts for the "For You" feed.
                 let query = supabase
                     .from('posts')
-                    .select(`*, likes(user_id), profiles(username, profile_photo)`)
+                    .select(`*, likes(user_id), profiles(username, profile_photo, institution, campus, custom_campus)`)
                     .order('created_at', { ascending: false });
 
                 // NEW: If a userId is in the URL, this function should filter by it.
@@ -845,6 +845,17 @@
                         is_liked: user ? post.likes.some(like => like.user_id === user.id) : false,
                         is_saved: savedPosts.includes(post.id) // Check if post is in the saved list
                     }));
+                }
+
+                if (!userId && resolveCampus(currentUserProfile) && fetchedPosts.length > 0) {
+                    const campusPosts = fetchedPosts.filter(post =>
+                        isSameInstitution(currentUserProfile, post.profiles)
+                    );
+                    const globalPosts = fetchedPosts.filter(post =>
+                        !isSameInstitution(currentUserProfile, post.profiles)
+                    );
+
+                    fetchedPosts = mixCampusFirstItems(campusPosts, globalPosts, fetchedPosts.length);
                 }
 
                 if (fetchedPosts.length > 0) {
@@ -951,6 +962,7 @@
                             `}
                             <span class="username">@${post.profiles?.username || 'user'}</span>
                         </a>
+                        ${resolveCampus(currentUserProfile) ? renderCampusIndicator(currentUserProfile, post.profiles) : ''}
                         <div class="post-title">${post.title || ''}</div>
                         <div class="caption">${post.content || ''}</div>
                         <div class="hashtags">${post.hashtags || ''}</div>
@@ -1801,9 +1813,7 @@
         }
         // Toggle theme between dark and light
         function toggleTheme() {
-            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme); // Save the theme preference
+            toggleLightDarkTheme();
         }
         // Create like animation on double tap — handles both mouse and touch events
         function createLikeAnimation(event) {
@@ -3128,8 +3138,28 @@
                         ...post,
                         username: post.username ?? 'unknown' // The view already flattens this
                     }));
+                    const usernames = [...new Set(formattedData.map(post => post.username).filter(Boolean))];
+                    let campusProfileByUsername = {};
+
+                    if (usernames.length > 0) {
+                        const { data: profileRows } = await supabase
+                            .from('profiles')
+                            .select('username, campus, custom_campus')
+                            .in('username', usernames);
+
+                        campusProfileByUsername = (profileRows || []).reduce((acc, profile) => {
+                            acc[profile.username] = profile;
+                            return acc;
+                        }, {});
+                    }
+
+                    const enrichedResults = formattedData.map(post => ({
+                        ...post,
+                        campus: campusProfileByUsername[post.username]?.campus || null,
+                        custom_campus: campusProfileByUsername[post.username]?.custom_campus || null
+                    }));
                     // The simple search doesn't have a relevance score, so we sort client-side if needed.
-                    sortAndRenderResults(formattedData, sortOrder);
+                    sortAndRenderResults(enrichedResults, sortOrder);
                 } else {
                     searchResultsContainer.innerHTML = `<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">No results found for "${query}"</div>`;
                 }
@@ -3223,6 +3253,13 @@
                         <div class="username">@${post.username || 'user'} &bull; ❤️ ${post.likes_count || 0}</div>
                     </div>
                 `;
+
+                if (resolveCampus(currentUserProfile)) {
+                    const info = resultItem.querySelector('.search-result-info');
+                    if (info) {
+                        info.insertAdjacentHTML('beforeend', renderCampusIndicator(currentUserProfile, post));
+                    }
+                }
 
                 resultItem.addEventListener('click', (e) => {
                     e.preventDefault();

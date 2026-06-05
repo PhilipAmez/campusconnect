@@ -268,7 +268,7 @@
                 <div class="error-message" id="errorMessage"></div>
                 <div class="success-message" id="successMessage"></div>
                 <p class="text-center text-sm text-gray-600 mt-4">
-                    Don't have an account? <a href="signup.html" class="text-purple-600 hover:underline">Sign up</a>
+                    Don't have an account? <a href="signup.html" id="signupLink" class="text-purple-600 hover:underline">Sign up</a>
                 </p>
                 <p class="text-center text-sm text-gray-600 mt-2">
                     Forgot your password? <a href="forgotpassword.html" class="text-purple-600 hover:underline">Reset it</a>
@@ -370,10 +370,21 @@
            
             console.log('Login successful:', data)
             okEl.textContent = 'Login successful! Redirecting...'
-           
-            // Redirect immediately instead of waiting 10 seconds
+
             setTimeout(() => {
-                window.location.href = 'dashboard.html'
+                const pendingGroupId = localStorage.getItem('pendingGroupJoin')
+                if (pendingGroupId) {
+                    window.location.href = 'dashboard.html?joinGroup=' + pendingGroupId
+                } else {
+                    const params = new URLSearchParams(window.location.search)
+                    const groupId = params.get('joinGroup')
+                    if (groupId) {
+                        localStorage.setItem('pendingGroupJoin', groupId)
+                        window.location.href = 'dashboard.html?joinGroup=' + groupId
+                    } else {
+                        window.location.href = 'dashboard.html'
+                    }
+                }
             }, 1000)
            
         } catch (err) {
@@ -382,6 +393,17 @@
             button.classList.remove('loading')
         }
     })
+    // Pass joinGroup param to signup link if present
+    try {
+        const _params = new URLSearchParams(window.location.search)
+        const _gid = _params.get('joinGroup')
+        if (_gid) {
+            localStorage.setItem('pendingGroupJoin', _gid)
+            const signupLink = document.getElementById('signupLink')
+            if (signupLink) signupLink.href = 'signup.html?joinGroup=' + _gid
+        }
+    } catch(_e) {}
+
     // Auto-redirect if already signed in (with better error handling)
     try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -389,7 +411,19 @@
             console.log('Already logged in, redirecting...')
             button.classList.add('loading')
             setTimeout(() => {
-                window.location.href = 'dashboard.html'
+                const pendingGroupId = localStorage.getItem('pendingGroupJoin')
+                if (pendingGroupId) {
+                    window.location.href = 'dashboard.html?joinGroup=' + pendingGroupId
+                } else {
+                    const params = new URLSearchParams(window.location.search)
+                    const groupId = params.get('joinGroup')
+                    if (groupId) {
+                        localStorage.setItem('pendingGroupJoin', groupId)
+                        window.location.href = 'dashboard.html?joinGroup=' + groupId
+                    } else {
+                        window.location.href = 'dashboard.html'
+                    }
+                }
             }, 1000)
         }
     } catch (err) {
