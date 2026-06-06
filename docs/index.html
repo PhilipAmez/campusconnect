@@ -957,7 +957,7 @@
         <nav class="navbar" id="navbar" aria-label="PeerLoom main navigation">
             <a href="/" class="logo" aria-label="PeerLoom home">
                 <!-- FIXED: alt was "Peerloom" (wrong case) — now "PeerLoom" -->
-                <img src="logo.png" alt="PeerLoom" width="120" height="40">
+                <img src="logo.png" alt="PeerLoom">
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinksMobile">
                 <i class="fas fa-bars" aria-hidden="true"></i>
@@ -1192,6 +1192,23 @@
           
             setTimeout(() => {
                 splashScreen.style.animation = 'fadeOut 1s forwards';
+
+                // Fade sound out in sync with the splash fadeOut (1s)
+                const fadeDuration = 1000;
+                const fadeSteps = 20;
+                const stepTime = fadeDuration / fadeSteps;
+                const volumeStep = splashSound.volume / fadeSteps;
+                const soundFade = setInterval(() => {
+                    if (splashSound.volume > volumeStep) {
+                        splashSound.volume = Math.max(0, splashSound.volume - volumeStep);
+                    } else {
+                        splashSound.volume = 0;
+                        splashSound.pause();
+                        splashSound.currentTime = 0;
+                        clearInterval(soundFade);
+                    }
+                }, stepTime);
+
                 setTimeout(() => {
                     splashScreen.style.display = 'none';
                     mainContent.style.display = 'block';
