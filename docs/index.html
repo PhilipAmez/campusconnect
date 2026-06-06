@@ -3,29 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PeerLoom – Connect Students, Learn Together</title>
+
+    <!-- ============================================================
+         PRIMARY SEO TAGS
+    ============================================================ -->
+
+    <!-- FIXED: Title now leads with "PeerLoom" as the very first word
+         so Google's brand-name parser sees it immediately. The pipe
+         separator is preferred over an em-dash for CTR in SERPs.      -->
+    <title>PeerLoom | Student Learning &amp; Study Group Platform</title>
+
+    <!-- FIXED: Meta description now opens with "PeerLoom" and contains
+         an actionable keyword sentence within 155 characters.          -->
+    <meta name="description" content="PeerLoom is the student platform for creating study groups, chatting with classmates, and learning together with built-in AI. Join free today.">
+
+    <!-- FIXED: Kept keywords tag (minor signal) but trimmed filler      -->
+    <meta name="keywords" content="PeerLoom, study groups, student platform, university chat, AI learning, peer learning, PeerPal">
+
+    <meta name="author" content="PeerLoom">
+
+    <!-- ADDED: Explicit robots tag — tells Google to index AND follow
+         all links. Previously absent; without it you rely on defaults
+         which is risky if any parent config differs.                    -->
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+
+    <!-- ADDED: Canonical URL — prevents duplicate-content penalties if
+         the page is ever accessed via http://, www., or trailing slash
+         variants. Previously missing entirely.                          -->
+    <link rel="canonical" href="https://peerloom.online/">
+
+    <!-- ============================================================
+         FAVICONS & WEB APP MANIFEST
+    ============================================================ -->
+
+    <!-- FIXED: Added rel="shortcut icon" fallback + proper favicon.ico
+         reference first (broadest browser support). Kept existing PNG
+         icons after it. Previously only PNG icons were listed and there
+         was no favicon.ico entry, which can confuse some crawlers.     -->
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
     <link rel="icon" href="/android-chrome-512x512.png" sizes="512x512" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#ffffff">
-  
-    <!-- SEO -->
-    <meta name="description" content="PeerLoom is a student-first platform like WhatsApp but with powerful learning features and AI built in. Create study groups, share knowledge, and grow together.">
-    <meta name="keywords" content="PeerLoom, student app, study groups, university chat, AI learning, PeerPal">
-    <meta name="author" content="PeerLoom">
-    <!-- Social Sharing (Open Graph / Twitter Cards) -->
-    <meta property="og:title" content="PeerLoom – Connect Students, Learn Together">
-    <meta property="og:description" content="PeerLoom is the WhatsApp for students — create study groups, chat, and learn together with built-in AI.">
-    <meta property="og:url" content="https://peerloom.online">
+    <meta name="theme-color" content="#7c3aed">
+
+    <!-- ============================================================
+         OPEN GRAPH (Facebook / LinkedIn / WhatsApp)
+    ============================================================ -->
+
+    <!-- FIXED: og:title now leads with "PeerLoom"                      -->
+    <meta property="og:title" content="PeerLoom | Student Learning &amp; Study Group Platform">
+    <meta property="og:description" content="PeerLoom is the student platform for creating study groups, chatting with classmates, and learning together with built-in AI. Join free today.">
+
+    <!-- FIXED: og:url now includes trailing slash to match canonical    -->
+    <meta property="og:url" content="https://peerloom.online/">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://peerloom.online/favicon.png">
+
+    <!-- FIXED: og:image now points to a purpose-built social preview
+         image (1200×630 px). Previously pointed to favicon.png which
+         renders tiny and blurry in link previews — a strong negative
+         brand signal. Update the src if you have a real OG image.     -->
+    <meta property="og:image" content="https://peerloom.online/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="PeerLoom – Student Learning Platform">
+
+    <!-- ADDED: og:site_name — explicitly tells scrapers the brand name  -->
+    <meta property="og:site_name" content="PeerLoom">
+
+    <!-- ADDED: og:locale — helps localisation signals                   -->
+    <meta property="og:locale" content="en_US">
+
+    <!-- ============================================================
+         TWITTER / X CARDS
+    ============================================================ -->
+
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="PeerLoom – Connect Students, Learn Together">
-    <meta name="twitter:description" content="PeerLoom is the WhatsApp for students — create study groups, chat, and learn together with built-in AI.">
-    <meta name="twitter:image" content="https://peerloom.online/favicon.png">
+
+    <!-- FIXED: twitter:title now leads with "PeerLoom"                 -->
+    <meta name="twitter:title" content="PeerLoom | Student Learning &amp; Study Group Platform">
+    <meta name="twitter:description" content="PeerLoom is the student platform for creating study groups, chatting with classmates, and learning together with built-in AI. Join free today.">
+
+    <!-- FIXED: twitter:image now points to og-image.png, not favicon   -->
+    <meta name="twitter:image" content="https://peerloom.online/og-image.png">
+    <meta name="twitter:image:alt" content="PeerLoom – Student Learning Platform">
+
+    <!-- ADDED: twitter:site — brand handle (update with real handle)   -->
+    <meta name="twitter:site" content="@PeerLoom">
+
+    <!-- ============================================================
+         STRUCTURED DATA — Schema.org JSON-LD
+         ADDED: Completely new section. Previously the page had zero
+         structured data. This is one of the most impactful fixes for
+         branded search: Google uses WebSite + SiteLinksSearchBox to
+         recognise brand entities, and Organization to build Knowledge
+         Panels. Both are added here.
+    ============================================================ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://peerloom.online/#website",
+          "url": "https://peerloom.online/",
+          "name": "PeerLoom",
+          "description": "PeerLoom is the student platform for creating study groups, chatting with classmates, and learning together with built-in AI.",
+          "publisher": {
+            "@id": "https://peerloom.online/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://peerloom.online/search?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          },
+          "inLanguage": "en-US"
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://peerloom.online/#organization",
+          "name": "PeerLoom",
+          "url": "https://peerloom.online/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://peerloom.online/android-chrome-512x512.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "PeerLoom is a student-first learning platform with study groups, AI-powered tools, and real-time collaboration for university students.",
+          "foundingDate": "2024",
+          "sameAs": []
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://peerloom.online/#webpage",
+          "url": "https://peerloom.online/",
+          "name": "PeerLoom | Student Learning &amp; Study Group Platform",
+          "isPartOf": {
+            "@id": "https://peerloom.online/#website"
+          },
+          "about": {
+            "@id": "https://peerloom.online/#organization"
+          },
+          "description": "PeerLoom is the student platform for creating study groups, chatting with classmates, and learning together with built-in AI. Join free today.",
+          "inLanguage": "en-US",
+          "potentialAction": [
+            {
+              "@type": "ReadAction",
+              "target": ["https://peerloom.online/"]
+            }
+          ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://peerloom.online/#app",
+          "name": "PeerLoom",
+          "url": "https://peerloom.online/",
+          "applicationCategory": "EducationApplication",
+          "operatingSystem": "Web, iOS, Android",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "description": "PeerLoom is a student learning app for study groups, AI-assisted collaboration, and academic progress tracking.",
+          "publisher": {
+            "@id": "https://peerloom.online/#organization"
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ============================================================
+         EXTERNAL STYLES
+    ============================================================ -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
         :root {
             --primary: #7c3aed;
@@ -706,43 +865,76 @@
         footer a:hover {
             color: #e0e7ff;
         }
+
+        /* ADDED: Visually-hidden utility class for SEO text that the
+           splash screen would otherwise hide from crawlers.
+           Google crawls what's in the DOM at load time; this ensures
+           brand/heading text is always present in the HTML regardless
+           of whether the splash has run.                               */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
     </style>
 </head>
 <body>
+
+    <!-- ============================================================
+         ADDED: Screen-reader / crawler H1 that is always in the DOM.
+
+         The original page had its H1 ("Connect with Classmates") inside
+         #main-content which starts as display:none and is only revealed
+         after a 7-second splash animation. Googlebot may time-out or
+         deprioritise JavaScript-hidden content.
+
+         This invisible H1 is immediately in the DOM, ensuring Google
+         always reads the brand name + primary keyword without waiting
+         for JS. It is visually hidden (not display:none — that is
+         treated differently from a screen-reader standpoint).           -->
+    <h1 class="sr-only">PeerLoom – Student Learning &amp; Study Group Platform</h1>
+
     <!-- Splash Sound -->
     <audio id="splashSound" preload="auto" loop="false">
-        <source src="splash-effect.mp3" type="audio/mpeg">
-        <source src="splash-effect.ogg" type="audio/ogg">
+        <source src="sounds/splash-effect.mp3" type="audio/mpeg">
+        <source src="sounds/splash-effect.ogg" type="audio/ogg">
         Your browser does not support the audio element.
     </audio>
+
     <!-- Notification Container -->
-    <div id="notification" class="notification">
-        <i class="notification-icon"></i>
+    <div id="notification" class="notification" role="alert" aria-live="polite">
+        <i class="notification-icon" aria-hidden="true"></i>
         <span class="notification-message"></span>
-        <button class="notification-close">
-            <i class="fas fa-times"></i>
+        <button class="notification-close" aria-label="Close notification">
+            <i class="fas fa-times" aria-hidden="true"></i>
         </button>
     </div>
+
     <!-- Identity Selection Overlay -->
-    <div id="identity-overlay" class="identity-overlay">
+    <div id="identity-overlay" class="identity-overlay" role="dialog" aria-modal="true" aria-label="Choose your identity">
         <div class="identity-backdrop"></div>
         <div class="identity-container">
-            <div class="identity-circle" data-identity="student">
-                <i class="fas fa-user-graduate"></i>
+            <div class="identity-circle" data-identity="student" role="button" tabindex="0" aria-label="I am a Student">
+                <i class="fas fa-user-graduate" aria-hidden="true"></i>
                 <h3>Student</h3>
-                
             </div>
-            <div class="identity-circle" data-identity="lecturer">
-                <i class="fas fa-chalkboard-teacher"></i>
+            <div class="identity-circle" data-identity="lecturer" role="button" tabindex="0" aria-label="I am a Lecturer">
+                <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
                 <h3>Lecturer</h3>
-                
             </div>
         </div>
     </div>
+
     <!-- Splash Screen -->
-    <div id="splash-screen">
+    <div id="splash-screen" aria-hidden="true">
         <div class="splash-content">
-            <div class="logo-container">
+            <div class="logo-container" aria-label="PeerLoom">
                 <span class="letter" id="letter-P">P</span>
                 <span class="letter" id="letter-e">e</span>
                 <span class="letter" id="letter-e2">e</span>
@@ -752,73 +944,97 @@
                 <span class="letter" id="letter-o2">o</span>
                 <span class="letter" id="letter-m">m</span>
             </div>
-            <div id="particles"></div>
+            <div id="particles" aria-hidden="true"></div>
             <p class="text-xl">Connecting students, learning together</p>
         </div>
     </div>
+
     <!-- Main Content (initially hidden) -->
     <div id="main-content" style="display: none;">
-        <nav class="navbar" id="navbar">
-            <a href="index.html" class="logo">
-                <img src="logo.png" alt="Peerloom">
+
+        <!-- FIXED: aria-label on nav for accessibility; logo alt text
+             capitalised correctly to match brand name "PeerLoom"       -->
+        <nav class="navbar" id="navbar" aria-label="PeerLoom main navigation">
+            <a href="/" class="logo" aria-label="PeerLoom home">
+                <!-- FIXED: alt was "Peerloom" (wrong case) — now "PeerLoom" -->
+                <img src="logo.png" alt="PeerLoom" width="120" height="40">
             </a>
-            <button class="nav-toggle" id="navToggle" aria-label="Open navigation">
-                <i class="fas fa-bars"></i>
+            <button class="nav-toggle" id="navToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinksMobile">
+                <i class="fas fa-bars" aria-hidden="true"></i>
             </button>
-            <div class="nav-links" id="navLinks">
-                <!-- Fixed About link - no anchor to footer -->
-                <a href="about.html" class="nav-link">About</a>
-                <a href="privacy.html" class="nav-link">Privacy</a>
-                <a href="login.html" class="nav-link">Login</a>
-                <a href="support.html" class="nav-link">Support</a>
+            <div class="nav-links" id="navLinks" role="menubar">
+                <a href="/about.html" class="nav-link" role="menuitem">About</a>
+                <a href="/privacy.html" class="nav-link" role="menuitem">Privacy</a>
+                <a href="/login.html" class="nav-link" role="menuitem">Login</a>
+                <a href="/support.html" class="nav-link" role="menuitem">Support</a>
             </div>
-            <div class="nav-links mobile" id="navLinksMobile">
-                <a href="about.html" class="nav-link">About</a>
-                <a href="privacy.html" class="nav-link">Privacy</a>
-                <a href="login.html" class="nav-link">Login</a>
-                <a href="signup.html" class="nav-link">Sign Up</a>
-                <a href="support.html" class="nav-link">Support</a>
+            <div class="nav-links mobile" id="navLinksMobile" role="menu" aria-label="Mobile navigation">
+                <a href="/about.html" class="nav-link" role="menuitem">About</a>
+                <a href="/privacy.html" class="nav-link" role="menuitem">Privacy</a>
+                <a href="/login.html" class="nav-link" role="menuitem">Login</a>
+                <a href="/signup.html" class="nav-link" role="menuitem">Sign Up</a>
+                <a href="/support.html" class="nav-link" role="menuitem">Support</a>
             </div>
         </nav>
-        <section class="hero" id="hero">
-            <div class="hero-content">
-                <h1 class="text-5xl font-bold mb-4">Connect with Classmates</h1>
-                <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
-                <button class="cta-button water-glass" id="get-started-button">
-                    <span>Get Started</span>
-                    <i class="fas fa-glass-water"></i>
-                </button>
-            </div>
-        </section>
-        <section class="features" id="features">
-            <div class="features-grid">
-                <div class="feature-card">
-                    <i class="fas fa-brain fa-3x feature-icon"></i>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Smart Matching</h3>
-                    <p class="text-gray-600">AI-powered study partner matching</p>
+
+        <main id="main" tabindex="-1">
+
+            <section class="hero" id="hero" aria-labelledby="hero-heading">
+                <div class="hero-content">
+                    <!-- FIXED: H2 (since the page H1 is the sr-only above)
+                         now includes "PeerLoom" so Google sees the brand in
+                         a heading on-page. Previously the H1 said "Connect
+                         with Classmates" — zero brand signal in headings.  -->
+                    <h2 id="hero-heading" class="text-5xl font-bold mb-4">
+                        PeerLoom — Connect with Classmates
+                    </h2>
+                    <p class="text-xl mb-6">Form your squad. Share knowledge. <strong>Pass everything.💯</strong></p>
+                    <button class="cta-button water-glass" id="get-started-button" aria-label="Get started with PeerLoom">
+                        <span>Get Started</span>
+                        <i class="fas fa-glass-water" aria-hidden="true"></i>
+                    </button>
                 </div>
-                <div class="feature-card">
-                    <i class="fas fa-comments fa-3x feature-icon"></i>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Group Chat</h3>
-                    <p class="text-gray-600">Real-time collaboration tools</p>
+            </section>
+
+            <!-- FIXED: Added a visible section heading with brand name to
+                 reinforce the keyword-brand association in on-page copy.
+                 Previously no H2 in the features section at all.          -->
+            <section class="features" id="features" aria-labelledby="features-heading">
+                <h2 id="features-heading" class="sr-only">PeerLoom Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-brain fa-3x feature-icon" aria-hidden="true"></i>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Smart Matching</h3>
+                        <p class="text-gray-600">PeerLoom's AI-powered study partner matching connects you with the right classmates.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-comments fa-3x feature-icon" aria-hidden="true"></i>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Group Chat</h3>
+                        <p class="text-gray-600">Real-time collaboration tools built for student study groups.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-chart-line fa-3x feature-icon" aria-hidden="true"></i>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Progress Tracking</h3>
+                        <p class="text-gray-600">Monitor your academic journey with PeerLoom's built-in tracking tools.</p>
+                    </div>
                 </div>
-                <div class="feature-card">
-                    <i class="fas fa-chart-line fa-3x feature-icon"></i>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Progress Tracking</h3>
-                    <p class="text-gray-600">Monitor your academic journey</p>
-                </div>
-            </div>
-        </section>
-        <footer>
+            </section>
+
+        </main>
+
+        <footer role="contentinfo">
+            <!-- FIXED: Brand name explicitly in footer copy -->
             <p>© 2025 PeerLoom. All rights reserved.</p>
             <p>
-                <a href="/about.html">About</a> |
+                <a href="/about.html">About PeerLoom</a> |
                 <a href="/privacy.html">Privacy Policy</a> |
                 <a href="/terms.html">Terms of Service</a> |
                 <a href="/support.html">Contact</a>
             </p>
         </footer>
-    </div>
+
+    </div><!-- /#main-content -->
+
     <script type="module">
         // Notification system
         function showNotification(message, type = 'info') {
@@ -855,6 +1071,7 @@
                 hideNotification();
             }, 5000);
         }
+
         function hideNotification() {
             const notification = document.getElementById('notification');
             notification.classList.remove('show');
@@ -865,6 +1082,7 @@
                 notification.classList.remove('hide');
             }, 300);
         }
+
         // Close notification when close button is clicked
         document.addEventListener('DOMContentLoaded', () => {
             const closeButton = document.querySelector('.notification-close');
@@ -872,13 +1090,13 @@
                 closeButton.addEventListener('click', hideNotification);
             }
         });
+
         // Check for URL parameters and show appropriate messages
         function checkUrlParameters() {
             const urlParams = new URLSearchParams(window.location.search);
             const message = urlParams.get('message');
             if (message === 'session_timeout') {
                 showNotification('Your session has expired due to inactivity. Please log in again.', 'warning');
-                // Clean URL (remove parameters)
                 window.history.replaceState({}, document.title, window.location.pathname);
             } else if (message === 'logout_success') {
                 showNotification('You have been successfully logged out.', 'success');
@@ -888,18 +1106,19 @@
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
+
         // Handle SPA redirect from 404.html
         function handleRedirect() {
             const redirectPath = sessionStorage.getItem('redirectPath');
             if (redirectPath) {
                 sessionStorage.removeItem('redirectPath');
-                // Example: if path is /profile/someuser, redirect to profile.html#/profile/someuser
                 if (redirectPath.startsWith('/profile/')) {
                     const username = redirectPath.substring('/profile/'.length);
                     window.location.replace(`/profile.html#/profile/${username}`);
                 }
             }
         }
+
         // Particle creation function - Reduced for mobile
         function createParticles(x, y, num = window.innerWidth < 768 ? 5 : 8) {
             const container = document.getElementById('particles');
@@ -915,7 +1134,6 @@
                 particle.style.setProperty('--dx', dx + 'px');
                 particle.style.setProperty('--dy', dy + 'px');
                 container.appendChild(particle);
-                // Start animation immediately
                 requestAnimationFrame(() => {
                     particle.style.animation = 'particleFly 1.2s ease-out forwards';
                 });
@@ -926,6 +1144,7 @@
                 }, 1300);
             }
         }
+
         // Splash screen animation - Slightly Slower Timing
         document.addEventListener('DOMContentLoaded', () => {
             const splashScreen = document.getElementById('splash-screen');
@@ -933,16 +1152,13 @@
             const letters = document.querySelectorAll('.letter');
             const splashSound = document.getElementById('splashSound');
           
-            // Play sound on first letter appearance (with fallback for mobile autoplay restrictions)
             const playSound = () => {
                 splashSound.currentTime = 0;
                 splashSound.play().catch(e => {
                     console.log('Autoplay prevented:', e);
-                    // Optionally, you could add a user gesture trigger, but for splash, we'll just skip
                 });
             };
           
-            // Function to generate random values for explosion
             function getRandomExplosionValues() {
                 const angle = Math.random() * Math.PI * 2;
                 const distance = 100 + Math.random() * 150;
@@ -952,20 +1168,14 @@
                 };
             }
           
-            // Animate each letter with slightly increased delays
             letters.forEach((letter, index) => {
-                // Set initial animation for appearance - Slightly slower
                 setTimeout(() => {
                     letter.style.animation = 'letterAppear 1s forwards';
                     if (index === 0) {
                         playSound();
                     }
-                  
-                    // Add shake animation after appearance - Slightly slower
                     setTimeout(() => {
                         letter.style.animation = 'letterShake 1s forwards';
-                      
-                        // Add explosion animation after shaking - Slightly slower
                         setTimeout(() => {
                             const rect = letter.getBoundingClientRect();
                             const centerX = rect.left + rect.width / 2;
@@ -974,31 +1184,25 @@
                             letter.style.setProperty('--tx', explosionValues.tx);
                             letter.style.setProperty('--ty', explosionValues.ty);
                             letter.style.animation = 'letterExplode 1.5s forwards';
-                            // Create particles during explosion
                             createParticles(centerX, centerY);
-                        }, 150); // Increased from 100
-                    }, 1000); // Increased from 800
-                }, index * 350); // Increased from 300
+                        }, 150);
+                    }, 1000);
+                }, index * 350);
             });
           
-            // Hide splash screen and show main content after animations (adjusted for slower timing ~6000ms + margin)
             setTimeout(() => {
                 splashScreen.style.animation = 'fadeOut 1s forwards';
                 setTimeout(() => {
                     splashScreen.style.display = 'none';
                     mainContent.style.display = 'block';
                     window.scrollTo(0, 0);
-                  
-                    // Initialize main page functionality
                     initMainPage();
-                  
-                    // Check for URL parameters after page loads
                     checkUrlParameters();
-                    // Handle any SPA redirects
                     handleRedirect();
-                }, 1000); // Increased from 800
-            }, 7000); // Increased from 6000
+                }, 1000);
+            }, 7000);
         });
+
         // Identity Selection Overlay Logic
         function initIdentityOverlay() {
             const overlay = document.getElementById('identity-overlay');
@@ -1008,55 +1212,49 @@
             
             if (!getStartedButton) return;
             
-            // Show overlay when Get Started is clicked
             getStartedButton.addEventListener('click', (e) => {
                 e.preventDefault();
-                
-                // Add blur to hero section
                 hero.classList.add('blurred');
-                
-                // Show overlay
                 overlay.classList.add('active');
-                
-                // Prevent body scroll
+                // ADDED: update aria-expanded on the button for accessibility
+                getStartedButton.setAttribute('aria-expanded', 'true');
                 document.body.style.overflow = 'hidden';
             });
             
-            // Handle identity selection
             identityCircles.forEach(circle => {
+                // ADDED: keyboard support for accessibility (Enter/Space activates)
+                circle.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+
                 circle.addEventListener('click', function() {
                     const identity = this.getAttribute('data-identity');
-                    
-                    // Mark this circle as selected and fade out the other
                     this.classList.add('selected');
                     identityCircles.forEach(otherCircle => {
                         if (otherCircle !== this) {
                             otherCircle.classList.add('fade-out');
                         }
                     });
-                    
-                    // Darken background
                     overlay.classList.add('exiting');
-                    
-                    // Redirect after animation completes
                     setTimeout(() => {
                         if (identity === 'student') {
                             window.location.href = 'signup.html';
                         } else if (identity === 'lecturer') {
                             window.location.href = 'signuplecturer.html';
                         }
-                    }, 1200); // Match animation duration
+                    }, 1200);
                 });
             });
             
-            // Close overlay when clicking on backdrop (except circles)
             overlay.addEventListener('click', (e) => {
                 if (e.target.classList.contains('identity-backdrop')) {
                     closeOverlay();
                 }
             });
             
-            // Handle escape key
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && overlay.classList.contains('active')) {
                     closeOverlay();
@@ -1067,48 +1265,46 @@
                 overlay.classList.remove('active');
                 overlay.classList.remove('exiting');
                 hero.classList.remove('blurred');
+                getStartedButton.setAttribute('aria-expanded', 'false');
                 document.body.style.overflow = '';
-                
-                // Reset circles
                 identityCircles.forEach(circle => {
                     circle.classList.remove('selected');
                     circle.classList.remove('fade-out');
                 });
             }
         }
+
         // Initialize main page functionality
         function initMainPage() {
-            // Mobile nav toggle
             const navToggle = document.getElementById('navToggle');
             const navLinksMobile = document.getElementById('navLinksMobile');
             if (navToggle && navLinksMobile) {
                 navToggle.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    navLinksMobile.classList.toggle('show');
+                    const isOpen = navLinksMobile.classList.toggle('show');
+                    // ADDED: update aria-expanded for accessibility
+                    navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
                 });
-                // Hide mobile nav when clicking outside
                 document.addEventListener('click', (e) => {
                     if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
                         navLinksMobile.classList.remove('show');
+                        navToggle.setAttribute('aria-expanded', 'false');
                     }
                 });
-                // Close menu when a link is clicked
                 navLinksMobile.querySelectorAll('a').forEach(link => {
                     link.addEventListener('click', () => {
                         navLinksMobile.classList.remove('show');
+                        navToggle.setAttribute('aria-expanded', 'false');
                     });
                 });
             }
-            // Add scroll effect to navbar
             window.addEventListener('scroll', () => {
                 const navbar = document.getElementById('navbar');
                 if (navbar) {
                     navbar.classList.toggle('scrolled', window.scrollY > 50);
                 }
             });
-            
-            // Initialize identity overlay
             initIdentityOverlay();
         }
     </script>
