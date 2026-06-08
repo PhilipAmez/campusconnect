@@ -3168,32 +3168,7 @@
             });
         });
 
-        const navToggle = document.getElementById('navToggle');
-        const navLinksMobile = document.getElementById('navLinksMobile');
-        if (navToggle && navLinksMobile) {
-            navToggle.addEventListener('click', () => {
-                const isOpen = navLinksMobile.classList.toggle('show');
-                navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-                navToggle.innerHTML = isOpen ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
-                resetLogoutTimer();
-            });
-            document.addEventListener('click', (e) => {
-                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
-                    navLinksMobile.classList.remove('show');
-                    navToggle.setAttribute('aria-expanded', 'false');
-                    navToggle.innerHTML = '<i class="fas fa-bars"></i>';
-                }
-            });
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && navLinksMobile.classList.contains('show')) {
-                    navLinksMobile.classList.remove('show');
-                    navToggle.setAttribute('aria-expanded', 'false');
-                    navToggle.innerHTML = '<i class="fas fa-bars"></i>';
-                    navToggle.focus();
-                }
-            });
-            navLinksMobile.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
-        }
+
 
         function uniqueItemsById(items) {
             const seenIds = new Set();
@@ -4168,6 +4143,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 });
+
+        // ── Hamburger nav — runs independently of auth ──────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const navToggle = document.getElementById('navToggle');
+            const navLinksMobile = document.getElementById('navLinksMobile');
+            if (!navToggle || !navLinksMobile) return;
+
+            function openMenu() {
+                navLinksMobile.classList.add('show');
+                navToggle.setAttribute('aria-expanded', 'true');
+                navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            }
+            function closeMenu() {
+                navLinksMobile.classList.remove('show');
+                navToggle.setAttribute('aria-expanded', 'false');
+                navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            }
+
+            navToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navLinksMobile.classList.contains('show') ? closeMenu() : openMenu();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!navToggle.contains(e.target) && !navLinksMobile.contains(e.target)) {
+                    closeMenu();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && navLinksMobile.classList.contains('show')) {
+                    closeMenu();
+                    navToggle.focus();
+                }
+            });
+        });
     </script>
 </body>
 </html>

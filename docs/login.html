@@ -338,6 +338,28 @@
         });
     }
     // ========== END ADDED ==========
+    // ── Helper: read joinGroup from URL param first, fall back to localStorage ──
+    function getRedirectUrl() {
+        const params = new URLSearchParams(window.location.search)
+        const groupId = params.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
+        if (groupId) {
+            localStorage.setItem('pendingGroupJoin', groupId) // keep it until dashboard consumes it
+            return 'dashboard.html?joinGroup=' + groupId
+        }
+        return 'dashboard.html'
+    }
+
+    // Pass joinGroup param to signup link if present (run immediately, before any await)
+    try {
+        const _params = new URLSearchParams(window.location.search)
+        const _gid = _params.get('joinGroup')
+        if (_gid) {
+            localStorage.setItem('pendingGroupJoin', _gid)
+            const signupLink = document.getElementById('signupLink')
+            if (signupLink) signupLink.href = 'signup.html?joinGroup=' + _gid
+        }
+    } catch(_e) {}
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault()
         console.log('Login form submitted')
@@ -372,19 +394,7 @@
             okEl.textContent = 'Login successful! Redirecting...'
 
             setTimeout(() => {
-                const pendingGroupId = localStorage.getItem('pendingGroupJoin')
-                if (pendingGroupId) {
-                    window.location.href = 'dashboard.html?joinGroup=' + pendingGroupId
-                } else {
-                    const params = new URLSearchParams(window.location.search)
-                    const groupId = params.get('joinGroup')
-                    if (groupId) {
-                        localStorage.setItem('pendingGroupJoin', groupId)
-                        window.location.href = 'dashboard.html?joinGroup=' + groupId
-                    } else {
-                        window.location.href = 'dashboard.html'
-                    }
-                }
+                window.location.href = getRedirectUrl()
             }, 1000)
            
         } catch (err) {
@@ -393,16 +403,6 @@
             button.classList.remove('loading')
         }
     })
-    // Pass joinGroup param to signup link if present
-    try {
-        const _params = new URLSearchParams(window.location.search)
-        const _gid = _params.get('joinGroup')
-        if (_gid) {
-            localStorage.setItem('pendingGroupJoin', _gid)
-            const signupLink = document.getElementById('signupLink')
-            if (signupLink) signupLink.href = 'signup.html?joinGroup=' + _gid
-        }
-    } catch(_e) {}
 
     // Auto-redirect if already signed in (with better error handling)
     try {
@@ -411,19 +411,7 @@
             console.log('Already logged in, redirecting...')
             button.classList.add('loading')
             setTimeout(() => {
-                const pendingGroupId = localStorage.getItem('pendingGroupJoin')
-                if (pendingGroupId) {
-                    window.location.href = 'dashboard.html?joinGroup=' + pendingGroupId
-                } else {
-                    const params = new URLSearchParams(window.location.search)
-                    const groupId = params.get('joinGroup')
-                    if (groupId) {
-                        localStorage.setItem('pendingGroupJoin', groupId)
-                        window.location.href = 'dashboard.html?joinGroup=' + groupId
-                    } else {
-                        window.location.href = 'dashboard.html'
-                    }
-                }
+                window.location.href = getRedirectUrl()
             }, 1000)
         }
     } catch (err) {
