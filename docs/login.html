@@ -339,14 +339,43 @@
     }
     // ========== END ADDED ==========
     // ── Helper: read joinGroup from URL param first, fall back to localStorage ──
-    function getRedirectUrl() {
+    function getRedirectUrl(profile = null) {
         const params = new URLSearchParams(window.location.search)
         const groupId = params.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
+        const isLecturer = profile?.is_lecturer === true || profile?.role === 'lecturer' || profile?.level === 'lecturer' || profile?.custom_level === 'lecturer'
+
+        if (isLecturer) {
+            return 'lecturer-dashboard.html'
+        }
+
         if (groupId) {
             localStorage.setItem('pendingGroupJoin', groupId) // keep it until dashboard consumes it
             return 'dashboard.html?joinGroup=' + groupId
         }
         return 'dashboard.html'
+    }
+
+    async function redirectAfterAuth(session) {
+        button.classList.add('loading')
+        let profile = null
+
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('role, level, custom_level, is_lecturer')
+                .eq('id', session.user.id)
+                .maybeSingle()
+
+            if (!error && data) {
+                profile = data
+            }
+        } catch (err) {
+            console.warn('Could not load profile for redirect:', err)
+        }
+
+        setTimeout(() => {
+            window.location.href = getRedirectUrl(profile)
+        }, 1000)
     }
 
     // Pass joinGroup param to signup link if present (run immediately, before any await)
@@ -393,9 +422,7 @@
             console.log('Login successful:', data)
             okEl.textContent = 'Login successful! Redirecting...'
 
-            setTimeout(() => {
-                window.location.href = getRedirectUrl()
-            }, 1000)
+            await redirectAfterAuth(data.session)
            
         } catch (err) {
             console.error('Unexpected error:', err)
@@ -409,10 +436,7 @@
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
             console.log('Already logged in, redirecting...')
-            button.classList.add('loading')
-            setTimeout(() => {
-                window.location.href = getRedirectUrl()
-            }, 1000)
+            await redirectAfterAuth(session)
         }
     } catch (err) {
         console.warn('Could not check session:', err)

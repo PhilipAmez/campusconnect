@@ -24,6 +24,7 @@ const upload = multer({ dest: 'uploads/' });
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'docs')));
 
 const admin = require('firebase-admin');
 const serviceAccount = require('./firebase-service.json');
@@ -95,6 +96,19 @@ async function verifyFirebaseToken(req, res, next) {
 // createTables().then(() => console.log('✅ Tables ready')).catch(console.error);
 
 // Routes
+app.get('/lecturer', (req, res) => res.redirect('/lecturer/dashboard'));
+app.get('/lecturer/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'lecturer-dashboard.html'));
+});
+app.get('/lecturer/dashboard/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'lecturer-dashboard.html'));
+});
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'dashboard.html'));
+});
+app.get('/dashboard/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'dashboard.html'));
+});
 app.get('/', (req, res) => res.send('CampusConnect backend running!'));
 
 // ============= AI CHAT ENDPOINT =============
