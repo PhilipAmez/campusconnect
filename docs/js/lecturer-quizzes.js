@@ -17,6 +17,22 @@ let quizState = null;
 let currentDraftId = null;
 let currentPreviewMode = 'desktop';
 let lastLoadedProfile = null;
+let isDirty = false;
+let isAutosaving = false;
+let lastSavedLabel = 'Not saved yet';
+let autosaveTimer = null;
+let quizListCache = {};
+const QUIZ_LIST_PAGE_SIZE = 6;
+
+// Signup writes the lecturer's school into profiles.campus (or
+// profiles.custom_campus for a typed-in entry), not profiles.institution —
+// so institution is empty for most existing accounts. Settings now lets a
+// lecturer fill in profiles.institution directly, so prefer that when set,
+// otherwise fall back to campus/custom_campus. The same resolution is used
+// everywhere we save or filter quizzes.institution so writes and reads agree.
+function getInstitutionLabel(profile) {
+  return (profile?.institution || profile?.campus || profile?.custom_campus || '').trim();
+}
 
 function escapeHtml(value = '') {
   return String(value)
@@ -25,6 +41,93 @@ function escapeHtml(value = '') {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function debounce(fn, delay) {
+  let timeoutId = null;
+  return (...args) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// Captures which field (and cursor position/scroll offset) is focused before a
+// re-render so we can restore it afterward. This is the root-cause fix for the
+// "page jumps while typing" bug: every keystroke triggers a full re-render of
+// the builder markup, which used to destroy and recreate the focused element.
+function captureFocusState(container) {
+  const active = document.activeElement;
+  if (!active || !container || !container.contains(active)) return null;
+  const action = active.getAttribute('data-action');
+  if (!action) return null;
+
+  return {
+    action,
+    index: active.getAttribute('data-index'),
+    optionIndex: active.getAttribute('data-option-index'),
+    selectionStart: 'selectionStart' in active ? active.selectionStart : null,
+    selectionEnd: 'selectionEnd' in active ? active.selectionEnd : null,
+    scrollY: window.scrollY,
+  };
+}
+
+function restoreFocusState(container, state) {
+  if (!state || !container) return;
+
+  let selector = `[data-action="${state.action}"]`;
+  if (state.index !== null && state.index !== undefined) {
+    selector += `[data-index="${CSS.escape(state.index)}"]`;
+  }
+  if (state.optionIndex !== null && state.optionIndex !== undefined) {
+    selector += `[data-option-index="${CSS.escape(state.optionIndex)}"]`;
+  }
+
+  const target = container.querySelector(selector);
+  if (target) {
+    target.focus({ preventScroll: true });
+    if (state.selectionStart !== null && typeof target.setSelectionRange === 'function') {
+      try {
+        target.setSelectionRange(state.selectionStart, state.selectionEnd);
+      } catch (error) {
+        // Some input types (e.g. number, date) don't support selection ranges.
+      }
+    }
+  }
+
+  window.scrollTo({ top: state.scrollY, left: window.scrollX, behavior: 'instant' });
+}
+
+function setButtonBusy(button, busy) {
+  if (!button) return;
+  button.classList.toggle('is-loading', busy);
+  button.disabled = busy;
+}
+
+function flashButtonSuccess(button) {
+  if (!button) return;
+  button.classList.add('is-success');
+  setTimeout(() => button.classList.remove('is-success'), 550);
+}
+
+function validateQuizForPublish(quiz) {
+  const errors = [];
+  if (!quiz.title || !quiz.title.trim()) errors.push('Add a quiz title before publishing.');
+  if (!quiz.questions || !quiz.questions.length) errors.push('Add at least one question before publishing.');
+  (quiz.questions || []).forEach((question, index) => {
+    if (!question.prompt || !question.prompt.trim()) {
+      errors.push(`Question ${index + 1} needs prompt text.`);
+    }
+    if (question.type === 'mcq') {
+      const filledOptions = (question.options || []).filter((option) => option.text && option.text.trim());
+      if (filledOptions.length < 2) {
+        errors.push(`Question ${index + 1} needs at least two answer options.`);
+      }
+    }
+  });
+  if (quiz.open_date && quiz.close_date && new Date(quiz.open_date) > new Date(quiz.close_date)) {
+    errors.push('Close date must be after the open date.');
+  }
+  return errors;
 }
 
 function createEmptyQuestion(type = 'mcq') {
@@ -99,7 +202,7 @@ function ensureState(profile) {
     quizState = createEmptyQuiz();
   }
   if (profile && !quizState.institution) {
-    quizState.institution = profile.institution || 'Your institution';
+    quizState.institution = getInstitutionLabel(profile) || 'Your institution';
   }
   return quizState;
 }
@@ -120,11 +223,11 @@ async function loadGroups(profile) {
 }
 
 async function loadQuizzes(profile, status) {
-  if (!profile?.institution) return [];
+  if (!getInstitutionLabel(profile)) return [];
   const { data, error } = await supabase
     .from('quizzes')
     .select(`id, title, status, quiz_type, time_limit, open_date, close_date, created_at, quiz_questions(id), quiz_groups(group_id, groups(id, name, course_code))`)
-    .eq('institution', profile.institution)
+    .eq('institution', getInstitutionLabel(profile))
     .eq('status', status)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
@@ -177,7 +280,7 @@ async function loadQuizDraft(quizId, profile) {
     attempts_allowed: data.attempts_allowed || 1,
     visibility: data.visibility || 'institution',
     status: data.status || 'draft',
-    institution: data.institution || profile?.institution || 'Your institution',
+    institution: data.institution || getInstitutionLabel(profile) || 'Your institution',
     target_groups,
     questions: questions.length ? questions : [createEmptyQuestion('mcq')]
   };
@@ -189,7 +292,7 @@ async function loadQuizDraft(quizId, profile) {
 async function saveQuiz(payload, profile, isPublishing = false) {
   const normalized = {
     ...payload,
-    institution: profile?.institution || payload.institution || 'Your institution',
+    institution: getInstitutionLabel(profile) || payload.institution || 'Your institution',
     status: isPublishing ? 'published' : payload.status || 'draft',
     updated_at: new Date().toISOString(),
     published_at: isPublishing ? new Date().toISOString() : null,
@@ -262,6 +365,21 @@ async function deleteQuiz(quizId) {
   if (error) throw error;
 }
 
+function updateAutosaveIndicator(container, state) {
+  const indicator = container.querySelector('[data-role="autosave-indicator"]');
+  if (!indicator) return;
+  if (state === 'saving') {
+    indicator.innerHTML = '<span class="dot"></span> Saving…';
+    indicator.classList.remove('saved');
+  } else if (state === 'saved') {
+    indicator.innerHTML = `<span class="dot"></span> ${escapeHtml(lastSavedLabel)}`;
+    indicator.classList.add('saved');
+  } else {
+    indicator.innerHTML = '<span class="dot"></span> Unsaved changes';
+    indicator.classList.remove('saved');
+  }
+}
+
 function renderQuestionCard(question, index, onUpdate, onDelete, onReorder) {
   const optionsMarkup = question.type === 'mcq'
     ? `
@@ -270,10 +388,10 @@ function renderQuestionCard(question, index, onUpdate, onDelete, onReorder) {
           <div class="option-row" draggable="true" data-option-index="${optionIndex}">
             <div class="option-handle"><i class="fa-solid fa-grip-lines"></i></div>
             <label class="option-radio">
-              <input type="radio" name="correct-${index}" value="${optionIndex}" ${Number(question.correct_option) === optionIndex ? 'checked' : ''}>
+              <input type="radio" name="correct-${index}" value="${optionIndex}" ${Number(question.correct_option) === optionIndex ? 'checked' : ''} aria-label="Mark option ${optionIndex + 1} as correct">
             </label>
-            <input class="quiz-input" type="text" value="${escapeHtml(option.text)}" data-action="option-text" data-index="${index}" data-option-index="${optionIndex}" placeholder="Option ${optionIndex + 1}" />
-            <button class="subtle-action" data-action="delete-option" data-index="${index}" data-option-index="${optionIndex}"><i class="fa-solid fa-xmark"></i></button>
+            <input class="quiz-input" type="text" value="${escapeHtml(option.text)}" data-action="option-text" data-index="${index}" data-option-index="${optionIndex}" placeholder="Option ${optionIndex + 1}" aria-label="Option ${optionIndex + 1} text" />
+            <button class="subtle-action" data-action="delete-option" data-index="${index}" data-option-index="${optionIndex}" aria-label="Remove option ${optionIndex + 1}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
           </div>
         `).join('')}
       </div>
@@ -302,9 +420,9 @@ function renderQuestionCard(question, index, onUpdate, onDelete, onReorder) {
           <h4>Question ${index + 1}</h4>
         </div>
         <div class="question-card-actions">
-          <button class="subtle-action" data-action="move-question-up" data-index="${index}"><i class="fa-solid fa-arrow-up"></i></button>
-          <button class="subtle-action" data-action="move-question-down" data-index="${index}"><i class="fa-solid fa-arrow-down"></i></button>
-          <button class="subtle-action danger" data-action="delete-question" data-index="${index}"><i class="fa-solid fa-trash"></i></button>
+          <button class="subtle-action" data-action="move-question-up" data-index="${index}" aria-label="Move question ${index + 1} up"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+          <button class="subtle-action" data-action="move-question-down" data-index="${index}" aria-label="Move question ${index + 1} down"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>
+          <button class="subtle-action danger" data-action="delete-question" data-index="${index}" aria-label="Delete question ${index + 1}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
         </div>
       </div>
       <div class="question-grid">
@@ -350,7 +468,7 @@ function renderBuilderView(container, profile, onSectionChange) {
   });
 
   container.innerHTML = `
-    <section class="quiz-shell">
+    <section class="quiz-shell fade-in">
       <div class="quiz-hero glass-card">
         <div>
           <div class="hero-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Lecturer quiz studio</div>
@@ -449,7 +567,7 @@ function renderBuilderView(container, profile, onSectionChange) {
             <div class="locked-institution">
               <i class="fa-solid fa-building-columns"></i>
               <div>
-                <strong>${escapeHtml(profile?.institution || state.institution || 'Your institution')}</strong>
+                <strong>${escapeHtml(getInstitutionLabel(profile) || state.institution || 'Your institution')}</strong>
                 <p>Only course groups you created are shown here.</p>
               </div>
             </div>
@@ -493,7 +611,7 @@ function renderBuilderView(container, profile, onSectionChange) {
               <button class="secondary-btn small" data-action="add-question-short"><i class="fa-solid fa-plus"></i> Add short answer</button>
               <button class="secondary-btn small" data-action="add-question-essay"><i class="fa-solid fa-plus"></i> Add essay</button>
             </div>
-            <div class="question-stack">
+            <div class="question-stack" aria-label="Quiz questions">
               ${(state.questions || []).map((question, index) => renderQuestionCard(question, index)).join('')}
             </div>
           </section>
@@ -552,12 +670,15 @@ function renderBuilderView(container, profile, onSectionChange) {
               </div>
               <span class="badge-pill soft">Step 5</span>
             </div>
+            <span class="unsaved-indicator ${isDirty ? '' : 'saved'}" data-role="autosave-indicator" aria-live="polite">
+              <span class="dot"></span> ${isDirty ? 'Unsaved changes' : escapeHtml(lastSavedLabel)}
+            </span>
             <div class="stacked-actions">
-              <button class="primary-btn full" data-action="save-draft"><i class="fa-solid fa-floppy-disk"></i> Save draft</button>
-              <button class="secondary-btn full" data-action="update-draft"><i class="fa-solid fa-pen-to-square"></i> Update draft</button>
-              <button class="secondary-btn full" data-action="publish-quiz"><i class="fa-solid fa-paper-plane"></i> Publish</button>
-              <button class="secondary-btn full" data-action="archive-quiz"><i class="fa-solid fa-box-archive"></i> Archive</button>
-              <button class="secondary-btn full danger" data-action="delete-quiz"><i class="fa-solid fa-trash"></i> Delete</button>
+              <button class="primary-btn full" data-action="save-draft" aria-label="Save quiz as draft"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save draft</button>
+              <button class="secondary-btn full" data-action="update-draft" aria-label="Update saved draft"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Update draft</button>
+              <button class="secondary-btn full" data-action="publish-quiz" aria-label="Publish quiz"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publish</button>
+              <button class="secondary-btn full" data-action="archive-quiz" aria-label="Archive quiz"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> Archive</button>
+              <button class="secondary-btn full danger" data-action="delete-quiz" aria-label="Delete quiz"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
             </div>
             <div class="status-box">
               <strong>Current status</strong>
@@ -584,7 +705,7 @@ function renderBuilderView(container, profile, onSectionChange) {
 function renderQuizzesList(container, section, profile, onSectionChange) {
   const status = section === 'draft-quizzes' ? 'draft' : 'published';
   container.innerHTML = `
-    <section class="quiz-shell">
+    <section class="quiz-shell fade-in">
       <div class="quiz-hero glass-card">
         <div>
           <div class="hero-badge"><i class="fa-solid fa-square-check"></i> ${section === 'draft-quizzes' ? 'Draft quizzing' : 'Published quizzes'}</div>
@@ -630,13 +751,9 @@ function renderQuizzesList(container, section, profile, onSectionChange) {
   bindListEvents(container, section, profile, onSectionChange);
 }
 
-async function populateList(container, section, profile) {
-  const quizzes = await loadQuizzes(profile, section === 'draft-quizzes' ? 'draft' : 'published');
-  const list = container.querySelector('[data-quiz-list]');
-  if (!list) return;
-
-  list.innerHTML = quizzes.length ? quizzes.map((quiz) => `
-    <article class="quiz-card glass-card">
+function renderQuizCard(quiz) {
+  return `
+    <article class="quiz-card glass-card fade-in">
       <div class="quiz-card-head">
         <div>
           <h4>${escapeHtml(quiz.title || 'Untitled quiz')}</h4>
@@ -645,95 +762,213 @@ async function populateList(container, section, profile) {
         <span class="badge-pill soft">${escapeHtml(getStatusBadge(quiz.status))}</span>
       </div>
       <div class="quiz-card-meta">
-        <span><i class="fa-solid fa-layer-group"></i> ${escapeHtml(quiz.group_names || 'No groups')}</span>
-        <span><i class="fa-solid fa-question"></i> ${quiz.quiz_questions?.length || 0} questions</span>
-        <span><i class="fa-solid fa-clock"></i> ${quiz.time_limit || 30} mins</span>
+        <span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> ${escapeHtml(quiz.group_names || 'No groups')}</span>
+        <span><i class="fa-solid fa-question" aria-hidden="true"></i> ${quiz.quiz_questions?.length || 0} questions</span>
+        <span><i class="fa-solid fa-clock" aria-hidden="true"></i> ${quiz.time_limit || 30} mins</span>
       </div>
       <div class="quiz-card-meta">
-        <span><i class="fa-solid fa-door-open"></i> ${formatDateLabel(quiz.open_date)}</span>
-        <span><i class="fa-solid fa-door-closed"></i> ${formatDateLabel(quiz.close_date)}</span>
+        <span><i class="fa-solid fa-door-open" aria-hidden="true"></i> ${formatDateLabel(quiz.open_date)}</span>
+        <span><i class="fa-solid fa-door-closed" aria-hidden="true"></i> ${formatDateLabel(quiz.close_date)}</span>
       </div>
       <div class="quiz-card-actions">
-        <button class="secondary-btn small" data-action="view-quiz" data-id="${quiz.id}">View</button>
-        <button class="secondary-btn small" data-action="edit-quiz" data-id="${quiz.id}">Edit</button>
-        <button class="secondary-btn small" data-action="duplicate-quiz" data-id="${quiz.id}">Duplicate</button>
-        <button class="secondary-btn small" data-action="archive-quiz" data-id="${quiz.id}">Archive</button>
-        <button class="secondary-btn small danger" data-action="delete-quiz" data-id="${quiz.id}">Delete</button>
+        <button class="secondary-btn small" data-action="view-quiz" data-id="${quiz.id}" aria-label="Preview ${escapeHtml(quiz.title || 'quiz')}">View</button>
+        <button class="secondary-btn small" data-action="edit-quiz" data-id="${quiz.id}" aria-label="Edit ${escapeHtml(quiz.title || 'quiz')}">Edit</button>
+        <button class="secondary-btn small" data-action="duplicate-quiz" data-id="${quiz.id}" aria-label="Duplicate ${escapeHtml(quiz.title || 'quiz')}">Duplicate</button>
+        <button class="secondary-btn small" data-action="archive-quiz" data-id="${quiz.id}" aria-label="Archive ${escapeHtml(quiz.title || 'quiz')}">Archive</button>
+        <button class="secondary-btn small danger" data-action="delete-quiz" data-id="${quiz.id}" aria-label="Delete ${escapeHtml(quiz.title || 'quiz')}">Delete</button>
       </div>
     </article>
-  `).join('') : '<div class="empty-state-card">No quizzes match the current filters yet.</div>';
+  `;
+}
+
+function applyQuizFilters(section) {
+  const cache = quizListCache[section];
+  if (!cache) return;
+  const { search, status, group } = cache.filters;
+
+  cache.filtered = cache.all.filter((quiz) => {
+    const searchMatch = !search || `${quiz.title || ''}`.toLowerCase().includes(search.toLowerCase());
+    const statusMatch = !status || quiz.status === status;
+    const groupMatch = !group || `${quiz.group_names || ''}`.toLowerCase().includes(group.toLowerCase());
+    return searchMatch && statusMatch && groupMatch;
+  });
+  cache.visibleCount = QUIZ_LIST_PAGE_SIZE;
+}
+
+async function populateList(container, section, profile) {
+  const list = container.querySelector('[data-quiz-list]');
+  if (!list) return;
+
+  list.innerHTML = `
+    <div class="skeleton-line" style="height:120px;"></div>
+    <div class="skeleton-line" style="height:120px;"></div>
+  `;
+
+  const quizzes = await loadQuizzes(profile, section === 'draft-quizzes' ? 'draft' : 'published');
+  const existingFilters = quizListCache[section]?.filters || { search: '', status: '', group: '' };
+  quizListCache[section] = { all: quizzes, filtered: quizzes, filters: existingFilters, visibleCount: QUIZ_LIST_PAGE_SIZE };
+  applyQuizFilters(section);
+  renderVisibleQuizzes(container, section);
+}
+
+function renderVisibleQuizzes(container, section) {
+  const list = container.querySelector('[data-quiz-list]');
+  if (!list) return;
+
+  const cache = quizListCache[section] || { filtered: [], visibleCount: QUIZ_LIST_PAGE_SIZE };
+  const quizzes = cache.filtered || [];
+  const visibleCount = cache.visibleCount || QUIZ_LIST_PAGE_SIZE;
+
+  if (!quizzes.length) {
+    list.innerHTML = '<div class="empty-state-card">No quizzes match the current filters yet.</div>';
+    return;
+  }
+
+  const visibleQuizzes = quizzes.slice(0, visibleCount);
+  const hasMore = quizzes.length > visibleQuizzes.length;
+
+  list.innerHTML = visibleQuizzes.map(renderQuizCard).join('') + (hasMore
+    ? `<button class="secondary-btn full" data-action="load-more-quizzes" aria-label="Load more quizzes">
+        <i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Load more (${quizzes.length - visibleQuizzes.length} remaining)
+      </button>`
+    : '');
+}
+
+function triggerAutosave(container, profile) {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    if (!quizState?.title?.trim() && !(quizState?.questions || []).some((question) => question.prompt?.trim())) {
+      return;
+    }
+    isAutosaving = true;
+    updateAutosaveIndicator(container, 'saving');
+    try {
+      await saveQuiz({ ...quizState, status: quizState.status === 'published' ? 'published' : 'draft' }, profile, false);
+      isDirty = false;
+      lastSavedLabel = `Autosaved at ${new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}`;
+    } catch (error) {
+      console.error('Autosave failed:', error?.message || error, error?.details || '', error?.hint || '');
+      isDirty = true;
+      lastSavedLabel = `Autosave failed: ${error?.message || 'unknown error'}`;
+    } finally {
+      isAutosaving = false;
+      updateAutosaveIndicator(container, isDirty ? 'unsaved' : 'saved');
+    }
+  }, 1500);
 }
 
 function bindBuilderEvents(container, profile, onSectionChange) {
-  const setState = (patch) => {
+  const setState = (patch, options = {}) => {
+    const focusState = captureFocusState(container);
     quizState = { ...quizState, ...patch };
+    if (options.markDirty !== false) {
+      isDirty = true;
+    }
     renderBuilderView(container, profile, onSectionChange);
+    restoreFocusState(container, focusState);
+    if (options.autosave !== false) {
+      triggerAutosave(container, profile);
+    }
   };
 
   container.querySelectorAll('[data-action]').forEach((element) => {
     const action = element.getAttribute('data-action');
     if (action === 'save-draft') {
       element.addEventListener('click', async () => {
+        setButtonBusy(element, true);
         try {
           const payload = { ...quizState, status: 'draft' };
           await saveQuiz(payload, profile, false);
-          element.innerHTML = '<i class="fa-solid fa-check"></i> Saved';
-          setTimeout(() => {
-            if (element) element.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save draft';
-          }, 1200);
+          isDirty = false;
+          lastSavedLabel = `Saved at ${new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}`;
+          updateAutosaveIndicator(container, 'saved');
+          flashButtonSuccess(element);
         } catch (error) {
           console.error(error);
-          alert('Could not save your quiz draft right now.');
+          alert(`Could not save your quiz draft right now.\n\n${error?.message || ''}`);
+        } finally {
+          setButtonBusy(element, false);
         }
       });
     }
 
     if (action === 'update-draft') {
       element.addEventListener('click', async () => {
+        setButtonBusy(element, true);
         try {
           await saveQuiz(quizState, profile, false);
-          alert('Draft updated successfully.');
+          isDirty = false;
+          lastSavedLabel = `Saved at ${new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}`;
+          updateAutosaveIndicator(container, 'saved');
+          flashButtonSuccess(element);
         } catch (error) {
           console.error(error);
-          alert('Could not update the draft.');
+          alert(`Could not update the draft.\n\n${error?.message || ''}`);
+        } finally {
+          setButtonBusy(element, false);
         }
       });
     }
 
     if (action === 'publish-quiz') {
       element.addEventListener('click', async () => {
+        const errors = validateQuizForPublish(quizState);
+        if (errors.length) {
+          alert(`Before publishing:\n\n${errors.join('\n')}`);
+          return;
+        }
+        setButtonBusy(element, true);
         try {
           await saveQuiz({ ...quizState, status: 'published' }, profile, true);
-          alert('Quiz published successfully.');
+          isDirty = false;
+          lastSavedLabel = `Published at ${new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}`;
+          updateAutosaveIndicator(container, 'saved');
+          flashButtonSuccess(element);
         } catch (error) {
           console.error(error);
-          alert('Could not publish the quiz.');
+          alert(`Could not publish the quiz.\n\n${error?.message || ''}`);
+        } finally {
+          setButtonBusy(element, false);
         }
       });
     }
 
     if (action === 'archive-quiz') {
       element.addEventListener('click', async () => {
+        if (!currentDraftId) {
+          alert('Save this quiz as a draft before archiving it.');
+          return;
+        }
+        setButtonBusy(element, true);
         try {
-          if (!currentDraftId) return;
           await supabase.from('quizzes').update({ status: 'archived', updated_at: new Date().toISOString() }).eq('id', currentDraftId);
-          alert('Quiz archived.');
+          flashButtonSuccess(element);
         } catch (error) {
           console.error(error);
-          alert('Could not archive the quiz.');
+          alert(`Could not archive the quiz.\n\n${error?.message || ''}`);
+        } finally {
+          setButtonBusy(element, false);
         }
       });
     }
 
     if (action === 'delete-quiz') {
       element.addEventListener('click', async () => {
+        if (!currentDraftId) {
+          alert('This quiz has not been saved yet, so there is nothing to delete.');
+          return;
+        }
+        if (!confirm('Delete this quiz? This cannot be undone.')) return;
+        setButtonBusy(element, true);
         try {
-          if (!currentDraftId) return;
           await deleteQuiz(currentDraftId);
-          alert('Quiz deleted.');
+          flashButtonSuccess(element);
+          onSectionChange('draft-quizzes');
         } catch (error) {
           console.error(error);
-          alert('Could not delete the quiz.');
+          alert(`Could not delete the quiz.\n\n${error?.message || ''}`);
+        } finally {
+          setButtonBusy(element, false);
         }
       });
     }
@@ -980,6 +1215,11 @@ function bindBuilderEvents(container, profile, onSectionChange) {
 }
 
 function bindListEvents(container, section, profile, onSectionChange) {
+  const runFilters = debounce(() => {
+    applyQuizFilters(section);
+    renderVisibleQuizzes(container, section);
+  }, 200);
+
   container.querySelectorAll('[data-action]').forEach((element) => {
     const action = element.getAttribute('data-action');
     if (action === 'open-builder') {
@@ -991,61 +1231,116 @@ function bindListEvents(container, section, profile, onSectionChange) {
     if (action === 'open-published') {
       element.addEventListener('click', () => onSectionChange('published-quizzes'));
     }
+    if (action === 'quiz-search') {
+      element.addEventListener('input', (event) => {
+        const cache = quizListCache[section];
+        if (cache) cache.filters.search = event.target.value;
+        runFilters();
+      });
+    }
+    if (action === 'quiz-status-filter') {
+      element.addEventListener('change', (event) => {
+        const cache = quizListCache[section];
+        if (cache) cache.filters.status = event.target.value;
+        runFilters();
+      });
+    }
+    if (action === 'quiz-group-filter') {
+      element.addEventListener('input', (event) => {
+        const cache = quizListCache[section];
+        if (cache) cache.filters.group = event.target.value;
+        runFilters();
+      });
+    }
+  });
+
+  // The individual quiz cards (and their View/Edit/Duplicate/Archive/Delete
+  // buttons) are rendered asynchronously by populateList after this function
+  // runs, so a single delegated listener on the list container is used
+  // instead of trying to bind each card's buttons directly (which previously
+  // meant those buttons had no listeners at all).
+  const list = container.querySelector('[data-quiz-list]');
+  if (!list || list.dataset.delegatedBound === 'true') return;
+  list.dataset.delegatedBound = 'true';
+
+  list.addEventListener('click', async (event) => {
+    const element = event.target.closest('[data-action]');
+    if (!element || !list.contains(element)) return;
+    const action = element.getAttribute('data-action');
+    const quizId = element.dataset.id;
+
+    if (action === 'load-more-quizzes') {
+      const cache = quizListCache[section];
+      if (cache) {
+        cache.visibleCount += QUIZ_LIST_PAGE_SIZE;
+        renderVisibleQuizzes(container, section);
+      }
+      return;
+    }
+
     if (action === 'view-quiz') {
-      element.addEventListener('click', () => {
-        alert('Quiz preview is available from the builder workflow.');
-      });
+      alert('Quiz preview is available from the builder workflow.');
+      return;
     }
+
     if (action === 'edit-quiz') {
-      element.addEventListener('click', () => {
-        currentDraftId = element.dataset.id;
-        onSectionChange('quiz-builder');
-      });
+      currentDraftId = quizId;
+      onSectionChange('quiz-builder');
+      return;
     }
+
     if (action === 'duplicate-quiz') {
-      element.addEventListener('click', async () => {
-        try {
-          const quizId = element.dataset.id;
-          const { data, error } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
-          if (error) throw error;
-          const { data: insertedData, error: insertError } = await supabase.from('quizzes').insert({ ...data, id: undefined, title: `${data.title} copy`, status: 'draft', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null }).select('id').single();
-          if (insertError) throw insertError;
-          currentDraftId = insertedData.id;
-          onSectionChange('quiz-builder');
-        } catch (error) {
-          console.error(error);
-          alert('Could not duplicate this quiz.');
-        }
-      });
+      setButtonBusy(element, true);
+      try {
+        const { data, error } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
+        if (error) throw error;
+        const { data: insertedData, error: insertError } = await supabase.from('quizzes').insert({ ...data, id: undefined, title: `${data.title} copy`, status: 'draft', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null }).select('id').single();
+        if (insertError) throw insertError;
+        currentDraftId = insertedData.id;
+        onSectionChange('quiz-builder');
+      } catch (error) {
+        console.error(error);
+        alert(`Could not duplicate this quiz.\n\n${error?.message || ''}`);
+      } finally {
+        setButtonBusy(element, false);
+      }
+      return;
     }
+
     if (action === 'archive-quiz') {
-      element.addEventListener('click', async () => {
-        try {
-          await supabase.from('quizzes').update({ status: 'archived', updated_at: new Date().toISOString() }).eq('id', element.dataset.id);
-          populateList(container, section, profile);
-        } catch (error) {
-          console.error(error);
-          alert('Could not archive the quiz.');
-        }
-      });
+      setButtonBusy(element, true);
+      try {
+        await supabase.from('quizzes').update({ status: 'archived', updated_at: new Date().toISOString() }).eq('id', quizId);
+        flashButtonSuccess(element);
+        await populateList(container, section, profile);
+      } catch (error) {
+        console.error(error);
+        alert(`Could not archive the quiz.\n\n${error?.message || ''}`);
+      } finally {
+        setButtonBusy(element, false);
+      }
+      return;
     }
+
     if (action === 'delete-quiz') {
-      element.addEventListener('click', async () => {
-        try {
-          await deleteQuiz(element.dataset.id);
-          populateList(container, section, profile);
-        } catch (error) {
-          console.error(error);
-          alert('Could not delete the quiz.');
-        }
-      });
+      if (!confirm('Delete this quiz? This cannot be undone.')) return;
+      setButtonBusy(element, true);
+      try {
+        await deleteQuiz(quizId);
+        await populateList(container, section, profile);
+      } catch (error) {
+        console.error(error);
+        alert(`Could not delete the quiz.\n\n${error?.message || ''}`);
+      } finally {
+        setButtonBusy(element, false);
+      }
     }
   });
 }
 
 function renderEmptyState(container) {
   container.innerHTML = `
-    <section class="quiz-shell">
+    <section class="quiz-shell fade-in">
       <div class="glass-card quiz-section empty-state-card">
         <h3>Quiz management is ready</h3>
         <p>Your lecturer workspace can now create and publish assessments with a calm, guided experience.</p>
@@ -1066,6 +1361,9 @@ async function renderQuizExperience(container, section, profile, onSectionChange
   quizState = { ...state, groups: state.groups };
 
   if (section === 'quiz-builder') {
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    isDirty = false;
+    lastSavedLabel = currentDraftId ? 'Loaded saved draft' : 'Not saved yet';
     if (currentDraftId) {
       await loadQuizDraft(currentDraftId, profile);
       quizState = { ...quizState, groups: state.groups };

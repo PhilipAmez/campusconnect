@@ -3,10 +3,13 @@ import { supabase } from './supabaseClient.js';
 function buildOverlay(name) {
   const overlay = document.createElement('div');
   overlay.className = 'logout-overlay';
+  overlay.setAttribute('role', 'alertdialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-live', 'assertive');
   overlay.innerHTML = `
     <div class="logout-card">
-      <div class="logout-spinner" data-role="spinner"></div>
-      <div class="logout-check" data-role="check">
+      <div class="logout-spinner" data-role="spinner" aria-hidden="true"></div>
+      <div class="logout-check" data-role="check" aria-hidden="true">
         <i class="fa-solid fa-check"></i>
       </div>
       <h3 data-role="title">Signing out${name ? `, ${name}` : ''}&hellip;</h3>

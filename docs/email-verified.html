@@ -275,7 +275,7 @@
     </nav>
 
     <div class="success-container">
-        <div class="success-card">
+        <div class="success-card" id="successCard" style="display:none;">
             <div class="success-icon">
                 <div class="circle">
                     <i class="fas fa-check checkmark"></i>
@@ -283,10 +283,10 @@
             </div>
             
             <h1 class="success-title fade-in">Congratulations!</h1>
-            <p class="success-subtitle fade-in delay-1">Your email has been successfully verified. Welcome to the Peerloom community!</p>
+            <p class="success-subtitle fade-in delay-1" id="successSubtitle">Your email has been successfully verified. Welcome to the Peerloom community!</p>
             
             <div class="fade-in delay-2">
-                <a href="login.html" class="btn">
+                <a href="login.html" class="btn" id="getStartedBtn">
                     <i class="fas fa-rocket"></i> Get Started
                 </a>
             </div>
@@ -315,7 +315,93 @@
                 </div>
             </div>
         </div>
+
+        <div class="success-card" id="pendingCard">
+            <div class="success-icon">
+                <div class="circle">
+                    <i class="fas fa-spinner fa-spin checkmark" style="color: var(--primary); font-size: 48px;"></i>
+                </div>
+            </div>
+            <h1 class="success-title fade-in">Confirming your email&hellip;</h1>
+            <p class="success-subtitle fade-in delay-1">This will only take a second.</p>
+        </div>
     </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        const pendingCard = document.getElementById('pendingCard');
+        const successCard = document.getElementById('successCard');
+        const successSubtitle = document.getElementById('successSubtitle');
+        const getStartedBtn = document.getElementById('getStartedBtn');
+
+        const joinGroup = new URLSearchParams(window.location.search).get('joinGroup');
+        if (joinGroup) {
+            getStartedBtn.href = `login.html?joinGroup=${encodeURIComponent(joinGroup)}`;
+        }
+
+        function revealSuccess(message) {
+            if (message) successSubtitle.textContent = message;
+            pendingCard.style.display = 'none';
+            successCard.style.display = 'block';
+            window.dispatchEvent(new Event('peerloom-email-verified'));
+        }
+
+        function revealFailure() {
+            pendingCard.querySelector('.success-title').textContent = 'This link has expired';
+            pendingCard.querySelector('.success-subtitle').textContent = 'Please sign up again or log in — your account may already be confirmed.';
+            pendingCard.querySelector('.fa-spinner').className = 'fas fa-triangle-exclamation checkmark';
+            pendingCard.querySelector('.fa-triangle-exclamation').style.color = '#dc2626';
+        }
+
+        async function markProfileVerified(userId) {
+            if (!userId) return;
+            try {
+                await supabase.from('profiles').update({ verified: true }).eq('id', userId);
+            } catch (error) {
+                // Non-fatal: the account is still confirmed with Supabase Auth even
+                // if this profile flag update fails, so we don't block the user here.
+                console.error('Could not mark profile as verified:', error);
+            }
+        }
+
+        let settled = false;
+
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (settled) return;
+            if (session?.user) {
+                settled = true;
+                await markProfileVerified(session.user.id);
+                revealSuccess();
+            }
+        });
+
+        // Fallback in case the confirmation session was already established
+        // (or the auth event already fired) before this listener attached.
+        (async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (settled) return;
+            if (session?.user) {
+                settled = true;
+                await markProfileVerified(session.user.id);
+                revealSuccess();
+                return;
+            }
+            // Give Supabase a moment to process the confirmation link from the URL.
+            setTimeout(async () => {
+                if (settled) return;
+                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                if (retrySession?.user) {
+                    settled = true;
+                    await markProfileVerified(retrySession.user.id);
+                    revealSuccess();
+                } else {
+                    settled = true;
+                    revealFailure();
+                }
+            }, 2500);
+        })();
+    </script>
 
     <script>
         // Create confetti effect
@@ -375,11 +461,11 @@
             requestAnimationFrame(dropConfetti);
         }
         
-        // Initialize animations when page loads
-        window.addEventListener('load', function() {
+        // Confetti and feature animations only run once the email is actually
+        // confirmed (see the module script above), not immediately on page load.
+        window.addEventListener('peerloom-email-verified', function() {
             createConfetti();
             
-            // Add animation to features
             const features = document.querySelectorAll('.feature');
             features.forEach((feature, index) => {
                 feature.style.animationDelay = (1.2 + index * 0.2) + 's';

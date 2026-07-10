@@ -2752,8 +2752,16 @@
                 statusIndicator.style.display = 'none';
             }
           
-            // Show verified badge if user is verified
-            if (userProfile.verified) {
+            // Show verified badge only for lecturers who have confirmed their
+            // email — same rule dashboard.html already uses elsewhere in the
+            // app (isLecturer && isEmailVerified). A verified *student* should
+            // not get the lecturer checkmark.
+            const isLecturerProfile = userProfile.level === 'lecturer' ||
+                userProfile.custom_level === 'lecturer' ||
+                userProfile.role === 'lecturer' ||
+                userProfile.is_lecturer === true;
+
+            if (userProfile.verified && isLecturerProfile) {
                 const verifiedBadge = document.getElementById('verifiedBadge');
                 if (verifiedBadge) {
                     verifiedBadge.style.display = 'flex';

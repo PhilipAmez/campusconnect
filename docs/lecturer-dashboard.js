@@ -11,12 +11,29 @@ const topbar = document.getElementById('topbar');
 let activeSection = 'overview';
 let currentProfile = null;
 let darkMode = false;
+let mobileMenuOpen = false;
+
+let sidebarBackdrop = document.querySelector('.sidebar-backdrop');
+if (!sidebarBackdrop) {
+  sidebarBackdrop = document.createElement('div');
+  sidebarBackdrop.className = 'sidebar-backdrop';
+  // IMPORTANT: appended inside .lecturer-shell (not document.body). The shell
+  // has `backdrop-filter`, which creates its own stacking context — a fixed,
+  // z-indexed sibling appended to <body> would always paint above that whole
+  // context regardless of z-index, which hid the sidebar behind the backdrop.
+  const shell = document.querySelector('.lecturer-shell');
+  (shell || document.body).appendChild(sidebarBackdrop);
+}
 
 function applyTheme() {
   document.body.classList.toggle('dark', darkMode);
   const icon = document.querySelector('.theme-toggle i');
+  const themeToggle = document.querySelector('.theme-toggle');
   if (icon) {
     icon.className = darkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  }
+  if (themeToggle) {
+    themeToggle.setAttribute('aria-pressed', darkMode ? 'true' : 'false');
   }
 }
 
@@ -25,6 +42,37 @@ function toggleTheme() {
   localStorage.setItem('lecturer-theme', darkMode ? 'dark' : 'light');
   applyTheme();
 }
+
+function setMobileMenu(open) {
+  mobileMenuOpen = open;
+  sidebar.classList.toggle('open', open);
+  sidebarBackdrop.classList.toggle('visible', open);
+  document.body.classList.toggle('menu-locked', open);
+
+  const menuToggle = document.querySelector('[data-action="toggle-menu"]');
+  if (menuToggle) {
+    menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    menuToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+  }
+}
+
+function toggleMobileMenu() {
+  setMobileMenu(!mobileMenuOpen);
+}
+
+sidebarBackdrop.addEventListener('click', () => setMobileMenu(false));
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && mobileMenuOpen) {
+    setMobileMenu(false);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 980 && mobileMenuOpen) {
+    setMobileMenu(false);
+  }
+});
 
 async function loadProfile() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -35,7 +83,7 @@ async function loadProfile() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, username, institution, department, role, level, custom_level, is_lecturer, verified, lecturer_badge')
+    .select('id, full_name, username, institution, department, role, level, custom_level, is_lecturer, verified, lecturer_badge, bio, contact, profile_photo, notification_preferences, theme_preference, privacy, phone, campus, custom_campus')
     .eq('id', session.user.id)
     .maybeSingle();
 
@@ -53,7 +101,8 @@ async function loadProfile() {
       institution: 'Your institution',
       department: 'Teaching & Learning',
       role: 'lecturer',
-      verified: false
+      verified: false,
+      lecturer_badge: false
     };
   }
 
@@ -71,9 +120,12 @@ function render() {
   renderSidebar(sidebar, activeSection, (section) => {
     activeSection = section;
     render();
+    if (window.innerWidth <= 980) {
+      setMobileMenu(false);
+    }
   }, () => performLogout(currentProfile));
 
-  renderNavbar(topbar, currentProfile, toggleTheme);
+  renderNavbar(topbar, currentProfile, toggleTheme, toggleMobileMenu);
   renderSectionContent(contentArea, activeSection, currentProfile);
 }
 

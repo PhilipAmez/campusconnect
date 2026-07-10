@@ -14,21 +14,28 @@ const lecturerSections = [
 function renderSidebar(container, activeSection, onSelect, onLogout) {
   if (!container) return;
 
+  container.setAttribute('role', 'navigation');
+  container.setAttribute('aria-label', 'Lecturer dashboard navigation');
+
   container.innerHTML = `
     <div class="brand-block">
-      <h1><i class="fa-solid fa-graduation-cap"></i> Lecturer Studio</h1>
+      <h1><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Lecturer Studio</h1>
       <p>Academic operations, thoughtfully orchestrated.</p>
     </div>
     <nav class="nav-list">
       ${lecturerSections.map((section) => `
-        <button class="nav-item ${activeSection === section.id ? 'active' : ''}" data-section="${section.id}">
-          <i class="fa-solid ${section.icon}"></i>
+        <button
+          class="nav-item ${activeSection === section.id ? 'active' : ''}"
+          data-section="${section.id}"
+          aria-current="${activeSection === section.id ? 'page' : 'false'}"
+        >
+          <i class="fa-solid ${section.icon}" aria-hidden="true"></i>
           <span>${section.label}</span>
         </button>
       `).join('')}
-      <div class="nav-divider"></div>
-      <button class="nav-item logout-item" data-action="logout">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <div class="nav-divider" role="separator"></div>
+      <button class="nav-item logout-item" data-action="logout" aria-label="Log out of lecturer dashboard">
+        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
         <span>Log out</span>
       </button>
     </nav>
