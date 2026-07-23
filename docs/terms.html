@@ -1,634 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms of Service | PeerLoom - Collaborative Learning Platform</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #7c3aed;
-            --primary-dark: #6b21a8;
-            --primary-light: #f3e8ff;
-            --secondary: #4f46e5;
-            --text-dark: #4a2c6d;
-            --text-medium: #6b7280;
-            --text-light: #9ca3af;
-            --white: #ffffff;
-            --border: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            background: var(--primary-light);
-            color: var(--text-dark);
-        }
-        
-        /* Header Navigation */
-        .header-nav {
-            margin-top: 2rem;
-            padding: 1rem 0;
-            position: relative;
-            z-index: 2;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .nav-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .nav-links a {
-            color: var(--white);
-            text-decoration: none;
-            font-weight: 500;
-            transition: opacity 0.3s;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-        }
-        
-        .nav-links a:hover {
-            opacity: 0.8;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .mobile-menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            color: var(--white);
-            font-size: 1.5rem;
-            cursor: pointer;
-            margin-top: 1rem;
-        }
-        
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--white);
-            padding: 3rem 1rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-        
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            z-index: 0;
-            opacity: 0.3;
-        }
-        
-        .header-content {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-        
-        h1 {
-            font-size: 2.8rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-            color: var(--white);
-        }
-        
-        .header-subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 1.5rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            color: var(--white);
-        }
-        
-        .header-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            width: 100px;
-            height: 100px;
-            line-height: 100px;
-            border-radius: 50%;
-            animation: float 3s ease-in-out infinite;
-            color: var(--white);
-        }
-        
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        
-        .breadcrumb {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            margin-top: 1.5rem;
-            color: var(--white);
-        }
-        
-        .breadcrumb a {
-            color: var(--white);
-            text-decoration: none;
-            opacity: 0.8;
-            transition: opacity 0.3s;
-        }
-        
-        .breadcrumb a:hover {
-            opacity: 1;
-        }
-        
-        .breadcrumb .separator {
-            opacity: 0.6;
-        }
-        
-        main {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        
-        .content-card {
-            background: var(--white);
-            border-radius: 16px;
-            padding: 3rem;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .content-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 6px;
-            height: 100%;
-            background: linear-gradient(to bottom, var(--primary), var(--secondary));
-        }
-        
-        .effective-date {
-            background: var(--primary-light);
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 2.5rem;
-            border-left: 4px solid var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .date-info {
-            display: flex;
-            gap: 2rem;
-        }
-        
-        .acceptance-box {
-            background: var(--primary);
-            color: var(--white);
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        h2 {
-            color: var(--text-dark);
-            margin: 2.5rem 0 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        h2::before {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 60px;
-            height: 3px;
-            background: var(--primary);
-            border-radius: 3px;
-        }
-        
-        h2 i {
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
-        
-        p {
-            margin-bottom: 1.5rem;
-            color: var(--text-medium);
-            font-size: 1.05rem;
-        }
-        
-        .highlight-box {
-            background: var(--primary-light);
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin: 1.5rem 0;
-            border-left: 4px solid var(--primary);
-        }
-        
-        ul {
-            list-style-type: none;
-            margin: 1.5rem 0;
-        }
-        
-        li {
-            margin-bottom: 1rem;
-            padding-left: 2rem;
-            position: relative;
-            color: var(--text-medium);
-            font-size: 1.05rem;
-        }
-        
-        li::before {
-            content: '✓';
-            color: var(--primary);
-            font-weight: bold;
-            position: absolute;
-            left: 0;
-            background: var(--primary-light);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-        }
-        
-        .warning {
-            background: #fef2f2;
-            border-left: 4px solid #ef4444;
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin: 1.5rem 0;
-        }
-        
-        .warning h3 {
-            color: #dc2626;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        a {
-            color: var(--primary);
-            text-decoration: none;
-            transition: color 0.3s;
-            font-weight: 500;
-        }
-        
-        a:hover {
-            color: var(--primary-dark);
-        }
-        
-        .contact-info {
-            background: var(--primary-light);
-            padding: 2rem;
-            border-radius: 12px;
-            margin-top: 2rem;
-            text-align: center;
-        }
-        
-        .contact-info h3 {
-            color: var(--text-dark);
-            margin-bottom: 1rem;
-        }
-        
-        .contact-button {
-            display: inline-block;
-            background: var(--primary);
-            color: var(--white);
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            margin-top: 1rem;
-            transition: background 0.3s, transform 0.2s;
-        }
-        
-        .contact-button:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-        
-        .section-divider {
-            height: 1px;
-            background: linear-gradient(to right, transparent, var(--border), transparent);
-            margin: 2.5rem 0;
-        }
-        
-        footer {
-            background: var(--primary);
-            color: var(--white);
-            text-align: center;
-            padding: 3rem 1rem;
-            margin-top: 4rem;
-        }
-        
-        .footer-content {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin: 1.5rem 0;
-            flex-wrap: wrap;
-        }
-        
-        .footer-links a {
-            color: var(--white);
-            opacity: 0.9;
-            transition: opacity 0.3s;
-        }
-        
-        .footer-links a:hover {
-            opacity: 1;
-        }
-        
-        .copyright {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            opacity: 0.8;
-            color: var(--white);
-        }
-        
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-        
-        .social-links a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            color: var(--white);
-            transition: background 0.3s;
-        }
-        
-        .social-links a:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2.2rem;
-            }
-            
-            .content-card {
-                padding: 2rem;
-            }
-            
-            .effective-date {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .date-info {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .footer-links {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .nav-links {
-                flex-direction: column;
-                gap: 1rem;
-                display: none;
-            }
-            
-            .nav-links.active {
-                display: flex;
-            }
-            
-            .mobile-menu-toggle {
-                display: block;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.8rem;
-            }
-            
-            .content-card {
-                padding: 1.5rem;
-            }
-            
-            header {
-                padding: 2rem 1rem;
-            }
-            
-            .header-icon {
-                width: 80px;
-                height: 80px;
-                line-height: 80px;
-                font-size: 2.5rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — Peerloom</title>
+<meta name="description" content="Peerloom's Terms of Service: the rules for using our academic collaboration platform, including quizzes, groups, content, and account responsibilities.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #7c3aed; --primary-dark: #5b21b6; --primary-light: #f5f3ff; --secondary: #4f46e5;
+    --ink: #1e1b2e; --text: #4a4458; --muted: #7c7690; --border: #e9e5f5; --card: #ffffff; --bg: #fbfaff;
+    --shadow: 0 10px 30px -10px rgba(76, 29, 149, 0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter','Segoe UI',Tahoma,Geneva,Verdana,sans-serif; line-height: 1.7; background: var(--bg); color: var(--text); }
+  a { color: var(--primary-dark); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  .topbar { position: sticky; top: 0; z-index: 50; background: rgba(251,250,255,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 0 0 1px var(--border); }
+  .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+  .topnav { display: flex; gap: 8px; align-items: center; }
+  .topnav a { text-decoration: none; color: var(--text); font-weight: 600; font-size: 0.92rem; padding: 8px 14px; border-radius: 8px; transition: background 150ms ease, color 150ms ease; }
+  .topnav a:hover { background: var(--primary-light); color: var(--primary-dark); }
+  .topnav a.cta { background: var(--ink); color: #fff; }
+  .menu-toggle { display: none; background: none; border: none; font-size: 1.3rem; color: var(--ink); cursor: pointer; }
+
+  .hero { padding: 56px 0 32px; text-align: center; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: var(--primary-light); color: var(--primary-dark); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; margin-bottom: 18px; }
+  .hero h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); color: var(--ink); font-weight: 800; letter-spacing: -0.01em; }
+  .hero .updated { color: var(--muted); font-size: 0.92rem; margin-top: 12px; }
+
+  .layout { display: grid; grid-template-columns: 230px 1fr; gap: 44px; padding: 20px 0 90px; align-items: start; }
+  .toc { position: sticky; top: 90px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
+  .toc h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 10px; }
+  .toc a { display: block; font-size: 0.88rem; color: var(--text); text-decoration: none; padding: 6px 0; }
+  .toc a:hover { color: var(--primary-dark); }
+
+  .doc { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 44px; box-shadow: var(--shadow); }
+  .doc section { margin-bottom: 36px; scroll-margin-top: 90px; }
+  .doc section:last-child { margin-bottom: 0; }
+  .doc h2 { font-size: 1.25rem; color: var(--ink); font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .doc h2 .num { color: var(--primary); font-variant-numeric: tabular-nums; }
+  .doc h3 { font-size: 1rem; color: var(--ink); font-weight: 700; margin: 18px 0 8px; }
+  .doc p { margin-bottom: 12px; }
+  .doc ul { margin: 0 0 12px 20px; }
+  .doc li { margin-bottom: 6px; }
+  .callout { background: var(--primary-light); border-radius: 12px; padding: 16px 18px; font-size: 0.92rem; color: var(--ink); margin: 14px 0; }
+  .callout strong { color: var(--primary-dark); }
+
+  footer { border-top: 1px solid var(--border); padding: 36px 0 90px; }
+  .footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+  .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .footer-links a { text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+  .footer-links a:hover { color: var(--primary-dark); }
+  .footer-social { display: flex; gap: 14px; }
+  .footer-social a { color: var(--muted); font-size: 1.05rem; }
+  .copyright { width: 100%; text-align: center; color: var(--muted); font-size: 0.84rem; margin-top: 18px; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; }
+    .doc { padding: 26px; }
+    .topnav { display: none; }
+    .menu-toggle { display: block; }
+    .topnav.open { display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border); }
+  }
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <div class="header-icon">
-                <i class="fas fa-file-contract"></i>
-            </div>
-            <h1>Terms of Service</h1>
-            <p class="header-subtitle">Welcome to PeerLoom! Please read these terms carefully before using our platform.</p>
-           
-            
-            <!-- Navigation at the bottom of the header -->
-            <nav class="header-nav">
-                <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                    <i class="fas fa-bars"></i> Menu
-                </button>
-                <div class="nav-links" id="navLinks">
-                    <a href="/index.html">Home</a>
-                    <a href="/privacy.html">Privacy Policy</a>
-                    <a href="/terms.html">Terms of Service</a>
-                    <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
-                </div>
-            </nav>
-        </div>
-    </header>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="brand"><span class="brand-mark"><img src="logo.png" alt="Peerloom logo"></span> Peerloom</a>
+      <nav class="topnav" id="topnav">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="login.html" class="cta">Sign in</a>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
 
-    <main>
-        <div class="content-card">
-            <div class="effective-date">
-                <div class="date-info">
-                    <p><strong>Effective Date:</strong> 30th August 2025</p>
-                    <p><strong>Last Updated:</strong> 30th August 2025</p>
-                </div>
-                <div class="acceptance-box">
-                    <i class="fas fa-check-circle"></i>
-                    <span>By using PeerLoom, you agree to these terms</span>
-                </div>
-            </div>
-            
-            <p>Welcome to PeerLoom! These Terms of Service govern your use of our collaborative learning platform available at peerloom.online. By accessing or using PeerLoom, you agree to be bound by these terms.</p>
-            
-            <div class="highlight-box">
-                <p><strong>Quick Summary:</strong> These terms outline your rights and responsibilities when using PeerLoom. They cover eligibility, acceptable use, intellectual property, and limitations of liability. Our goal is to create a safe and productive learning environment for all users.</p>
-            </div>
+  <header class="hero">
+    <div class="wrap">
+      <span class="eyebrow"><i class="fa-solid fa-file-contract"></i> Terms of Service</span>
+      <h1>The rules for using Peerloom</h1>
+      <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: July 22, 2026</p>
+    </div>
+  </header>
 
-            <h2><i class="fas fa-user-check"></i> 1. Eligibility</h2>
-            <p>To use PeerLoom, you must meet the following requirements:</p>
-            <ul>
-                <li>Be at least 13 years of age</li>
-                <li>Have the legal capacity to enter into binding agreements</li>
-                <li>Provide accurate and complete registration information</li>
-                <li>Maintain the security of your account credentials</li>
-            </ul>
-            <p>If you are under 18, you confirm that your parent or guardian has reviewed and agreed to these Terms on your behalf.</p>
+  <div class="wrap layout">
+    <nav class="toc">
+      <h4>On this page</h4>
+      <a href="#acceptance">1. Acceptance of terms</a>
+      <a href="#eligibility">2. Eligibility &amp; accounts</a>
+      <a href="#acceptable-use">3. Acceptable use</a>
+      <a href="#quizzes">4. Quizzes &amp; academic integrity</a>
+      <a href="#content">5. Content &amp; ownership</a>
+      <a href="#ai">6. PeerPal AI</a>
+      <a href="#groups">7. Groups &amp; lecturer responsibilities</a>
+      <a href="#fees">8. Fees</a>
+      <a href="#feedback">9. Feedback</a>
+      <a href="#copyright">10. Copyright complaints</a>
+      <a href="#availability">11. Availability &amp; changes</a>
+      <a href="#termination">12. Suspension &amp; termination</a>
+      <a href="#disclaimers">13. Disclaimers</a>
+      <a href="#liability">14. Limitation of liability</a>
+      <a href="#governing-law">15. Governing law</a>
+      <a href="#general">16. General provisions</a>
+      <a href="#changes">17. Changes to these terms</a>
+      <a href="#contact">18. Contact us</a>
+    </nav>
 
-            <h2><i class="fas fa-laptop-code"></i> 2. Use of PeerLoom</h2>
-            <p>PeerLoom provides a platform for collaborative learning through study groups, chat features, and our PeerPal AI assistant. When using our services, you agree to:</p>
-            <ul>
-                <li>Create and participate in study groups responsibly</li>
-                <li>Use chat features for constructive educational discussions</li>
-                <li>Utilize PeerPal AI as a learning aid, not to complete assignments for you</li>
-                <li>Respect all community members and maintain a positive environment</li>
-            </ul>
-            
-            <div class="warning">
-                <h3><i class="fas fa-exclamation-triangle"></i> Prohibited Activities</h3>
-                <p>You may not use PeerLoom to:</p>
-                <ul>
-                    <li>Post harmful, illegal, abusive, or harassing content</li>
-                    <li>Share copyrighted material without permission</li>
-                    <li>Impersonate others or create fake accounts</li>
-                    <li>Attempt to disrupt or compromise platform security</li>
-                    <li>Use automated systems to extract data without permission</li>
-                </ul>
-                <p>We reserve the right to suspend or terminate accounts that violate these rules.</p>
-            </div>
+    <article class="doc">
+      <section id="acceptance">
+        <h2><span class="num">1.</span> Acceptance of terms</h2>
+        <p>These Terms of Service ("Terms") govern your access to and use of Peerloom, operated by Peerloom Technologies Limited ("Peerloom", "we", "us", "our"). By creating an account or using any part of the platform, you agree to be bound by these Terms and our <a href="privacy.html">Privacy Policy</a>. If you do not agree, please do not use Peerloom.</p>
+      </section>
 
-            <h2><i class="fas fa-copyright"></i> 3. Intellectual Property</h2>
-            <p>All content, branding, technology, and design elements on PeerLoom are owned by us or our licensors unless stated otherwise. This includes:</p>
-            <ul>
-                <li>PeerLoom logos, trademarks, and brand elements</li>
-                <li>Platform code, architecture, and unique features</li>
-                <li>Documentation, guides, and educational content we create</li>
-            </ul>
-            <p>You retain ownership of the content you create and share on PeerLoom, but you grant us a license to display, distribute, and modify that content solely for the purpose of operating and improving our services.</p>
+      <section id="eligibility">
+        <h2><span class="num">2.</span> Eligibility &amp; accounts</h2>
+        <p>Peerloom is intended for students, lecturers, and staff affiliated with a tertiary or higher-education institution. You must provide accurate information when creating your account, including your correct role (student or lecturer) and institution, and you're responsible for keeping your login credentials secure.</p>
+        <p>You're responsible for all activity that happens under your account. If you believe your account has been compromised, contact us immediately at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
+      </section>
 
-            <h2><i class="fas fa-shield-alt"></i> 4. Disclaimers</h2>
-            <p>PeerLoom is designed as an educational support tool, not a guaranteed solution for academic success. We provide:</p>
-            <ul>
-                <li>Tools for collaborative learning and knowledge sharing</li>
-                <li>AI assistance to help clarify concepts and guide learning</li>
-                <li>A platform to connect with other learners</li>
-            </ul>
-            <p>However, we cannot guarantee specific academic outcomes. Users are responsible for verifying information and using the platform appropriately for their educational needs.</p>
+      <section id="acceptable-use">
+        <h2><span class="num">3.</span> Acceptable use</h2>
+        <p>When using Peerloom, you agree not to:</p>
+        <ul>
+          <li>Impersonate another person, institution, or misrepresent your role or affiliation.</li>
+          <li>Upload or share content that is unlawful, harassing, defamatory, or infringes someone else's rights.</li>
+          <li>Attempt to gain unauthorized access to another user's account, group, or quiz data.</li>
+          <li>Interfere with the platform's normal operation, including through scripts, bots, or attempts to bypass security controls.</li>
+          <li>Use Peerloom to distribute malware, spam, or unsolicited commercial content.</li>
+        </ul>
+        <p>We reserve the right to remove content or restrict accounts that violate these standards.</p>
+      </section>
 
-            <h2><i class="fas fa-balance-scale"></i> 5. Limitation of Liability</h2>
-            <p>To the fullest extent permitted by law, PeerLoom shall not be liable for:</p>
-            <ul>
-                <li>Indirect, incidental, or consequential damages</li>
-                <li>Loss of data, opportunities, or academic performance</li>
-                <li>Actions or content of other users on the platform</li>
-                <li>Interruptions in service beyond our reasonable control</li>
-            </ul>
-            <p>Our total liability in any matter related to these Terms or the platform is limited to the amount you have paid us in the past six months, if anything.</p>
+      <section id="quizzes">
+        <h2><span class="num">4.</span> Quizzes &amp; academic integrity</h2>
+        <p>Lecturers may create quizzes with configurable time limits, attempt limits, and deadlines. While a quiz is in progress, Peerloom records a limited set of integrity signals — tab switches, copy actions, and paste actions — as described in our <a href="privacy.html#quiz-integrity">Privacy Policy</a>. These signals are visible to the lecturer who owns the quiz and are intended to support, not replace, that lecturer's own academic integrity judgment.</p>
+        <p>Students agree to complete quizzes honestly and in accordance with the academic integrity policies of their own institution. Peerloom is a tool that surfaces information to lecturers — decisions about grading, discipline, or academic consequences are made by the lecturer and institution, not by Peerloom.</p>
+        <div class="callout"><strong>Note:</strong> Attempt limits and deadlines are set by each lecturer per quiz. Once your attempts are used or a deadline passes, Peerloom will not grant additional attempts automatically — contact your lecturer directly for exceptions.</div>
+      </section>
 
-            <div class="section-divider"></div>
+      <section id="content">
+        <h2><span class="num">5.</span> Content &amp; ownership</h2>
+        <p>You retain ownership of the content you create or upload to Peerloom — messages, quiz questions, resources, and announcements. By posting content, you grant Peerloom a limited license to host, store, and display that content as needed to operate the platform (for example, showing your message to other members of your group).</p>
+        <p>You're responsible for having the necessary rights to any material you upload as a resource, and for not infringing third-party copyright or intellectual property.</p>
+      </section>
 
-            <h2><i class="fas fa-sync-alt"></i> 6. Changes to Terms</h2>
-            <p>We may update these Terms of Service periodically to reflect:</p>
-            <ul>
-                <li>Changes in our services or features</li>
-                <li>Legal or regulatory requirements</li>
-                <li>User feedback and community needs</li>
-            </ul>
-            <p>We will notify users of material changes via email or platform notifications. Continued use of PeerLoom after changes take effect constitutes acceptance of the updated Terms.</p>
+      <section id="ai">
+        <h2><span class="num">6.</span> PeerPal AI</h2>
+        <p>PeerPal AI is an assistant built into Peerloom to help with studying, explanations, and exam preparation. Responses from PeerPal AI are generated automatically and may occasionally be incomplete or inaccurate. You should verify important academic information independently and use your own judgment before relying on it for graded work.</p>
+      </section>
 
-            <h2><i class="fas fa-gavel"></i> 7. Governing Law</h2>
-            <p>These Terms are governed by the laws of the jurisdiction where PeerLoom is established. Any disputes shall be resolved in the courts of that jurisdiction, unless otherwise required by applicable law.</p>
+      <section id="groups">
+        <h2><span class="num">7.</span> Groups &amp; lecturer responsibilities</h2>
+        <p>Lecturers who create and manage groups are responsible for the accuracy of the quizzes, announcements, and resources they publish, and for managing membership appropriately. Students who join a group are expected to follow the norms and instructions set by that group's lecturer, in addition to these Terms.</p>
+      </section>
 
-            <div class="contact-info">
-                <h3>Questions About Our Terms?</h3>
-                <p>We're here to help you understand our policies and how to use PeerLoom effectively.</p>
-                <a href="support.html" class="contact-button">
-                    <i class="fas fa-envelope"></i> Contact Our Team
-                </a>
-                <p style="margin-top: 1rem;"><strong>Response Time:</strong> We typically respond to inquiries within 1 business day.</p>
-            </div>
-        </div>
-    </main>
+      <section id="fees">
+        <h2><span class="num">8.</span> Fees</h2>
+        <p>Peerloom does not currently charge for access to the platform. If we introduce paid plans or features in the future, we'll communicate pricing clearly in advance, and existing free functionality won't be retroactively locked behind a paywall without notice.</p>
+      </section>
 
-    <footer>
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="/index.html">Home</a>
-                <a href="/privacy.html">Privacy Policy</a>
-                <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
-                <a href="/about.html">About PeerLoom</a>
-            </div>
-            <div class="social-links">
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="#"><i class="fab fa-linkedin"></i></a>
-                <a href="https://www.instagram.com/peerloom_official/"><i class="fab fa-instagram"></i></a>
-                <a href="#"><i class="fab fa-github"></i></a>
-            </div>
-            <p class="copyright">© 2025 PeerLoom. All rights reserved</p>
-        </div>
-    </footer>
+      <section id="feedback">
+        <h2><span class="num">9.</span> Feedback</h2>
+        <p>If you send us feedback, suggestions, or ideas about Peerloom, you agree that we may use them to improve the platform without any obligation to compensate you, and without treating them as your confidential information.</p>
+      </section>
 
-    <script>
-        // Mobile menu toggle
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const navLinks = document.getElementById('navLinks');
-        
-        mobileMenuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-        });
-    </script>
+      <section id="copyright">
+        <h2><span class="num">10.</span> Copyright complaints</h2>
+        <p>If you believe content on Peerloom infringes your copyright, contact us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a> with a description of the work, its location on the platform, and your contact information. We'll review and take appropriate action, which may include removing the content and, where warranted, restricting the responsible account.</p>
+      </section>
+
+      <section id="availability">
+        <h2><span class="num">11.</span> Availability &amp; changes to the service</h2>
+        <p>We work to keep Peerloom available and reliable, but we don't guarantee uninterrupted access. We may add, change, or remove features over time as the platform evolves, and we'll aim to communicate significant changes that affect how you use the platform.</p>
+      </section>
+
+      <section id="termination">
+        <h2><span class="num">12.</span> Suspension &amp; termination</h2>
+        <p>We may suspend or terminate an account that violates these Terms, poses a security risk, or is used in a way that harms other users or the platform. You may stop using Peerloom and request deletion of your account at any time by contacting us.</p>
+      </section>
+
+      <section id="disclaimers">
+        <h2><span class="num">13.</span> Disclaimers</h2>
+        <p>Peerloom is provided "as is" and "as available." To the fullest extent permitted by law, we disclaim warranties of any kind, express or implied, including fitness for a particular purpose, regarding the platform's operation, quiz results, or AI-generated content.</p>
+      </section>
+
+      <section id="liability">
+        <h2><span class="num">14.</span> Limitation of liability</h2>
+        <p>To the fullest extent permitted by applicable law, Peerloom Technologies Limited will not be liable for indirect, incidental, or consequential damages arising from your use of the platform, including academic outcomes resulting from quiz results, grading decisions, or reliance on AI-generated content.</p>
+      </section>
+
+      <section id="governing-law">
+        <h2><span class="num">15.</span> Governing law</h2>
+        <p>These Terms are governed by the laws applicable to Peerloom Technologies Limited's place of incorporation, without regard to conflict-of-law principles, unless a different governing law is required by the mandatory consumer protection laws of your jurisdiction.</p>
+      </section>
+
+      <section id="general">
+        <h2><span class="num">16.</span> General provisions</h2>
+        <p><strong>Severability.</strong> If any provision of these Terms is found unenforceable, the remaining provisions continue in full effect.</p>
+        <p><strong>Entire agreement.</strong> These Terms, together with our Privacy Policy, make up the entire agreement between you and Peerloom Technologies Limited regarding use of the platform, superseding any prior understandings on the same subject.</p>
+        <p><strong>No waiver.</strong> Our failure to enforce a provision of these Terms is not a waiver of our right to do so later.</p>
+        <p><strong>Assignment.</strong> You may not assign these Terms without our consent; we may assign them in connection with a merger, acquisition, or sale of assets.</p>
+      </section>
+
+      <section id="changes">
+        <h2><span class="num">17.</span> Changes to these terms</h2>
+        <p>We may update these Terms from time to time. If we make material changes, we'll update the "Last updated" date above and, where appropriate, notify you directly. Continuing to use Peerloom after changes take effect means you accept the revised Terms.</p>
+      </section>
+
+      <section id="contact">
+        <h2><span class="num">18.</span> Contact us</h2>
+        <p>Questions about these Terms? Reach us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
+      </section>
+    </article>
+  </div>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
+      </div>
+      <div class="footer-social">
+        <a href="https://www.instagram.com/peerloom_official/" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+      </div>
+      <p class="copyright">© 2026 Peerloom Technologies Limited. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('topnav').classList.toggle('open');
+    });
+  </script>
 </body>
 </html>

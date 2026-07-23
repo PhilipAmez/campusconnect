@@ -167,7 +167,7 @@ export async function enrichGroupsWithCreatorCampus(supabase, groups) {
 
   const { data: profiles, error } = await supabase
     .from('profiles')
-    .select('id, username, campus, custom_campus, institution')
+    .select('id, username, campus, custom_campus, institution, role, level, custom_level, is_lecturer, lecturer_badge')
     .in('id', creatorIds);
 
   if (error) {
@@ -180,7 +180,17 @@ export async function enrichGroupsWithCreatorCampus(supabase, groups) {
     return acc;
   }, {});
 
-  return normalizedGroups.map((g) => mapGroup(g, profileById[g?.created_by] || null));
+  return normalizedGroups.map((g) => {
+    const creatorProfile = profileById[g?.created_by] || null;
+    const isLecturer = !!creatorProfile && (
+      creatorProfile.is_lecturer === true ||
+      creatorProfile.role === 'lecturer' ||
+      creatorProfile.level === 'lecturer' ||
+      creatorProfile.custom_level === 'lecturer' ||
+      creatorProfile.lecturer_badge === true
+    );
+    return { ...mapGroup(g, creatorProfile), creator_is_lecturer: isLecturer };
+  });
 }
 
 // Alias used by dashboard.html

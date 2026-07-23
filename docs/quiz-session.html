@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Quiz Session - PeerLoom</title>
+<link rel="stylesheet" href="quiz-session.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body data-theme="light">
+
+    <!-- Loading -->
+    <section id="loadingScreen">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading your quiz&hellip;</p>
+    </section>
+
+    <!-- Access denied -->
+    <section id="accessDeniedScreen" class="hidden">
+        <div class="denied-card animate-fade-in">
+            <div class="denied-icon"><i class="fas fa-lock"></i></div>
+            <h2 id="deniedTitle">Can't open this quiz</h2>
+            <p id="deniedMessage">You don't have access to this quiz right now.</p>
+            <button class="return-btn" id="deniedReturnBtn">Back to Quizzes</button>
+        </div>
+    </section>
+
+    <!-- Part 4: Pre-quiz confirmation -->
+    <section id="confirmScreen" class="hidden">
+        <div class="confirm-card animate-fade-in">
+            <div class="confirm-header">
+                <div class="confirm-icon">📚</div>
+                <h1 id="confirmQuizName">Quiz</h1>
+                <p class="sub">Review the details, then confirm your information to begin.</p>
+            </div>
+
+            <div class="confirm-detail-grid" id="confirmDetailGrid"></div>
+
+            <div class="confirm-divider"><span>Your information</span></div>
+
+            <div class="field-group">
+                <label class="field-label" for="fullNameInput">Full Name</label>
+                <input class="field-input" id="fullNameInput" type="text" placeholder="Your full name" aria-required="true">
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="indexNumberInput">Index Number</label>
+                <input class="field-input" id="indexNumberInput" type="text" inputmode="text" autocomplete="off" placeholder="e.g. 10912345 or CS/2021/045" aria-required="true">
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="levelInput">Level</label>
+                <input class="field-input" id="levelInput" type="text" placeholder="e.g. Level 300" aria-required="true">
+            </div>
+
+            <button class="confirm-btn" id="confirmStartBtn" disabled>Begin Quiz</button>
+        </div>
+    </section>
+
+    <!-- Part 5: Quiz session -->
+    <section id="sessionScreen" class="hidden">
+        <div class="session-topbar">
+            <button class="exit-btn" id="exitBtn" aria-label="Exit quiz">
+                <i class="fas fa-arrow-left"></i> <span class="exit-label">Exit</span>
+            </button>
+
+            <div class="topbar-center">
+                <span class="topbar-quiz-name" id="topbarQuizName">Quiz</span>
+                <span class="question-counter" id="questionCounter">Question 1 of 10</span>
+            </div>
+
+            <div class="topbar-right">
+                <span class="autosave-status" id="autosaveStatus"><i class="fas fa-check"></i> Saved</span>
+                <div class="progress-ring-wrap" id="progressRingWrap" title="Progress">
+                    <svg viewBox="0 0 44 44" class="progress-ring">
+                        <circle class="ring-track" cx="22" cy="22" r="19"></circle>
+                        <circle class="ring-fill" id="ringFill" cx="22" cy="22" r="19"></circle>
+                    </svg>
+                    <span class="ring-label" id="ringLabel">0%</span>
+                </div>
+                <div class="timer-pill" id="timerPill"><i class="fas fa-clock"></i><span id="timerText">--:--</span></div>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle question navigator">
+                    <i class="fas fa-list-ol"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="realtime-banner hidden" id="realtimeBanner">
+            <i class="fas fa-tower-broadcast"></i>
+            <span id="realtimeBannerText"></span>
+        </div>
+
+        <div class="session-body">
+            <aside class="navigator-sidebar" id="navigatorSidebar">
+                <div class="navigator-stats" id="navigatorStats"></div>
+                <div class="navigator-grid" id="navigatorGrid"></div>
+            </aside>
+            <div class="sidebar-backdrop hidden" id="sidebarBackdrop"></div>
+
+            <div class="question-area" id="questionArea"></div>
+        </div>
+
+        <div class="session-bottombar">
+            <button class="nav-btn" id="prevBtn"><i class="fas fa-arrow-left"></i> <span class="nav-btn-label">Prev</span></button>
+            <button class="flag-btn" id="flagBtn"><i class="fa-regular fa-star"></i> <span class="flag-btn-label">Flag for Review</span></button>
+            <button class="submit-btn" id="submitBtn">Submit Quiz</button>
+            <button class="nav-btn" id="nextBtn"><span class="nav-btn-label">Next</span> <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </section>
+
+    <!-- Part 8: Submission confirmation modal -->
+    <div class="modal-overlay hidden" id="submitModal">
+        <div class="modal-card">
+            <h2>Submit Quiz?</h2>
+            <p>Once submitted, you can't change your answers.</p>
+            <div class="modal-stats">
+                <div class="modal-stat"><div class="num" id="modalAnswered">0</div><div class="label">Answered</div></div>
+                <div class="modal-stat"><div class="num" id="modalUnanswered">0</div><div class="label">Unanswered</div></div>
+                <div class="modal-stat"><div class="num" id="modalTimeLeft">--:--</div><div class="label">Time Left</div></div>
+                <div class="modal-stat"><div class="num" id="modalIntegrityEvents">0</div><div class="label">Integrity Events</div></div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-cancel" id="modalCancelBtn">Keep Going</button>
+                <button class="modal-confirm" id="modalConfirmBtn">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing -->
+    <section id="processingScreen" class="hidden">
+        <div class="spinner"></div>
+        <p class="loading-text" id="processingText">Submitting your quiz...</p>
+    </section>
+
+    <script type="module" src="quiz-session.js"></script>
+</body>
+</html>

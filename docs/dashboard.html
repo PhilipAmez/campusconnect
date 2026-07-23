@@ -83,17 +83,6 @@
             z-index: 10000;
             overflow: hidden;
         }
-        .snowflake {
-            position: fixed;
-            top: -10px;
-            color: white;
-            font-size: 1em;
-            opacity: 0.8;
-            pointer-events: none;
-            animation: fall linear infinite;
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-            z-index: 1;
-        }
         @keyframes fall {
             0% { transform: translateY(0) rotate(0deg); opacity: 1; }
             100% { transform: translateY(100vh) rotate(360deg); opacity: 0.7; }
@@ -2161,31 +2150,8 @@
         let sessionUpdateInterval;
         let currentViewerProfile = null;
        
-        let snowflakeElements = [];
-       
         function applyTheme(theme) {
             return window.peerloomTheme?.setThemePreference(theme);
-        }
-       
-        function createSnowflakes() {
-            if (snowflakeElements.length > 0) return;
-            const snowflakes = 80;
-            for (let i = 0; i < snowflakes; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄';
-                snowflake.style.left = Math.random() * 100 + 'vw';
-                snowflake.style.fontSize = Math.random() * 1.5 + 0.5 + 'em';
-                snowflake.style.animationDuration = Math.random() * 5 + 5 + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                document.body.appendChild(snowflake);
-                snowflakeElements.push(snowflake);
-            }
-        }
-       
-        function removeSnowflakes() {
-            snowflakeElements.forEach(snow => snow.remove());
-            snowflakeElements = [];
         }
        
         function toggleTheme() {
@@ -2209,14 +2175,7 @@
 
         const themeController = await initGlobalTheme({ supabase });
         window.peerloomTheme = themeController;
-        onThemeChange(({ resolvedTheme }) => {
-            if (resolvedTheme === 'dark') {
-                createSnowflakes();
-            } else {
-                removeSnowflakes();
-            }
-        });
-       
+
         function loadTheme() {}
        
         function enterSite() {
@@ -2383,6 +2342,22 @@
                                     case 'comment':
                                         title = 'New Comment';
                                         body = `${notification.sender_profile?.full_name || 'Someone'} commented on your post`;
+                                        break;
+                                    case 'new_quiz':
+                                        title = 'New Quiz';
+                                        body = notification.content || 'A new quiz was published';
+                                        break;
+                                    case 'new_announcement':
+                                        title = 'New Announcement';
+                                        body = notification.content || 'A new announcement was posted';
+                                        break;
+                                    case 'new_resource':
+                                        title = 'New Resource';
+                                        body = notification.content || 'A new resource was shared';
+                                        break;
+                                    case 'grade_published':
+                                        title = 'Grade Published';
+                                        body = notification.content || 'Your quiz has been graded';
                                         break;
                                     default:
                                         body = notification.content || 'You have a new notification';

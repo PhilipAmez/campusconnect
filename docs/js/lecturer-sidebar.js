@@ -1,18 +1,25 @@
-const lecturerSections = [
-  { id: 'overview', label: 'Dashboard', icon: 'fa-grid-2' },
-  { id: 'groups', label: 'My Course Groups', icon: 'fa-users' },
-  { id: 'quiz-builder', label: 'Quiz Builder', icon: 'fa-wand-magic-sparkles' },
-  { id: 'published-quizzes', label: 'Published Quizzes', icon: 'fa-square-check' },
-  { id: 'draft-quizzes', label: 'Draft Quizzes', icon: 'fa-file-lines' },
-  { id: 'results', label: 'Results', icon: 'fa-chart-line' },
-  { id: 'integrity', label: 'Integrity Logs', icon: 'fa-shield-halved' },
-  { id: 'resources', label: 'Resources', icon: 'fa-folder-open' },
-  { id: 'announcements', label: 'Announcements', icon: 'fa-bullhorn' },
-  { id: 'settings', label: 'Settings', icon: 'fa-sliders' }
-];
+import { t } from './i18n.js';
+
+function getLecturerSections() {
+  return [
+    { id: 'overview', label: t('sidebar_dashboard'), icon: 'fa-grid-2' },
+    { id: 'groups', label: t('sidebar_course_groups'), icon: 'fa-users' },
+    { id: 'quiz-builder', label: t('sidebar_quiz_builder'), icon: 'fa-wand-magic-sparkles' },
+    { id: 'published-quizzes', label: t('sidebar_published_quizzes'), icon: 'fa-square-check' },
+    { id: 'draft-quizzes', label: t('sidebar_draft_quizzes'), icon: 'fa-file-lines' },
+    { id: 'submissions', label: t('sidebar_submissions'), icon: 'fa-inbox' },
+    { id: 'results', label: t('sidebar_results'), icon: 'fa-chart-line' },
+    { id: 'integrity', label: t('sidebar_integrity_logs'), icon: 'fa-shield-halved' },
+    { id: 'resources', label: t('sidebar_resources'), icon: 'fa-folder-open' },
+    { id: 'announcements', label: t('sidebar_announcements'), icon: 'fa-bullhorn' },
+    { id: 'settings', label: t('sidebar_settings'), icon: 'fa-sliders' }
+  ];
+}
 
 function renderSidebar(container, activeSection, onSelect, onLogout) {
   if (!container) return;
+
+  const lecturerSections = getLecturerSections();
 
   container.setAttribute('role', 'navigation');
   container.setAttribute('aria-label', 'Lecturer dashboard navigation');
@@ -36,7 +43,7 @@ function renderSidebar(container, activeSection, onSelect, onLogout) {
       <div class="nav-divider" role="separator"></div>
       <button class="nav-item logout-item" data-action="logout" aria-label="Log out of lecturer dashboard">
         <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-        <span>Log out</span>
+        <span>${t('sidebar_logout')}</span>
       </button>
     </nav>
   `;
@@ -51,4 +58,4 @@ function renderSidebar(container, activeSection, onSelect, onLogout) {
   }
 }
 
-export { lecturerSections, renderSidebar };
+export { renderSidebar };

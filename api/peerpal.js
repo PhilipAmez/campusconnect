@@ -12,8 +12,48 @@
  * ──────────────────────────────────────────────────────────────
  */
 
-const GEMINI_MODEL   = 'gemini-2.5-flash-preview-04-17';
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+/**
+ * Model naming has moved on significantly since this file was first
+ * written. `gemini-2.5-flash-preview-04-17` (the old hardcoded model ID)
+ * is a dated preview build that no longer exists — every single request
+ * was 404ing against Google's API, which is why PeerPal looked like it
+ * "did nothing": the code caught that error and silently fell back to a
+ * canned reply every time.
+ *
+ * Rather than pin to one model ID (which Google has been retiring on a
+ * ~4-6 month cadence throughout 2026), this tries a short list in order
+ * and uses whichever one actually responds. Update this list as Google's
+ * lineup moves — check https://ai.google.dev/gemini-api/docs/models for
+ * current model IDs and deprecation dates before assuming any of these
+ * still work.
+ */
+const GEMINI_MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-3.6-flash'];
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+/**
+ * Gemini 3.x models explicitly recommend leaving temperature/topP/topK at
+ * their defaults (their reasoning is tuned around the defaults) — only
+ * apply the old sampling overrides to pre-3.x models.
+ */
+function buildRequestBody(model, message) {
+  const body = {
+    system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+    contents: [{ role: 'user', parts: [{ text: message }] }],
+    generationConfig: { maxOutputTokens: 2048, candidateCount: 1 },
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+    ]
+  };
+  if (!model.startsWith('gemini-3')) {
+    body.generationConfig.temperature = 0.7;
+    body.generationConfig.topK = 40;
+    body.generationConfig.topP = 0.95;
+  }
+  return body;
+}
 
 /**
  * PeerPal system instruction.
@@ -117,74 +157,49 @@ async function handler(req, res) {
     return res.status(500).json({ reply: buildFallbackReply(trimmedMessage) });
   }
 
-  // ── 4. Build Gemini request payload ──────────────────────────
-  const requestBody = {
-    system_instruction: {
-      parts: [{ text: SYSTEM_INSTRUCTION }]
-    },
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: trimmedMessage }]
-      }
-    ],
-    generationConfig: {
-      temperature:     0.7,
-      topK:            40,
-      topP:            0.95,
-      maxOutputTokens: 2048,
-      candidateCount:  1
-    },
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
-    ]
-  };
-
-  // ── 5. Call Gemini API ────────────────────────────────────────
-  try {
-    const geminiRes = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(requestBody)
-    });
-
-    // Non-2xx from Gemini
-    if (!geminiRes.ok) {
-      let errorDetail = '';
-      try {
-        const errJson = await geminiRes.json();
-        errorDetail = errJson?.error?.message || JSON.stringify(errJson);
-      } catch (_) {
-        errorDetail = await geminiRes.text().catch(() => 'unknown');
-      }
-      console.error(`[PeerPal] Gemini API error ${geminiRes.status}: ${errorDetail}`);
-      return res.status(200).json({ reply: buildFallbackReply(trimmedMessage) });
-    }
-
-    // Parse successful response
-    const geminiData = await geminiRes.json();
-
-    // Defensive extraction — handles blocked / empty candidates gracefully
-    const candidate    = geminiData?.candidates?.[0];
-    const finishReason = candidate?.finishReason;
-    const aiText       = candidate?.content?.parts?.[0]?.text;
-
-    if (!aiText || finishReason === 'SAFETY' || finishReason === 'RECITATION') {
-      console.warn(`[PeerPal] Gemini returned no usable text. finishReason=${finishReason}`);
-      return res.status(200).json({
-        reply: "I wasn't able to generate a response for that message. Could you rephrase your question?"
+  // ── 4. Call Gemini API, trying each model in the fallback chain ──
+  for (const model of GEMINI_MODEL_CHAIN) {
+    try {
+      const geminiRes = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(buildRequestBody(model, trimmedMessage))
       });
+
+      if (!geminiRes.ok) {
+        let errorDetail = '';
+        try {
+          const errJson = await geminiRes.json();
+          errorDetail = errJson?.error?.message || JSON.stringify(errJson);
+        } catch (_) {
+          errorDetail = await geminiRes.text().catch(() => 'unknown');
+        }
+        console.error(`[PeerPal] ${model} error ${geminiRes.status}: ${errorDetail}`);
+        continue; // try the next model in the chain
+      }
+
+      const geminiData = await geminiRes.json();
+      const candidate    = geminiData?.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      const aiText       = candidate?.content?.parts?.[0]?.text;
+
+      if (!aiText || finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+        console.warn(`[PeerPal] ${model} returned no usable text. finishReason=${finishReason}`);
+        return res.status(200).json({
+          reply: "I wasn't able to generate a response for that message. Could you rephrase your question?"
+        });
+      }
+
+      return res.status(200).json({ reply: aiText.trim() });
+
+    } catch (networkError) {
+      console.error(`[PeerPal] Network error calling ${model}:`, networkError);
+      // fall through to try the next model
     }
-
-    return res.status(200).json({ reply: aiText.trim() });
-
-  } catch (networkError) {
-    console.error('[PeerPal] Network error calling Gemini:', networkError);
-    return res.status(200).json({ reply: buildFallbackReply(trimmedMessage) });
   }
+
+  // Every model in the chain failed (or errored) — fall back to a canned reply.
+  console.error('[PeerPal] All models in the fallback chain failed.');
+  return res.status(200).json({ reply: buildFallbackReply(trimmedMessage) });
 }
 export default handler;
-

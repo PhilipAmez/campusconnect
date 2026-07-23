@@ -3,37 +3,43 @@ import { renderSidebar } from './js/lecturer-sidebar.js';
 import { renderNavbar } from './js/lecturer-navbar.js';
 import { renderSectionContent } from './js/lecturer-overview.js';
 import { performLogout } from './js/lecturer-logout.js';
+import { initLecturerNotifications } from './js/lecturer-notifications.js';
+import { initLanguage } from './js/i18n.js';
 
 const contentArea = document.getElementById('contentArea');
 const sidebar = document.getElementById('sidebar');
 const topbar = document.getElementById('topbar');
+const lecturerShell = document.getElementById('lecturerShell');
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
 let activeSection = 'overview';
 let currentProfile = null;
 let darkMode = false;
-let mobileMenuOpen = false;
 
-let sidebarBackdrop = document.querySelector('.sidebar-backdrop');
-if (!sidebarBackdrop) {
-  sidebarBackdrop = document.createElement('div');
-  sidebarBackdrop.className = 'sidebar-backdrop';
-  // IMPORTANT: appended inside .lecturer-shell (not document.body). The shell
-  // has `backdrop-filter`, which creates its own stacking context — a fixed,
-  // z-indexed sibling appended to <body> would always paint above that whole
-  // context regardless of z-index, which hid the sidebar behind the backdrop.
-  const shell = document.querySelector('.lecturer-shell');
-  (shell || document.body).appendChild(sidebarBackdrop);
+function openSidebar() {
+  lecturerShell?.classList.add('sidebar-open');
+  hamburgerBtn?.setAttribute('aria-expanded', 'true');
 }
+
+function closeSidebar() {
+  lecturerShell?.classList.remove('sidebar-open');
+  hamburgerBtn?.setAttribute('aria-expanded', 'false');
+}
+
+function toggleSidebar() {
+  if (lecturerShell?.classList.contains('sidebar-open')) closeSidebar();
+  else openSidebar();
+}
+
+hamburgerBtn?.addEventListener('click', toggleSidebar);
+sidebarBackdrop?.addEventListener('click', closeSidebar);
 
 function applyTheme() {
   document.body.classList.toggle('dark', darkMode);
   const icon = document.querySelector('.theme-toggle i');
-  const themeToggle = document.querySelector('.theme-toggle');
   if (icon) {
     icon.className = darkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-  }
-  if (themeToggle) {
-    themeToggle.setAttribute('aria-pressed', darkMode ? 'true' : 'false');
   }
 }
 
@@ -43,36 +49,37 @@ function toggleTheme() {
   applyTheme();
 }
 
-function setMobileMenu(open) {
-  mobileMenuOpen = open;
-  sidebar.classList.toggle('open', open);
-  sidebarBackdrop.classList.toggle('visible', open);
-  document.body.classList.toggle('menu-locked', open);
-
-  const menuToggle = document.querySelector('[data-action="toggle-menu"]');
-  if (menuToggle) {
-    menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    menuToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
-  }
+async function fetchProfile(userId) {
+  return supabase
+    .from('profiles')
+    .select('id, full_name, username, institution, campus, custom_campus, department, role, level, custom_level, is_lecturer, verified, lecturer_badge')
+    .eq('id', userId)
+    .maybeSingle();
 }
 
-function toggleMobileMenu() {
-  setMobileMenu(!mobileMenuOpen);
+function isLecturerProfile(data) {
+  return !!data && (
+    data.is_lecturer === true ||
+    data.role === 'lecturer' ||
+    data.level === 'lecturer' ||
+    data.custom_level === 'lecturer'
+  );
 }
 
-sidebarBackdrop.addEventListener('click', () => setMobileMenu(false));
-
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && mobileMenuOpen) {
-    setMobileMenu(false);
-  }
-});
-
-window.addEventListener('resize', () => {
-  if (window.innerWidth > 980 && mobileMenuOpen) {
-    setMobileMenu(false);
-  }
-});
+function renderProfileLoadError(message) {
+  document.body.innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,'Segoe UI',sans-serif; background:linear-gradient(140deg,#f7f2ff 0%,#eef2ff 45%,#f8fbff 100%);">
+      <div style="max-width:420px; text-align:center; background:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.6); border-radius:24px; padding:36px 28px; box-shadow:0 20px 60px rgba(15,23,42,0.12);">
+        <div style="font-size:40px; margin-bottom:12px;">⚠️</div>
+        <h2 style="margin:0 0 10px; color:#14213d;">Couldn't load your lecturer profile</h2>
+        <p style="color:#5b6784; line-height:1.6; margin-bottom:22px;">${message}</p>
+        <button id="profileRetryBtn" style="border:0; border-radius:999px; padding:12px 22px; background:linear-gradient(120deg,#7c3aed,#8b5cf6); color:#fff; font-weight:700; cursor:pointer;">
+          Try again
+        </button>
+      </div>
+    </div>`;
+  document.getElementById('profileRetryBtn')?.addEventListener('click', () => window.location.reload());
+}
 
 async function loadProfile() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -81,38 +88,52 @@ async function loadProfile() {
     return;
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, full_name, username, institution, department, role, level, custom_level, is_lecturer, verified, lecturer_badge, bio, contact, profile_photo, notification_preferences, theme_preference, privacy, phone, campus, custom_campus')
-    .eq('id', session.user.id)
-    .maybeSingle();
+  let { data, error } = await fetchProfile(session.user.id);
 
-  if (!error && data) {
-    currentProfile = data;
-    const isLecturer = data.is_lecturer === true || data.role === 'lecturer' || data.level === 'lecturer' || data.custom_level === 'lecturer';
-    if (!isLecturer) {
-      window.location.href = 'dashboard.html';
-      return;
-    }
-  } else {
-    currentProfile = {
-      full_name: session.user.user_metadata?.full_name || session.user.email || 'Lecturer',
-      username: session.user.user_metadata?.user_name || 'lecturer',
-      institution: 'Your institution',
-      department: 'Teaching & Learning',
-      role: 'lecturer',
-      verified: false,
-      lecturer_badge: false
-    };
+  // A profile row may not exist yet for a split second right after signup
+  // (created by a DB trigger). Give it one retry before treating it as
+  // a real failure, rather than faking a lecturer profile that can write
+  // nothing (every insert/update is blocked by RLS regardless of what
+  // the UI shows).
+  if ((!data || error) && !error?.message?.includes('permission')) {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    ({ data, error } = await fetchProfile(session.user.id));
   }
+
+  if (error) {
+    console.error('Failed to load lecturer profile:', error);
+    renderProfileLoadError('We hit an error reading your profile. This is usually temporary — please try again in a moment.');
+    return;
+  }
+
+  if (!data) {
+    renderProfileLoadError("We couldn't find a profile for your account yet. If you just signed up, wait a few seconds and retry. If this keeps happening, please contact support.");
+    return;
+  }
+
+  if (!isLecturerProfile(data)) {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+
+  currentProfile = data;
 
   // Always guarantee the profile carries the authenticated user's id, since
   // downstream features (course groups, quiz targeting) key off it directly.
   currentProfile.id = session.user.id;
 
+  // The lecturer signup flow only ever populates 'campus'/'custom_campus',
+  // not 'institution' — but every other module in the dashboard reads
+  // profile.institution directly. Resolve it once here so nothing downstream
+  // needs its own fallback chain (this also fixes quiz target-audience
+  // group lookups and the institution stamped on newly created groups,
+  // which were previously always null).
+  currentProfile.institution = data.institution || data.campus || data.custom_campus || null;
+
   const savedTheme = localStorage.getItem('lecturer-theme');
   darkMode = savedTheme === 'dark';
   applyTheme();
+  await initLanguage({ supabase, userId: currentProfile.id });
   render();
 }
 
@@ -120,12 +141,11 @@ function render() {
   renderSidebar(sidebar, activeSection, (section) => {
     activeSection = section;
     render();
-    if (window.innerWidth <= 980) {
-      setMobileMenu(false);
-    }
+    closeSidebar();
   }, () => performLogout(currentProfile));
 
-  renderNavbar(topbar, currentProfile, toggleTheme, toggleMobileMenu);
+  renderNavbar(topbar, currentProfile, toggleTheme);
+  initLecturerNotifications(currentProfile).catch((err) => console.error('Failed to init notifications:', err));
   renderSectionContent(contentArea, activeSection, currentProfile);
 }
 
@@ -135,6 +155,10 @@ window.addEventListener('lecturer-section-change', (event) => {
     activeSection = nextSection;
     render();
   }
+});
+
+window.addEventListener('lecturer-language-change', () => {
+  render();
 });
 
 window.addEventListener('DOMContentLoaded', () => {

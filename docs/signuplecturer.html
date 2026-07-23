@@ -1247,8 +1247,8 @@
                             const _p = new URLSearchParams(window.location.search)
                             const _g = _p.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
                             return _g
-                                ? `${window.location.origin}/email-verified.html?joinGroup=${_g}`
-                                : `${window.location.origin}/email-verified.html`
+                                ? `${window.location.origin}/login.html?joinGroup=${_g}`
+                                : `${window.location.origin}/login.html`
                         })()
                     }
                 });
@@ -1280,6 +1280,7 @@
                         level: 'lecturer',
                         custom_level: 'lecturer',
                         role: 'lecturer',
+                        is_lecturer: true,
                         bio: `Lecturer at ${school} - ${department}`,
                         show_full_name: true,
                         show_academic_info: true,
@@ -1295,11 +1296,26 @@
                         }
                     };
 
-                    // Use UPDATE instead of INSERT (since row already exists)
-                    const { error: profileError } = await supabase
+                    // Upsert (not a plain UPDATE): if the profiles-row-creation
+                    // trigger hasn't fired yet, a plain UPDATE would silently
+                    // match zero rows and report no error, leaving the account
+                    // without lecturer flags (which then fails RLS on every
+                    // quiz/group write later, with no indication why).
+                    let { data: upserted, error: profileError } = await supabase
                         .from('profiles')
-                        .update(profileData)
-                        .eq('id', signUpData.user.id);
+                        .upsert(profileData, { onConflict: 'id' })
+                        .select()
+                        .maybeSingle();
+
+                    if (!upserted && !profileError) {
+                        // Trigger genuinely hasn't created the row yet — retry once.
+                        await new Promise((resolve) => setTimeout(resolve, 1200));
+                        ({ data: upserted, error: profileError } = await supabase
+                            .from('profiles')
+                            .upsert(profileData, { onConflict: 'id' })
+                            .select()
+                            .maybeSingle());
+                    }
 
                     if (profileError) {
                         console.error('Error updating lecturer profile:', profileError);

@@ -505,6 +505,69 @@
             box-shadow: 0 5px 20px rgba(255, 59, 48, 0.3);
         }
 
+        /* Quizzes Button — sits beside Open Chat on each group card */
+        .ios-btn.quizzes-btn {
+            border-color: var(--purple-border);
+            background: linear-gradient(135deg,
+                rgba(138, 43, 226, 0.12) 0%,
+                rgba(255, 255, 255, 0.7) 60%);
+            color: var(--accent);
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .ios-btn.quizzes-btn {
+            background: linear-gradient(135deg,
+                rgba(138, 43, 226, 0.22) 0%,
+                rgba(40, 40, 42, 0.7) 60%);
+        }
+
+        .ios-btn.quizzes-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.35) 45%,
+                transparent 60%);
+            transform: translateX(-120%);
+            transition: transform var(--transition-slow);
+            pointer-events: none;
+        }
+
+        .ios-btn.quizzes-btn:hover {
+            box-shadow: 0 5px 20px var(--purple-glow);
+        }
+
+        .ios-btn.quizzes-btn:hover::after {
+            transform: translateX(120%);
+        }
+
+        /* Resources Button — sits beside Quizzes on each group card */
+        .ios-btn.resources-btn {
+            border-color: var(--primary);
+            background: linear-gradient(135deg,
+                rgba(0, 122, 255, 0.12) 0%,
+                rgba(255, 255, 255, 0.7) 60%);
+            color: var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .ios-btn.resources-btn {
+            background: linear-gradient(135deg,
+                rgba(0, 122, 255, 0.22) 0%,
+                rgba(40, 40, 42, 0.7) 60%);
+        }
+
+        .ios-btn.resources-btn:hover {
+            box-shadow: 0 5px 20px rgba(0, 122, 255, 0.3);
+        }
+
+        .ios-btn.quizzes-btn:active {
+            transform: scale(0.98);
+        }
+
         /* Group Card */
         .group-card {
             background: var(--liquid-glass);
@@ -1994,13 +2057,16 @@
 
         <!-- Groups List Header with Create Group Button -->
         <div class="groups-list-header animate-fade-in">
-            <h2 class="section-title">Active Groups</h2>
+            <h2 class="section-title" data-i18n="nav_active_groups">Active Groups</h2>
             <div class="header-actions">
                 <button class="sort-toggle" id="toggleSort">
                     <i class="fas fa-sort-amount-down"></i>
-                    <span>Recent</span>
+                    <span data-i18n="sort_recent">Recent</span>
                 </button>
-                <button class="create-group-btn" id="createGroupBtn" title="Create New Group">
+                <button class="create-group-btn" id="joinGroupBtn" data-i18n-title="btn_join_code" title="Join with Code" style="background: rgba(0,122,255,0.12); color: var(--primary);">
+                    <i class="fas fa-key"></i>
+                </button>
+                <button class="create-group-btn" id="createGroupBtn" data-i18n-title="btn_create_group" title="Create New Group">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
@@ -2016,13 +2082,13 @@
             <div class="empty-icon">
                 <i class="fas fa-users-slash"></i>
             </div>
-            <h3 class="empty-title">No Active Groups</h3>
-            <p class="empty-description">
+            <h3 class="empty-title" data-i18n="empty_no_groups_title">No Active Groups</h3>
+            <p class="empty-description" data-i18n="empty_no_groups_desc">
                 You haven't joined any groups yet. Start by discovering new groups or create your own.
             </p>
             <button class="ios-btn" id="discoverGroupsBtn">
                 <i class="fas fa-compass"></i>
-                Discover Groups
+                <span data-i18n="btn_discover_groups">Discover Groups</span>
             </button>
         </div>
     </main>
@@ -2031,42 +2097,69 @@
     <div class="modal-overlay" id="createGroupModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Create New Group</h3>
+                <h3 class="modal-title" data-i18n="modal_create_group_title">Create New Group</h3>
                 <button class="modal-close" id="closeModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <form class="modal-form" id="createGroupForm">
                 <div class="form-group">
-                    <label class="form-label">Group Name</label>
-                    <input type="text" class="form-input" id="groupName" placeholder="Enter group name" required>
+                    <label class="form-label" data-i18n="label_group_name">Group Name</label>
+                    <input type="text" class="form-input" id="groupName" data-i18n-placeholder="placeholder_group_name" placeholder="Enter group name" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Course/Subject</label>
-                    <input type="text" class="form-input" id="groupCourse" placeholder="Enter course or subject" required>
+                    <label class="form-label" data-i18n="label_course_subject">Course/Subject</label>
+                    <input type="text" class="form-input" id="groupCourse" data-i18n-placeholder="placeholder_course_subject" placeholder="Enter course or subject" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-input form-textarea" id="groupDescription" placeholder="What's this group about?"></textarea>
+                    <label class="form-label" data-i18n="label_description">Description</label>
+                    <textarea class="form-input form-textarea" id="groupDescription" data-i18n-placeholder="placeholder_description" placeholder="What's this group about?"></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Privacy</label>
+                    <label class="form-label" data-i18n="label_privacy">Privacy</label>
                     <select class="form-input" id="groupPrivacy">
-                        <option value="public">Public - Anyone can join</option>
-                        <option value="private">Private - Invite only</option>
+                        <option value="public" data-i18n="option_public">Public - Anyone can join</option>
+                        <option value="private" data-i18n="option_private">Private - Invite only</option>
                     </select>
                 </div>
                 
                 <div class="form-group" style="flex-direction: row; gap: var(--space-md); margin-top: var(--space-lg);">
                     <button type="button" class="ios-btn secondary" id="cancelCreate" style="flex: 1;">
-                        Cancel
+                        <span data-i18n="btn_cancel">Cancel</span>
                     </button>
                     <button type="submit" class="ios-btn" style="flex: 1;">
                         <i class="fas fa-plus"></i>
-                        Create Group
+                        <span data-i18n="btn_create_group_submit">Create Group</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Join Group with Code Modal -->
+    <div class="modal-overlay" id="joinGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" data-i18n="modal_join_group_title">Join a Private Group</h3>
+                <button class="modal-close" id="closeJoinModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form class="modal-form" id="joinGroupForm">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="label_invite_code">Invite Code</label>
+                    <input type="text" class="form-input" id="joinGroupCode" placeholder="e.g. 7K3PQ9" maxlength="6" style="text-transform:uppercase; letter-spacing:0.15em; font-weight:700; text-align:center;" required>
+                </div>
+                <div class="form-group" style="flex-direction: row; gap: var(--space-md); margin-top: var(--space-lg);">
+                    <button type="button" class="ios-btn secondary" id="cancelJoin" style="flex: 1;">
+                        <span data-i18n="btn_cancel">Cancel</span>
+                    </button>
+                    <button type="submit" class="ios-btn" style="flex: 1;">
+                        <i class="fas fa-key"></i>
+                        <span data-i18n="btn_join_group_submit">Join Group</span>
                     </button>
                 </div>
             </form>
@@ -2077,7 +2170,7 @@
     <div class="modal-overlay" id="progressModal">
         <div class="modal-content progress-modal">
             <div class="modal-header">
-                <h3 class="modal-title">Your Progress</h3>
+                <h3 class="modal-title" data-i18n="modal_your_progress">Your Progress</h3>
                 <button class="modal-close" id="closeProgressModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2176,6 +2269,7 @@
         import { supabase } from './js/supabaseClient.js';
         import { enrichGroupsWithInstitution, getCurrentUserContext, renderCampusIndicator } from './js/campusDiscovery.js';
         import { initGlobalTheme, setThemePreference } from './js/themeManager.js';
+        import { initLanguage, applyTranslations, t } from './js/i18n.js';
         
         // DOM Elements
         const groupsList = document.getElementById('groupsList');
@@ -2222,9 +2316,11 @@
             currentUser = user;
             const context = await getCurrentUserContext(supabase, { force: true });
             currentUserProfile = context.profile;
+            await initLanguage({ supabase, userId: currentUser.id });
             await loadUserGroups();
             setupEventListeners();
             updateStats();
+            loadAcademicProgress();
             setupSwipeThemeToggle();
             initializePeerPal();
         }
@@ -2330,7 +2426,8 @@
                         creator: group.creator,
                         creator_custom_campus: group.creator_custom_campus,
                         creator_campus: group.creator_campus,
-                        creator_institution: group.creator_institution
+                        creator_institution: group.creator_institution,
+                        creator_is_lecturer: group.creator_is_lecturer
                     };
                 });
                 
@@ -2426,17 +2523,21 @@
                 <div class="group-actions">
                     <button class="ios-btn open-chat-btn" data-group-id="${group.id}">
                         <i class="fas fa-comment"></i>
-                        ${group.unread > 0 ? 'Open Chat' : 'View Group'}
+                        ${group.unread > 0 ? t('btn_open_chat') : t('btn_view_group')}
                     </button>
-                    ${group.role === 'admin' ? `
-                        <button class="ios-btn secondary manage-members-btn" data-group-id="${group.id}">
-                            <i class="fas fa-user-friends"></i>
-                            Manage
-                        </button>
+                    ${group.creator_is_lecturer ? `
+                    <button class="ios-btn quizzes-btn" data-group-id="${group.id}">
+                        <i class="fas fa-book-open"></i>
+                        ${t('btn_quizzes')}
+                    </button>
+                    <button class="ios-btn resources-btn" data-group-id="${group.id}">
+                        <i class="fas fa-folder-open"></i>
+                        ${t('btn_resources')}
+                    </button>
                     ` : ''}
                     <button class="ios-btn danger leave-group-btn" data-group-id="${group.id}">
                         <i class="fas fa-sign-out-alt"></i>
-                        Leave
+                        ${t('btn_leave')}
                     </button>
                 </div>
             `;
@@ -2567,16 +2668,70 @@
             document.getElementById('adminGroups').textContent = adminGroups;
             document.getElementById('activeNow').textContent = activeNow;
             document.getElementById('unreadMessages').textContent = unreadMessages;
-            
-            // Update progress (max 100% based on 10 groups)
-            const progress = Math.min(Math.floor((userGroups.length / 10) * 100), 100);
-            const progressValue = progress;
-            
-            // Desktop bar
+        }
+
+        // Real academic progress: quizzes actually completed vs assigned,
+        // and average graded score — not how many groups you've joined.
+        let academicProgress = { completed: 0, totalAssigned: 0, avgScorePct: null };
+
+        async function loadAcademicProgress() {
+            try {
+                const groupIds = userGroups.map(g => g.id);
+                if (!groupIds.length) {
+                    renderAcademicProgress();
+                    return;
+                }
+
+                const { data: links } = await supabase
+                    .from('quiz_groups')
+                    .select('quiz_id, group_id')
+                    .in('group_id', groupIds);
+                const assignedQuizIds = [...new Set((links || []).map(l => l.quiz_id))];
+
+                if (!assignedQuizIds.length) {
+                    renderAcademicProgress();
+                    return;
+                }
+
+                const { data: quizzesData } = await supabase
+                    .from('quizzes')
+                    .select('id')
+                    .in('id', assignedQuizIds)
+                    .eq('status', 'published')
+                    .eq('is_deleted', false);
+                const validQuizIds = (quizzesData || []).map(q => q.id);
+
+                const { data: attempts } = await supabase
+                    .from('quiz_attempts')
+                    .select('quiz_id, status, score, max_score')
+                    .eq('student_id', currentUser.id)
+                    .in('quiz_id', validQuizIds);
+
+                const completedQuizIds = new Set((attempts || []).filter(a => a.status === 'submitted' || a.status === 'graded').map(a => a.quiz_id));
+                const graded = (attempts || []).filter(a => a.status === 'graded' && a.score != null && a.max_score);
+                const avgScorePct = graded.length
+                    ? Math.round(graded.reduce((sum, a) => sum + (a.score / a.max_score) * 100, 0) / graded.length)
+                    : null;
+
+                academicProgress = {
+                    completed: completedQuizIds.size,
+                    totalAssigned: validQuizIds.length,
+                    avgScorePct
+                };
+                renderAcademicProgress();
+            } catch (err) {
+                console.error('Failed to load academic progress:', err);
+                renderAcademicProgress();
+            }
+        }
+
+        function renderAcademicProgress() {
+            const { completed, totalAssigned } = academicProgress;
+            const progressValue = totalAssigned ? Math.round((completed / totalAssigned) * 100) : 0;
+
             progressFill.style.width = `${progressValue}%`;
             progressPercent.textContent = `${progressValue}%`;
-            
-            // Mobile ring
+
             const offset = CIRCUMFERENCE - (progressValue / 100) * CIRCUMFERENCE;
             progressRingFill.style.strokeDashoffset = offset;
             progressRingText.textContent = `${progressValue}%`;
@@ -2601,6 +2756,15 @@
             document.getElementById('cancelCreate').addEventListener('click', closeModal);
             
             createGroupForm.addEventListener('submit', handleCreateGroup);
+
+            const joinGroupModal = document.getElementById('joinGroupModal');
+            const joinGroupForm = document.getElementById('joinGroupForm');
+            document.getElementById('joinGroupBtn').addEventListener('click', () => {
+                joinGroupModal.classList.add('active');
+            });
+            document.getElementById('closeJoinModal').addEventListener('click', () => joinGroupModal.classList.remove('active'));
+            document.getElementById('cancelJoin').addEventListener('click', () => joinGroupModal.classList.remove('active'));
+            joinGroupForm.addEventListener('submit', handleJoinByCode);
             
             document.getElementById('discoverGroupsBtn').addEventListener('click', () => {
                 window.location.href = 'dashboard.html';
@@ -2623,6 +2787,7 @@
             document.addEventListener('click', (e) => {
                 if (e.target === createGroupModal) closeModal();
                 if (e.target === progressModal) closeProgressModalHandler();
+                if (e.target === joinGroupModal) joinGroupModal.classList.remove('active');
             });
             
             // Progress bar click handlers (both desktop and mobile)
@@ -2637,17 +2802,29 @@
             const progress = progressPercent.textContent;
             const totalGroups = userGroups.length;
             const activeNow = userGroups.reduce((sum, group) => sum + group.online, 0);
-            
+            const { completed, totalAssigned, avgScorePct } = academicProgress;
+
             modalProgressPercent.textContent = progress;
             modalGroupsCount.textContent = totalGroups;
             modalActiveCount.textContent = activeNow;
-            
+
             const steps = [
-                { title: 'Join Groups', description: `You are a member of ${totalGroups} group${totalGroups !== 1 ? 's' : ''}.` },
-                { title: 'Participate Actively', description: activeNow > 0 ? `${activeNow} member${activeNow !== 1 ? 's' : ''} online now in your groups.` : 'No active members currently.' },
-                { title: 'Complete Tasks', description: 'Track your contributions and stay engaged.' }
+                {
+                    title: 'Quizzes Completed',
+                    description: totalAssigned
+                        ? `You've completed ${completed} of ${totalAssigned} assigned quiz${totalAssigned !== 1 ? 'zes' : ''}.`
+                        : 'No quizzes have been assigned to your groups yet.'
+                },
+                {
+                    title: 'Average Score',
+                    description: avgScorePct != null ? `${avgScorePct}% average across your graded quizzes.` : 'No graded quizzes yet — scores appear here once your lecturer grades your submissions.'
+                },
+                {
+                    title: 'Course Groups',
+                    description: `You're a member of ${totalGroups} group${totalGroups !== 1 ? 's' : ''}${activeNow > 0 ? `, with ${activeNow} member${activeNow !== 1 ? 's' : ''} online right now.` : '.'}`
+                }
             ];
-            
+
             progressStepsList.innerHTML = '';
             steps.forEach((step, idx) => {
                 const stepDiv = document.createElement('div');
@@ -2674,6 +2851,16 @@
             createGroupForm.reset();
         }
         
+        // Random 6-character invite code (letters + numbers, unambiguous set)
+        function generateInviteCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid confusion
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
         // Handle create group form submission
         async function handleCreateGroup(e) {
             e.preventDefault();
@@ -2682,6 +2869,7 @@
             const groupCourse = document.getElementById('groupCourse').value.trim();
             const groupDescription = document.getElementById('groupDescription').value.trim();
             const groupPrivacy = document.getElementById('groupPrivacy').value;
+            const newInviteCode = generateInviteCode();
             
             if (!groupName || !groupCourse) {
                 showNotification('Please fill in all required fields.');
@@ -2697,6 +2885,7 @@
                         description: groupDescription || null,
                         created_by: currentUser.id,
                         is_public: groupPrivacy === 'public',
+                        invite_code: newInviteCode,
                         institution: currentUserProfile?.institution || null
                     })
                     .select()
@@ -2713,7 +2902,8 @@
                             course_code: groupCourse,
                             description: groupDescription || null,
                             created_by: currentUser.id,
-                            is_public: groupPrivacy === 'public'
+                            is_public: groupPrivacy === 'public',
+                            invite_code: newInviteCode
                         })
                         .select()
                         .single();
@@ -2742,7 +2932,11 @@
                     showNotification('Group created but failed to add you as admin.');
                 }
                 
-                showNotification(`Group "${groupName}" created successfully!`);
+                showNotification(
+                    groupPrivacy === 'private'
+                        ? `Group "${groupName}" created! Invite code: ${newInviteCode}`
+                        : `Group "${groupName}" created successfully!`
+                );
                 await loadUserGroups();
                 closeModal();
                 
@@ -2750,6 +2944,54 @@
                 console.error('Unexpected error creating group:', error);
                 showNotification('An unexpected error occurred.');
             }
+        }
+
+        async function handleJoinByCode(e) {
+            e.preventDefault();
+            const codeInput = document.getElementById('joinGroupCode');
+            const code = codeInput.value.trim().toUpperCase();
+
+            if (code.length !== 6) {
+                showNotification('Invite codes are 6 characters.');
+                return;
+            }
+
+            try {
+                const { data: matches, error: lookupError } = await supabase
+                    .from('groups')
+                    .select('id, name')
+                    .ilike('invite_code', code);
+
+                if (lookupError || !matches || !matches.length) {
+                    showNotification("That code didn't match any group.");
+                    return;
+                }
+
+                const targetGroup = matches[0];
+                const { error: joinError } = await supabase.rpc('join_group_by_code', {
+                    p_group_id: targetGroup.id,
+                    p_code: code
+                });
+
+                if (joinError) {
+                    console.error('Failed to join group by code:', joinError);
+                    showNotification("That code didn't work. Double-check it and try again.");
+                    return;
+                }
+
+                showNotification(`Joined "${targetGroup.name}"!`);
+                document.getElementById('joinGroupModal').classList.remove('active');
+                joinGroupFormReset();
+                await loadUserGroups();
+            } catch (error) {
+                console.error('Unexpected error joining group:', error);
+                showNotification('An unexpected error occurred.');
+            }
+        }
+
+        function joinGroupFormReset() {
+            const form = document.getElementById('joinGroupForm');
+            if (form) form.reset();
         }
         
         // Show notification
@@ -2796,16 +3038,24 @@
                 if (group) window.location.href = `chatroom.html?groupId=${groupId}`;
             }
             
-            if (e.target.closest('.manage-members-btn')) {
-                const button = e.target.closest('.manage-members-btn');
+            if (e.target.closest('.quizzes-btn')) {
+                const button = e.target.closest('.quizzes-btn');
                 button.style.animation = 'pulse 0.3s ease';
                 setTimeout(() => button.style.animation = '', 300);
-                
+
                 const groupId = button.dataset.groupId;
-                const group = userGroups.find(g => g.id == groupId);
-                showNotification(`Managing members for "${group.name}"...`);
+                window.location.href = `group-quizzes.html?group=${groupId}`;
             }
-            
+
+            if (e.target.closest('.resources-btn')) {
+                const button = e.target.closest('.resources-btn');
+                button.style.animation = 'pulse 0.3s ease';
+                setTimeout(() => button.style.animation = '', 300);
+
+                const groupId = button.dataset.groupId;
+                window.location.href = `group-resources.html?group=${groupId}`;
+            }
+
             if (e.target.closest('.leave-group-btn')) {
                 const button = e.target.closest('.leave-group-btn');
                 button.style.animation = 'pulse 0.3s ease';

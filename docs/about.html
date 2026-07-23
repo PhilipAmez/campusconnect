@@ -1,1100 +1,370 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About PeerLoom</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #7c3aed;
-            --primary-dark: #6b21a8;
-            --primary-light: #f3e8ff;
-            --secondary: #4f46e5;
-            --text-dark: #4a2c6d;
-            --text-medium: #6b7280;
-            --text-light: #9ca3af;
-            --white: #ffffff;
-            --border: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --ios-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
-            --ios-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.12);
-        }
-      
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-      
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            background: var(--primary-light);
-            color: var(--text-dark);
-        }
-      
-        /* Header Navigation */
-        .header-nav {
-            margin-top: 2rem;
-            padding: 1rem 0;
-            position: relative;
-            z-index: 2;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .nav-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .nav-links a {
-            color: var(--white);
-            text-decoration: none;
-            font-weight: 500;
-            transition: opacity 0.3s;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-        }
-        
-        .nav-links a:hover {
-            opacity: 0.8;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .mobile-menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            color: var(--white);
-            font-size: 1.5rem;
-            cursor: pointer;
-            margin-top: 1rem;
-        }
-      
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--white);
-            padding: 3rem 1rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-      
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            z-index: 0;
-            opacity: 0.3;
-        }
-      
-        .header-content {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-      
-        h1 {
-            font-size: 2.8rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-            color: var(--white);
-        }
-      
-        .header-subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 1.5rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            color: var(--white);
-        }
-      
-        .header-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            width: 100px;
-            height: 100px;
-            line-height: 100px;
-            border-radius: 50%;
-            animation: float 3s ease-in-out infinite;
-            color: var(--white);
-        }
-      
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-      
-        .breadcrumb {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            margin-top: 1.5rem;
-            color: var(--white);
-        }
-      
-        .breadcrumb a {
-            color: var(--white);
-            text-decoration: none;
-            opacity: 0.8;
-            transition: opacity 0.3s;
-        }
-      
-        .breadcrumb a:hover {
-            opacity: 1;
-        }
-      
-        .breadcrumb .separator {
-            opacity: 0.6;
-        }
-      
-        main {
-            max-width: 1100px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-      
-        .content-card {
-            background: var(--white);
-            border-radius: 16px;
-            padding: 3rem;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-      
-        .content-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 6px;
-            height: 100%;
-            background: linear-gradient(to bottom, var(--primary), var(--secondary));
-        }
-      
-        .mission-section {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-      
-        .mission-text {
-            flex: 1;
-        }
-      
-        .mission-icon {
-            flex: 0 0 80px;
-            text-align: center;
-        }
-      
-        .mission-icon i {
-            font-size: 3rem;
-            color: var(--primary);
-            background: var(--primary-light);
-            width: 80px;
-            height: 80px;
-            line-height: 80px;
-            border-radius: 50%;
-        }
-      
-        h2 {
-            color: var(--text-dark);
-            margin: 2.5rem 0 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            position: relative;
-        }
-      
-        h2::before {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 60px;
-            height: 3px;
-            background: var(--primary);
-            border-radius: 3px;
-        }
-      
-        p {
-            margin-bottom: 1.5rem;
-            color: var(--text-medium);
-            font-size: 1.05rem;
-        }
-      
-        .highlight-box {
-            background: var(--primary-light);
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin: 1.5rem 0;
-            border-left: 4px solid var(--primary);
-        }
-      
-        .core-beliefs {
-            margin: 2.5rem 0;
-        }
-      
-        .belief-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            background: var(--primary-light);
-            border-radius: 10px;
-            border-left: 4px solid var(--primary);
-        }
-      
-        .belief-icon {
-            font-size: 1.5rem;
-            color: var(--primary);
-            margin-top: 0.25rem;
-        }
-      
-        .belief-content h3 {
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-      
-        .belief-content p {
-            margin-bottom: 0;
-            color: var(--text-medium);
-        }
-      
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-      
-        .feature-card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: var(--shadow);
-            transition: transform 0.3s, box-shadow 0.3s;
-            border-top: 4px solid var(--primary);
-        }
-      
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-      
-        .feature-icon {
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-      
-        .feature-card h3 {
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-        }
-      
-        .feature-card p {
-            font-size: 0.95rem;
-            color: var(--text-medium);
-        }
-      
-        .testimonials-section {
-            margin: 3rem 0;
-        }
-      
-        .testimonial-card {
-            background: var(--primary-light);
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: left;
-            box-shadow: var(--shadow);
-            transition: transform 0.3s, box-shadow 0.3s;
-            border-left: 4px solid var(--primary);
-            font-style: italic;
-        }
-      
-        .testimonial-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-      
-        .testimonial-author {
-            font-style: normal;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-top: 1rem;
-            text-align: right;
-        }
-      
-        .cta-section {
-            text-align: center;
-            margin: 3rem 0;
-            padding: 2rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--white);
-            border-radius: 16px;
-        }
-      
-        .cta-section h2 {
-            margin-bottom: 1rem;
-            border-bottom: none;
-            color: var(--white);
-        }
-      
-        .cta-section p {
-            margin-bottom: 2rem;
-            color: rgba(255, 255, 255, 0.9);
-        }
-      
-        .faq-section {
-            margin-top: 3rem;
-        }
-      
-        .faq-item {
-            margin-bottom: 1.5rem;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-      
-        .faq-question {
-            background: var(--primary-light);
-            padding: 1.5rem;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.3s;
-        }
-      
-        .faq-question:hover {
-            background: rgba(124, 58, 237, 0.15);
-        }
-      
-        .faq-question h3 {
-            color: var(--text-dark);
-            margin: 0;
-            font-weight: 600;
-        }
-      
-        .faq-toggle {
-            color: var(--primary);
-            font-size: 1.2rem;
-            transition: transform 0.3s;
-        }
-      
-        .faq-answer {
-            padding: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-            background: var(--white);
-        }
-      
-        .faq-answer.active {
-            padding: 1.5rem;
-            max-height: 500px;
-        }
-      
-        .faq-item.active .faq-toggle {
-            transform: rotate(180deg);
-        }
-      
-        .assistant-section {
-            margin-top: 3rem;
-            background: var(--primary-light);
-            border-radius: 16px;
-            padding: 2.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-      
-        .assistant-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(124, 58, 237, 0.05)"/></svg>');
-            background-size: cover;
-        }
-      
-        .assistant-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-      
-        .assistant-avatar {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: var(--white);
-            box-shadow: var(--shadow);
-        }
-      
-        .chat-container {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            margin-top: 1.5rem;
-        }
-      
-        .chat-messages {
-            min-height: 150px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: rgba(243, 232, 255, 0.3);
-        }
-      
-        .message {
-            margin-bottom: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 18px;
-            max-width: 80%;
-            position: relative;
-        }
-      
-        .user-message {
-            background: var(--primary);
-            color: var(--white);
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
-        }
-      
-        .ai-message {
-            background: var(--white);
-            color: var(--text-dark);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 4px;
-        }
-      
-        .chat-input-container {
-            display: flex;
-            gap: 0.75rem;
-        }
-      
-        .chat-input {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 25px;
-            font-size: 1rem;
-            background: var(--white);
-            transition: border-color 0.3s, box-shadow 0.3s;
-            z-index: 10;
-            position: relative;
-        }
-      
-        .chat-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
-        }
-      
-        /* iOS 19 Style Buttons */
-        .ios-button {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            border-radius: 14px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            white-space: nowrap;
-            box-shadow: var(--ios-shadow);
-            position: relative;
-            overflow: hidden;
-            font-size: 0.95rem;
-            text-decoration: none;
-            justify-content: center;
-        }
-      
-        .ios-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(255, 255, 255, 0.1), transparent);
-            border-radius: 14px;
-        }
-      
-        .ios-button:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--ios-shadow-hover);
-            background: var(--primary-dark);
-        }
-      
-        .ios-button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-      
-        .voice-button {
-            background: var(--secondary);
-        }
-      
-        footer {
-            background: var(--primary);
-            color: var(--white);
-            text-align: center;
-            padding: 3rem 1rem;
-            margin-top: 4rem;
-        }
-      
-        .footer-content {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-      
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin: 1.5rem 0;
-            flex-wrap: wrap;
-        }
-      
-        .footer-links a {
-            color: var(--white);
-            opacity: 0.9;
-            transition: opacity 0.3s;
-            text-decoration: none;
-        }
-      
-        .footer-links a:hover {
-            opacity: 1;
-        }
-      
-        .copyright {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            opacity: 0.8;
-            color: var(--white);
-        }
-      
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-      
-        .social-links a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            color: var(--white);
-            transition: background 0.3s;
-            text-decoration: none;
-        }
-      
-        .social-links a:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-      
-        ul {
-            margin: 1rem 0;
-            padding-left: 2rem;
-        }
-      
-        li {
-            margin-bottom: 0.5rem;
-            color: var(--text-medium);
-        }
-      
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2.2rem;
-            }
-          
-            .content-card {
-                padding: 2rem;
-            }
-          
-            .mission-section {
-                flex-direction: column;
-                text-align: center;
-            }
-          
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-          
-            .chat-input-container {
-                flex-direction: column;
-            }
-          
-            .ios-button {
-                width: 100%;
-                justify-content: center;
-            }
-          
-            .footer-links {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .nav-links {
-                flex-direction: column;
-                gap: 1rem;
-                display: none;
-            }
-            
-            .nav-links.active {
-                display: flex;
-            }
-            
-            .mobile-menu-toggle {
-                display: block;
-            }
-        }
-      
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.8rem;
-            }
-          
-            .content-card {
-                padding: 1.5rem;
-            }
-          
-            header {
-                padding: 2rem 1rem;
-            }
-          
-            .header-icon {
-                width: 80px;
-                height: 80px;
-                line-height: 80px;
-                font-size: 2.5rem;
-            }
-          
-            .assistant-section {
-                padding: 1.5rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About Peerloom — Purpose-built academic collaboration</title>
+<meta name="description" content="Peerloom is the academic collaboration platform built for students and lecturers: structured groups, AI-assisted study tools, and quizzes with real integrity monitoring. Learn our story and meet the team.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #7c3aed;
+    --primary-dark: #5b21b6;
+    --primary-light: #f5f3ff;
+    --secondary: #4f46e5;
+    --ink: #1e1b2e;
+    --text: #4a4458;
+    --muted: #7c7690;
+    --border: #e9e5f5;
+    --card: #ffffff;
+    --bg: #fbfaff;
+    --shadow: 0 10px 30px -10px rgba(76, 29, 149, 0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.65;
+    background: var(--bg);
+    color: var(--text);
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(251, 250, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 0 0 1px var(--border); }
+  .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+  .topnav { display: flex; gap: 8px; align-items: center; }
+  .topnav a { text-decoration: none; color: var(--text); font-weight: 600; font-size: 0.92rem; padding: 8px 14px; border-radius: 8px; transition: background 150ms ease, color 150ms ease; }
+  .topnav a:hover { background: var(--primary-light); color: var(--primary-dark); }
+  .topnav a.cta { background: var(--ink); color: #fff; }
+  .topnav a.cta:hover { background: var(--primary-dark); color: #fff; }
+  .menu-toggle { display: none; background: none; border: none; font-size: 1.3rem; color: var(--ink); cursor: pointer; }
+
+  .hero { padding: 76px 0 56px; text-align: center; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; inset: -40% -10% auto -10%; height: 420px;
+    background: radial-gradient(60% 60% at 50% 0%, rgba(124, 58, 237, 0.16), transparent 70%);
+    pointer-events: none;
+  }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: var(--primary-light); color: var(--primary-dark); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; margin-bottom: 22px; }
+  .hero h1 { font-size: clamp(2.1rem, 4.4vw, 3.4rem); color: var(--ink); font-weight: 800; letter-spacing: -0.02em; max-width: 780px; margin: 0 auto 20px; }
+  .hero p.lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 auto; }
+
+  section { padding: 64px 0; }
+  section.tight { padding: 40px 0; }
+  .section-head { max-width: 680px; margin: 0 0 40px; }
+  .section-head.center { margin: 0 auto 44px; text-align: center; }
+  .section-head .kicker { color: var(--primary-dark); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; display: block; }
+  .section-head h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); color: var(--ink); font-weight: 800; letter-spacing: -0.01em; }
+  .section-head p { margin-top: 12px; color: var(--muted); font-size: 1.02rem; }
+
+  .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  .story-grid p + p { margin-top: 16px; }
+  .story-grid strong { color: var(--ink); }
+  .pull-stats { display: grid; gap: 18px; }
+  .pull-stat { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .pull-stat .num { font-size: 1.7rem; font-weight: 800; color: var(--primary-dark); }
+  .pull-stat .lbl { color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .pillar { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
+  .pillar .icn { width: 44px; height: 44px; border-radius: 12px; background: var(--primary-light); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 16px; }
+  .pillar h3 { font-size: 1.08rem; color: var(--ink); margin-bottom: 8px; font-weight: 700; }
+  .pillar p { color: var(--muted); font-size: 0.94rem; }
+
+  .founders-band { background: linear-gradient(180deg, var(--primary-light), transparent); }
+  .founders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .founder-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; box-shadow: var(--shadow); }
+  .founder-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .founder-avatar { width: 62px; height: 62px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; flex-shrink: 0; }
+  .founder-name { font-size: 1.15rem; font-weight: 800; color: var(--ink); }
+  .founder-role { color: var(--primary-dark); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+  .founder-card p { color: var(--text); font-size: 0.96rem; }
+
+  .values-list { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 40px; }
+  .value-item { display: flex; gap: 14px; }
+  .value-item .num { font-weight: 800; color: var(--primary); font-size: 1.1rem; width: 32px; flex-shrink: 0; }
+  .value-item h4 { color: var(--ink); font-size: 1rem; margin-bottom: 4px; }
+  .value-item p { color: var(--muted); font-size: 0.93rem; }
+
+  .cta-band { background: linear-gradient(135deg, var(--ink), var(--primary-dark)); border-radius: 28px; padding: 56px 40px; text-align: center; color: #fff; margin: 0 24px; }
+  .cta-band h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 800; margin-bottom: 12px; }
+  .cta-band p { color: rgba(255,255,255,0.78); max-width: 520px; margin: 0 auto 26px; }
+  .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 0.95rem; transition: transform 150ms ease, box-shadow 150ms ease; }
+  .btn-light { background: #fff; color: var(--ink); }
+  .btn-light:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .btn-outline { border: 1.5px solid rgba(255,255,255,0.4); color: #fff; }
+  .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+  footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 36px 0 90px; }
+  .footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+  .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .footer-links a { text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+  .footer-links a:hover { color: var(--primary-dark); }
+  .footer-social { display: flex; gap: 14px; }
+  .footer-social a { color: var(--muted); font-size: 1.05rem; }
+  .footer-social a:hover { color: var(--primary-dark); }
+  .copyright { width: 100%; text-align: center; color: var(--muted); font-size: 0.84rem; margin-top: 18px; }
+
+  @media (max-width: 860px) {
+    .story-grid, .founders-grid, .pillars { grid-template-columns: 1fr; }
+    .values-list { grid-template-columns: 1fr; }
+    .topnav { display: none; }
+    .menu-toggle { display: block; }
+    .topnav.open { display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border); }
+    .cta-band { margin: 0 12px; padding: 40px 22px; }
+  }
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <div class="header-icon">
-                <i class="fas fa-graduation-cap"></i>
-            </div>
-            <h1>About PeerLoom – Academic Collaboration Platform</h1>
-            <p class="header-subtitle">PeerLoom — Engineered for Academic Productivity. Optimized for Students and Lecturers.</p>
-            
-            
-            <!-- Navigation at the bottom of the header -->
-            <nav class="header-nav">
-                <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                    <i class="fas fa-bars"></i> Menu
-                </button>
-                <div class="nav-links" id="navLinks">
-                    <a href="/index.html">Home</a>
-                    <a href="/privacy.html">Privacy Policy</a>
-                    <a href="/terms.html">Terms of Service</a>
-                    <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
-                </div>
-            </nav>
-        </div>
-    </header>
-    <main>
-        <div class="content-card">
-            <h2>🧠 What is PeerLoom?</h2>
-            <p>PeerLoom is a structured collaboration platform that enables students and lecturers to organize course-specific discussions, share resources, and leverage AI-driven tools to enhance academic performance. Developed to address inefficiencies in informal communication channels, PeerLoom streamlines study workflows and fosters targeted knowledge exchange.</p>
-            <p>Unlike generic messaging applications, PeerLoom integrates academic organization with intelligent assistance, enabling measurable improvements in study efficiency and retention.</p>
-            <h2>⚡ Why We Exist</h2>
-            <p>Informal study groups on platforms like WhatsApp and Telegram often devolve into disorganized threads: irrelevant messages dilute focus, files become irretrievable amid clutter, and participation wanes due to lack of accountability. These tools, designed for general communication, fail to support structured academic collaboration, resulting in lost productivity and fragmented learning.</p>
-            <p>PeerLoom resolves these issues by enforcing course- and topic-based threading, automating content categorization, and embedding AI for real-time analysis, ensuring discussions remain relevant and actionable.</p>
-            <p>PeerLoom equips users with:</p>
-            <ul>
-                <li>Automated organization: Chats are segmented by course modules and deadlines, reducing search time by up to 70%.</li>
-                <li>Intelligent study aids: PeerPal AI generates summaries, clarifies concepts, and simulates exam scenarios within conversations.</li>
-                <li>Secure group dynamics: Facilitate verified peer matching, private subgroups, and progress tracking for sustained engagement.</li>
-            </ul>
-            <p>Engineered for users demanding precision over chaos, PeerLoom delivers quantifiable gains in academic output.</p>
-            <h2>🤝 Our Mission</h2>
-            <p>To enhance academic productivity by 40% through structured, AI-augmented collaboration, as measured by user-reported time savings and grade improvements.</p>
-            <p>PeerLoom bridges isolated study efforts with coordinated group intelligence, enabling students to consolidate notes efficiently and lecturers to monitor cohort progress without administrative overhead.</p>
-            <h2>🚀 What Makes Us Different</h2>
-            <p>PeerLoom is purpose-built for higher education, surpassing general-purpose apps with specialized functionalities:</p>
-            <ul>
-                <li>Embedded PeerPal AI: Delivers contextual explanations, automated note synthesis, and exam preparation drills directly in-thread.</li>
-                <li>Auto-organized channels: Discussions auto-sort by syllabus topics, minimizing cognitive load and maximizing retrieval accuracy.</li>
-                <li>Distraction-minimized interface: Prioritizes content hierarchy and notification controls, sustaining focus during intensive sessions.</li>
-            </ul>
-            <p>The outcome: Not increased volume of interaction, but elevated quality of learning outcomes.</p>
-            <h2>💬 The Vision</h2>
-            <p>PeerLoom aims to establish a global academic network that accelerates knowledge acquisition by 30%, evidenced through integrated analytics on engagement and performance metrics. By standardizing secure, cross-institutional collaboration, it positions users to outperform peers in competitive academic environments.</p>
-            <h2>✨ Join the Network</h2>
-            <p>PeerLoom represents a paradigm shift in academic tooling: a platform where rigorous collaboration yields superior results.</p>
-            <p>Integrate PeerLoom to convert unstructured exchanges into optimized academic strategies.</p>
-            <div class="testimonials-section">
-                <h2>👥 What Students and Lecturers Are Saying</h2>
-                <div class="features-grid">
-                    <div class="feature-card testimonial-card">
-                        <p>"PeerLoom's auto-threading and AI summaries have cut my revision time in half, allowing deeper focus on complex algorithms."</p>
-                        <div class="testimonial-author">- Stephanie Ama Essien, Computer Science Student, KNUST</div>
-                    </div>
-                    <div class="feature-card testimonial-card">
-                        <p>"As a lecturer, PeerLoom enables seamless oversight of group discussions, identifying knowledge gaps early and tailoring lectures accordingly."</p>
-                        <div class="testimonial-author">- Dr. Kwame Bonsu, Business Lecturer, University of Ghana</div>
-                    </div>
-                    <div class="feature-card testimonial-card">
-                        <p>"PeerPal AI's exam simulations provided targeted practice that aligned precisely with my course assessments, boosting my scores."</p>
-                        <div class="testimonial-author">- Efua Sutherland, Physics Student, UCC</div>
-                    </div>
-                    <div class="feature-card testimonial-card">
-                        <p>"Secure file sharing across campuses has streamlined our joint research projects, eliminating version control issues."</p>
-                        <div class="testimonial-author">- Bright Kofi Knox, Engineering Student, International Exchange</div>
-                    </div>
-                    <div class="feature-card testimonial-card">
-                        <p>"The platform's structured hives have transformed ad-hoc study sessions into accountable, outcome-driven collaborations."</p>
-                        <div class="testimonial-author">- Adwoa Mensah, Law Student, GIMPA</div>
-                    </div>
-                </div>
-            </div>
-            <div class="cta-section">
-                <h2>Optimize Your Academic Workflow</h2>
-                <p>Empower your studies or enhance your teaching with PeerLoom's proven tools for productivity. Thousands of users report 35% faster preparation—join them to elevate performance.</p>
-                <a href="/download.html" class="ios-button" style="font-size: 1.1rem; padding: 1rem 2rem; display: inline-block;">
-                    <i class="fas fa-download"></i> Access Platform Now
-                </a>
-            </div>
-            <div class="faq-section">
-                <h2>Frequently Asked Questions</h2>
-              
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <h3>What is PeerLoom?</h3>
-                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
-                    </div>
-                    <div class="faq-answer">
-                        <p>PeerLoom is a dedicated academic collaboration platform that structures discussions by course and topic, integrates AI for content analysis, and facilitates secure resource sharing to boost study efficiency and learning outcomes.</p>
-                    </div>
-                </div>
-              
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <h3>How can lecturers get involved?</h3>
-                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
-                    </div>
-                    <div class="faq-answer">
-                        <p>Lecturers can create moderated cohorts, monitor discussion analytics for real-time insights into student comprehension, and deploy PeerPal AI for customized assignments, enhancing instructional delivery without added workload.</p>
-                    </div>
-                </div>
-              
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <h3>Is PeerLoom free to use?</h3>
-                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
-                    </div>
-                    <div class="faq-answer">
-                        <p>Yes, PeerLoom is free for all students and lecturers, with unlimited access to core features including AI tools and group management, ensuring equitable access to productivity enhancements.</p>
-                    </div>
-                </div>
-              
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <h3>Can PeerLoom be used across different campuses?</h3>
-                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
-                    </div>
-                    <div class="faq-answer">
-                        <p>Absolutely. PeerLoom supports cross-institutional groups without affiliation restrictions, enabling seamless collaboration between students and lecturers from diverse universities worldwide.</p>
-                    </div>
-                </div>
-              
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <h3>How does PeerLoom differ from WhatsApp or Telegram?</h3>
-                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
-                    </div>
-                    <div class="faq-answer">
-                        <p>While WhatsApp and Telegram excel in casual messaging, they lack academic-specific structures like topic threading and AI integration. PeerLoom enforces focus through automated organization and embeds tools for note synthesis and exam prep, yielding 40% higher engagement in structured tasks.</p>
-                    </div>
-                </div>
-              
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <h3>How is privacy and support handled?</h3>
-                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
-                    </div>
-                    <div class="faq-answer">
-                        <p>PeerLoom employs end-to-end encryption for all communications and complies with GDPR standards for data protection. Support is available via email at peerloomonline@gmail.com with 24-hour response times, plus in-app AI troubleshooting for immediate resolution.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="assistant-section">
-                <div class="assistant-header">
-                    <div class="assistant-avatar">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div>
-                        <h2>Talk to Our Assistant 🤖</h2>
-                        <p>Have questions about using the platform? Ask away — our AI assistant is here to help!</p>
-                    </div>
-                </div>
-              
-                <div class="chat-container">
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="message ai-message">
-                            Hi there! I'm PeerPal, your learning assistant. How can I help you today?
-                        </div>
-                    </div>
-                  
-                    <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="userInput" placeholder="Ask about PeerLoom features or how to use the platform..." aria-label="Ask a question">
-                        <button class="ios-button" id="sendButton" aria-label="Submit question">
-                            <i class="fas fa-paper-plane"></i> Send
-                        </button>
-                        <button class="ios-button voice-button" id="voiceButton" aria-label="Start voice input">
-                            <i class="fas fa-microphone"></i> Speak
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-    <footer>
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="/index.html">Home</a>
-                <a href="/privacy.html">Privacy Policy</a>
-                <a href="/terms.html">Terms of Service</a>
-                <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
-            </div>
-            <div class="social-links">
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="#"><i class="fab fa-linkedin"></i></a>
-                <a href="https://www.instagram.com/peerloom_official/"><i class="fab fa-instagram"></i></a>
-                <a href="#"><i class="fab fa-github"></i></a>
-            </div>
-            <p class="copyright">© 2025 PeerLoom. All rights reserved</p>
-        </div>
-    </footer>
-    <script>
-        // Scroll to top when page loads
-        window.addEventListener('load', function() {
-            window.scrollTo(0, 0);
-        });
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="brand"><span class="brand-mark"><img src="logo.png" alt="Peerloom logo"></span> Peerloom</a>
+      <nav class="topnav" id="topnav">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="login.html" class="cta">Sign in</a>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
 
-        // Enhanced FAQ toggle functionality
-        document.querySelectorAll('.faq-question').forEach(question => {
-            question.addEventListener('click', () => {
-                const faqItem = question.parentElement;
-                const answer = question.nextElementSibling;
-              
-                // Close all other FAQ items
-                document.querySelectorAll('.faq-item').forEach(item => {
-                    if (item !== faqItem) {
-                        item.classList.remove('active');
-                        item.querySelector('.faq-answer').classList.remove('active');
-                    }
-                });
-              
-                // Toggle current FAQ item
-                faqItem.classList.toggle('active');
-                answer.classList.toggle('active');
-            });
-        });
-        
-        // Mobile menu toggle
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const navLinks = document.getElementById('navLinks');
-        
-        mobileMenuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-        });
-        
-        // Enhanced AI Assistant with conversation history
-        const assistantResponses = {
-            "what is peerloom|what's peerloom|tell me about peerloom": "PeerLoom is a social learning app designed like WhatsApp but built for students. It allows you to form study groups, chat, and use AI to enhance your studies.",
-            "what is peerpal|what's peerpal|tell me about peerpal": "PeerPal is our built-in AI assistant. It can explain topics, help summarize notes, and provide real-time academic support directly in your group chats.",
-            "cost|how much|price|do i need to pay": "Nope! PeerLoom is completely free for students. We believe education should be accessible to everyone.",
-            "school|select my school|do i have to select my school": "No. PeerLoom is open to all students. You can join or create groups without selecting a specific school, making it easy to connect with learners worldwide.",
-            "difference|how is peerloom different|whatsapp|telegram": "Unlike general messaging apps, PeerLoom is built specifically for students. Study groups, AI integration, and academic-focused features make it a one-of-a-kind learning hub designed to enhance your educational experience.",
-            "invite|can i invite|add friends": "Yes! You can add friends easily and create your own study groups with them inside PeerLoom. Collaboration is at the heart of what we do.",
-            "features|what can i do|capabilities": "With PeerLoom, you can create study groups, chat with classmates, use PeerPal AI for academic support, share resources, and collaborate on learning materials - all in one place!",
-            "help|support|problem": "If you're having trouble with PeerLoom, you can email our support team at peerloomonline@gmail.com. We typically respond within 24 hours.",
-            "contact|email|mail": "You can reach us at peerloomonline@gmail.com for any questions or support.",
-            "hello|hi|hey": "Hello! I'm PeerPal, your learning assistant. How can I help you learn better today?",
-            "thank|thanks": "You're welcome! Is there anything else I can help you with?",
-            "study groups|create group|join group": "You can create or join study groups based on subjects or topics. Just navigate to the 'Groups' section in the app to get started!",
-            "how to use|getting started|tutorial": "To get started with PeerLoom, simply create an account, then you can join existing study groups or create your own. Use the chat feature to communicate and don't forget to try PeerPal AI for academic help!"
-        };
-        
-        // Get AI response function
-        function getAIResponse() {
-            const input = document.getElementById('userInput').value.trim();
-            if (!input) return;
-          
-            const inputElement = document.getElementById('userInput');
-            const chatMessages = document.getElementById('chatMessages');
-          
-            // Add user message to chat
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user-message';
-            userMessage.textContent = input;
-            chatMessages.appendChild(userMessage);
-          
-            // Clear input
-            inputElement.value = '';
-          
-            // Find appropriate response
-            const lowerInput = input.toLowerCase();
-            let response = "I'm not sure I understand. Try asking about PeerLoom features, PeerPal AI, study groups, or how to get started!";
-          
-            for (const [keys, value] of Object.entries(assistantResponses)) {
-                const keywords = keys.split('|');
-                if (keywords.some(keyword => lowerInput.includes(keyword))) {
-                    response = value;
-                    break;
-                }
-            }
-          
-            // Add AI response to chat after a short delay
-            setTimeout(() => {
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'message ai-message';
-                aiMessage.textContent = response;
-                chatMessages.appendChild(aiMessage);
-              
-                // Scroll to bottom of chat
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }, 500);
-        }
-        
-        // Handle Enter key press
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                getAIResponse();
-            }
-        }
-        
-        // Voice input function
-        function startVoiceInput() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                recognition.lang = 'en-US';
-                recognition.interimResults = false;
-                recognition.maxAlternatives = 1;
-                recognition.onresult = (event) => {
-                    const speechResult = event.results[0][0].transcript;
-                    document.getElementById('userInput').value = speechResult;
-                    getAIResponse();
-                };
-                recognition.onerror = (event) => {
-                    console.error('Speech recognition error:', event.error);
-                    addAIMessage("Sorry, I couldn't understand your voice input. Please try typing your question.");
-                };
-                recognition.start();
-            } else {
-                addAIMessage("Voice input is not supported in your browser. Please type your question.");
-            }
-        }
-        
-        // Helper function to add AI messages
-        function addAIMessage(message) {
-            const chatMessages = document.getElementById('chatMessages');
-            const aiMessage = document.createElement('div');
-            aiMessage.className = 'message ai-message';
-            aiMessage.textContent = message;
-            chatMessages.appendChild(aiMessage);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        // Initialize event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Chat input event listeners
-            const userInput = document.getElementById('userInput');
-            const sendButton = document.getElementById('sendButton');
-            const voiceButton = document.getElementById('voiceButton');
-          
-            userInput.addEventListener('keypress', handleKeyPress);
-            sendButton.addEventListener('click', getAIResponse);
-            voiceButton.addEventListener('click', startVoiceInput);
-          
-            // Make sure the input field is focusable and typeable
-            userInput.focus();
-          
-            // iOS-style button interactions
-            const iosButtons = document.querySelectorAll('.ios-button');
-            iosButtons.forEach(button => {
-                // Touch interactions
-                button.addEventListener('touchstart', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                });
-              
-                button.addEventListener('touchend', function() {
-                    this.style.transform = '';
-                    this.style.boxShadow = '';
-                });
-              
-                // Mouse interactions
-                button.addEventListener('mousedown', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                });
-              
-                button.addEventListener('mouseup', function() {
-                    this.style.transform = '';
-                    this.style.boxShadow = '';
-                });
-              
-                button.addEventListener('mouseleave', function() {
-                    this.style.transform = '';
-                    this.style.boxShadow = '';
-                });
-            });
-        });
-    </script>
+  <header class="hero">
+    <div class="wrap">
+      <span class="eyebrow"><i class="fa-solid fa-graduation-cap"></i> About Peerloom</span>
+      <h1>Built by students who were tired of losing good study conversations in group-chat chaos.</h1>
+      <p class="lead">Peerloom turns WhatsApp-style study groups into structured academic spaces — course-organized discussions, quizzes with real integrity monitoring, shared resources, and an AI study partner, all in one place.</p>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap story-grid">
+      <div>
+        <span class="kicker">Our story</span>
+        <p>Peerloom started with a simple, familiar frustration: every course had a WhatsApp group, and every WhatsApp group eventually turned into a wall of memes, forwarded messages, and a single pinned PDF nobody could find again the night before an exam.</p>
+        <p>Lecturers weren't much better served. Sharing a quiz meant a Google Form with no real way to know if a student had three tabs open next to it, and grading meant scrolling through a spreadsheet export with no context on <em>where</em> students were actually struggling.</p>
+        <p>We built Peerloom to close that gap — a platform that treats a course group as more than a chat thread: it's quizzes with genuine integrity monitoring, resources that stay organized by course, results a lecturer can actually act on, and an AI assistant that understands the difference between a casual question and an exam-week emergency.</p>
+        <p><strong>The result is a platform students actually want to use, and lecturers can actually rely on.</strong></p>
+      </div>
+      <div class="pull-stats">
+        <div class="pull-stat"><div class="num">One place</div><div class="lbl">for chat, quizzes, resources, and results — instead of five disconnected tools</div></div>
+        <div class="pull-stat"><div class="num">Built-in</div><div class="lbl">quiz integrity monitoring, not a bolted-on add-on</div></div>
+        <div class="pull-stat"><div class="num">Course-first</div><div class="lbl">design, so every conversation lives inside the right group and module</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="kicker">What we're building</span>
+        <h2>Three pillars, one platform</h2>
+        <p>Everything on Peerloom is designed around how academic groups actually work — together, not in silos.</p>
+      </div>
+      <div class="pillars">
+        <div class="pillar">
+          <div class="icn"><i class="fa-solid fa-users"></i></div>
+          <h3>Structured collaboration</h3>
+          <p>Groups organized by course and cohort, with chat, resources, and announcements that stay where students expect to find them — not buried in scrollback.</p>
+        </div>
+        <div class="pillar">
+          <div class="icn"><i class="fa-solid fa-shield-halved"></i></div>
+          <h3>Assessment you can trust</h3>
+          <p>Quizzes with attempt limits, deadlines, and an integrity log that tracks tab switches and copy/paste activity, so results mean what they say.</p>
+        </div>
+        <div class="pillar">
+          <div class="icn"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <h3>AI that's actually useful</h3>
+          <p>PeerPal AI helps explain concepts and prepare for exams inside the same space students already study in, instead of another app to context-switch to.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="founders-band">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="kicker">Leadership</span>
+        <h2>Founded by people who lived the problem</h2>
+        <p>Peerloom is built by Peerloom Technologies Limited, led by:</p>
+      </div>
+      <div class="founders-grid">
+        <div class="founder-card">
+          <div class="founder-top">
+            <div class="founder-avatar">CA</div>
+            <div>
+              <div class="founder-name">Mr. Charles K.O Atta</div>
+              <div class="founder-role">Founder &amp; CEO</div>
+            </div>
+          </div>
+          <p>Charles founded Peerloom to fix a problem he ran into constantly as a student: academic conversations scattered across chat apps never built for coursework. He leads product direction and the company's long-term vision, with a focus on building tools that hold up under real classroom conditions — not just demo conditions.</p>
+        </div>
+        <div class="founder-card">
+          <div class="founder-top">
+            <div class="founder-avatar">PA</div>
+            <div>
+              <div class="founder-name">Mr. Phillip Amezuweh</div>
+              <div class="founder-role">Co-founder</div>
+            </div>
+          </div>
+          <p>Phillip co-founded Peerloom and helps shape how the platform is built and operated day to day, working closely on the experience students and lecturers rely on every term — from onboarding a new class to getting a quiz live in minutes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">What we believe</span>
+        <h2>The principles behind every decision</h2>
+      </div>
+      <div class="values-list">
+        <div class="value-item"><span class="num">01</span><div><h4>Structure beats volume</h4><p>A well-organized group of ten messages beats a chaotic one of ten thousand. We design for findability first.</p></div></div>
+        <div class="value-item"><span class="num">02</span><div><h4>Integrity isn't optional</h4><p>An assessment tool that can't be trusted isn't useful to anyone. We treat academic integrity as core infrastructure, not a feature flag.</p></div></div>
+        <div class="value-item"><span class="num">03</span><div><h4>Built with real users</h4><p>Every feature on Peerloom exists because a student or lecturer described a real problem to us — not because it looked good on a roadmap.</p></div></div>
+        <div class="value-item"><span class="num">04</span><div><h4>Respect people's time</h4><p>Whether it's a lecturer grading a hundred submissions or a student prepping the night before an exam, we design to save minutes, not just add features.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="kicker">How it works</span>
+        <h2>From a course roster to a working quiz in minutes</h2>
+        <p>Peerloom is designed so a lecturer can go from "I need a group for this course" to a graded quiz without fighting the tool along the way.</p>
+      </div>
+      <div class="timeline">
+        <div class="tl-item">
+          <span class="tl-date">Step 1</span>
+          <h4>Create a course group</h4>
+          <p>A lecturer creates a group for a course or cohort, sets the institution and course code, and shares an invite — students join in seconds.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Step 2</span>
+          <h4>Organize the space</h4>
+          <p>Chat, shared resources, and announcements live in that same group — no separate folders, no separate app for "the important stuff."</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Step 3</span>
+          <h4>Publish a quiz</h4>
+          <p>Build multiple-choice, short-answer, or mixed quizzes with deadlines and attempt limits, and assign them to one or more groups at once.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Step 4</span>
+          <h4>Students take it, honestly</h4>
+          <p>While the quiz is open, Peerloom quietly logs tab switches, copies, and pastes tied to that attempt — visible only to that quiz's lecturer.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Step 5</span>
+          <h4>Grade and release results</h4>
+          <p>Lecturers grade short-answer and essay responses directly against each submission, then choose whether students can review their graded answers afterward.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="kicker">Who it's for</span>
+        <h2>Two very different jobs, one shared space</h2>
+      </div>
+      <div class="pillars">
+        <div class="pillar">
+          <div class="icn"><i class="fa-solid fa-user-graduate"></i></div>
+          <h3>For students</h3>
+          <p>One place to find your course group, catch up on announcements, grab shared resources, take quizzes, and ask PeerPal AI a question at 2am before an exam.</p>
+        </div>
+        <div class="pillar">
+          <div class="icn"><i class="fa-solid fa-chalkboard-user"></i></div>
+          <h3>For lecturers</h3>
+          <p>Publish quizzes with real deadlines and attempt limits, see an integrity log per attempt, grade submissions in context, and export results as a proper report.</p>
+        </div>
+        <div class="pillar">
+          <div class="icn"><i class="fa-solid fa-building-columns"></i></div>
+          <h3>For institutions</h3>
+          <p>A platform that keeps academic activity organized by course and campus, instead of scattered across personal chat apps with no institutional visibility.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="kicker">FAQ</span>
+        <h2>Common questions</h2>
+      </div>
+      <div class="values-list">
+        <div class="value-item"><span class="num">Q</span><div><h4>Is Peerloom free to use?</h4><p>Yes — creating an account, joining groups, and using core features is free. There's no payment step in the product today.</p></div></div>
+        <div class="value-item"><span class="num">Q</span><div><h4>Does Peerloom replace my institution's LMS?</h4><p>No. Peerloom is built for the day-to-day collaboration and lightweight assessment layer — group chat, resources, and quizzes — alongside whatever official LMS your institution already uses.</p></div></div>
+        <div class="value-item"><span class="num">Q</span><div><h4>What does the integrity log actually track?</h4><p>Only tab switches, copy actions, and paste actions during an active quiz attempt — never your camera, microphone, screen, or activity outside the quiz. See our <a href="privacy.html#quiz-integrity">Privacy Policy</a> for specifics.</p></div></div>
+        <div class="value-item"><span class="num">Q</span><div><h4>Can students see their answers after a quiz?</h4><p>Only if the lecturer explicitly turns on review for that quiz, and only once grading is complete — it's entirely the lecturer's decision, per quiz.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap story-grid">
+      <div>
+        <span class="kicker">Where we're headed</span>
+        <p>Peerloom today covers the core of academic group life — chat, resources, quizzes, and results. We're actively building toward richer analytics for lecturers, deeper AI-assisted study tools for students, and institution-level administration for schools running Peerloom across many courses at once.</p>
+        <p>We ship in response to what real students and lecturers tell us is missing — if there's something you wish Peerloom did, <a href="mailto:peerloomonline@gmail.com">we want to hear it</a>.</p>
+      </div>
+      <div class="pull-stats">
+        <div class="pull-stat"><div class="num">Shipping often</div><div class="lbl">features go out as they're ready, not on a fixed quarterly cycle</div></div>
+        <div class="pull-stat"><div class="num">User-driven</div><div class="lbl">roadmap shaped directly by lecturer and student feedback</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="cta-band">
+        <h2>Bring your course onto Peerloom</h2>
+        <p>Whether you're a lecturer running a module or a student organizing your cohort, Peerloom gives your group room to actually work.</p>
+        <div class="cta-buttons">
+          <a href="signup.html" class="btn btn-light">Create a free account</a>
+          <a href="mailto:peerloomonline@gmail.com" class="btn btn-outline">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+        <a href="mailto:peerloomonline@gmail.com">Contact Us</a>
+      </div>
+      <div class="footer-social">
+        <a href="https://www.instagram.com/peerloom_official/" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+      </div>
+      <p class="copyright">© 2026 Peerloom Technologies Limited. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('topnav').classList.toggle('open');
+    });
+  </script>
 </body>
 </html>

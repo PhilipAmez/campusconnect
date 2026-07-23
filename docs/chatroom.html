@@ -225,7 +225,12 @@
   </div>
   <script type="module">
     import { supabase } from './js/supabaseClient.js';
-    
+    import { mountAnnouncementBanner } from './js/announcement-banner.js';
+    import { loadResourceCard } from './js/resource-card.js';
+    import { initGlobalTheme } from './js/themeManager.js';
+
+    await initGlobalTheme({ supabase });
+
     const session = await supabase.auth.getSession();
     const _gidParam = new URLSearchParams(window.location.search).get('groupId');
 
@@ -266,6 +271,11 @@
       recordingSeconds: 0,
       userRole: 'member',
       isPublic: false,
+      isFrozen: false,
+      allowedMediaTypes: null,
+      messageRateLimit: 0,
+      inviteCode: null,
+      lastMessageSentAt: 0,
       groupInfo: {},
       memberDetails: [],
       isMember: false,
@@ -665,7 +675,7 @@
       try {
         const { data: grp, error: grpError } = await supabase
           .from('groups')
-          .select('name, description, created_by, is_public, course_code')
+          .select('name, description, created_by, is_public, course_code, is_frozen, allowed_media_types, message_rate_limit, invite_code')
           .eq('id', gid)
           .single();
         
@@ -674,6 +684,13 @@
         state.groupInfo = grp;
         state.groupCreatorId = grp.created_by;
         state.isPublic = grp.is_public || false;
+        state.isFrozen = grp.is_frozen || false;
+        state.allowedMediaTypes = grp.allowed_media_types || null;
+        state.messageRateLimit = grp.message_rate_limit || 0;
+        state.inviteCode = grp.invite_code || null;
+        state.lastMessageSentAt = 0;
+
+        updateFrozenBanner();
         
         elements.groupTitle.innerHTML = `<span>${grp.name}</span><br><small style="font-size: 0.8rem; opacity: 0.7; font-style: italic;">${grp.description || ''}</small>`;
         
@@ -871,6 +888,12 @@
       } else if (m.message_type === 'poll') {
         ct.innerHTML = '<p>Loading poll...</p>';
         loadPollData(m, ct);
+      } else if (m.message_type === 'resource') {
+        ct.innerHTML = '<p>Loading resource...</p>';
+        loadResourceCard(m, ct, { supabase, user }).catch((err) => {
+          console.error('Failed to render resource card:', err);
+          ct.innerHTML = '<p>Could not load this resource.</p>';
+        });
       } else {
         ct.innerHTML = processMentions(m.content);
       }
@@ -1524,9 +1547,39 @@
       });
     }
     
+    function updateFrozenBanner() {
+      let banner = document.getElementById('frozenChatBanner');
+      if (state.isFrozen) {
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'frozenChatBanner';
+          banner.style.cssText = 'display:flex; align-items:center; gap:8px; padding:10px 16px; background:rgba(255,149,0,0.12); color:var(--ios-warning); font-size:13px; font-weight:600;';
+          banner.innerHTML = '<i class="fas fa-snowflake"></i> This chat has been frozen by an admin — only admins can send messages.';
+          const inputArea = document.querySelector('.chat-input-area');
+          inputArea?.parentElement?.insertBefore(banner, inputArea);
+        }
+      } else if (banner) {
+        banner.remove();
+      }
+    }
+
     async function sendMessage() {
       const text = elements.messageBar.value.trim();
       if (!text) return;
+
+      if (state.isFrozen && state.userRole !== 'admin') {
+        showError('This chat is currently frozen by an admin. New messages are paused.');
+        return;
+      }
+
+      if (state.messageRateLimit > 0 && state.userRole !== 'admin') {
+        const secondsSinceLast = (Date.now() - state.lastMessageSentAt) / 1000;
+        if (secondsSinceLast < state.messageRateLimit) {
+          const wait = Math.ceil(state.messageRateLimit - secondsSinceLast);
+          showError(`Please wait ${wait}s before sending another message.`);
+          return;
+        }
+      }
       
       if (state.typingTimeout) {
         clearTimeout(state.typingTimeout);
@@ -1571,6 +1624,7 @@
         if (error) throw error;
         
         render(data);
+        state.lastMessageSentAt = Date.now();
         
         elements.messageBar.value = '';
         elements.messageBar.style.height = 'auto';
@@ -2156,6 +2210,22 @@
     
     async function handleFileUpload(file) {
       if (!file) return;
+
+      if (state.isFrozen && state.userRole !== 'admin') {
+        showError('This chat is currently frozen by an admin.');
+        return;
+      }
+
+      if (state.allowedMediaTypes && state.allowedMediaTypes.length > 0 && state.userRole !== 'admin') {
+        const category = file.type.startsWith('image/') ? 'image'
+          : file.type.startsWith('video/') ? 'video'
+          : file.type.startsWith('audio/') ? 'audio'
+          : 'file';
+        if (!state.allowedMediaTypes.includes(category)) {
+          showError(`${category.charAt(0).toUpperCase() + category.slice(1)} attachments aren't allowed in this chat.`);
+          return;
+        }
+      }
 
       const senderName = (user.user_metadata?.firstName || user.user_metadata?.full_name || 'User').trim() || 'User';
       
@@ -3078,9 +3148,28 @@
 
         case 'code':
           elements.adminModal.classList.remove('visible');
-          const inviteUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
-          elements.shareGroupInput.value = inviteUrl;
-          elements.shareGroupModal.classList.add('visible');
+          (async () => {
+            let code = state.inviteCode;
+            if (!code) {
+              code = generateChatInviteCode();
+              try {
+                await supabase.from('groups').update({ invite_code: code }).eq('id', gid);
+                state.inviteCode = code;
+              } catch (err) {
+                console.error('Failed to generate invite code:', err);
+              }
+            }
+            const inviteUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
+            elements.shareGroupInput.value = state.isPublic ? inviteUrl : code;
+            elements.shareGroupModal.classList.add('visible');
+            showAdminInfoModal(
+              'Group Invite Code',
+              `<p style="padding:0.5rem 0 0.25rem;opacity:0.8">${state.isPublic
+                ? 'This group is public — anyone with the link above can join directly.'
+                : `This group is private. Students need this 6-character code to join:`}</p>
+              ${state.isPublic ? '' : `<p style="font-size:28px; font-weight:800; letter-spacing:0.15em; text-align:center; margin:0.75rem 0;">${code}</p>`}`
+            );
+          })();
           break;
 
         case 'schedule':
@@ -3154,7 +3243,25 @@
 
         case 'freeze':
           elements.adminModal.classList.remove('visible');
-          showAdminInfoModal('Freeze Chat', '<p style="padding:0.5rem 0;opacity:0.8">Chat freeze requires an <code>is_frozen</code> column on the groups table. Contact your database admin to enable this feature.</p>');
+          showAdminConfirmModal(
+            state.isFrozen ? 'Unfreeze Chat' : 'Freeze Chat',
+            state.isFrozen
+              ? 'Members will be able to send messages again.'
+              : 'This pauses new messages from everyone except admins, until unfrozen.',
+            state.isFrozen ? 'Unfreeze' : 'Freeze',
+            async () => {
+              try {
+                const nextFrozen = !state.isFrozen;
+                const { error } = await supabase.from('groups').update({ is_frozen: nextFrozen }).eq('id', gid);
+                if (error) throw error;
+                state.isFrozen = nextFrozen;
+                updateFrozenBanner();
+                showSuccess(nextFrozen ? 'Chat frozen.' : 'Chat unfrozen.');
+              } catch (error) {
+                showError('Error updating freeze state: ' + error.message);
+              }
+            }
+          );
           break;
 
         case 'reactions':
@@ -3164,12 +3271,12 @@
 
         case 'media':
           elements.adminModal.classList.remove('visible');
-          showAdminInfoModal('Restrict Media Types', '<p style="padding:0.5rem 0;opacity:0.8">Media restrictions require an <code>allowed_media</code> column on the groups table. Contact your database admin to enable this feature.</p>');
+          showMediaRestrictionsModal();
           break;
 
         case 'frequency':
           elements.adminModal.classList.remove('visible');
-          showAdminInfoModal('Limit Message Frequency', '<p style="padding:0.5rem 0;opacity:0.8">Message frequency limits require a rate-limit column on group_members. Contact your database admin to enable this feature.</p>');
+          showFrequencyLimitModal();
           break;
 
         case 'reports':
@@ -3532,7 +3639,101 @@
       
       btn.closest('.modal-backdrop').remove();
     };
-    
+
+    function generateChatInviteCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      return code;
+    }
+
+    const MEDIA_TYPE_OPTIONS = [
+      { value: 'image', label: 'Images' },
+      { value: 'video', label: 'Video' },
+      { value: 'audio', label: 'Voice / Audio' },
+      { value: 'file', label: 'Files & Documents' }
+    ];
+
+    function showMediaRestrictionsModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+
+      const allowed = state.allowedMediaTypes; // null/empty = everything allowed
+
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">Restrict Media Types</div>
+          </div>
+          <p style="opacity:0.7; font-size:13px; margin-bottom:0.75rem;">Uncheck a type to stop members from sending it in this chat.</p>
+          ${MEDIA_TYPE_OPTIONS.map(opt => `
+            <label style="display:block; margin-bottom:0.6rem;">
+              <input type="checkbox" class="media-type-checkbox" value="${opt.value}" ${(!allowed || allowed.length === 0 || allowed.includes(opt.value)) ? 'checked' : ''}>
+              ${opt.label}
+            </label>
+          `).join('')}
+          <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="this.closest('.modal-backdrop').remove()">Cancel</button>
+            <button class="modal-btn confirm" onclick="updateMediaRestrictions(this)">Save</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+    }
+
+    window.updateMediaRestrictions = async function(btn) {
+      const checked = Array.from(document.querySelectorAll('.media-type-checkbox:checked')).map(c => c.value);
+      const allTypes = MEDIA_TYPE_OPTIONS.map(o => o.value);
+      const valueToSave = checked.length === allTypes.length ? null : checked;
+
+      try {
+        const { error } = await supabase.from('groups').update({ allowed_media_types: valueToSave }).eq('id', gid);
+        if (error) throw error;
+        state.allowedMediaTypes = valueToSave;
+        showSuccess('Media restrictions updated.');
+      } catch (error) {
+        showError('Error: ' + error.message);
+      }
+      btn.closest('.modal-backdrop').remove();
+    };
+
+    function showFrequencyLimitModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal-backdrop visible';
+      modal.style.zIndex = '2500';
+
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">Limit Message Frequency</div>
+          </div>
+          <p style="opacity:0.7; font-size:13px; margin-bottom:0.75rem;">Minimum seconds a member must wait between messages. Set to 0 to remove the limit. Admins are never limited.</p>
+          <input type="number" id="frequencyLimitInput" min="0" max="300" value="${state.messageRateLimit || 0}" style="width:100%; padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,0.12); font-size:16px;">
+          <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="this.closest('.modal-backdrop').remove()">Cancel</button>
+            <button class="modal-btn confirm" onclick="updateFrequencyLimit(this)">Save</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+    }
+
+    window.updateFrequencyLimit = async function(btn) {
+      const value = Math.max(0, parseInt(document.getElementById('frequencyLimitInput').value, 10) || 0);
+      try {
+        const { error } = await supabase.from('groups').update({ message_rate_limit: value }).eq('id', gid);
+        if (error) throw error;
+        state.messageRateLimit = value;
+        showSuccess(value > 0 ? `Members must now wait ${value}s between messages.` : 'Message frequency limit removed.');
+      } catch (error) {
+        showError('Error: ' + error.message);
+      }
+      btn.closest('.modal-backdrop').remove();
+    };
+
     async function exportChat() {
       try {
         const { data: messages, error } = await supabase
@@ -3633,7 +3834,11 @@
     
     window.downloadWithAnimation = downloadWithAnimation;
     window.formatFileSize = formatFileSize;
-    
+
+    mountAnnouncementBanner({ supabase, groupId: gid, user }).catch((err) => {
+      console.error('Failed to mount announcement banner:', err);
+    });
+
     initialize();
   </script>
 </body>

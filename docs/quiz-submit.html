@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Submitted - PeerLoom</title>
+<link rel="stylesheet" href="quiz-session.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    #completedScreen {
+        min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: var(--space-md); text-align: center; padding: var(--space-lg);
+    }
+    .completed-card {
+        background: var(--liquid-glass);
+        backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border); border-radius: var(--radius-xl);
+        padding: var(--space-2xl) var(--space-xl); max-width: 440px;
+        animation: pop .45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        position: relative; overflow: hidden;
+    }
+    .completed-card::before {
+        content: ''; position: absolute; top: -30%; left: -10%; width: 240px; height: 240px;
+        background: radial-gradient(circle, var(--purple-glow) 0%, transparent 70%);
+        animation: shimmerGlow 3s ease-in-out infinite;
+    }
+    @keyframes shimmerGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    .completed-icon {
+        width: 74px; height: 74px; border-radius: 50%; margin: 0 auto var(--space-md);
+        display: flex; align-items: center; justify-content: center; font-size: 34px;
+        background: linear-gradient(135deg, var(--success), #28a745); color: #fff;
+        box-shadow: 0 8px 24px rgba(52,199,89,0.4);
+        animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+    }
+    .completed-card h2 { font-size: 23px; margin-bottom: 6px; }
+    .completed-card .quiz-name { color: var(--purple-border); font-weight: 700; }
+    .completed-meta-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: var(--space-lg) 0; text-align: left;
+    }
+    .completed-meta-item {
+        background: rgba(138,43,226,0.06); border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+        padding: 10px 12px;
+    }
+    .completed-meta-item .cm-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+    .completed-meta-item .cm-value { font-size: 14px; font-weight: 700; }
+    .awaiting-pill {
+        display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-full);
+        background: rgba(255,149,0,0.12); color: var(--warning); font-weight: 700; font-size: 13px; margin-bottom: var(--space-lg);
+    }
+    .completed-actions { display: flex; flex-direction: column; gap: 10px; }
+    .return-btn {
+        padding: 13px 24px; border: none; border-radius: var(--radius-full);
+        background: linear-gradient(135deg, var(--purple-border), var(--accent));
+        color: #fff; font-weight: 700; cursor: pointer; transition: all var(--transition-fast);
+    }
+    .return-btn:hover { box-shadow: 0 8px 24px var(--purple-glow); transform: translateY(-2px); }
+    .return-btn:active { transform: scale(0.98); }
+    .return-btn.secondary {
+        background: rgba(0,0,0,0.05); color: var(--text-primary); box-shadow: none;
+    }
+    [data-theme="dark"] .return-btn.secondary { background: rgba(255,255,255,0.08); }
+    .return-btn.secondary:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body data-theme="light">
+
+    <section id="loadingScreen">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading your submission&hellip;</p>
+    </section>
+
+    <section id="completedScreen" class="hidden">
+        <div class="completed-card">
+            <div class="completed-icon"><i class="fas fa-check"></i></div>
+            <h2>Quiz Submitted</h2>
+            <p><span class="quiz-name" id="quizNameText">Your quiz</span> has been submitted successfully.</p>
+
+            <div class="completed-meta-grid">
+                <div class="completed-meta-item">
+                    <div class="cm-label">Submission Time</div>
+                    <div class="cm-value" id="submissionTimeText">—</div>
+                </div>
+                <div class="completed-meta-item">
+                    <div class="cm-label">Attempt Number</div>
+                    <div class="cm-value" id="attemptNumberText">—</div>
+                </div>
+            </div>
+
+            <div class="awaiting-pill"><i class="fas fa-hourglass-half"></i> Awaiting Lecturer Review</div>
+
+            <div class="completed-actions">
+                <button class="return-btn" id="returnGroupBtn">Return to Active Groups</button>
+                <button class="return-btn secondary" id="returnQuizzesBtn">Return to Quiz List</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="errorScreen" class="hidden">
+        <div class="denied-card animate-fade-in">
+            <div class="denied-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <h2>Couldn't load this submission</h2>
+            <p id="errorMessage">We couldn't find that quiz attempt.</p>
+            <button class="return-btn" id="errorReturnBtn">Back to Active Groups</button>
+        </div>
+    </section>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+        import { getCurrentUserContext } from './js/campusDiscovery.js';
+        import { initGlobalTheme } from './js/themeManager.js';
+
+        const params = new URLSearchParams(window.location.search);
+        const attemptId = params.get('attempt');
+        const groupId = params.get('group');
+
+        const loadingScreen = document.getElementById('loadingScreen');
+        const completedScreen = document.getElementById('completedScreen');
+        const errorScreen = document.getElementById('errorScreen');
+
+        function showError(message) {
+            loadingScreen.classList.add('hidden');
+            completedScreen.classList.add('hidden');
+            document.getElementById('errorMessage').textContent = message;
+            errorScreen.classList.remove('hidden');
+            document.getElementById('errorReturnBtn').addEventListener('click', () => {
+                window.location.replace(groupId ? `group-quizzes.html?group=${encodeURIComponent(groupId)}` : 'active-groups.html');
+            });
+        }
+
+        async function init() {
+            await initGlobalTheme({ supabase });
+
+            if (!attemptId) return showError("No submission was specified.");
+
+            const { user } = await getCurrentUserContext(supabase, { force: true });
+            if (!user) { window.location.href = 'login.html'; return; }
+
+            const { data: attempt, error } = await supabase
+                .from('quiz_attempts')
+                .select('id, quiz_id, group_id, attempt_number, submitted_at, student_id')
+                .eq('id', attemptId)
+                .maybeSingle();
+
+            if (error || !attempt || attempt.student_id !== user.id) {
+                return showError("We couldn't find that quiz attempt, or it doesn't belong to your account.");
+            }
+
+            const { data: quiz } = await supabase.from('quizzes').select('title').eq('id', attempt.quiz_id).maybeSingle();
+
+            document.getElementById('quizNameText').textContent = quiz?.title || 'Your quiz';
+            document.getElementById('submissionTimeText').textContent = attempt.submitted_at
+                ? new Date(attempt.submitted_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                : '—';
+            document.getElementById('attemptNumberText').textContent = `#${attempt.attempt_number || 1}`;
+
+            const resolvedGroupId = groupId || attempt.group_id || '';
+            document.getElementById('returnGroupBtn').addEventListener('click', () => {
+                window.location.replace('active-groups.html');
+            });
+            document.getElementById('returnQuizzesBtn').addEventListener('click', () => {
+                window.location.replace(resolvedGroupId ? `group-quizzes.html?group=${encodeURIComponent(resolvedGroupId)}` : 'active-groups.html');
+            });
+
+            loadingScreen.classList.add('hidden');
+            completedScreen.classList.remove('hidden');
+        }
+
+        init().catch(err => {
+            console.error('Failed to load submission confirmation:', err);
+            showError('Something went wrong loading your submission.');
+        });
+    </script>
+  <script src="js/site-footer.js"></script>
+</body>
+</html>

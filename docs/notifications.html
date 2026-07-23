@@ -559,6 +559,7 @@
           <div class="tab" data-tab="new_follower">Followers</div>
           <div class="tab" data-tab="new_post">Posts</div>
           <div class="tab" data-tab="new_comment">Comments</div>
+          <div class="tab" data-tab="academic">Academic</div>
           <div class="pill" id="pill"></div>
         </div>
       </div>
@@ -799,6 +800,7 @@
             seen_at,
             created_at,
             post_id,
+            origin,
             sender_id,
             sender:profiles!notifications_sender_id_fkey(id, full_name, username, profile_photo)
           `)
@@ -806,7 +808,9 @@
           .order('created_at', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
 
-        if (activeTab !== 'all') {
+        if (activeTab === 'academic') {
+          query = query.in('type', ['new_quiz', 'new_announcement', 'new_resource', 'grade_published', 'integrity_event']);
+        } else if (activeTab !== 'all') {
           query = query.eq('type', activeTab);
         }
 
@@ -849,6 +853,11 @@
         new_comment:       '💬',
         new_group_message: '💬',
         comment:           '💬',
+        new_quiz:          '📝',
+        new_announcement:  '📢',
+        new_resource:      '📚',
+        grade_published:   '✅',
+        integrity_event:   '🛡️',
         default:           '🔔',
       };
       return map[type] || map.default;
@@ -896,19 +905,42 @@
        MARK ONE AS READ
     ───────────────────────────────────────────────────── */
     async function markOneRead(notif) {
-      if (notif.seen_at) return; // already read
-      const ts = new Date().toISOString();
-      const { error } = await supabase
-        .from('notifications')
-        .update({ seen_at: ts })
-        .eq('id', notif.id)
-        .eq('user_id', currentUser.id);
+      if (!notif.seen_at) {
+        const ts = new Date().toISOString();
+        const { error } = await supabase
+          .from('notifications')
+          .update({ seen_at: ts })
+          .eq('id', notif.id)
+          .eq('user_id', currentUser.id);
 
-      if (error) { console.error('Error marking notification read:', error); return; }
+        if (error) { console.error('Error marking notification read:', error); return; }
 
-      notif.seen_at = ts;
-      renderList();
-      updateBadge();
+        notif.seen_at = ts;
+        renderList();
+        updateBadge();
+      }
+
+      await navigateForNotification(notif);
+    }
+
+    async function navigateForNotification(notif) {
+      try {
+        if (notif.origin === 'quiz' && notif.post_id) {
+          const { data: link } = await supabase.from('quiz_groups').select('group_id').eq('quiz_id', notif.post_id).maybeSingle();
+          window.location.href = `quiz-session.html?quiz_id=${encodeURIComponent(notif.post_id)}${link?.group_id ? `&group=${encodeURIComponent(link.group_id)}` : ''}`;
+        } else if (notif.origin === 'resource' && notif.post_id) {
+          const { data: resource } = await supabase.from('resources').select('group_id').eq('id', notif.post_id).maybeSingle();
+          if (resource?.group_id) window.location.href = `group-resources.html?group=${encodeURIComponent(resource.group_id)}`;
+        } else if (notif.origin === 'announcement' && notif.post_id) {
+          const { data: announcement } = await supabase.from('announcements').select('group_id').eq('id', notif.post_id).maybeSingle();
+          if (announcement?.group_id) window.location.href = `chatroom.html?group=${encodeURIComponent(announcement.group_id)}`;
+        } else if (notif.origin === 'grade' && notif.post_id) {
+          const { data: attempt } = await supabase.from('quiz_attempts').select('group_id').eq('id', notif.post_id).maybeSingle();
+          if (attempt?.group_id) window.location.href = `group-quizzes.html?group=${encodeURIComponent(attempt.group_id)}`;
+        }
+      } catch (err) {
+        console.error('Failed to navigate for notification:', err);
+      }
     }
 
     /* ─────────────────────────────────────────────────────

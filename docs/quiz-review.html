@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review Quiz - Peerloom</title>
+<link rel="stylesheet" href="quiz-session.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    #reviewScreen { max-width: 760px; margin: 0 auto; padding: var(--space-lg) var(--space-md) 80px; }
+    .review-header {
+        background: var(--liquid-glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border); border-radius: var(--radius-xl);
+        padding: var(--space-lg); margin-bottom: var(--space-lg);
+    }
+    .review-header .rh-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
+    .review-header h1 { font-size: 20px; margin-bottom: 4px; }
+    .review-header .rh-meta { color: var(--text-secondary); font-size: 13px; }
+    .review-badge {
+        display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-full);
+        background: rgba(138,43,226,0.1); color: var(--purple-border); font-weight: 700; font-size: 12px;
+    }
+    .rh-score { text-align: right; }
+    .rh-score .num { font-size: 28px; font-weight: 800; color: var(--purple-border); }
+    .rh-score .lbl { font-size: 12px; color: var(--text-secondary); }
+
+    .review-question {
+        background: var(--liquid-glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+        padding: var(--space-lg); margin-bottom: var(--space-md);
+    }
+    .rq-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-sm); }
+    .rq-number { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; margin-bottom: 4px; }
+    .rq-prompt { font-size: 15px; font-weight: 600; }
+    .rq-points { flex-shrink: 0; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: var(--radius-full); white-space: nowrap; }
+    .rq-points.full { background: rgba(52,199,89,0.12); color: var(--success); }
+    .rq-points.partial { background: rgba(255,149,0,0.12); color: var(--warning); }
+    .rq-points.none { background: rgba(255,59,48,0.1); color: var(--danger); }
+    .rq-points.ungraded { background: rgba(138,43,226,0.1); color: var(--purple-border); }
+
+    .mcq-option {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-md);
+        border: 1.5px solid var(--border); margin-bottom: 8px; font-size: 14px;
+    }
+    .mcq-option .opt-icon { width: 20px; text-align: center; flex-shrink: 0; }
+    .mcq-option.selected-correct { border-color: var(--success); background: rgba(52,199,89,0.08); }
+    .mcq-option.selected-wrong { border-color: var(--danger); background: rgba(255,59,48,0.06); }
+    .mcq-option.correct-unselected { border-color: var(--success); background: rgba(52,199,89,0.04); }
+    .mcq-option .tag { margin-left: auto; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+    .mcq-option.selected-correct .tag, .mcq-option.correct-unselected .tag { color: var(--success); }
+    .mcq-option.selected-wrong .tag { color: var(--danger); }
+
+    .answer-block {
+        background: rgba(138,43,226,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+        padding: 12px 14px; font-size: 14px; white-space: pre-wrap; margin-bottom: 8px;
+    }
+    .answer-block.empty { color: var(--text-tertiary); font-style: italic; }
+    .answer-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; margin-bottom: 4px; }
+    .feedback-block {
+        background: rgba(255,149,0,0.06); border: 1px solid rgba(255,149,0,0.2); border-radius: var(--radius-md);
+        padding: 10px 14px; font-size: 13.5px; margin-top: 6px;
+    }
+    .feedback-block .fb-label { font-weight: 700; color: var(--warning); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+
+    .review-actions { text-align: center; margin-top: var(--space-lg); }
+    .return-btn {
+        padding: 13px 24px; border: none; border-radius: var(--radius-full);
+        background: linear-gradient(135deg, var(--purple-border), var(--accent));
+        color: #fff; font-weight: 700; cursor: pointer; transition: all var(--transition-fast);
+    }
+    .return-btn:hover { box-shadow: 0 8px 24px var(--purple-glow); transform: translateY(-2px); }
+</style>
+</head>
+<body data-theme="light">
+
+    <section id="loadingScreen">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading your review&hellip;</p>
+    </section>
+
+    <section id="reviewScreen" class="hidden"></section>
+
+    <section id="errorScreen" class="hidden">
+        <div class="denied-card animate-fade-in">
+            <div class="denied-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <h2 id="errorTitle">Review not available</h2>
+            <p id="errorMessage">This quiz isn't available for review right now.</p>
+            <button class="return-btn" id="errorReturnBtn">Back to quizzes</button>
+        </div>
+    </section>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+        import { getCurrentUserContext } from './js/campusDiscovery.js';
+        import { initGlobalTheme } from './js/themeManager.js';
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const attemptId = params.get('attempt');
+        const groupId = params.get('group');
+        const backHref = groupId ? `group-quizzes.html?group=${encodeURIComponent(groupId)}` : 'active-groups.html';
+
+        const loadingScreen = document.getElementById('loadingScreen');
+        const reviewScreen = document.getElementById('reviewScreen');
+        const errorScreen = document.getElementById('errorScreen');
+
+        function showError(title, message) {
+            loadingScreen.classList.add('hidden');
+            reviewScreen.classList.add('hidden');
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorMessage').textContent = message;
+            errorScreen.classList.remove('hidden');
+            document.getElementById('errorReturnBtn').addEventListener('click', () => {
+                window.location.href = backHref;
+            });
+        }
+
+        function pointsClass(awarded, max) {
+            if (awarded == null) return 'ungraded';
+            if (awarded <= 0) return 'none';
+            if (awarded >= max) return 'full';
+            return 'partial';
+        }
+
+        function renderQuestion(q, answer, index) {
+            const maxPts = Number(q.points) || 0;
+            const awarded = answer?.points_awarded;
+            const pClass = pointsClass(awarded, maxPts);
+            const pLabel = awarded == null ? 'Not graded individually' : `${awarded}/${maxPts} pts`;
+
+            let body = '';
+            if (q.question_type === 'mcq' || q.question_type === 'multiple_choice') {
+                const options = Array.isArray(q.options) ? q.options : [];
+                const selected = answer?.selected_option;
+                const correct = q.correct_option;
+                body = options.map((opt, i) => {
+                    let cls = '';
+                    let tag = '';
+                    let icon = 'fa-regular fa-circle';
+                    if (i === selected && i === correct) { cls = 'selected-correct'; tag = 'Your answer · Correct'; icon = 'fa-solid fa-circle-check'; }
+                    else if (i === selected && i !== correct) { cls = 'selected-wrong'; tag = 'Your answer · Incorrect'; icon = 'fa-solid fa-circle-xmark'; }
+                    else if (i === correct) { cls = 'correct-unselected'; tag = 'Correct answer'; icon = 'fa-solid fa-circle-check'; }
+                    return `<div class="mcq-option ${cls}"><span class="opt-icon"><i class="${icon}"></i></span>${escapeHtml(opt)}${tag ? `<span class="tag">${tag}</span>` : ''}</div>`;
+                }).join('');
+            } else {
+                const text = answer?.answer_text;
+                body = `
+                    <div class="answer-label">Your answer</div>
+                    <div class="answer-block ${text ? '' : 'empty'}">${text ? escapeHtml(text) : 'No answer submitted'}</div>
+                    ${q.explanation ? `<div class="answer-label" style="margin-top:8px;">Model answer / explanation</div><div class="answer-block">${escapeHtml(q.explanation)}</div>` : ''}
+                `;
+            }
+
+            const feedback = answer?.feedback
+                ? `<div class="feedback-block"><div class="fb-label">Lecturer note</div>${escapeHtml(answer.feedback)}</div>`
+                : '';
+
+            return `
+                <article class="review-question">
+                    <div class="rq-top">
+                        <div>
+                            <div class="rq-number">Question ${index + 1}</div>
+                            <div class="rq-prompt">${escapeHtml(q.prompt)}</div>
+                        </div>
+                        <div class="rq-points ${pClass}">${pLabel}</div>
+                    </div>
+                    ${body}
+                    ${feedback}
+                </article>
+            `;
+        }
+
+        async function init() {
+            await initGlobalTheme({ supabase });
+
+            if (!attemptId) return showError('No attempt specified', "We couldn't tell which quiz attempt to review.");
+
+            const { user } = await getCurrentUserContext(supabase, { force: true });
+            if (!user) { window.location.href = 'login.html'; return; }
+
+            const { data: attempt, error: attemptError } = await supabase
+                .from('quiz_attempts')
+                .select('id, quiz_id, group_id, student_id, status, score, max_score, submitted_at')
+                .eq('id', attemptId)
+                .maybeSingle();
+
+            if (attemptError || !attempt || attempt.student_id !== user.id) {
+                return showError("Can't open this review", "We couldn't find that quiz attempt, or it doesn't belong to your account.");
+            }
+
+            const { data: quiz, error: quizError } = await supabase
+                .from('quizzes')
+                .select('id, title, allow_review')
+                .eq('id', attempt.quiz_id)
+                .maybeSingle();
+
+            if (quizError || !quiz) {
+                return showError("Can't open this review", "This quiz no longer exists.");
+            }
+
+            // Review is entirely the lecturer's call, and only unlocks once
+            // grading is actually finished — never for a merely-submitted attempt.
+            if (!quiz.allow_review) {
+                return showError('Review not enabled', "Your lecturer hasn't turned on answer review for this quiz.");
+            }
+            if (attempt.status !== 'graded') {
+                return showError('Not graded yet', "Your lecturer hasn't finished grading this attempt yet. Check back once grading is complete.");
+            }
+
+            const [{ data: questions }, { data: rawAnswers }] = await Promise.all([
+                supabase.from('quiz_questions').select('id, question_order, question_type, prompt, points, options, correct_option, explanation').eq('quiz_id', attempt.quiz_id).order('question_order', { ascending: true }),
+                supabase.from('quiz_answers').select('question_id, selected_option, answer_text, points_awarded, is_correct, feedback').eq('attempt_id', attempt.id)
+            ]);
+
+            const answersByQuestion = {};
+            (rawAnswers || []).forEach((a) => { answersByQuestion[a.question_id] = a; });
+
+            const maxScore = attempt.max_score ?? (questions || []).reduce((sum, q) => sum + (Number(q.points) || 0), 0);
+
+            reviewScreen.innerHTML = `
+                <div class="review-header">
+                    <div class="rh-top">
+                        <div>
+                            <span class="review-badge"><i class="fa-solid fa-lock"></i> Read-only review</span>
+                            <h1 style="margin-top:10px;">${escapeHtml(quiz.title || 'Quiz review')}</h1>
+                            <div class="rh-meta">Submitted ${attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</div>
+                        </div>
+                        <div class="rh-score">
+                            <div class="num">${attempt.score != null ? attempt.score : '—'}/${maxScore}</div>
+                            <div class="lbl">Final score</div>
+                        </div>
+                    </div>
+                </div>
+                ${(questions || []).map((q, i) => renderQuestion(q, answersByQuestion[q.id], i)).join('')}
+                <div class="review-actions">
+                    <button class="return-btn" id="reviewBackBtn"><i class="fas fa-arrow-left"></i> Back to quizzes</button>
+                </div>
+            `;
+            document.getElementById('reviewBackBtn').addEventListener('click', () => {
+                window.location.href = backHref;
+            });
+
+            loadingScreen.classList.add('hidden');
+            reviewScreen.classList.remove('hidden');
+        }
+
+        init().catch((err) => {
+            console.error('Failed to load quiz review:', err);
+            showError('Something went wrong', "We couldn't load this review. Please try again.");
+        });
+    </script>
+  <script src="js/site-footer.js"></script>
+</body>
+</html>
