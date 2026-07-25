@@ -26,6 +26,9 @@
       </button>
       <h1 id="groupTitle">Group Chat</h1>
       <div class="header-actions">
+        <button class="icon-btn" id="homeButton" aria-label="Go to Dashboard">
+          <i class="fas fa-house"></i>
+        </button>
         <button class="icon-btn" id="voiceCallButton">
           <i class="fas fa-phone"></i>
         </button>
@@ -368,6 +371,9 @@
     elements.backButton.onclick = () => {
       window.location.href = 'dashboard.html';
     };
+    document.getElementById('homeButton')?.addEventListener('click', () => {
+      window.location.href = 'dashboard.html';
+    });
     
     function createDefaultAvatar(name) {
       const canvas = document.createElement('canvas');
@@ -1623,6 +1629,14 @@
         
         if (error) throw error;
         
+        // Capture this before state.replyingMsg gets cleared below — replying
+        // directly to an AI message should count as addressing the AI, even
+        // without retyping "@PeerPal AI". This used to only work via the
+        // realtime subscription catching it on *another* member's open tab,
+        // so replying alone in a chat (the common case) never triggered a
+        // response at all.
+        const wasReplyToAI = state.replyingMsg && state.replyingMsg.sender_id === AI_USER_ID;
+
         render(data);
         state.lastMessageSentAt = Date.now();
         
@@ -1637,7 +1651,7 @@
         
         const hasAIMention = text.toLowerCase().includes('@peerpal ai');
         const hasAIKeywords = hasAIKeywordsInText(text);
-        if (hasAIMention || hasAIKeywords) {
+        if (hasAIMention || hasAIKeywords || wasReplyToAI) {
           setTimeout(() => checkPeerloomAI(text), 1000);
         }
         
@@ -3841,5 +3855,6 @@
 
     initialize();
   </script>
+  <script src="js/site-footer.js"></script>
 </body>
 </html>

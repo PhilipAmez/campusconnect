@@ -1,31 +1,29 @@
-// Injects a small, unobtrusive copyright strip at the bottom of every page.
-// Fixed-position and low-height so it never disrupts existing sidebar/app
-// layouts (dashboards, quiz sessions, etc.) — it just sits quietly in the
-// corner rather than pushing content around.
+// Adds a small, unobtrusive copyright line at the very end of each page.
+//
+// Earlier versions used position:fixed to keep it always on-screen — but a
+// fixed element always paints in its own layer above normal page content
+// no matter how low its z-index is, so it kept visually overlapping real
+// UI (buttons, chat input, nav elements) across the app and was reported
+// as distracting. This version is a plain, normal-flow element appended
+// at the end of <body> — it only shows up if/when you actually scroll to
+// the bottom of a page's content, exactly like an ordinary website
+// footer, and never floats on top of anything.
 (function () {
   function mount() {
     if (document.getElementById('peerloomCopyrightFooter')) return;
+
     var el = document.createElement('div');
     el.id = 'peerloomCopyrightFooter';
     el.textContent = '\u00A9 ' + new Date().getFullYear() + ' Peerloom Technologies Limited. All rights reserved.';
-    el.style.position = 'fixed';
-    el.style.left = '50%';
-    el.style.bottom = '6px';
-    el.style.transform = 'translateX(-50%)';
-    el.style.zIndex = '2147483000';
     el.style.textAlign = 'center';
     el.style.fontSize = '11px';
     el.style.lineHeight = '16px';
-    el.style.padding = '3px 10px';
-    el.style.borderRadius = '999px';
-    el.style.pointerEvents = 'none';
-    el.style.color = 'rgba(51, 65, 85, 0.85)';
-    el.style.background = 'rgba(255, 255, 255, 0.65)';
-    el.style.backdropFilter = 'blur(6px)';
-    el.style.webkitBackdropFilter = 'blur(6px)';
-    el.style.whiteSpace = 'nowrap';
+    el.style.padding = '14px 8px';
+    el.style.color = 'rgba(100, 116, 139, 0.65)';
+    el.style.background = 'transparent';
     el.style.fontFamily = 'inherit';
     el.style.letterSpacing = '0.01em';
+    el.style.userSelect = 'none';
     document.body.appendChild(el);
   }
 

@@ -26,6 +26,16 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// The notification dropdown is a quick-glance preview, not a place to read
+// a full quiz/announcement body — long content was making entries wall of
+// text. Truncate to a single readable line; the full text is still there
+// once they click through to the relevant section.
+function truncate(value = '', maxLength = 90) {
+  const str = String(value);
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength).trimEnd() + '\u2026';
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -80,7 +90,7 @@ function renderPanel() {
         <div class="lecturer-notif-icon"><i class="fa-solid ${meta.icon}"></i></div>
         <div class="lecturer-notif-body">
           <strong>${escapeHtml(meta.label)}</strong>
-          <span>${escapeHtml(n.content || '')}</span>
+          <span title="${escapeHtml(n.content || '')}">${escapeHtml(truncate(n.content || ''))}</span>
           <small>${timeAgo(n.created_at)}</small>
         </div>
       </div>

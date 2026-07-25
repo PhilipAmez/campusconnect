@@ -202,6 +202,15 @@ function setupGlobalRealtimeUpdates() {
                         onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;
                         toastType = 'info';
                         break;
+                    case 'new_quiz':
+                    case 'quiz_deadline_reminder':
+                    case 'quiz_completed':
+                        // These previously fell through to the default case
+                        // below, which sends clicks to feed.html?videoId=...
+                        // — the wrong page entirely for a quiz notification.
+                        onClick = () => window.location.href = 'active-groups.html';
+                        toastType = 'info';
+                        break;
                     default:
                         if (newNotification.post_id) {
                             onClick = () => window.location.href = `feed.html?videoId=${newNotification.post_id}`;

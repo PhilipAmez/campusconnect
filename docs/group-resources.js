@@ -1,35 +1,60 @@
-import { supabase } from './supabaseClient.js';
-import { showLecturerNotice, showLecturerConfirm } from './lecturer-notify.js';
-import { loadMyGroups } from './lecturer-groups.js';
-import { notifyGroupMembers } from './student-notify.js';
+// group-resources.js
+// Student Resources Hub — Phase 5, Module 3
+// Mirrors the structure of group-quizzes.js for consistency.
 
-let state = {
-  profile: null,
-  groups: [],
-  resources: [],
-  selectedFile: null
+import { supabase } from './js/supabaseClient.js';
+import { getCurrentUserContext } from './js/campusDiscovery.js';
+import { initGlobalTheme } from './js/themeManager.js';
+
+const params = new URLSearchParams(window.location.search);
+const groupId = params.get('group');
+
+let currentUser = null;
+let groupInfo = null;
+let allResources = [];
+let bookmarkedIds = new Set();
+let activeFilter = 'all';
+let activeSort = 'newest';
+let searchTerm = '';
+let searchDebounce = null;
+
+const els = {};
+
+const DOCUMENT_TYPES = ['pdf', 'word', 'powerpoint', 'zip'];
+const MEDIA_TYPES = ['image', 'audio', 'video'];
+const LINK_TYPES = ['external_link', 'google_drive', 'onedrive', 'github', 'youtube_playlist', 'website'];
+
+const TYPE_META = {
+  pdf: { label: 'PDF', icon: 'fas fa-file-pdf' },
+  word: { label: 'Word', icon: 'fas fa-file-word' },
+  powerpoint: { label: 'PowerPoint', icon: 'fas fa-file-powerpoint' },
+  image: { label: 'Image', icon: 'fas fa-file-image' },
+  zip: { label: 'ZIP', icon: 'fas fa-file-archive' },
+  audio: { label: 'Audio', icon: 'fas fa-file-audio' },
+  video: { label: 'Video', icon: 'fas fa-file-video' },
+  google_drive: { label: 'Google Drive', icon: 'fab fa-google-drive' },
+  onedrive: { label: 'OneDrive', icon: 'fab fa-microsoft' },
+  github: { label: 'GitHub', icon: 'fab fa-github' },
+  youtube_playlist: { label: 'YouTube Playlist', icon: 'fab fa-youtube' },
+  website: { label: 'Website', icon: 'fas fa-globe' },
+  external_link: { label: 'Link', icon: 'fas fa-link' }
 };
 
-const CATEGORY_OPTIONS = ['Lecture Notes', 'Assignment', 'Reading', 'Reference', 'Announcement', 'Other'];
-
-const FILE_TYPE_META = {
-  pdf: { label: 'PDF', icon: 'fa-file-pdf' },
-  word: { label: 'Word', icon: 'fa-file-word' },
-  powerpoint: { label: 'PowerPoint', icon: 'fa-file-powerpoint' },
-  image: { label: 'Image', icon: 'fa-file-image' },
-  zip: { label: 'ZIP', icon: 'fa-file-zipper' },
-  audio: { label: 'Audio', icon: 'fa-file-audio' },
-  video: { label: 'Video', icon: 'fa-file-video' }
-};
-
-const LINK_TYPE_META = {
-  google_drive: { label: 'Google Drive', icon: 'fa-brands fa-google-drive' },
-  onedrive: { label: 'OneDrive', icon: 'fa-brands fa-microsoft' },
-  github: { label: 'GitHub', icon: 'fa-brands fa-github' },
-  youtube_playlist: { label: 'YouTube Playlist', icon: 'fa-brands fa-youtube' },
-  website: { label: 'Website', icon: 'fa-solid fa-globe' },
-  external_link: { label: 'External Link', icon: 'fa-solid fa-link' }
-};
+function cacheEls() {
+  els.backButton = document.getElementById('backButton');
+  els.navTitle = document.getElementById('navTitle');
+  els.heroTitle = document.getElementById('heroTitle');
+  els.heroMeta = document.getElementById('heroMeta');
+  els.statTotal = document.getElementById('statTotal');
+  els.statWeek = document.getElementById('statWeek');
+  els.statBookmarked = document.getElementById('statBookmarked');
+  els.statDownloadable = document.getElementById('statDownloadable');
+  els.searchInput = document.getElementById('searchInput');
+  els.filterControl = document.getElementById('filterControl');
+  els.sortSelect = document.getElementById('sortSelect');
+  els.resourceList = document.getElementById('resourceList');
+  els.toast = document.getElementById('toast');
+}
 
 function escapeHtml(value = '') {
   return String(value)
@@ -37,11 +62,18 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function formatDateTime(value) {
-  if (!value) return '—';
+function showToast(message) {
+  if (!els.toast) return;
+  els.toast.textContent = message;
+  els.toast.classList.add('show');
+  setTimeout(() => els.toast.classList.remove('show'), 2600);
+}
+
+function formatDate(value) {
+  if (!value) return null;
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
 }
 
 function formatFileSize(bytes) {
@@ -51,409 +83,293 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function detectFileType(file) {
-  const ext = (file.name.split('.').pop() || '').toLowerCase();
-  if (ext === 'pdf') return 'pdf';
-  if (['doc', 'docx'].includes(ext)) return 'word';
-  if (['ppt', 'pptx'].includes(ext)) return 'powerpoint';
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'image';
-  if (['zip', 'rar', '7z'].includes(ext)) return 'zip';
-  if (['mp3', 'wav', 'm4a', 'aac'].includes(ext)) return 'audio';
-  if (['mp4', 'mov', 'webm', 'avi'].includes(ext)) return 'video';
-  return 'zip';
+async function init() {
+  cacheEls();
+  await initGlobalTheme({ supabase });
+
+  els.backButton.addEventListener('click', () => { window.location.href = 'active-groups.html'; });
+  document.getElementById('homeButton')?.addEventListener('click', () => { window.location.href = 'dashboard.html'; });
+
+  if (!groupId) {
+    renderError('No group selected. Go back and pick a group first.');
+    return;
+  }
+
+  const { user } = await getCurrentUserContext(supabase, { force: true });
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentUser = user;
+
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('group_id')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!membership) {
+    renderError("You're not a member of this group, so its resources aren't visible here.");
+    return;
+  }
+
+  await loadGroupInfo();
+  await loadResources();
+
+  wireControls();
+  renderAll();
+  subscribeToResourceChanges();
 }
 
-function detectLinkType(url) {
-  const u = url.toLowerCase();
-  if (u.includes('drive.google.com')) return 'google_drive';
-  if (u.includes('onedrive.live.com') || u.includes('1drv.ms')) return 'onedrive';
-  if (u.includes('github.com')) return 'github';
-  if (u.includes('youtube.com/playlist') || u.includes('youtu.be') || u.includes('youtube.com')) return 'youtube_playlist';
-  if (u.startsWith('http')) return 'website';
-  return 'external_link';
+function subscribeToResourceChanges() {
+  const channel = supabase
+    .channel(`resources-hub-${groupId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'resources', filter: `group_id=eq.${groupId}` }, async () => {
+      await loadResources();
+      renderAll();
+    })
+    .subscribe();
+
+  window.addEventListener('beforeunload', () => supabase.removeChannel(channel));
 }
 
-function typeMeta(resourceType) {
-  return FILE_TYPE_META[resourceType] || LINK_TYPE_META[resourceType] || { label: resourceType, icon: 'fa-solid fa-file' };
+async function loadGroupInfo() {
+  const { data: group } = await supabase
+    .from('groups')
+    .select('id, name, course_code')
+    .eq('id', groupId)
+    .single();
+  groupInfo = group || { name: 'Group' };
 }
 
-/* ============================================================
-   Data
-   ============================================================ */
-
-async function loadData(profile) {
-  state.groups = await loadMyGroups(profile);
+async function loadResources() {
   const { data, error } = await supabase
     .from('resources')
     .select('*')
-    .eq('created_by', profile.id)
+    .eq('group_id', groupId)
+    .eq('status', 'published')
     .order('created_at', { ascending: false });
-  if (error) console.error('Failed to load resources:', error);
-  state.resources = data || [];
+
+  if (error) {
+    console.error('Failed to load resources:', error);
+    allResources = [];
+    return;
+  }
+  allResources = data || [];
+
+  const { data: bookmarks } = await supabase
+    .from('resource_bookmarks')
+    .select('resource_id')
+    .eq('user_id', currentUser.id);
+  bookmarkedIds = new Set((bookmarks || []).map((b) => b.resource_id));
 }
 
-/* ============================================================
-   Composer
-   ============================================================ */
+function renderAll() {
+  renderHero();
+  renderStats();
+  renderList();
+}
 
-function renderComposer(editing) {
-  const r = editing || {};
-  const groupOptions = state.groups.map((g) =>
-    `<option value="${g.id}" ${r.group_id === g.id ? 'selected' : ''}>${escapeHtml(g.name)}${g.course_code ? ` (${escapeHtml(g.course_code)})` : ''}</option>`
-  ).join('');
+function renderHero() {
+  els.heroTitle.textContent = `${groupInfo?.name || 'Group'} Resources`;
+  els.navTitle.textContent = 'Resources';
+  els.heroMeta.innerHTML = groupInfo?.course_code
+    ? `<div class="hero-meta-item"><i class="fas fa-graduation-cap"></i> <strong>${escapeHtml(groupInfo.course_code)}</strong></div>`
+    : '';
+}
 
-  const sourceMode = editing ? (editing.external_url ? 'link' : 'upload') : 'upload';
+function renderStats() {
+  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  els.statTotal.textContent = allResources.length;
+  els.statWeek.textContent = allResources.filter((r) => new Date(r.published_at || r.created_at).getTime() >= oneWeekAgo).length;
+  els.statBookmarked.textContent = bookmarkedIds.size;
+  els.statDownloadable.textContent = allResources.filter((r) => r.download_permission !== 'view_only' && r.file_url).length;
+}
 
-  return `
-    <section class="glass-card" id="resourceComposer">
-      <div class="section-header">
-        <h4>${editing ? 'Edit resource' : 'New resource'}</h4>
-        <p>Published resources post instantly as a card in the target group's chat, and appear in that group's Resources tab.</p>
-      </div>
+function getFilteredSortedResources() {
+  let list = [...allResources];
 
-      <div class="field-grid">
-        <div class="field-group full">
-          <span>Title</span>
-          <input type="text" class="quiz-input" id="resTitle" placeholder="e.g. Week 6 Slides" value="${escapeHtml(r.title || '')}" />
-        </div>
-        <div class="field-group full">
-          <span>Description</span>
-          <textarea class="quiz-input" id="resDescription" rows="3" placeholder="What is this resource for?">${escapeHtml(r.description || '')}</textarea>
-        </div>
-        <div class="field-group">
-          <span>Category</span>
-          <select class="quiz-input" id="resCategory">
-            ${CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field-group">
-          <span>Week (optional)</span>
-          <input type="number" min="1" class="quiz-input" id="resWeek" value="${r.week ?? ''}" />
-        </div>
-        <div class="field-group full">
-          <span>Topic (optional)</span>
-          <input type="text" class="quiz-input" id="resTopic" placeholder="e.g. Database Systems" value="${escapeHtml(r.topic || '')}" />
-        </div>
-        <div class="field-group">
-          <span>Target Group</span>
-          <select class="quiz-input" id="resGroup">
-            <option value="">Select a group&hellip;</option>
-            ${groupOptions}
-          </select>
-        </div>
-        <div class="field-group">
-          <span>Visibility</span>
-          <select class="quiz-input" id="resVisibility">
-            <option value="group" ${(r.visibility || 'group') === 'group' ? 'selected' : ''}>Group Only</option>
-            <option value="public" ${r.visibility === 'public' ? 'selected' : ''}>Public</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <span>Download Permission</span>
-          <select class="quiz-input" id="resDownloadPermission">
-            <option value="allowed" ${(r.download_permission || 'allowed') === 'allowed' ? 'selected' : ''}>Allow Download</option>
-            <option value="view_only" ${r.download_permission === 'view_only' ? 'selected' : ''}>View Only</option>
-          </select>
-        </div>
+  if (activeFilter === 'documents') list = list.filter((r) => DOCUMENT_TYPES.includes(r.resource_type));
+  else if (activeFilter === 'media') list = list.filter((r) => MEDIA_TYPES.includes(r.resource_type));
+  else if (activeFilter === 'links') list = list.filter((r) => LINK_TYPES.includes(r.resource_type));
+  else if (activeFilter === 'bookmarked') list = list.filter((r) => bookmarkedIds.has(r.id));
 
-        <div class="field-group full">
-          <span>Source</span>
-          <div class="preview-tabs" id="resSourceTabs">
-            <button type="button" class="preview-tab ${sourceMode === 'upload' ? 'active' : ''}" data-mode="upload">Upload File</button>
-            <button type="button" class="preview-tab ${sourceMode === 'link' ? 'active' : ''}" data-mode="link">External Link</button>
-          </div>
-        </div>
+  if (searchTerm.trim()) {
+    const term = searchTerm.trim().toLowerCase();
+    list = list.filter((r) =>
+      (r.title || '').toLowerCase().includes(term) ||
+      (r.topic || '').toLowerCase().includes(term) ||
+      (r.description || '').toLowerCase().includes(term)
+    );
+  }
 
-        <div class="field-group full" id="resUploadField" style="${sourceMode === 'upload' ? '' : 'display:none;'}">
-          <span>File</span>
-          <input type="file" class="quiz-input" id="resFileInput" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.zip,.rar,.mp3,.wav,.m4a,.mp4,.mov,.webm" />
-          <small id="resFileHint">${editing?.file_name ? `Current file: ${escapeHtml(editing.file_name)} (${formatFileSize(editing.file_size_bytes)})` : 'PDF, Word, PowerPoint, images, ZIP, audio, or video'}</small>
-        </div>
-        <div class="field-group full" id="resLinkField" style="${sourceMode === 'link' ? '' : 'display:none;'}">
-          <span>URL</span>
-          <input type="url" class="quiz-input" id="resExternalUrl" placeholder="https://&hellip;" value="${escapeHtml(r.external_url || '')}" />
-          <small>Google Drive, OneDrive, GitHub, YouTube playlist, or any website link</small>
-        </div>
-      </div>
+  if (activeSort === 'newest') list.sort((a, b) => new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at));
+  else if (activeSort === 'oldest') list.sort((a, b) => new Date(a.published_at || a.created_at) - new Date(b.published_at || b.created_at));
+  else if (activeSort === 'alphabetical') list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
-      <div class="quiz-inline-actions">
-        ${editing ? '<button class="subtle-action" id="resCancelEditBtn">Cancel edit</button>' : ''}
-        <button class="secondary-btn" id="resSaveDraftBtn">Save Draft</button>
-        <button class="primary-btn" id="resPublishBtn"><i class="fa-solid fa-upload"></i> ${editing && editing.status === 'published' ? 'Save Changes' : 'Publish'}</button>
-      </div>
-    </section>
-  `;
+  return list;
 }
 
 function renderList() {
-  if (!state.resources.length) {
-    return `
-      <div class="empty-state-card">
-        <i class="fa-solid fa-folder-open"></i>
-        <h4>No resources yet</h4>
-        <p>Upload a file or share a link above — it'll post to the group chat and show up in their Resources tab.</p>
+  const list = getFilteredSortedResources();
+
+  if (!list.length) {
+    els.resourceList.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <h3>Nothing here yet</h3>
+        <p>${allResources.length ? 'No resources match this filter.' : 'Your lecturer hasn\u2019t shared anything here yet.'}</p>
       </div>`;
+    return;
   }
 
+  els.resourceList.innerHTML = list.map(renderResourceCard).join('');
+
+  els.resourceList.querySelectorAll('[data-action="preview"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const url = btn.dataset.url;
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+  });
+
+  els.resourceList.querySelectorAll('[data-action="download"]').forEach((btn) => {
+    btn.addEventListener('click', () => downloadResource(btn.dataset.id, btn.dataset.url, btn.dataset.name));
+  });
+
+  els.resourceList.querySelectorAll('[data-action="bookmark"]').forEach((btn) => {
+    btn.addEventListener('click', () => toggleBookmark(btn.dataset.id, btn));
+  });
+
+  els.resourceList.querySelectorAll('[data-action="share"]').forEach((btn) => {
+    btn.addEventListener('click', () => shareResource(btn.dataset.url));
+  });
+}
+
+function renderResourceCard(r) {
+  const meta = TYPE_META[r.resource_type] || { label: r.resource_type, icon: 'fas fa-file' };
+  const url = r.file_url || r.external_url;
+  const isBookmarked = bookmarkedIds.has(r.id);
+  const isDownloadable = r.download_permission !== 'view_only' && !!r.file_url;
+
   return `
-    <div class="list-card">
-      ${state.resources.map((r) => {
-        const group = state.groups.find((g) => g.id === r.group_id);
-        const meta = typeMeta(r.resource_type);
-        return `
-          <div class="list-item">
-            <div>
-              <strong><i class="${meta.icon}"></i> ${escapeHtml(r.title || 'Untitled')}</strong>
-              <small>${escapeHtml(group?.name || 'Unknown group')} · ${meta.label}${r.file_size_bytes ? ` · ${formatFileSize(r.file_size_bytes)}` : ''} · ${formatDateTime(r.published_at || r.created_at)}</small>
-            </div>
-            <div class="quiz-inline-actions">
-              <span class="badge-pill ${r.status === 'published' ? 'badge-success' : ''}">${r.status === 'published' ? 'Published' : 'Draft'}</span>
-              <button class="subtle-action" data-action="edit" data-id="${r.id}"><i class="fa-solid fa-pen"></i></button>
-              <button class="subtle-action danger" data-action="delete" data-id="${r.id}"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          </div>
-        `;
-      }).join('')}
+    <div class="quiz-card animate-fade-in">
+      <div class="quiz-card-top">
+        <div class="quiz-title-row">
+          <span class="quiz-title">${escapeHtml(r.title || 'Untitled resource')}</span>
+          ${r.topic ? `<span class="quiz-visibility">${escapeHtml(r.topic)}</span>` : ''}
+        </div>
+        <span class="status-badge available"><i class="${meta.icon}"></i> ${meta.label}</span>
+      </div>
+
+      ${r.description ? `<p class="quiz-description">${escapeHtml(r.description)}</p>` : ''}
+
+      <div class="quiz-detail-chips">
+        ${r.category ? `<span class="detail-chip"><i class="fas fa-tag"></i> ${escapeHtml(r.category)}</span>` : ''}
+        ${r.week ? `<span class="detail-chip"><i class="fas fa-calendar-week"></i> Week ${r.week}</span>` : ''}
+        ${r.file_size_bytes ? `<span class="detail-chip"><i class="fas fa-weight-hanging"></i> ${formatFileSize(r.file_size_bytes)}</span>` : ''}
+        <span class="detail-chip"><i class="fas fa-clock"></i> ${formatDate(r.published_at || r.created_at) || '—'}</span>
+      </div>
+
+      <div class="quiz-card-bottom">
+        <div class="attempts-remaining"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="start-quiz-btn" data-action="preview" data-url="${escapeHtml(url || '')}"><i class="fas fa-eye"></i> Preview</button>
+          ${isDownloadable ? `<button class="start-quiz-btn" data-action="download" data-id="${r.id}" data-url="${escapeHtml(url)}" data-name="${escapeHtml(r.file_name || r.title)}"><i class="fas fa-download"></i> Download</button>` : ''}
+          <button class="start-quiz-btn" data-action="bookmark" data-id="${r.id}" style="${isBookmarked ? 'background: linear-gradient(135deg, var(--warning), #ff9500);' : ''}"><i class="fa-${isBookmarked ? 'solid' : 'regular'} fa-bookmark"></i></button>
+          <button class="start-quiz-btn" data-action="share" data-url="${escapeHtml(url || '')}"><i class="fas fa-share"></i></button>
+        </div>
+      </div>
     </div>
   `;
 }
 
-function renderShell(editingId) {
-  const editing = editingId ? state.resources.find((r) => r.id === editingId) : null;
-  return `
-    <section class="hero-card">
-      <div>
-        <div class="hero-badge"><i class="fa-solid fa-folder-open"></i> Resources</div>
-        <h3>Share learning materials</h3>
-        <p>Upload files or drop links — students get a rich resource card in chat and a browsable library per group.</p>
-      </div>
-    </section>
-    ${renderComposer(editing)}
-    <section class="glass-card">
-      <div class="section-header compact"><h4>Your resources</h4></div>
-      ${renderList()}
-    </section>
-  `;
+async function downloadResource(resourceId, url, name) {
+  if (!url) return;
+  try {
+    await supabase.from('resource_downloads').insert({ resource_id: resourceId, user_id: currentUser.id });
+    const resource = allResources.find((r) => r.id === resourceId);
+    if (resource?.created_by && resource.created_by !== currentUser.id) {
+      await supabase.from('notifications').insert({
+        user_id: resource.created_by,
+        sender_id: currentUser.id,
+        type: 'resource_downloaded',
+        content: `Someone downloaded "${resource.title}"`,
+        post_id: resourceId,
+        origin: 'resources'
+      });
+    }
+  } catch (err) {
+    console.error('Failed to log download:', err);
+  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name || 'resource';
+  link.target = '_blank';
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
-function wireComposer(container, editingId) {
-  const tabs = container.querySelectorAll('#resSourceTabs .preview-tab');
-  const uploadField = container.querySelector('#resUploadField');
-  const linkField = container.querySelector('#resLinkField');
+async function toggleBookmark(resourceId, btn) {
+  try {
+    if (bookmarkedIds.has(resourceId)) {
+      await supabase.from('resource_bookmarks').delete().eq('resource_id', resourceId).eq('user_id', currentUser.id);
+      bookmarkedIds.delete(resourceId);
+    } else {
+      await supabase.from('resource_bookmarks').upsert({ resource_id: resourceId, user_id: currentUser.id }, { onConflict: 'resource_id,user_id' });
+      bookmarkedIds.add(resourceId);
+    }
+    renderAll();
+  } catch (err) {
+    console.error('Failed to toggle bookmark:', err);
+    showToast("Couldn't update bookmark");
+  }
+}
 
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      tabs.forEach((t) => t.classList.toggle('active', t === tab));
-      const mode = tab.dataset.mode;
-      uploadField.style.display = mode === 'upload' ? '' : 'none';
-      linkField.style.display = mode === 'link' ? '' : 'none';
+async function shareResource(url) {
+  try {
+    await navigator.clipboard.writeText(url || window.location.href);
+    showToast('Link copied to clipboard');
+  } catch (err) {
+    console.error('Failed to copy link:', err);
+  }
+}
+
+function renderError(message) {
+  els.resourceList.innerHTML = `
+    <div class="empty-state">
+      <i class="fas fa-triangle-exclamation"></i>
+      <h3>Can't show resources</h3>
+      <p>${escapeHtml(message)}</p>
+    </div>`;
+}
+
+function wireControls() {
+  els.searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      searchTerm = e.target.value;
+      renderList();
+    }, 200);
+  });
+
+  els.filterControl.querySelectorAll('.segment-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeFilter = btn.dataset.filter;
+      els.filterControl.querySelectorAll('.segment-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      renderList();
     });
   });
 
-  container.querySelector('#resFileInput')?.addEventListener('change', (e) => {
-    state.selectedFile = e.target.files[0] || null;
-  });
-
-  container.querySelector('#resCancelEditBtn')?.addEventListener('click', () => rerender(container, null));
-  container.querySelector('#resSaveDraftBtn')?.addEventListener('click', () => saveResource(container, editingId, { asDraft: true }));
-  container.querySelector('#resPublishBtn')?.addEventListener('click', () => saveResource(container, editingId, { asDraft: false }));
-}
-
-function wireList(container) {
-  container.querySelectorAll('[data-action="edit"]').forEach((btn) => {
-    btn.addEventListener('click', () => rerender(container, btn.dataset.id));
-  });
-  container.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-    btn.addEventListener('click', () => deleteResource(container, btn.dataset.id));
+  els.sortSelect.addEventListener('change', (e) => {
+    activeSort = e.target.value;
+    renderList();
   });
 }
 
-function activeSourceMode(container) {
-  return container.querySelector('#resSourceTabs .preview-tab.active')?.dataset.mode || 'upload';
-}
-
-async function uploadSelectedFile(groupId, file) {
-  const ext = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const filePath = `group_files/${groupId}/resources/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage.from('group_files').upload(filePath, file, {
-    cacheControl: '3600',
-    upsert: false
-  });
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage.from('group_files').getPublicUrl(filePath);
-  return { publicUrl, fileName: file.name, fileSize: file.size, resourceType: detectFileType(file) };
-}
-
-async function postResourceCardToChat(resource) {
-  const senderName = state.profile.full_name || state.profile.username || 'Lecturer';
-  const { error } = await supabase.from('group_messages').insert({
-    group_id: resource.group_id,
-    sender_id: state.profile.id,
-    sender_name: senderName,
-    content: resource.id,
-    message_type: 'resource'
-  });
-  if (error) console.error('Resource saved, but posting the chat card failed:', error);
-}
-
-async function saveResource(container, editingId, { asDraft }) {
-  const title = container.querySelector('#resTitle').value.trim();
-  const description = container.querySelector('#resDescription').value.trim();
-  const category = container.querySelector('#resCategory').value;
-  const week = container.querySelector('#resWeek').value ? Number(container.querySelector('#resWeek').value) : null;
-  const topic = container.querySelector('#resTopic').value.trim();
-  const groupId = container.querySelector('#resGroup').value || null;
-  const visibility = container.querySelector('#resVisibility').value;
-  const downloadPermission = container.querySelector('#resDownloadPermission').value;
-  const mode = activeSourceMode(container);
-  const externalUrl = container.querySelector('#resExternalUrl').value.trim();
-
-  if (!title) {
-    showLecturerNotice('Missing title', 'Please give this resource a title.', 'error');
-    return;
-  }
-  if (!asDraft && !groupId) {
-    showLecturerNotice('Missing target group', 'Choose which group this resource should post to.', 'error');
-    return;
-  }
-  if (mode === 'link' && !externalUrl && !asDraft) {
-    showLecturerNotice('Missing link', 'Add a URL, or switch to Upload File.', 'error');
-    return;
-  }
-  if (mode === 'upload' && !state.selectedFile && !editingId && !asDraft) {
-    showLecturerNotice('Missing file', 'Choose a file to upload, or switch to External Link.', 'error');
-    return;
-  }
-
-  const publishBtn = container.querySelector('#resPublishBtn');
-  const draftBtn = container.querySelector('#resSaveDraftBtn');
-  publishBtn.disabled = true;
-  draftBtn.disabled = true;
-
-  try {
-    const payload = {
-      title,
-      description,
-      category,
-      week,
-      topic,
-      group_id: groupId,
-      visibility,
-      download_permission: downloadPermission,
-      status: asDraft ? 'draft' : 'published',
-      updated_at: new Date().toISOString()
-    };
-
-    if (mode === 'link') {
-      if (externalUrl) {
-        payload.external_url = externalUrl;
-        payload.resource_type = detectLinkType(externalUrl);
-        payload.file_url = null;
-        payload.file_name = null;
-        payload.file_size_bytes = null;
-      }
-    } else if (state.selectedFile) {
-      const uploaded = await uploadSelectedFile(groupId || 'unassigned', state.selectedFile);
-      payload.file_url = uploaded.publicUrl;
-      payload.file_name = uploaded.fileName;
-      payload.file_size_bytes = uploaded.fileSize;
-      payload.resource_type = uploaded.resourceType;
-      payload.external_url = null;
-    }
-
-    if (!asDraft) payload.published_at = new Date().toISOString();
-
-    let savedResource;
-    if (editingId) {
-      const { data, error } = await supabase.from('resources').update(payload).eq('id', editingId).select().single();
-      if (error) throw error;
-      savedResource = data;
-    } else {
-      const { data, error } = await supabase.from('resources').insert({ ...payload, created_by: state.profile.id }).select().single();
-      if (error) throw error;
-      savedResource = data;
-    }
-
-    if (!asDraft && savedResource) {
-      await postResourceCardToChat(savedResource);
-      await notifyGroupMembers(supabase, {
-        groupIds: groupId,
-        type: 'new_resource',
-        content: `New resource shared: "${savedResource.title}"`,
-        postId: savedResource.id,
-        origin: 'resource',
-        senderId: state.profile.id
-      });
-    }
-
-    state.selectedFile = null;
-    showLecturerNotice(
-      asDraft ? 'Draft saved' : 'Resource published',
-      asDraft ? 'Your draft has been saved.' : 'Posted to the group chat and Resources tab.',
-      'success'
-    );
-
-    await refresh(container, null);
-  } catch (err) {
-    console.error('Failed to save resource:', err);
-    showLecturerNotice('Could not save', 'Something went wrong saving this resource. Please try again.', 'error');
-  } finally {
-    publishBtn.disabled = false;
-    draftBtn.disabled = false;
-  }
-}
-
-async function deleteResource(container, id) {
-  const confirmed = await showLecturerConfirm('Delete resource?', 'This removes it from the Resources tab immediately (a chat card already posted will stay but link to a removed resource). This cannot be undone.', { confirmText: 'Delete', danger: true });
-  if (!confirmed) return;
-
-  try {
-    const { error } = await supabase.from('resources').delete().eq('id', id);
-    if (error) throw error;
-    showLecturerNotice('Resource deleted', 'It has been removed.', 'success');
-    await refresh(container, null);
-  } catch (err) {
-    console.error('Failed to delete resource:', err);
-    showLecturerNotice('Could not delete', 'Something went wrong deleting this resource. Please try again.', 'error');
-  }
-}
-
-function rerender(container, editingId) {
-  state.selectedFile = null;
-  container.innerHTML = renderShell(editingId);
-  wireComposer(container, editingId);
-  wireList(container);
-}
-
-async function refresh(container, editingId) {
-  await loadData(state.profile);
-  rerender(container, editingId);
-}
-
-async function renderResourcesSection(container, profile) {
-  if (!container) return;
-  state.profile = profile;
-
-  container.innerHTML = `
-    <section class="hero-card">
-      <div>
-        <div class="hero-badge"><i class="fa-solid fa-folder-open"></i> Resources</div>
-        <h3>Loading resources&hellip;</h3>
-      </div>
-    </section>
-  `;
-
-  try {
-    await loadData(profile);
-  } catch (err) {
-    console.error('Failed to load resources section:', err);
-  }
-
-  if (!container.isConnected) return;
-  rerender(container, null);
-}
-
-export { renderResourcesSection };
+init().catch((err) => {
+  console.error('Failed to initialize resources hub:', err);
+  renderError('Something went wrong loading resources.');
+});

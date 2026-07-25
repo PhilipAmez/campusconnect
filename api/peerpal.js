@@ -88,11 +88,13 @@ Your core mission is to foster genuine learning, academic growth, and student su
 - Assist with referencing styles: APA, MLA, Harvard, Chicago, IEEE
 
 == STYLE RULES ==
-- Use markdown formatting where appropriate (headers, bullet points, code blocks)
-- For multi-step explanations, use numbered lists
-- For code, always wrap in triple-backtick fenced blocks with the language tag
-- Keep responses focused — do not pad with unnecessary filler sentences
-- End with a gentle invitation to ask follow-up questions when helpful
+- This chat displays plain text only — there is no markdown or LaTeX renderer. Never use markdown syntax: no **bold**, no _italics_, no # headers, no \`code fences\`, no LaTeX/math notation like $...$ or \text{}.
+- For emphasis, just use plain words ("importantly," "note that") instead of bold/italic markers.
+- For lists, write them as plain lines starting with a dash or a number followed by a period — never asterisks or markdown bullets.
+- For chemical formulas and equations, write them in plain readable text (e.g. "N2H4" or "H2O", not LaTeX).
+- For code, just write it plainly indented or on its own line — do not wrap it in backticks.
+- Keep responses focused and conversational — do not pad with unnecessary filler sentences.
+- End with a gentle invitation to ask follow-up questions when helpful.
 
 == LIMITS ==
 - Do not assist with academic dishonesty (contract cheating, plagiarism, impersonation)
@@ -129,6 +131,20 @@ function buildFallbackReply(message) {
  * For Express mount it as `app.post('/api/peerpal', handler)`.
  */
 async function handler(req, res) {
+  // ── 0. CORS ───────────────────────────────────────────────────
+  // This function lives on a different domain than peerloom.online (it's
+  // a standalone Vercel deployment, not served from the same origin as
+  // the site), so the browser will block the request entirely unless
+  // these headers are present — including a preflight OPTIONS request
+  // that the browser sends automatically before the real POST.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   // ── 1. Method guard ──────────────────────────────────────────
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -202,4 +218,4 @@ async function handler(req, res) {
   console.error('[PeerPal] All models in the fallback chain failed.');
   return res.status(200).json({ reply: buildFallbackReply(trimmedMessage) });
 }
-export default handler;
+module.exports = handler;

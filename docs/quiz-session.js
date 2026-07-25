@@ -935,47 +935,63 @@ async function submitQuiz(autoSubmitted) {
         return row;
     }).filter((row) => answers[row.question_id] || row.is_correct !== undefined);
 
-    if (rows.length) {
-        try {
-            await supabase.from('quiz_answers').upsert(rows, { onConflict: 'attempt_id,question_id' });
-        } catch (e) {
-            console.error('Failed to save answers on submit:', e);
-        }
-    }
-
     let maxScore = 0;
     questions.forEach(q => { maxScore += q.points || 10; });
 
-    try {
-        const { data: updated } = await supabase
+    // If every question is objective (mcq/true_false), there's nothing left
+    // for a lecturer to manually grade — the score is already fully known
+    // the moment the quiz is submitted. Previously every quiz sat at
+    // score: null and status: 'submitted' regardless, meaning a student
+    // who answered an all-multiple-choice quiz had to wait on a lecturer
+    // to open it and click "grade" before ever seeing their result — an
+    // unnecessary delay, and a real accuracy gap since the correct score
+    // was already computable instantly.
+    const hasSubjectiveQuestion = questions.some(
+        (q) => q.question_type !== 'mcq' && q.question_type !== 'true_false'
+    );
+    const autoScore = rows.reduce((sum, r) => sum + (r.points_awarded || 0), 0);
+
+    const attemptUpdate = hasSubjectiveQuestion
+        ? { status: 'submitted', score: null }
+        : { status: 'graded', score: autoScore, graded_at: new Date().toISOString() };
+
+    const [answersResult, attemptResult] = await Promise.allSettled([
+        rows.length
+            ? supabase.from('quiz_answers').upsert(rows, { onConflict: 'attempt_id,question_id' })
+            : Promise.resolve(),
+        supabase
             .from('quiz_attempts')
             .update({
-                status: 'submitted',
+                ...attemptUpdate,
                 submitted_at: new Date().toISOString(),
                 time_remaining_seconds: timeRemaining,
-                score: null,
                 max_score: maxScore
             })
             .eq('id', attempt.id)
             .select()
-            .single();
-        if (updated) attempt = updated;
-    } catch (e) {
-        console.error('Failed to finalize attempt submission:', e);
+            .single()
+    ]);
+
+    if (answersResult.status === 'rejected' || answersResult.value?.error) {
+        console.error('Failed to save answers on submit:', answersResult.reason || answersResult.value.error);
+    }
+    if (attemptResult.status === 'fulfilled' && attemptResult.value?.data) {
+        attempt = attemptResult.value.data;
+    } else {
+        console.error('Failed to finalize attempt submission:', attemptResult.reason || attemptResult.value?.error);
     }
 
     notifyLecturerOfSubmission();
 
     try { localStorage.removeItem(localKey()); } catch (e) { /* ignore */ }
     if (document.fullscreenElement) {
-        suppressFullscreenLogging = true;
         try { await document.exitFullscreen(); } catch (e) { /* ignore */ }
     }
 
     const groupQuery = groupIdParam ? `&group=${encodeURIComponent(groupIdParam)}` : (groupInfo?.id ? `&group=${encodeURIComponent(groupInfo.id)}` : '');
     setTimeout(() => {
         window.location.replace(`quiz-submit.html?attempt=${attempt.id}${groupQuery}`);
-    }, 400);
+    }, 250);
 }
 
 init().catch(err => {

@@ -463,7 +463,10 @@ function renderQuizCard(q, index) {
             <div class="quiz-card-top">
                 <div class="quiz-title-row">
                     <div class="quiz-title">${escapeHtml(q.title || 'Untitled Quiz')}</div>
-                    <div class="quiz-visibility">${escapeHtml(q.institution || groupInfo.institution || 'Institution')} · ${escapeHtml(groupInfo.name || '')}</div>
+                    <div class="quiz-visibility">${(() => {
+                      const schoolName = q.institution || groupInfo.institution;
+                      return schoolName ? `${escapeHtml(schoolName)} · ${escapeHtml(groupInfo.name || '')}` : escapeHtml(groupInfo.name || '');
+                    })()}</div>
                 </div>
                 <span class="status-badge ${q.derivedStatus}">${statusLabel} · ${escapeHtml(dueLabel)}</span>
             </div>

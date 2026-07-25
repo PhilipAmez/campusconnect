@@ -108,7 +108,7 @@ function ensureState(profile) {
 }
 
 async function loadGroups(profile) {
-  if (!profile?.id) return [];
+  if (!profile?.id) return { groups: [], failed: false };
   const { data, error } = await supabase
     .from('groups')
     .select('id, name, course_code, is_public, is_frozen, member_count')
@@ -117,9 +117,9 @@ async function loadGroups(profile) {
 
   if (error) {
     console.error('Failed to load groups:', error);
-    return [];
+    return { groups: [], failed: true };
   }
-  return data || [];
+  return { groups: data || [], failed: false };
 }
 
 async function loadQuizzes(profile, status) {
@@ -498,7 +498,9 @@ function renderBuilderView(container, profile, onSectionChange) {
               </label>
             </div>
             <div class="group-list">
-              ${filteredGroups.length ? filteredGroups.map((group) => `
+              ${quizState.groupsLoadFailed
+                ? '<p class="empty-state error-state"><i class="fa-solid fa-triangle-exclamation"></i> Could not load your course groups right now. Please refresh the page — if this keeps happening, your account may not have permission to see groups you created.</p>'
+                : filteredGroups.length ? filteredGroups.map((group) => `
                 <label class="group-chip ${state.target_groups.includes(group.id) ? 'selected' : ''} ${group.is_frozen ? 'disabled' : ''}">
                   <input type="checkbox" value="${group.id}" ${state.target_groups.includes(group.id) ? 'checked' : ''} ${group.is_frozen ? 'disabled' : ''} data-action="target-group">
                   <span>
@@ -789,8 +791,9 @@ function bindBuilderEvents(container, profile, onSectionChange) {
             if (element) element.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save draft';
           }, 1200);
         } catch (error) {
-          console.error(error);
-          showLecturerNotice('Draft not saved', 'Could not save your quiz draft right now. Please try again.', 'error');
+          console.error('Draft save failed:', error);
+          const detail = error?.message ? ` (${error.message})` : '';
+          showLecturerNotice('Draft not saved', `Could not save your quiz draft right now${detail}. Please try again.`, 'error');
         }
       });
     }
@@ -1142,13 +1145,15 @@ async function renderQuizExperience(container, section, profile, onSectionChange
   }
   lastLoadedProfile = profile;
   const state = ensureState(profile);
-  state.groups = await loadGroups(profile);
-  quizState = { ...state, groups: state.groups };
+  const groupsResult = await loadGroups(profile);
+  state.groups = groupsResult.groups;
+  state.groupsLoadFailed = groupsResult.failed;
+  quizState = { ...state, groups: state.groups, groupsLoadFailed: state.groupsLoadFailed };
 
   if (section === 'quiz-builder') {
     if (currentDraftId) {
       await loadQuizDraft(currentDraftId, profile);
-      quizState = { ...quizState, groups: state.groups };
+      quizState = { ...quizState, groups: state.groups, groupsLoadFailed: state.groupsLoadFailed };
     }
     renderBuilderView(container, profile, onSectionChange);
     return;
