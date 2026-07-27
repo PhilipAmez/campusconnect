@@ -47,6 +47,23 @@
         display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-full);
         background: rgba(255,149,0,0.12); color: var(--warning); font-weight: 700; font-size: 13px; margin-bottom: var(--space-lg);
     }
+    .awaiting-note {
+        font-size: 13px; color: var(--text-secondary); margin: -8px 0 var(--space-lg);
+        line-height: 1.5;
+    }
+    .score-reveal {
+        margin: var(--space-md) 0 var(--space-lg);
+        padding: var(--space-lg);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(135deg, rgba(52,199,89,0.1), rgba(52,199,89,0.03));
+        border: 1px solid rgba(52,199,89,0.25);
+    }
+    .score-reveal .score-value {
+        font-size: 40px; font-weight: 800; color: var(--success); line-height: 1;
+        animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
+    }
+    .score-reveal .score-out-of { font-size: 16px; color: var(--text-secondary); font-weight: 600; }
+    .score-reveal .score-pct { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--success); }
     .completed-actions { display: flex; flex-direction: column; gap: 10px; }
     .return-btn {
         padding: 13px 24px; border: none; border-radius: var(--radius-full);
@@ -71,9 +88,11 @@
 
     <section id="completedScreen" class="hidden">
         <div class="completed-card">
-            <div class="completed-icon"><i class="fas fa-check"></i></div>
-            <h2>Quiz Submitted</h2>
+            <div class="completed-icon" id="completedIcon"><i class="fas fa-check"></i></div>
+            <h2 id="completedHeading">Quiz Submitted</h2>
             <p><span class="quiz-name" id="quizNameText">Your quiz</span> has been submitted successfully.</p>
+
+            <div id="scoreRevealBlock"></div>
 
             <div class="completed-meta-grid">
                 <div class="completed-meta-item">
@@ -86,7 +105,7 @@
                 </div>
             </div>
 
-            <div class="awaiting-pill"><i class="fas fa-hourglass-half"></i> Awaiting Lecturer Review</div>
+            <div id="statusPillBlock"></div>
 
             <div class="completed-actions">
                 <button class="return-btn" id="returnGroupBtn">Return to Active Groups</button>
@@ -137,7 +156,7 @@
 
             const { data: attempt, error } = await supabase
                 .from('quiz_attempts')
-                .select('id, quiz_id, group_id, attempt_number, submitted_at, student_id')
+                .select('id, quiz_id, group_id, attempt_number, submitted_at, student_id, status, score, max_score')
                 .eq('id', attemptId)
                 .maybeSingle();
 
@@ -152,6 +171,35 @@
                 ? new Date(attempt.submitted_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                 : '—';
             document.getElementById('attemptNumberText').textContent = `#${attempt.attempt_number || 1}`;
+
+            // Fully objective quizzes (mcq/true_false only) are auto-scored the
+            // instant they're submitted — no reason to make that student wait
+            // on a lecturer to grade something that's already fully graded.
+            // Anything with a short-answer/essay question still genuinely
+            // needs a human to grade it, so that state gets a clearer,
+            // friendlier explanation instead of just a bare "awaiting review."
+            const isAutoGraded = attempt.status === 'graded' && attempt.score != null;
+
+            if (isAutoGraded) {
+                const pct = attempt.max_score ? Math.round((attempt.score / attempt.max_score) * 100) : null;
+                document.getElementById('completedHeading').textContent = 'Nice work!';
+                document.getElementById('scoreRevealBlock').innerHTML = `
+                    <div class="score-reveal">
+                        <span class="score-value">${attempt.score}</span><span class="score-out-of"> / ${attempt.max_score}</span>
+                        ${pct != null ? `<div class="score-pct">${pct}% correct</div>` : ''}
+                    </div>
+                `;
+                document.getElementById('statusPillBlock').innerHTML = `
+                    <div class="awaiting-pill" style="background: rgba(52,199,89,0.12); color: var(--success);">
+                        <i class="fas fa-circle-check"></i> Fully graded — no waiting needed
+                    </div>
+                `;
+            } else {
+                document.getElementById('statusPillBlock').innerHTML = `
+                    <div class="awaiting-pill"><i class="fas fa-hourglass-half"></i> Awaiting Lecturer Review</div>
+                    <p class="awaiting-note">This quiz includes at least one question your lecturer grades personally, so your final score isn't ready yet. You'll see it here — and get a notification — once grading is complete.</p>
+                `;
+            }
 
             const resolvedGroupId = groupId || attempt.group_id || '';
             document.getElementById('returnGroupBtn').addEventListener('click', () => {
@@ -169,7 +217,5 @@
             console.error('Failed to load submission confirmation:', err);
             showError('Something went wrong loading your submission.');
         });
-    </script>
-  <script src="js/site-footer.js"></script>
-</body>
+    </script></body>
 </html>

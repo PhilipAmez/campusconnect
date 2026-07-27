@@ -344,23 +344,55 @@ function closeGradingOverlay() {
 
 function renderQuestionGradeCard(question, answer) {
   const isObjective = question.question_type === 'mcq' || question.question_type === 'true_false';
-  const draftPoints = answer.points_awarded != null ? answer.points_awarded : (isObjective ? answer.points_awarded : '');
+
+  // Previously this fell back to `answer.points_awarded` again when it was
+  // already null — a no-op that left the points field blank with no
+  // explanation. For an objective question we already know the answer key,
+  // so there's no reason to make the lecturer manually figure out and type
+  // in what the system can calculate itself.
+  const isCorrectMatch = isObjective && answer.selected_option === question.correct_option;
+  const draftPoints = answer.points_awarded != null
+    ? answer.points_awarded
+    : (isObjective ? (isCorrectMatch ? (question.points || 0) : 0) : '');
 
   let answerHtml = '';
+  let answerKeyControl = '';
   if (question.question_type === 'mcq') {
     const options = Array.isArray(question.options) ? question.options : [];
     const selectedLabel = options[answer.selected_option]?.text || options[answer.selected_option]?.label || 'No answer';
     const correctLabel = options[question.correct_option]?.text || options[question.correct_option]?.label || '—';
     answerHtml = `
-      <p><strong>Student answer:</strong> ${escapeHtml(selectedLabel)}</p>
+      <p><strong>Student answer:</strong> ${escapeHtml(selectedLabel)} ${isCorrectMatch ? '<span class="grading-verdict correct">Correct</span>' : '<span class="grading-verdict incorrect">Incorrect</span>'}</p>
       <p class="grading-correct-answer"><strong>Correct answer:</strong> ${escapeHtml(correctLabel)}</p>
+    `;
+    // Lets a lecturer fix the answer key itself right from grading — e.g.
+    // if it was set wrong when the quiz was built. Changing this updates
+    // quiz_questions.correct_option going forward and re-scores the
+    // attempt currently being graded; it does not retroactively touch
+    // other students' already-graded attempts.
+    answerKeyControl = `
+      <label class="field-group full grading-answer-key">
+        <span>Correct answer is actually&hellip; <small>(only change this if the answer key was set wrong)</small></span>
+        <select class="quiz-input compact grading-answer-key-select" data-question-id="${question.id}">
+          ${options.map((opt, i) => `<option value="${i}" ${i === question.correct_option ? 'selected' : ''}>${escapeHtml(opt.text || opt.label || `Option ${i + 1}`)}</option>`).join('')}
+        </select>
+      </label>
     `;
   } else if (question.question_type === 'true_false') {
     const selectedLabel = answer.selected_option === 1 ? 'True' : answer.selected_option === 0 ? 'False' : 'No answer';
     const correctLabel = question.correct_option === 1 ? 'True' : 'False';
     answerHtml = `
-      <p><strong>Student answer:</strong> ${escapeHtml(selectedLabel)}</p>
+      <p><strong>Student answer:</strong> ${escapeHtml(selectedLabel)} ${isCorrectMatch ? '<span class="grading-verdict correct">Correct</span>' : '<span class="grading-verdict incorrect">Incorrect</span>'}</p>
       <p class="grading-correct-answer"><strong>Correct answer:</strong> ${escapeHtml(correctLabel)}</p>
+    `;
+    answerKeyControl = `
+      <label class="field-group full grading-answer-key">
+        <span>Correct answer is actually&hellip; <small>(only change this if the answer key was set wrong)</small></span>
+        <select class="quiz-input compact grading-answer-key-select" data-question-id="${question.id}">
+          <option value="1" ${question.correct_option === 1 ? 'selected' : ''}>True</option>
+          <option value="0" ${question.correct_option === 0 ? 'selected' : ''}>False</option>
+        </select>
+      </label>
     `;
   } else {
     answerHtml = `<p class="grading-text-answer">${escapeHtml(answer.answer_text || '(No answer submitted)')}</p>`;
@@ -375,6 +407,7 @@ function renderQuestionGradeCard(question, answer) {
       <p class="grading-prompt">${escapeHtml(question.prompt)}</p>
       ${answerHtml}
       <div class="grading-controls">
+        ${answerKeyControl}
         <label class="field-group">
           <span>Points awarded</span>
           <input type="number" class="quiz-input compact grading-points-input" min="0" max="${question.points || 0}" step="0.5"
@@ -421,8 +454,48 @@ async function openGradingOverlay(attemptId) {
   const body = overlay.querySelector('#gradingBody');
   body.innerHTML = questions.map((q) => renderQuestionGradeCard(q, answersByQuestion[q.id] || {})).join('');
 
+  async function handleAnswerKeyChange(event) {
+    const select = event.target;
+    const questionId = select.dataset.questionId;
+    const newCorrectOption = Number(select.value);
+    const question = gradingContext.questions.find((q) => q.id === questionId);
+    if (!question) return;
+
+    select.disabled = true;
+    // This only affects this question going forward and re-scores the
+    // attempt currently open — it deliberately does not reach back and
+    // silently change grades already published to other students.
+    const { error } = await supabase
+      .from('quiz_questions')
+      .update({ correct_option: newCorrectOption })
+      .eq('id', questionId);
+    select.disabled = false;
+
+    if (error) {
+      console.error('Failed to update answer key:', error);
+      showLecturerNotice('Could not update answer key', 'Please try again.', 'error');
+      return;
+    }
+
+    question.correct_option = newCorrectOption;
+    const answer = gradingContext.answersByQuestion[questionId] || {};
+    const card = body.querySelector(`.grading-question-card[data-question-id="${questionId}"]`);
+    if (card) {
+      card.outerHTML = renderQuestionGradeCard(question, answer);
+      // Re-wire the fresh card's own listeners since outerHTML replaced it.
+      const freshCard = body.querySelector(`.grading-question-card[data-question-id="${questionId}"]`);
+      freshCard.querySelector('.grading-points-input')?.addEventListener('input', () => recomputeGradingTotal());
+      freshCard.querySelector('.grading-answer-key-select')?.addEventListener('change', handleAnswerKeyChange);
+    }
+    recomputeGradingTotal();
+  }
+
   body.querySelectorAll('.grading-points-input').forEach((input) => {
     input.addEventListener('input', () => recomputeGradingTotal());
+  });
+
+  body.querySelectorAll('.grading-answer-key-select').forEach((select) => {
+    select.addEventListener('change', handleAnswerKeyChange);
   });
 
   recomputeGradingTotal();

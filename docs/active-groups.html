@@ -280,6 +280,36 @@
             text-align: center;
         }
 
+        .quick-notify-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: var(--space-lg);
+        }
+        .quick-notify-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: var(--radius-full);
+            background: var(--liquid-glass);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 150ms ease, box-shadow 150ms ease;
+        }
+        .quick-notify-badge:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+        .quick-notify-badge .count {
+            background: var(--primary, #7c3aed);
+            color: #fff;
+            border-radius: 999px;
+            padding: 1px 8px;
+            font-size: 0.8rem;
+        }
+
         .stat-value {
             font-size: var(--font-size-2xl);
             font-weight: 700;
@@ -2017,6 +2047,12 @@
             </div>
         </div>
 
+        <!-- Quick-glance unread badges: quizzes/resources notifications
+             weren't part of the original notification system, so rather
+             than rely on that feed alone, this gives an always-visible,
+             at-a-glance count instead. -->
+        <div class="quick-notify-badges" id="quickNotifyBadges" style="display:none;"></div>
+
         <!-- Search and Filters -->
         <div class="search-filters-container animate-fade-in">
             <div class="ios-search">
@@ -2324,6 +2360,7 @@
             setupEventListeners();
             updateStats();
             loadAcademicProgress();
+            loadQuickNotifyBadges();
             setupSwipeThemeToggle();
             initializePeerPal();
         }
@@ -2671,6 +2708,53 @@
             document.getElementById('adminGroups').textContent = adminGroups;
             document.getElementById('activeNow').textContent = activeNow;
             document.getElementById('unreadMessages').textContent = unreadMessages;
+        }
+
+        // Quick-glance badges for quiz/resource notifications specifically.
+        // These weren't part of the original notification system, so
+        // rather than rely on that general feed (which students reported
+        // as not surfacing quiz notifications clearly), this gives an
+        // always-visible, at-a-glance count right on the groups page.
+        async function loadQuickNotifyBadges() {
+            const el = document.getElementById('quickNotifyBadges');
+            if (!currentUser) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('notifications')
+                    .select('type')
+                    .eq('user_id', currentUser.id)
+                    .is('seen_at', null)
+                    .in('type', ['new_quiz', 'quiz_deadline_reminder', 'new_resource']);
+
+                if (error) throw error;
+
+                const quizCount = (data || []).filter((n) => n.type === 'new_quiz' || n.type === 'quiz_deadline_reminder').length;
+                const resourceCount = (data || []).filter((n) => n.type === 'new_resource').length;
+
+                const badges = [];
+                if (quizCount) badges.push({ emoji: '📚', label: 'Quizzes', count: quizCount });
+                if (resourceCount) badges.push({ emoji: '📁', label: 'Resources', count: resourceCount });
+
+                if (!badges.length) {
+                    el.style.display = 'none';
+                    return;
+                }
+
+                el.innerHTML = badges.map((b) => `
+                    <button class="quick-notify-badge" data-badge="${b.label.toLowerCase()}">
+                        <span>${b.emoji} ${b.label}</span>
+                        <span class="count">${b.count}</span>
+                    </button>
+                `).join('');
+                el.style.display = 'flex';
+                el.querySelectorAll('.quick-notify-badge').forEach((btn) => {
+                    btn.addEventListener('click', () => { window.location.href = 'notifications.html'; });
+                });
+            } catch (e) {
+                console.error('Failed to load quick notification badges:', e);
+                el.style.display = 'none';
+            }
         }
 
         // Real academic progress: quizzes actually completed vs assigned,
@@ -3327,7 +3411,5 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', init);
-    </script>
-  <script src="js/site-footer.js"></script>
-</body>
+    </script></body>
 </html>
