@@ -369,6 +369,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     border-top: 1px solid var(--border);
     padding: 12px var(--space-lg);
     display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    overflow-x: auto; /* safety net: if buttons ever don't all fit, they're still reachable by scrolling instead of clipped off-screen */
 }
 .nav-btn {
     padding: 12px 20px; border-radius: var(--radius-full); border: 1px solid var(--glass-border);
@@ -394,6 +395,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     padding: 12px 26px; border: none; border-radius: var(--radius-full);
     background: linear-gradient(135deg, var(--purple-border), var(--accent));
     color: #fff; font-weight: 700; cursor: pointer; transition: all var(--transition-fast); white-space: nowrap;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
 }
 .submit-btn:hover { box-shadow: 0 6px 20px var(--purple-glow); transform: translateY(-2px); }
 .submit-btn:active { transform: scale(0.98); }
@@ -452,6 +454,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     .session-bottombar { padding: 10px var(--space-sm); gap: 6px; }
     .nav-btn, .submit-btn, .flag-btn { padding: 10px 12px; font-size: 13px; }
     .flag-btn-label, .nav-btn-label { display: none; }
+    .submit-btn-label::before { content: 'Submit'; }
+    .submit-btn-label { font-size: 0; } /* hide "Submit Quiz", show "Submit" via ::before at readable size */
+    .submit-btn-label::before { font-size: 13px; }
     .topbar-quiz-name { max-width: 120px; }
     .modal-stats { grid-template-columns: 1fr 1fr; }
 }

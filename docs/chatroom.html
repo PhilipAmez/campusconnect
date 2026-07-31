@@ -44,6 +44,9 @@
       </div>
     </div>
 
+    <!-- Pinned Messages Bar -->
+    <div class="pinned-bar" id="pinnedBar" style="display:none;"></div>
+
     <!-- Messages Container -->
     <div class="chat-messages" id="messagePanel">
     </div>
@@ -281,6 +284,7 @@
       lastMessageSentAt: 0,
       groupInfo: {},
       memberDetails: [],
+      pinnedMessages: [],
       isMember: false,
       aiResponseInProgress: false,
       typingUsers: new Map(),
@@ -295,6 +299,7 @@
     
     const elements = {
       messagePanel: document.getElementById('messagePanel'),
+      pinnedBar: document.getElementById('pinnedBar'),
       groupTitle: document.getElementById('groupTitle'),
       backButton: document.getElementById('backButton'),
       themeToggleButton: document.getElementById('themeToggleButton'),
@@ -661,6 +666,7 @@
         // ─────────────────────────────────────────────────────────────────────
 
         await loadHistory();
+        await loadPinnedMessages();
         markMessagesAsDelivered();
         markMessagesAsSeen();
         await ensureAIUserInGroup();
@@ -847,8 +853,27 @@
       }
       
       const div = document.createElement('div');
-      div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}`;
+      div.className = `msg ${mine ? 'sent' : isAI ? 'ai' : 'recv'}${m.pinned_at ? ' pinned' : ''}`;
       div.dataset.id = m.id;
+      
+      if (m.pinned_at) {
+        const pinTag = document.createElement('div');
+        pinTag.className = 'pin-indicator';
+        pinTag.innerHTML = '<i class="fas fa-thumbtack"></i> Pinned';
+        div.appendChild(pinTag);
+      }
+      
+      if (state.userRole !== 'member' && m.message_type !== 'placeholder' && m.message_type !== 'uploading') {
+        const pinBtn = document.createElement('button');
+        pinBtn.className = `msg-pin-btn${m.pinned_at ? ' active' : ''}`;
+        pinBtn.title = m.pinned_at ? 'Unpin message' : 'Pin message';
+        pinBtn.innerHTML = '<i class="fas fa-thumbtack"></i>';
+        pinBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          togglePinMessage(m.id, !m.pinned_at);
+        });
+        div.appendChild(pinBtn);
+      }
       
       if (m.reply_to) {
         const replyDiv = document.createElement('div');
@@ -946,6 +971,184 @@
       elements.messagePanel.scrollTop = elements.messagePanel.scrollHeight;
     }
     
+    async function loadPinnedMessages() {
+      try {
+        const { data, error } = await supabase
+          .from('group_messages')
+          .select('id, content, sender_name, pinned_at, message_type')
+          .eq('group_id', gid)
+          .not('pinned_at', 'is', null)
+          .order('pinned_at', { ascending: false });
+        if (error) throw error;
+        state.pinnedMessages = data || [];
+        renderPinnedBar();
+      } catch (error) {
+        console.error('Error loading pinned messages:', error);
+      }
+    }
+
+    function renderPinnedBar() {
+      if (!state.pinnedMessages.length) {
+        elements.pinnedBar.style.display = 'none';
+        elements.pinnedBar.innerHTML = '';
+        return;
+      }
+      const top = state.pinnedMessages[0];
+      let preview = top.message_type === 'text' || !top.message_type ? (top.content || '') : `📎 ${top.message_type}`;
+      if (preview.length > 60) preview = preview.substring(0, 60) + '…';
+      elements.pinnedBar.style.display = 'flex';
+      elements.pinnedBar.innerHTML = `
+        <span class="pinned-bar-icon"><i class="fas fa-thumbtack"></i></span>
+        <span class="pinned-bar-text"><strong>${top.sender_name || 'Someone'}:</strong> ${preview}</span>
+        ${state.pinnedMessages.length > 1 ? `<span class="pinned-bar-count">${state.pinnedMessages.length}</span>` : ''}
+      `;
+      elements.pinnedBar.onclick = () => {
+        if (state.pinnedMessages.length > 1 && state.userRole !== 'member') {
+          openPinnedMessagesModal();
+        } else {
+          const el = document.querySelector(`.msg[data-id="${top.id}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('swiping');
+            setTimeout(() => el.classList.remove('swiping'), 600);
+          }
+        }
+      };
+    }
+
+    function openPinnedMessagesModal() {
+      const rows = state.pinnedMessages.map(pm => {
+        let preview = pm.message_type === 'text' || !pm.message_type ? (pm.content || '') : `📎 ${pm.message_type}`;
+        if (preview.length > 80) preview = preview.substring(0, 80) + '…';
+        return `
+          <div class="admin-report-item">
+            <div class="admin-report-top">
+              <strong>${pm.sender_name || 'Someone'}</strong>
+              ${state.userRole !== 'member' ? `<button class="admin-action" style="padding:4px 10px;font-size:12px;" data-unpin="${pm.id}"><i class="fas fa-thumbtack"></i> Unpin</button>` : ''}
+            </div>
+            <div style="opacity:0.8;font-size:13px;">${preview}</div>
+          </div>
+        `;
+      }).join('');
+      showAdminInfoModal('Pinned Messages', rows);
+      document.querySelectorAll('[data-unpin]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.unpin;
+          await togglePinMessage(id, false);
+          document.querySelector('.modal-backdrop')?.remove();
+        });
+      });
+    }
+
+    async function togglePinMessage(messageId, shouldPin) {
+      try {
+        const { error } = await supabase
+          .from('group_messages')
+          .update({ pinned_at: shouldPin ? new Date().toISOString() : null })
+          .eq('id', messageId);
+        if (error) throw error;
+
+        const msgEl = document.querySelector(`.msg[data-id="${messageId}"]`);
+        if (msgEl) {
+          msgEl.classList.toggle('pinned', shouldPin);
+          const existingBtn = msgEl.querySelector('.msg-pin-btn');
+          if (existingBtn) existingBtn.classList.toggle('active', shouldPin);
+          let indicator = msgEl.querySelector('.pin-indicator');
+          if (shouldPin && !indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'pin-indicator';
+            indicator.innerHTML = '<i class="fas fa-thumbtack"></i> Pinned';
+            msgEl.prepend(indicator);
+          } else if (!shouldPin && indicator) {
+            indicator.remove();
+          }
+        }
+
+        await loadPinnedMessages();
+        showSuccess(shouldPin ? 'Message pinned.' : 'Message unpinned.');
+      } catch (error) {
+        showError('Error updating pin: ' + error.message);
+      }
+    }
+
+    async function loadAndShowReports() {
+      try {
+        const { data: reports, error } = await supabase
+          .from('reports')
+          .select('id, message_id, reported_user_id, reported_by, reason, status, created_at')
+          .eq('group_id', gid)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+
+        if (!reports || !reports.length) {
+          showAdminInfoModal('User Reports', '<p style="padding:0.5rem 0;opacity:0.8">No reports have been filed in this group.</p>');
+          return;
+        }
+
+        const userIds = [...new Set(reports.flatMap(r => [r.reported_user_id, r.reported_by]).filter(Boolean))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, username, full_name')
+          .in('id', userIds.length ? userIds : ['00000000-0000-0000-0000-000000000000']);
+        const profileMap = new Map((profilesData || []).map(p => [p.id, p.full_name || p.username || 'Unknown user']));
+
+        const messageIds = [...new Set(reports.map(r => r.message_id).filter(Boolean))];
+        let messageMap = new Map();
+        if (messageIds.length) {
+          const { data: msgsData } = await supabase
+            .from('group_messages')
+            .select('id, content')
+            .in('id', messageIds);
+          messageMap = new Map((msgsData || []).map(m => [m.id, m.content]));
+        }
+
+        const rows = reports.map(r => {
+          const reportedName = profileMap.get(r.reported_user_id) || 'Unknown user';
+          const reporterName = profileMap.get(r.reported_by) || 'Unknown user';
+          const msgPreview = r.message_id ? (messageMap.get(r.message_id) || '(message deleted)') : null;
+          return `
+            <div class="admin-report-item">
+              <div class="admin-report-top">
+                <span><strong>${reportedName}</strong> reported by ${reporterName}</span>
+                <span class="admin-report-status ${r.status}">${r.status}</span>
+              </div>
+              <div style="font-size:13px;opacity:0.8;">${r.reason || '(no reason given)'}</div>
+              ${msgPreview ? `<div style="font-size:12px;opacity:0.6;font-style:italic;">"${msgPreview.length > 80 ? msgPreview.substring(0,80)+'…' : msgPreview}"</div>` : ''}
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                <span style="font-size:11px;opacity:0.5;">${new Date(r.created_at).toLocaleString()}</span>
+                ${state.userRole !== 'member' ? `
+                  <select class="admin-report-status-select" data-report-id="${r.id}">
+                    <option value="open" ${r.status === 'open' ? 'selected' : ''}>Open</option>
+                    <option value="reviewed" ${r.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+                    <option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>Dismissed</option>
+                  </select>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        showAdminInfoModal('User Reports', rows);
+        document.querySelectorAll('.admin-report-status-select').forEach(sel => {
+          sel.addEventListener('change', async (e) => {
+            await updateReportStatus(e.target.dataset.reportId, e.target.value);
+          });
+        });
+      } catch (error) {
+        showError('Error loading reports: ' + error.message);
+      }
+    }
+
+    async function updateReportStatus(reportId, status) {
+      try {
+        const { error } = await supabase.from('reports').update({ status }).eq('id', reportId);
+        if (error) throw error;
+        showSuccess('Report status updated.');
+      } catch (error) {
+        showError('Error updating report: ' + error.message);
+      }
+    }
+
     function createUploadingFileElement(m) {
       return `
         <div class="file-attachment-card">
@@ -2981,6 +3184,7 @@
         <button class="admin-action" data-action="roles"><i class="fas fa-user-tag"></i> 28. Assign Member Roles</button>
         <button class="admin-action" data-action="pollhistory"><i class="fas fa-history"></i> 29. View Poll History</button>
         <button class="admin-action" data-action="approvejoin"><i class="fas fa-user-plus"></i> 30. Approve Join Notifications</button>
+        <button class="admin-action" data-action="classreport"><i class="fas fa-file-word"></i> 31. Export Class Report (Word)</button>
       `;
       
       if (state.userRole === 'owner') {
@@ -3252,7 +3456,12 @@
 
         case 'pin':
           elements.adminModal.classList.remove('visible');
-          showAdminInfoModal('Pin Messages', '<p style="padding:0.5rem 0;opacity:0.8">Long-press any message to delete it. Full pin support requires a <code>pinned_at</code> column on the messages table.</p>');
+          await loadPinnedMessages();
+          if (!state.pinnedMessages.length) {
+            showAdminInfoModal('Pin Messages', '<p style="padding:0.5rem 0;opacity:0.8">No messages are pinned yet. Tap the <i class="fas fa-thumbtack"></i> icon in the top-right corner of any message to pin it.</p>');
+          } else {
+            openPinnedMessagesModal();
+          }
           break;
 
         case 'freeze':
@@ -3295,7 +3504,12 @@
 
         case 'reports':
           elements.adminModal.classList.remove('visible');
-          showAdminInfoModal('User Reports', '<p style="padding:0.5rem 0;opacity:0.8">User reports require a <code>reports</code> table in your database. Feature is ready to integrate once the table is created.</p>');
+          await loadAndShowReports();
+          break;
+
+        case 'classreport':
+          elements.adminModal.classList.remove('visible');
+          await exportClassReport();
           break;
 
         default:
@@ -3780,6 +3994,216 @@
       }
       
       elements.adminModal.classList.remove('visible');
+    }
+
+    async function exportClassReport() {
+      showSuccess('Generating class report…');
+      try {
+        const docx = await import('https://cdn.jsdelivr.net/npm/docx@9.7.1/+esm');
+        const {
+          Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+          WidthType, Header, Footer, AlignmentType, ImageRun, BorderStyle,
+          HeadingLevel, PageNumber, TabStopType, TabStopPosition, VerticalAlign,
+          ShadingType
+        } = docx;
+
+        // ── Gather data ──────────────────────────────────────────────
+        const { data: groupRow } = await supabase
+          .from('groups')
+          .select('name, course_code, institution, created_at')
+          .eq('id', gid)
+          .single();
+
+        const humanMembers = state.memberDetails.filter(m => m.user_id !== AI_USER_ID);
+
+        const { data: allMsgs } = await supabase
+          .from('group_messages')
+          .select('sender_id')
+          .eq('group_id', gid);
+        const msgCounts = {};
+        (allMsgs || []).forEach(m => { msgCounts[m.sender_id] = (msgCounts[m.sender_id] || 0) + 1; });
+
+        const { data: reportRows } = await supabase
+          .from('reports')
+          .select('reported_user_id, reported_by, reason, status, created_at')
+          .eq('group_id', gid)
+          .order('created_at', { ascending: false });
+
+        const reportUserIds = [...new Set((reportRows || []).flatMap(r => [r.reported_user_id, r.reported_by]).filter(Boolean))];
+        let reportProfileMap = new Map();
+        if (reportUserIds.length) {
+          const { data: rProfiles } = await supabase.from('profiles').select('id, username, full_name').in('id', reportUserIds);
+          reportProfileMap = new Map((rProfiles || []).map(p => [p.id, p.full_name || p.username || 'Unknown user']));
+        }
+
+        const pinnedCount = state.pinnedMessages.length;
+
+        let logoBuffer = null;
+        try {
+          const logoResp = await fetch('logo.png');
+          if (logoResp.ok) logoBuffer = await logoResp.arrayBuffer();
+        } catch (e) { /* logo optional */ }
+
+        const generatedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const groupName = groupRow?.name || state.groupInfo?.name || 'Group';
+        const adminName = user.user_metadata?.firstName || user.user_metadata?.full_name || 'Admin';
+
+        // ── Shared footer (copyright + page numbers) ────────────────
+        const makeFooter = () => new Footer({
+          children: [
+            new Paragraph({
+              tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+              border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC', space: 4 } },
+              children: [
+                new TextRun({ text: '© Peerloom Technologies Limited. All rights reserved.', size: 16, color: '888888' }),
+                new TextRun({ text: '\t' }),
+                new TextRun({ children: ['Page ', PageNumber.CURRENT, ' of ', PageNumber.TOTAL_PAGES], size: 16, color: '888888' })
+              ]
+            })
+          ]
+        });
+
+        // ── Cover page section ───────────────────────────────────────
+        const coverChildren = [];
+        if (logoBuffer) {
+          coverChildren.push(new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 2400, after: 400 },
+            children: [new ImageRun({ type: 'png', data: logoBuffer, transformation: { width: 120, height: 120 } })]
+          }));
+        } else {
+          coverChildren.push(new Paragraph({ spacing: { before: 2400 }, children: [] }));
+        }
+        coverChildren.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [new TextRun({ text: 'Peerloom Technologies Limited', bold: true, size: 24, color: '666666' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400, after: 200 },
+            children: [new TextRun({ text: 'Class Report', bold: true, size: 56 })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 800 },
+            children: [new TextRun({ text: groupName, size: 32, color: '444444' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 80 },
+            children: [new TextRun({ text: groupRow?.course_code ? `Course: ${groupRow.course_code}` : '', size: 22, color: '666666' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 80 },
+            children: [new TextRun({ text: groupRow?.institution ? `Institution: ${groupRow.institution}` : '', size: 22, color: '666666' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 600, after: 40 },
+            children: [new TextRun({ text: `Generated on ${generatedDate}`, size: 20, color: '888888' })]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: `Prepared by ${adminName}`, size: 20, color: '888888' })]
+          })
+        );
+
+        // ── Activity table ──────────────────────────────────────────
+        const activityHeaderRow = new TableRow({
+          tableHeader: true,
+          children: ['Name', 'Role', 'Joined', 'Messages Sent'].map(h => new TableCell({
+            shading: { type: ShadingType.CLEAR, fill: '1A1A1A' },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 20 })] })]
+          }))
+        });
+        const activityRows = humanMembers.map(m => {
+          const name = getDisplayName(m);
+          const role = m.role || 'member';
+          const joined = m.joined_at ? new Date(m.joined_at).toLocaleDateString() : '—';
+          const count = msgCounts[m.user_id] || 0;
+          return new TableRow({
+            children: [name, role, joined, String(count)].map(txt => new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: txt, size: 20 })] })]
+            }))
+          });
+        });
+        const activityTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [activityHeaderRow, ...activityRows]
+        });
+
+        // ── Moderation table ─────────────────────────────────────────
+        const moderationChildren = [];
+        if (reportRows && reportRows.length) {
+          const modHeaderRow = new TableRow({
+            tableHeader: true,
+            children: ['Date', 'Reported User', 'Reported By', 'Reason', 'Status'].map(h => new TableCell({
+              shading: { type: ShadingType.CLEAR, fill: '1A1A1A' },
+              verticalAlign: VerticalAlign.CENTER,
+              children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 20 })] })]
+            }))
+          });
+          const modRows = reportRows.map(r => {
+            const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : '—';
+            const reportedName = reportProfileMap.get(r.reported_user_id) || 'Unknown';
+            const reporterName = reportProfileMap.get(r.reported_by) || 'Unknown';
+            const reason = r.reason || '(no reason given)';
+            const status = (r.status || 'open');
+            return new TableRow({
+              children: [date, reportedName, reporterName, reason, status].map(txt => new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: txt, size: 20 })] })]
+              }))
+            });
+          });
+          moderationChildren.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [modHeaderRow, ...modRows] }));
+        } else {
+          moderationChildren.push(new Paragraph({ children: [new TextRun({ text: 'No reports have been filed for this group.', italics: true, color: '666666' })] }));
+        }
+        moderationChildren.push(
+          new Paragraph({ spacing: { before: 300 }, children: [new TextRun({ text: `Pinned messages: ${pinnedCount}`, size: 20, color: '444444' })] })
+        );
+
+        // ── Assemble document (cover section + content section) ─────
+        const doc = new Document({
+          sections: [
+            {
+              properties: {},
+              footers: { default: makeFooter() },
+              children: coverChildren
+            },
+            {
+              properties: {},
+              footers: { default: makeFooter() },
+              children: [
+                new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { after: 200 }, children: [new TextRun({ text: 'Group Activity' })] }),
+                activityTable,
+                new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 }, children: [new TextRun({ text: 'Moderation & Reports' })] }),
+                ...moderationChildren
+              ]
+            }
+          ]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const fileSafeName = groupName.replace(/[^a-z0-9]+/gi, '_');
+        a.download = `${fileSafeName}_Class_Report.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showSuccess('Class report downloaded.');
+      } catch (error) {
+        console.error('Error generating class report:', error);
+        showError('Error generating class report: ' + error.message);
+      }
     }
     
     window.openLightbox = function(src, type) {

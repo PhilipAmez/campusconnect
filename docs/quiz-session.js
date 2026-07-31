@@ -928,7 +928,13 @@ async function submitQuiz(autoSubmitted) {
             updated_at: new Date().toISOString()
         };
         if (isObjective) {
-            const isCorrect = !!a && a.selected_option === q.correct_option;
+            // Coerced to numbers before comparing: selected_option is set
+            // client-side as a real number, but if the stored column type
+            // ever differs (this table isn't in tracked migration history,
+            // so its exact type can't be guaranteed), a strict === between
+            // a number and a string silently fails — marking a genuinely
+            // correct answer as wrong with no visible error anywhere.
+            const isCorrect = a?.selected_option != null && Number(a.selected_option) === Number(q.correct_option);
             row.is_correct = a ? isCorrect : false;
             row.points_awarded = a && isCorrect ? (q.points || 10) : 0;
         }

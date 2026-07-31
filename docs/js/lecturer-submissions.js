@@ -350,7 +350,7 @@ function renderQuestionGradeCard(question, answer) {
   // explanation. For an objective question we already know the answer key,
   // so there's no reason to make the lecturer manually figure out and type
   // in what the system can calculate itself.
-  const isCorrectMatch = isObjective && answer.selected_option === question.correct_option;
+  const isCorrectMatch = isObjective && answer.selected_option != null && Number(answer.selected_option) === Number(question.correct_option);
   const draftPoints = answer.points_awarded != null
     ? answer.points_awarded
     : (isObjective ? (isCorrectMatch ? (question.points || 0) : 0) : '');
@@ -379,7 +379,7 @@ function renderQuestionGradeCard(question, answer) {
       </label>
     `;
   } else if (question.question_type === 'true_false') {
-    const selectedLabel = answer.selected_option === 1 ? 'True' : answer.selected_option === 0 ? 'False' : 'No answer';
+    const selectedLabel = Number(answer.selected_option) === 1 ? 'True' : Number(answer.selected_option) === 0 ? 'False' : 'No answer';
     const correctLabel = question.correct_option === 1 ? 'True' : 'False';
     answerHtml = `
       <p><strong>Student answer:</strong> ${escapeHtml(selectedLabel)} ${isCorrectMatch ? '<span class="grading-verdict correct">Correct</span>' : '<span class="grading-verdict incorrect">Incorrect</span>'}</p>

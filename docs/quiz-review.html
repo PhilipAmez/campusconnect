@@ -134,8 +134,8 @@
             let body = '';
             if (q.question_type === 'mcq' || q.question_type === 'multiple_choice') {
                 const options = Array.isArray(q.options) ? q.options : [];
-                const selected = answer?.selected_option;
-                const correct = q.correct_option;
+                const selected = answer?.selected_option != null ? Number(answer.selected_option) : null;
+                const correct = q.correct_option != null ? Number(q.correct_option) : null;
                 body = options.map((opt, i) => {
                     let cls = '';
                     let tag = '';
@@ -143,7 +143,7 @@
                     if (i === selected && i === correct) { cls = 'selected-correct'; tag = 'Your answer · Correct'; icon = 'fa-solid fa-circle-check'; }
                     else if (i === selected && i !== correct) { cls = 'selected-wrong'; tag = 'Your answer · Incorrect'; icon = 'fa-solid fa-circle-xmark'; }
                     else if (i === correct) { cls = 'correct-unselected'; tag = 'Correct answer'; icon = 'fa-solid fa-circle-check'; }
-                    return `<div class="mcq-option ${cls}"><span class="opt-icon"><i class="${icon}"></i></span>${escapeHtml(opt)}${tag ? `<span class="tag">${tag}</span>` : ''}</div>`;
+                    return `<div class="mcq-option ${cls}"><span class="opt-icon"><i class="${icon}"></i></span>${escapeHtml(opt?.text || opt?.label || `Option ${i + 1}`)}${tag ? `<span class="tag">${tag}</span>` : ''}</div>`;
                 }).join('');
             } else {
                 const text = answer?.answer_text;

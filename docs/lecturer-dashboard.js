@@ -154,6 +154,7 @@ window.addEventListener('lecturer-section-change', (event) => {
   if (nextSection) {
     activeSection = nextSection;
     render();
+    closeSidebar();
   }
 });
 

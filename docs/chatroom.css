@@ -2353,3 +2353,94 @@ body {
 .resource-action-btn:hover { transform: translateY(-1px); }
 .resource-action-btn.active { border-color: var(--ios-primary); color: var(--ios-primary); }
 [data-theme="dark"] .resource-action-btn { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.14); }
+/* ── Pinned messages bar ────────────────────────────────────────── */
+.pinned-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(var(--ios-warning-rgb, 255, 149, 0), 0.1);
+  border-bottom: 1px solid rgba(var(--ios-warning-rgb, 255, 149, 0), 0.25);
+  cursor: pointer;
+  font-size: 13px;
+}
+.pinned-bar .pinned-bar-icon {
+  color: var(--ios-warning);
+  flex-shrink: 0;
+}
+.pinned-bar .pinned-bar-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  opacity: 0.85;
+}
+.pinned-bar .pinned-bar-count {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--ios-warning);
+}
+
+.msg.pinned {
+  border-left: 3px solid var(--ios-warning);
+}
+.msg .pin-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ios-warning);
+  margin-bottom: 2px;
+}
+.msg .msg-pin-btn {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  opacity: 0.35;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+}
+.msg .msg-pin-btn:hover { opacity: 0.9; }
+.msg .msg-pin-btn.active { color: var(--ios-warning); opacity: 1; }
+.msg { position: relative; }
+
+/* ── Admin report list ──────────────────────────────────────────── */
+.admin-report-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  margin-bottom: 8px;
+}
+.admin-report-item .admin-report-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.admin-report-status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+.admin-report-status.open { background: rgba(var(--ios-danger-rgb), 0.15); color: var(--ios-danger); }
+.admin-report-status.reviewed { background: rgba(var(--ios-info-rgb), 0.15); color: var(--ios-info); }
+.admin-report-status.dismissed { background: rgba(120,120,128,0.2); color: var(--text-primary); opacity: 0.7; }
+.admin-report-status-select {
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120,120,128,0.3);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  padding: 2px 4px;
+}

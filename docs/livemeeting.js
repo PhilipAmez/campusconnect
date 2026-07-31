@@ -82,6 +82,23 @@ import { supabase } from './js/supabaseClient.js';
     const attendanceModal = document.getElementById('attendance-modal');
     const waitingRoomModal = document.getElementById('waiting-room-modal');
     const hostTools = document.getElementById('host-tools');
+    const hostToolsToggle = document.getElementById('host-tools-toggle');
+    if (hostToolsToggle && hostTools) {
+      hostToolsToggle.addEventListener('click', () => {
+        const isOpen = hostTools.classList.toggle('mobile-open');
+        hostToolsToggle.setAttribute('aria-expanded', String(isOpen));
+        hostToolsToggle.classList.toggle('is-open', isOpen);
+      });
+      // Closing after picking an action keeps the panel from just sitting
+      // open over the video feed on a small screen.
+      hostTools.addEventListener('click', (e) => {
+        if (e.target.closest('.tool-btn') && hostTools.classList.contains('mobile-open')) {
+          hostTools.classList.remove('mobile-open');
+          hostToolsToggle.setAttribute('aria-expanded', 'false');
+          hostToolsToggle.classList.remove('is-open');
+        }
+      });
+    }
     const hostNameEl = document.getElementById('host-name');
     const classTitleEl = document.getElementById('class-title');
     const desktopChatInput = document.getElementById('chat-input-desktop');
@@ -90,6 +107,22 @@ import { supabase } from './js/supabaseClient.js';
     const loadingStatus = document.getElementById('loading-status');
 
     // ============= MEDIA ACCESS WITH RETRY FOR WEBVIEW =============
+    // ============= DISPLAY NAME HELPER =============
+    // Supabase Auth's user_metadata only ever stores firstName/lastName
+    // separately (see signup.html) — it never contains a full_name field
+    // at all, so every `user_metadata.firstName || user_metadata.full_name`
+    // fallback in this file was reaching for something that never existed,
+    // and silently resolving to first-name-only every single time. This
+    // combines firstName + lastName properly, which is what attendance and
+    // every name label in this file actually need.
+    function getUserDisplayName(user, fallback = 'User') {
+      const meta = user?.user_metadata || {};
+      const first = meta.firstName || meta.first_name || '';
+      const last = meta.lastName || meta.last_name || '';
+      const combined = `${first} ${last}`.trim();
+      return combined || meta.full_name || first || fallback;
+    }
+
     async function requestMediaWithRetry(maxRetries = 2, delay = 500) {
       let lastError;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -111,19 +144,68 @@ import { supabase } from './js/supabaseClient.js';
       throw lastError;
     }
 
-    // ============= OPENAI AI SETUP =============
+    // ============= AGORA HOST/AUDIENCE PROMOTION (scaling) =============
+    // In "live" broadcast mode (see createClient above), only members with
+    // the "host" role may publish audio/video at all — "audience" members
+    // are pure, low-cost viewers. Students join as audience by default now,
+    // and only get promoted to "host" for as long as they're actually
+    // unmuted, then demoted back. This is the standard Agora pattern for
+    // interactive large-scale live classes, and it's what actually allows
+    // the channel to hold thousands of students instead of being capped by
+    // everyone counting as a publisher.
+    let studentTracksReady = false;
 
+    async function ensureCanPublish() {
+      if (state.isHost) return true; // host is already the "host" role and always has tracks
+      try {
+        if (!studentTracksReady || !state.localAudioTrack || !state.localVideoTrack) {
+          updateLoadingStatus?.("Accessing camera and microphone...");
+          [state.localAudioTrack, state.localVideoTrack] = await requestMediaWithRetry(2, 500);
+          studentTracksReady = true;
+        }
+        await state.client.setClientRole("host");
+        await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
+        state.localAudioTrack.setEnabled(state.isMicOn);
+        state.localVideoTrack.setEnabled(state.isCameraOn);
+        return true;
+      } catch (err) {
+        console.error("Failed to promote to publisher role:", err);
+        showNotification("Could not access camera/microphone. Please check permissions.", "error");
+        return false;
+      }
+    }
+
+    async function revertToAudienceIfMuted() {
+      if (state.isHost) return;
+      if (state.isMicOn || state.isCameraOn) return; // still using at least one — stay promoted
+      try {
+        if (state.localAudioTrack || state.localVideoTrack) {
+          await state.client.unpublish([state.localAudioTrack, state.localVideoTrack].filter(Boolean));
+        }
+        await state.client.setClientRole("audience");
+      } catch (err) {
+        console.error("Failed to demote back to audience role:", err);
+      }
+    }
+
+    // ============= PEERPAL AI (same backend as chatroom.html) =============
+    // This used to call a separate /api/chat route backed by OpenAI — a
+    // completely different AI, with a different personality, from the one
+    // students already know from chatroom.html. Now it calls the exact
+    // same /api/peerpal endpoint (Gemini, run by Peerloom Technologies
+    // Limited) so "PeerPal AI" actually means the same assistant
+    // everywhere in the product, not two unrelated ones sharing a name.
     async function callOpenAI(prompt) {
       try {
         showAILoading();
         
-        const response = await fetch('/api/chat', {
+        const response = await fetch('/api/peerpal', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            prompt: prompt
+            message: prompt
           })
         });
 
@@ -140,7 +222,7 @@ import { supabase } from './js/supabaseClient.js';
           throw new Error('Invalid response format from AI');
         }
       } catch (error) {
-        console.error('OpenAI API Error:', error);
+        console.error('PeerPal AI Error:', error);
         hideAILoading();
         
         // Provide fallback responses if API call fails
@@ -343,7 +425,7 @@ import { supabase } from './js/supabaseClient.js';
       }, { passive: false });
     });
 
-    function handleButtonAction(action, btn) {
+    async function handleButtonAction(action, btn) {
       if (!action || !btn) return;
       
       // TRUE LECTURER AUTHORITY: Hard check role for host-only actions
@@ -387,19 +469,26 @@ import { supabase } from './js/supabaseClient.js';
       }
       
       switch (action) {
-        case 'mic':
+        case 'mic': {
+          const turningOn = !state.isMicOn;
+
+          // HARD MUTE LOCK: Prevent unmute if locked
+          if (turningOn && (state.mediaControlLocked || state.hardMuteLock) && !state.isHost) {
+            showNotification('Microphone is locked by host', 'info');
+            btn.classList.toggle('active'); // Revert UI change
+            return;
+          }
+
+          // Students have no track/publish at all until the moment they
+          // first try to unmute — promote to Agora's "host" role and
+          // create tracks lazily right here.
+          if (turningOn && !state.isHost) {
+            const ok = await ensureCanPublish();
+            if (!ok) { btn.classList.toggle('active'); return; }
+          }
+
           if (state.localAudioTrack) {
-            // TRUTHFUL MEDIA STATE: Ensure UI matches real track state
-            const newState = !state.isMicOn;
-            
-            // HARD MUTE LOCK: Prevent unmute if locked
-            if (newState && (state.mediaControlLocked || state.hardMuteLock) && !state.isHost) {
-              showNotification('Microphone is locked by host', 'info');
-              btn.classList.toggle('active'); // Revert UI change
-              return;
-            }
-            
-            state.isMicOn = newState;
+            state.isMicOn = turningOn;
             state.localAudioTrack.setEnabled(state.isMicOn).catch(err => {
               console.error('Mic error:', err);
               state.isMicOn = !state.isMicOn;
@@ -429,23 +518,30 @@ import { supabase } from './js/supabaseClient.js';
                 }
               });
             }
+
+            if (!turningOn) revertToAudienceIfMuted();
           }
           showNotification(state.isMicOn ? 'Microphone ON' : 'Microphone OFF', 'mic');
           break;
+        }
           
-        case 'cam':
+        case 'cam': {
+          const camTurningOn = !state.isCameraOn;
+
+          // HARD CAMERA LOCK: Prevent enabling if locked
+          if (camTurningOn && (state.cameraControlLocked || state.hardCameraLock) && !state.isHost) {
+            showNotification('Camera is locked by host', 'info');
+            btn.classList.toggle('active'); // Revert UI change
+            return;
+          }
+
+          if (camTurningOn && !state.isHost) {
+            const ok = await ensureCanPublish();
+            if (!ok) { btn.classList.toggle('active'); return; }
+          }
+
           if (state.localVideoTrack) {
-            // TRUTHFUL MEDIA STATE: Ensure UI matches real track state
-            const newState = !state.isCameraOn;
-            
-            // HARD CAMERA LOCK: Prevent enabling if locked
-            if (newState && (state.cameraControlLocked || state.hardCameraLock) && !state.isHost) {
-              showNotification('Camera is locked by host', 'info');
-              btn.classList.toggle('active'); // Revert UI change
-              return;
-            }
-            
-            state.isCameraOn = newState;
+            state.isCameraOn = camTurningOn;
             state.localVideoTrack.setEnabled(state.isCameraOn).catch(err => {
               console.error('Camera error:', err);
               state.isCameraOn = !state.isCameraOn;
@@ -482,9 +578,12 @@ import { supabase } from './js/supabaseClient.js';
                 }
               });
             }
+
+            if (!camTurningOn) revertToAudienceIfMuted();
           }
           showNotification(state.isCameraOn ? 'Camera ON' : 'Camera OFF', 'camera');
           break;
+        }
           
         case 'share':
           handleScreenShare();
@@ -913,6 +1012,13 @@ import { supabase } from './js/supabaseClient.js';
       }
     });
 
+    // Cards are built with template strings and inserted via innerHTML, so
+    // their action buttons can't close over real JS values directly — this
+    // keeps each card's real content keyed by a generated id, which the
+    // buttons look up by id instead.
+    let aiCardStore = {};
+    let aiCardCounter = 0;
+
     function createAICard(type, title, subtitle, content, actions = []) {
       const card = document.createElement('div');
       card.className = 'ai-message-card';
@@ -933,9 +1039,12 @@ import { supabase } from './js/supabaseClient.js';
       } else {
         contentHTML = content;
       }
+
+      const cardId = `aicard-${++aiCardCounter}`;
+      aiCardStore[cardId] = { title, content: typeof content === 'string' ? content : '' };
       
       const actionsHTML = actions.map(action => `
-        <button class="ai-card-btn ${action.primary ? 'primary' : ''}" onclick="${action.onclick || ''}">
+        <button class="ai-card-btn ${action.primary ? 'primary' : ''}" onclick="${action.onclick ? action.onclick.replace('__CARD_ID__', cardId) : ''}">
           <i class="fas fa-${action.icon}"></i>
           ${action.text}
         </button>
@@ -961,6 +1070,71 @@ import { supabase } from './js/supabaseClient.js';
       
       return card;
     }
+
+    // ============= AI CARD ACTIONS (copy / PDF export) =============
+    async function copyAICardContent(cardId) {
+      const entry = aiCardStore[cardId];
+      if (!entry) return;
+      try {
+        await navigator.clipboard.writeText(entry.content);
+        showNotification('Copied to clipboard', 'info');
+      } catch (err) {
+        console.error('Copy failed:', err);
+        showNotification('Could not copy — try selecting the text manually', 'error');
+      }
+    }
+    window.copyAICardContent = copyAICardContent;
+
+    let jsPDFLoadPromise = null;
+    function loadJsPDF() {
+      if (window.jspdf) return Promise.resolve();
+      if (jsPDFLoadPromise) return jsPDFLoadPromise;
+      jsPDFLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      return jsPDFLoadPromise;
+    }
+
+    async function downloadAICardAsPDF(cardId) {
+      const entry = aiCardStore[cardId];
+      if (!entry) return;
+      try {
+        await loadJsPDF();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text(entry.title, 14, 20);
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(120);
+        doc.text(`${state.classTitle || 'Peerloom Board'} — ${new Date().toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}`, 14, 27);
+        doc.setDrawColor(200);
+        doc.line(14, 31, pageWidth - 14, 31);
+
+        doc.setFontSize(11);
+        doc.setTextColor(30);
+        const lines = doc.splitTextToSize(entry.content, pageWidth - 28);
+        doc.text(lines, 14, 42);
+
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text('© ' + new Date().getFullYear() + ' Peerloom Technologies Limited. All rights reserved.', 14, pageHeight - 10);
+
+        doc.save(`${entry.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`);
+      } catch (err) {
+        console.error('PDF export failed:', err);
+        showNotification('Could not generate the PDF. Please try again.', 'error');
+      }
+    }
+    window.downloadAICardAsPDF = downloadAICardAsPDF;
 
     function addMessage(text, sender, isSelf = false, fromDesktop = false, time = null) {
       const messagesContainer = document.getElementById('chat-messages');
@@ -1351,6 +1525,10 @@ import { supabase } from './js/supabaseClient.js';
 
     // ============= AI FUNCTIONS REDESIGN =============
     async function generateSummary() {
+      if (!state.isHost) {
+        showNotification('Only the host can generate a lesson summary', 'info');
+        return;
+      }
       const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
         .map(msg => msg.textContent)
         .slice(-10)
@@ -1367,9 +1545,8 @@ import { supabase } from './js/supabaseClient.js';
         'AI-generated key points from discussion',
         summary,
         [
-          { text: 'View Summary', icon: 'eye', primary: true },
-          { text: 'Save Notes', icon: 'save' },
-          { text: 'Share', icon: 'share' }
+          { text: 'Download PDF', icon: 'file-pdf', primary: true, onclick: "downloadAICardAsPDF('__CARD_ID__')" },
+          { text: 'Copy', icon: 'copy', onclick: "copyAICardContent('__CARD_ID__')" }
         ]
       );
       
@@ -1378,6 +1555,10 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     async function generateQuiz() {
+      if (!state.isHost) {
+        showNotification('Only the host can generate a pop quiz', 'info');
+        return;
+      }
       const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
         .map(msg => msg.textContent)
         .slice(-10)
@@ -1394,9 +1575,8 @@ import { supabase } from './js/supabaseClient.js';
         'Test your understanding of today\'s discussion',
         quiz,
         [
-          { text: 'Start Quiz', icon: 'play', primary: true },
-          { text: 'Save Quiz', icon: 'save' },
-          { text: 'Share with Class', icon: 'share' }
+          { text: 'Download PDF', icon: 'file-pdf', primary: true, onclick: "downloadAICardAsPDF('__CARD_ID__')" },
+          { text: 'Copy', icon: 'copy', onclick: "copyAICardContent('__CARD_ID__')" }
         ]
       );
       
@@ -1405,6 +1585,10 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     async function suggestResources() {
+      if (!state.isHost) {
+        showNotification('Only the host can request resource suggestions', 'info');
+        return;
+      }
       const chatHistory = Array.from(document.querySelectorAll('#chat-messages .message:not(.system):not(.ai-message-card)'))
         .map(msg => msg.textContent)
         .slice(-10)
@@ -2150,7 +2334,16 @@ import { supabase } from './js/supabaseClient.js';
         return;
       }
 
-      state.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      // "rtc" mode treats every participant as an equal peer — it's built
+      // for small interactive calls and doesn't meaningfully scale past a
+      // few dozen people all publishing at once. "live" mode (Agora's
+      // broadcast profile) is what actually supports thousands of
+      // concurrent viewers: the lecturer publishes as "host", and students
+      // join as "audience" (receive-only by default, at a fraction of the
+      // resource cost), with Agora's network fanning the stream out to
+      // everyone instead of each viewer connecting to each other.
+      state.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      await state.client.setClientRole(state.isHost ? "host" : "audience");
 
       state.client.on("user-published", handleUserPublished);
       state.client.on("user-unpublished", handleUserUnpublished);
@@ -2248,24 +2441,22 @@ import { supabase } from './js/supabaseClient.js';
         updateLoadingStatus("Connecting to media server...");
         await state.client.join(state.agoraAppId, channelName, token, uid);
 
-        // STANDARD CLASS MODE: Students join with tracks but muted
+        // AUDIENCE-FIRST JOIN: a student joins as a pure viewer with no
+        // local tracks and nothing published — this is what actually makes
+        // large classes cheap to run on Agora's side. Publishing muted
+        // tracks for every single student (the previous behavior) meant
+        // every viewer still counted as a full publisher, which defeats
+        // the entire point of "live" broadcast mode and is exactly what
+        // caps how many people a channel can realistically hold. Tracks
+        // are only created, and the student only promoted to the "host"
+        // role, the moment they actually try to unmute — see toggleMic /
+        // toggleCam via ensureCanPublish() below.
         if (!state.isHost) {
-          // Students start with mic and camera disabled
           state.isMicOn = false;
           state.isCameraOn = false;
           state.forceListenOnly = false;
-          
-          try {
-            updateLoadingStatus("Accessing camera and microphone...");
-            [state.localAudioTrack, state.localVideoTrack] = await requestMediaWithRetry(2, 500);
-            state.localAudioTrack.setEnabled(false);
-            state.localVideoTrack.setEnabled(false);
-            await state.client.publish([state.localAudioTrack, state.localVideoTrack]);
-          } catch (permError) {
-            console.warn("Student joined without media permissions");
-          }
         } else {
-          // Host always has tracks
+          // Host always has tracks and publishes immediately.
           try {
             updateLoadingStatus("Accessing camera and microphone...");
             [state.localAudioTrack, state.localVideoTrack] = await requestMediaWithRetry(2, 500);
@@ -2913,7 +3104,7 @@ import { supabase } from './js/supabaseClient.js';
           const { data: newReq, error } = await supabase.from('meeting_requests').insert({
             group_id: gid,
             user_id: user.id,
-            user_name: user.user_metadata.firstName || user.user_metadata.full_name || 'Student',
+            user_name: getUserDisplayName(user, 'Student'),
             status: 'approved'
           }).select().single();
           
@@ -3295,7 +3486,7 @@ import { supabase } from './js/supabaseClient.js';
       
       const content = overlay.querySelector('.waiting-content');
       if (content) {
-        const userName = user.user_metadata.firstName || user.user_metadata.full_name || 'Student';
+        const userName = getUserDisplayName(user, 'Student');
         const profilePhoto = user.user_metadata.avatar_url || null;
         const profileImg = profilePhoto ? `<img src="${profilePhoto}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 3px solid var(--accent-green);">` : `<div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; font-weight: 600;">${userName.charAt(0).toUpperCase()}</div>`;
         
@@ -3444,7 +3635,7 @@ import { supabase } from './js/supabaseClient.js';
         document.getElementById('join-btn').onclick = async () => {
           modal.style.display = 'none';
           loadingOverlay.classList.remove('hidden');
-          await initAgora(gid, user.id, user.user_metadata.firstName || user.user_metadata.full_name || 'User');
+          await initAgora(gid, user.id, getUserDisplayName(user, 'User'));
         };
 
       } catch (e) {
@@ -3847,7 +4038,7 @@ import { supabase } from './js/supabaseClient.js';
       const user = session.user;
       state.currentUser = {
         id: user.id,
-        name: user.user_metadata.firstName || user.user_metadata.full_name || 'User',
+        name: getUserDisplayName(user, 'User'),
         email: user.email,
         role: 'student',
         photo: user.user_metadata.avatar_url
