@@ -341,8 +341,25 @@
     // ── Helper: read joinGroup from URL param first, fall back to localStorage ──
     function getRedirectUrl(profile = null) {
         const params = new URLSearchParams(window.location.search)
+        const explicitRedirect = params.get('redirect') || localStorage.getItem('pendingRedirect')
         const groupId = params.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
         const isLecturer = profile?.is_lecturer === true || profile?.role === 'lecturer' || profile?.level === 'lecturer' || profile?.custom_level === 'lecturer'
+
+        // An explicit redirect (e.g. a guest sent here from a live meeting
+        // link) takes priority over the usual lecturer/dashboard routing —
+        // they came here to get back to something specific, not to land
+        // on the dashboard.
+        if (explicitRedirect) {
+            localStorage.removeItem('pendingRedirect')
+            try {
+                const decoded = decodeURIComponent(explicitRedirect)
+                // Only ever redirect to a same-site relative path — never
+                // follow an absolute/external URL from a query param.
+                if (decoded.startsWith('/') || /^[a-zA-Z0-9_-]+\.html/.test(decoded)) {
+                    return decoded
+                }
+            } catch (e) { /* fall through to normal routing */ }
+        }
 
         if (isLecturer) {
             return 'lecturer-dashboard.html'
@@ -382,10 +399,20 @@
     try {
         const _params = new URLSearchParams(window.location.search)
         const _gid = _params.get('joinGroup')
+        const _redirect = _params.get('redirect')
         if (_gid) {
             localStorage.setItem('pendingGroupJoin', _gid)
-            const signupLink = document.getElementById('signupLink')
-            if (signupLink) signupLink.href = 'signup.html?joinGroup=' + _gid
+        }
+        if (_redirect) {
+            localStorage.setItem('pendingRedirect', _redirect)
+        }
+        const signupLink = document.getElementById('signupLink')
+        if (signupLink) {
+            if (_redirect) {
+                signupLink.href = 'signup.html?redirect=' + encodeURIComponent(_redirect)
+            } else if (_gid) {
+                signupLink.href = 'signup.html?joinGroup=' + _gid
+            }
         }
     } catch(_e) {}
 

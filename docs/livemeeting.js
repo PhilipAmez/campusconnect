@@ -5,6 +5,11 @@ import { supabase } from './js/supabaseClient.js';
       isMicOn: false,
       isCameraOn: false,
       isRecording: false,
+      mediaRecorder: null,
+      recordedChunks: [],
+      recordingStream: null,
+      captionsEnabled: false,
+      speechRecognition: null,
       isHandRaised: false,
       isScreenSharing: false,
       isPresentationMode: false,
@@ -257,38 +262,40 @@ import { supabase } from './js/supabaseClient.js';
       document.getElementById('participant-count').textContent = count;
     }
 
-    async function takeAttendance() {
+    function takeAttendance() {
       if (!state.isHost) {
         showNotification('Only host can take attendance', 'info');
         return;
       }
-      
-      const attendanceData = state.attendance.map(s => ({
-        name: s.name,
-        joinTime: s.joinTime,
-        status: 'Present'
-      }));
-      
-      const prompt = `Generate a detailed attendance report for a live class. Format it professionally with the following data:\n\n${JSON.stringify(attendanceData, null, 2)}\n\nProvide: 1. Summary statistics, 2. List of attendees with join times, 3. Any notable patterns. Format as markdown.`;
-      
-      const report = await callOpenAI(prompt);
-      
+
+      // This used to send the attendance list to the AI and ask it to
+      // "generate" a report from it — pointless, since the data is
+      // already exact and complete straight from the database. When the
+      // AI call failed (or was slow), the card showed a generic fallback
+      // sentence instead of the actual attendance. Now it's just the real
+      // data, formatted directly, with no AI involved at all.
+      const attendanceData = [
+        { name: state.currentUser?.name || 'Host', role: 'Host', joinTime: new Date().toLocaleTimeString() },
+        ...state.attendance.map(s => ({ name: s.name, role: 'Student', joinTime: s.joinTime }))
+      ];
+
+      const summaryText = `${attendanceData.length} attendee${attendanceData.length === 1 ? '' : 's'} present.\n\n`
+        + attendanceData.map(a => `\u2022 ${a.name} (${a.role}) \u2014 joined ${a.joinTime}`).join('\n');
+
       const messagesContainer = document.getElementById('chat-messages');
       const card = createAICard(
         'attendance',
-        'Attendance Report',
-        'AI-generated attendance summary',
-        report,
+        'Attendance',
+        `${attendanceData.length} attendee${attendanceData.length === 1 ? '' : 's'} recorded`,
+        summaryText,
         [
-          { text: 'View Report', icon: 'eye', primary: true },
-          { text: 'Export CSV', icon: 'download' },
-          { text: 'Share', icon: 'share' }
+          { text: 'Download PDF', icon: 'file-pdf', primary: true, onclick: 'exportAttendance()' }
         ]
       );
-      
+
       messagesContainer.appendChild(card);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      
+
       updateAttendanceModal();
       attendanceModal.style.display = 'flex';
     }
@@ -332,30 +339,136 @@ import { supabase } from './js/supabaseClient.js';
       });
     }
 
-    function exportAttendance() {
+    async function exportAttendance() {
       if (!state.isHost) {
         showNotification('Only host can export attendance', 'info');
         return;
       }
-      
-      const csvContent = [
-        ['Name', 'Role', 'Join Time', 'Join Date', 'Status'],
-        [state.currentUser?.name || 'Host', 'Host', new Date().toLocaleTimeString(), new Date().toLocaleDateString(), 'Present'],
-        ...state.attendance.map(s => [s.name, 'Student', s.joinTime, s.joinDate, 'Present'])
-      ].map(row => row.join(',')).join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `attendance-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
-      showNotification('Attendance exported as CSV', 'download');
+
+      try {
+        showNotification('Generating attendance report\u2026', 'info');
+        await loadJsPDF();
+        await loadJsPDFAutoTable();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const ACCENT = [151, 117, 250];
+
+        // ── Gather cover-page details ──
+        let institution = '';
+        let adminNames = [];
+        try {
+          const { data: hostProfile } = await supabase
+            .from('profiles')
+            .select('institution, campus, custom_campus')
+            .eq('id', state.hostId || state.currentUser.id)
+            .maybeSingle();
+          institution = hostProfile?.institution || hostProfile?.campus || hostProfile?.custom_campus || '';
+        } catch (e) { /* best-effort — cover page still works without it */ }
+
+        const gid = new URLSearchParams(window.location.search).get('groupId');
+        if (gid) {
+          try {
+            const { data: admins } = await supabase
+              .from('group_members')
+              .select('user_id, profiles(full_name, username)')
+              .eq('group_id', gid)
+              .eq('role', 'admin');
+            adminNames = (admins || [])
+              .map(a => a.profiles?.full_name || a.profiles?.username)
+              .filter(Boolean);
+          } catch (e) { /* best-effort */ }
+        }
+
+        const lecturerName = state.hostName || state.currentUser?.name || 'Lecturer';
+        const attendees = [
+          { name: state.currentUser?.name || 'Host', role: 'Host', time: new Date().toLocaleTimeString() },
+          ...state.attendance.map(s => ({ name: s.name, role: 'Student', time: s.joinTime }))
+        ];
+
+        // ── Cover page ──
+        doc.setFillColor(20, 16, 38);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        doc.setFillColor(...ACCENT);
+        doc.rect(0, 0, pageWidth, 6, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('PEERLOOM', 20, 30);
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(200, 190, 230);
+        doc.text('Live Class Attendance Report', 20, 37);
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont(undefined, 'bold');
+        const titleLines = doc.splitTextToSize(state.classTitle || 'Live Class', pageWidth - 40);
+        doc.text(titleLines, 20, 90);
+
+        let coverY = 90 + titleLines.length * 10 + 20;
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(190, 180, 220);
+
+        const coverLine = (label, value) => {
+          if (!value) return;
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(255, 255, 255);
+          doc.text(label, 20, coverY);
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(190, 180, 220);
+          doc.text(String(value), 70, coverY);
+          coverY += 9;
+        };
+
+        coverLine('Institution:', institution);
+        coverLine('Lecturer:', lecturerName);
+        if (adminNames.length) coverLine('Admin(s):', adminNames.join(', '));
+        coverLine('Date:', new Date().toLocaleDateString('en', { dateStyle: 'long' }));
+        coverLine('Attendees:', `${attendees.length}`);
+
+        doc.setFontSize(8);
+        doc.setTextColor(150, 140, 180);
+        doc.text(`\u00A9 ${new Date().getFullYear()} Peerloom Technologies Limited. All rights reserved.`, 20, pageHeight - 15);
+
+        // ── Attendee table (new page, normal styling) ──
+        doc.addPage();
+        doc.setTextColor(20, 16, 38);
+        doc.setFontSize(15);
+        doc.setFont(undefined, 'bold');
+        doc.text('Attendance Record', 14, 20);
+
+        doc.autoTable({
+          startY: 28,
+          margin: { top: 24, bottom: 22 },
+          head: [['Name', 'Role', 'Time Joined', 'Status']],
+          body: attendees.map(a => [a.name, a.role, a.time, 'Present']),
+          theme: 'striped',
+          headStyles: { fillColor: ACCENT, textColor: 255, fontStyle: 'bold' },
+          styles: { fontSize: 10, cellPadding: 4 },
+          didDrawPage: () => {
+            const pw = doc.internal.pageSize.getWidth();
+            const ph = doc.internal.pageSize.getHeight();
+            doc.setDrawColor(220);
+            doc.line(14, ph - 16, pw - 14, ph - 16);
+            doc.setFontSize(8);
+            doc.setTextColor(140);
+            doc.text(`\u00A9 ${new Date().getFullYear()} Peerloom Technologies Limited. All rights reserved.`, 14, ph - 10);
+            doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${doc.internal.getNumberOfPages()}`, pw - 14, ph - 10, { align: 'right' });
+          }
+        });
+
+        doc.save(`attendance-${(state.classTitle || 'class').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
+        showNotification('Attendance report downloaded', 'download');
+      } catch (err) {
+        console.error('Attendance PDF export failed:', err);
+        showNotification('Could not generate the report. Please try again.', 'error');
+      }
     }
+
 
     function closeAttendanceModal() {
       attendanceModal.style.display = 'none';
@@ -496,7 +609,7 @@ import { supabase } from './js/supabaseClient.js';
             });
             
             // Update UI to match real state
-            const micIcon = btn.querySelector('i');
+            const micIcon = btn.querySelector('i, svg');
             if (micIcon) {
               if (state.isMicOn) {
                 micIcon.classList.remove('fa-microphone-slash');
@@ -505,6 +618,15 @@ import { supabase } from './js/supabaseClient.js';
                 micIcon.classList.remove('fa-microphone');
                 micIcon.classList.add('fa-microphone-slash');
               }
+            }
+
+            // Live captions transcribe from whoever's mic is actually on —
+            // this runs regardless of whether *this* viewer has captions
+            // turned on, since someone else watching might have them on.
+            if (state.isMicOn) {
+              startSpeechRecognition();
+            } else {
+              stopSpeechRecognition();
             }
             
             // Broadcast mic state change to host
@@ -603,6 +725,10 @@ import { supabase } from './js/supabaseClient.js';
             return;
           }
           takeAttendance();
+          break;
+
+        case 'captions':
+          toggleCaptions(btn);
           break;
           
         case 'chat':
@@ -1099,6 +1225,20 @@ import { supabase } from './js/supabaseClient.js';
       return jsPDFLoadPromise;
     }
 
+    let jsPDFAutoTableLoadPromise = null;
+    function loadJsPDFAutoTable() {
+      if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable) return Promise.resolve();
+      if (jsPDFAutoTableLoadPromise) return jsPDFAutoTableLoadPromise;
+      jsPDFAutoTableLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      return jsPDFAutoTableLoadPromise;
+    }
+
     async function downloadAICardAsPDF(cardId) {
       const entry = aiCardStore[cardId];
       if (!entry) return;
@@ -1136,10 +1276,32 @@ import { supabase } from './js/supabaseClient.js';
     }
     window.downloadAICardAsPDF = downloadAICardAsPDF;
 
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function linkifyText(str) {
+      const urlPattern = /(https?:\/\/[^\s<]+)/g;
+      return str.replace(urlPattern, (url) => {
+        // Trim trailing punctuation that isn't part of the URL itself
+        const trailing = url.match(/[.,!?;:]+$/);
+        const clean = trailing ? url.slice(0, -trailing[0].length) : url;
+        const suffix = trailing ? trailing[0] : '';
+        return `<a href="${clean}" target="_blank" rel="noopener noreferrer" class="message-link">${clean}</a>${suffix}`;
+      });
+    }
+
     function addMessage(text, sender, isSelf = false, fromDesktop = false, time = null) {
       const messagesContainer = document.getElementById('chat-messages');
       const messageDiv = document.createElement('div');
       const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Text is escaped first (so a message can never inject real HTML/
+      // scripts into the page), then URLs in the now-safe text are
+      // converted into real clickable links — needed for things like the
+      // recording download link to actually work as a link at all.
+      const safeText = linkifyText(escapeHtml(text));
 
       if (sender === 'system') {
         messageDiv.className = 'message system';
@@ -1149,13 +1311,13 @@ import { supabase } from './js/supabaseClient.js';
         
         if (!isSelf && sender) {
           messageDiv.innerHTML = `
-            <div class="message-sender">${sender}</div>
-            ${text}
+            <div class="message-sender">${escapeHtml(sender)}</div>
+            ${safeText}
             <div class="message-time">${timeStr}</div>
           `;
         } else {
           messageDiv.innerHTML = `
-            ${text}
+            ${safeText}
             <div class="message-time">${timeStr}</div>
           `;
         }
@@ -1179,7 +1341,7 @@ import { supabase } from './js/supabaseClient.js';
       if (text) {
         try {
           const { error } = await supabase
-            .from('group_messages')
+            .from('live_meeting_messages')
             .insert({
               group_id: gid,
               sender_id: state.currentUser.id,
@@ -1967,7 +2129,17 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     function copyClassLink() {
-      const link = `https://peerloom.com/live/${Math.random().toString(36).substr(2, 9)}`;
+      // Previously this generated a fake random URL on a domain that
+      // isn't even this site (peerloom.com instead of the real deployed
+      // origin), completely disconnected from the actual meeting — that's
+      // why the shared link never worked. The real link needs the same
+      // groupId this page itself is running on.
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+      if (!gid) {
+        showNotification('Could not determine this class\'s link — try reloading the page.', 'error');
+        return;
+      }
+      const link = `${window.location.origin}${window.location.pathname}?groupId=${encodeURIComponent(gid)}`;
       navigator.clipboard.writeText(link);
       showNotification('Class link copied to clipboard', 'link');
     }
@@ -2077,20 +2249,211 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     // ============= HELPER FUNCTIONS =============
-    function toggleRecording(btn) {
+    async function toggleRecording(btn) {
       if (!state.isHost) {
         showNotification('Only host can record', 'info');
         return;
       }
-      
-      state.isRecording = !state.isRecording;
-      if (state.isRecording) {
-        btn.classList.add('recording');
-        showNotification('Recording Started', 'recording');
+
+      if (!state.isRecording) {
+        // START RECORDING
+        // There's no Agora Cloud Recording server wired up here (that's a
+        // separate backend service requiring its own API credentials), so
+        // this captures via the browser's own screen-capture + MediaRecorder
+        // APIs. Browsers use the exact same permission dialog for "share
+        // your screen" and "record your screen" — there's no way to make
+        // that native dialog itself look different — so this toast fires
+        // first specifically to make clear *why* that dialog is about to
+        // appear: it's for recording, not for sharing your screen with
+        // other participants.
+        showNotification('Choose what to record in the dialog that opens next', 'recording');
+        try {
+          const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { displaySurface: 'browser' },
+            audio: true
+          });
+
+          state.recordedChunks = [];
+          const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+            ? 'video/webm;codecs=vp9,opus'
+            : 'video/webm';
+          state.mediaRecorder = new MediaRecorder(stream, { mimeType });
+          state.recordingStream = stream;
+
+          state.mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
+          };
+
+          state.mediaRecorder.onstop = () => finishRecordingAndUpload();
+
+          // If the host stops sharing from the browser's own "Stop sharing"
+          // control (not our button), treat that the same as pressing stop.
+          stream.getVideoTracks()[0].addEventListener('ended', () => {
+            if (state.isRecording) toggleRecording(btn);
+          });
+
+          state.mediaRecorder.start(1000); // collect data in 1s chunks
+          state.isRecording = true;
+          btn.classList.add('recording');
+          showNotification('Recording started', 'recording');
+        } catch (err) {
+          console.error('Could not start recording:', err);
+          if (err.name === 'NotAllowedError') {
+            showNotification('Recording needs screen-share permission to work', 'error');
+          } else {
+            showNotification('Could not start recording. Please try again.', 'error');
+          }
+        }
       } else {
+        // STOP RECORDING — actual upload/posting happens in the
+        // MediaRecorder's onstop handler once the final chunk is flushed.
+        state.isRecording = false;
         btn.classList.remove('recording');
-        showNotification('Recording Stopped', 'recording');
+        showNotification('Finishing recording\u2026', 'recording');
+        if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+          state.mediaRecorder.stop();
+        }
+        if (state.recordingStream) {
+          state.recordingStream.getTracks().forEach(t => t.stop());
+        }
       }
+    }
+
+    async function finishRecordingAndUpload() {
+      try {
+        if (!state.recordedChunks.length) {
+          showNotification('Recording was empty — nothing to upload.', 'error');
+          return;
+        }
+        const blob = new Blob(state.recordedChunks, { type: 'video/webm' });
+        const gid = new URLSearchParams(window.location.search).get('groupId');
+        const fileName = `${gid}/${Date.now()}-${(state.classTitle || 'class').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.webm`;
+
+        showNotification('Uploading recording\u2026', 'recording');
+        const { error: uploadError } = await supabase.storage
+          .from('class_recordings')
+          .upload(fileName, blob, { contentType: 'video/webm', upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage.from('class_recordings').getPublicUrl(fileName);
+        const downloadUrl = publicUrlData?.publicUrl;
+
+        // Posted to live_meeting_messages (the isolated class-chat table),
+        // not group_messages — a class recording shouldn't leak into the
+        // group's regular chatroom any more than any other in-class chat
+        // message should.
+        await supabase.from('live_meeting_messages').insert({
+          group_id: gid,
+          sender_id: state.currentUser.id,
+          sender_name: state.currentUser.name,
+          content: `\uD83D\uDCF9 Class recording ready: ${downloadUrl}`
+        });
+
+        showNotification('Recording uploaded — available in class chat', 'download');
+      } catch (err) {
+        console.error('Recording upload failed:', err);
+        showNotification('Could not upload the recording. Please try again.', 'error');
+      } finally {
+        state.recordedChunks = [];
+        state.mediaRecorder = null;
+        state.recordingStream = null;
+      }
+    }
+
+    // ============= LIVE CAPTIONS =============
+    // No server-side transcription service is wired up here, so this uses
+    // the browser's own Web Speech API (Chrome/Edge; not reliably
+    // supported in Firefox/Safari). Whoever is currently unmuted has
+    // their own device transcribe their own mic locally, and the
+    // resulting text is broadcast to everyone else over the existing
+    // realtime channel — each viewer then decides independently whether
+    // to actually display incoming captions, via their own toggle.
+    function toggleCaptions(btn) {
+      state.captionsEnabled = !state.captionsEnabled;
+      btn.classList.toggle('active', state.captionsEnabled);
+      const overlay = document.getElementById('captions-overlay');
+
+      if (state.captionsEnabled) {
+        showNotification('Live captions on', 'info');
+        if (state.isMicOn) startSpeechRecognition();
+      } else {
+        showNotification('Live captions off', 'info');
+        overlay.classList.add('hidden');
+        overlay.textContent = '';
+      }
+    }
+
+    function startSpeechRecognition() {
+      if (state.speechRecognition) return; // already running
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionAPI) {
+        if (state.captionsEnabled) {
+          showNotification('Live captions aren\u2019t supported in this browser \u2014 try Chrome or Edge', 'error');
+        }
+        return;
+      }
+
+      try {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+          let finalText = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
+          }
+          if (finalText.trim() && state.channel) {
+            state.channel.send({
+              type: 'broadcast',
+              event: 'caption',
+              payload: { userId: state.currentUser.id, name: state.currentUser.name, text: finalText.trim() }
+            });
+          }
+        };
+
+        recognition.onerror = (event) => {
+          // "no-speech" fires constantly during normal silence between
+          // sentences — not a real error, just restart quietly.
+          if (event.error !== 'no-speech') {
+            console.warn('Speech recognition error:', event.error);
+          }
+        };
+
+        recognition.onend = () => {
+          // Auto-restart while the mic is still on — the API stops itself
+          // periodically even during continuous use.
+          if (state.isMicOn && state.speechRecognition) {
+            try { recognition.start(); } catch (e) { /* already starting */ }
+          }
+        };
+
+        recognition.start();
+        state.speechRecognition = recognition;
+      } catch (err) {
+        console.error('Could not start speech recognition:', err);
+      }
+    }
+
+    function stopSpeechRecognition() {
+      if (state.speechRecognition) {
+        const rec = state.speechRecognition;
+        state.speechRecognition = null; // clear first so onend doesn't auto-restart
+        try { rec.stop(); } catch (e) { /* already stopped */ }
+      }
+    }
+
+    let captionHideTimeout = null;
+    function showCaption(name, text) {
+      const overlay = document.getElementById('captions-overlay');
+      overlay.innerHTML = `<span class="caption-speaker">${escapeHtml(name)}:</span> ${escapeHtml(text)}`;
+      overlay.classList.remove('hidden');
+      clearTimeout(captionHideTimeout);
+      captionHideTimeout = setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 5000);
     }
 
     function endCall() {
@@ -3680,12 +4043,16 @@ import { supabase } from './js/supabaseClient.js';
           .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
-            table: 'group_messages',
+            table: 'live_meeting_messages',
             filter: `group_id=eq.${gid}`
           }, (payload) => {
             const msg = payload.new;
             const isSelf = msg.sender_id === user.id;
             addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at);
+          })
+          .on('broadcast', { event: 'caption' }, (payload) => {
+            if (!state.captionsEnabled) return;
+            showCaption(payload.payload.name, payload.payload.text);
           })
           .on('broadcast', { event: 'spotlight' }, (payload) => {
             // SPOTLIGHT IMMUNITY: Only change when explicitly broadcast
@@ -4024,14 +4391,62 @@ import { supabase } from './js/supabaseClient.js';
         openDeviceSettingsModal(gid, user);
     }
 
-    // ============= INITIALIZATION =============
+    // ============= GUEST GATE =============
+    // A visitor with a shared class link but no account used to be
+    // hard-redirected to login.html instantly, with no context at all
+    // about what they were even trying to join. This shows them what
+    // class it is (best-effort — falls back gracefully if that read
+    // isn't permitted for a signed-out visitor) and gives them a real way
+    // back into this exact meeting the moment they log in or sign up,
+    // instead of just dumping them on their own dashboard afterward.
+    async function showGuestGate() {
+      if (loadingOverlay) { loadingOverlay.classList.add('hidden'); loadingOverlay.style.display = 'none'; }
+
+      const gid = new URLSearchParams(window.location.search).get('groupId');
+      const currentUrl = window.location.href;
+      const redirectParam = encodeURIComponent(currentUrl);
+
+      let className = 'this class';
+      let hostName = '';
+      if (gid) {
+        try {
+          const { data: group } = await supabase.from('groups').select('name, created_by').eq('id', gid).maybeSingle();
+          if (group?.name) className = group.name;
+          if (group?.created_by) {
+            const { data: hostProfile } = await supabase.from('profiles').select('full_name, username').eq('id', group.created_by).maybeSingle();
+            hostName = hostProfile?.full_name || hostProfile?.username || '';
+          }
+        } catch (e) {
+          // A signed-out visitor may not have permission to read group
+          // details at all, depending on this project's RLS policies —
+          // that's fine, we just fall back to a generic message below.
+          console.warn('Could not load class details for guest view:', e);
+        }
+      }
+
+      const gate = document.createElement('div');
+      gate.id = 'guest-gate';
+      gate.innerHTML = `
+        <div class="guest-gate-card">
+          <div class="guest-gate-logo"><i class="fas fa-layer-group"></i> Peerloom</div>
+          <h2>You've been invited to join</h2>
+          <p class="guest-gate-class-name">${className}${hostName ? ` <span>· hosted by ${hostName}</span>` : ''}</p>
+          <p class="guest-gate-note">Sign in or create a free account to join this live class — you'll be brought right back here afterward.</p>
+          <div class="guest-gate-actions">
+            <a class="guest-gate-btn primary" href="login.html?redirect=${redirectParam}">Log In</a>
+            <a class="guest-gate-btn" href="signup.html?redirect=${redirectParam}">Sign Up</a>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(gate);
+    }
     async function initialize() {
       // Load AI API key first
       await initializeAIKey();
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        window.location.href = 'login.html';
+        await showGuestGate();
         return;
       }
 

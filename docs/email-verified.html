@@ -336,7 +336,10 @@
         const getStartedBtn = document.getElementById('getStartedBtn');
 
         const joinGroup = new URLSearchParams(window.location.search).get('joinGroup');
-        if (joinGroup) {
+        const redirectTo = new URLSearchParams(window.location.search).get('redirect');
+        if (redirectTo) {
+            getStartedBtn.href = `login.html?redirect=${encodeURIComponent(redirectTo)}`;
+        } else if (joinGroup) {
             getStartedBtn.href = `login.html?joinGroup=${encodeURIComponent(joinGroup)}`;
         }
 

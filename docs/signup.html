@@ -1209,6 +1209,8 @@
                     emailRedirectTo: (() => {
                             const _p = new URLSearchParams(window.location.search)
                             const _g = _p.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
+                            const _r = _p.get('redirect') || localStorage.getItem('pendingRedirect')
+                            if (_r) return `${window.location.origin}/email-verified.html?redirect=${encodeURIComponent(_r)}`
                             return _g
                                 ? `${window.location.origin}/email-verified.html?joinGroup=${_g}`
                                 : `${window.location.origin}/email-verified.html`
@@ -1323,11 +1325,13 @@
         });
     }
 
-    // Preserve pending group join across signup + email verification
+    // Preserve pending group join / redirect across signup + email verification
     try {
         const _sp = new URLSearchParams(window.location.search)
         const _sg = _sp.get('joinGroup')
+        const _sr = _sp.get('redirect')
         if (_sg) localStorage.setItem('pendingGroupJoin', _sg)
+        if (_sr) localStorage.setItem('pendingRedirect', _sr)
     } catch(_e) {}
 
     // Add floating animation to shapes
