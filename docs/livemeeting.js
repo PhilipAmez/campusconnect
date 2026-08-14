@@ -1133,7 +1133,6 @@ import { supabase } from './js/supabaseClient.js';
 
     function openChatDrawer() {
       chatDrawer.classList.add('open');
-      document.body.classList.add('chat-open');
       chatDrawerInput.focus();
       hideDesktopChatInput();
       clearChatUnread();
@@ -1142,7 +1141,6 @@ import { supabase } from './js/supabaseClient.js';
 
     function closeChatDrawer() {
       chatDrawer.classList.remove('open');
-      document.body.classList.remove('chat-open');
       hideEmojiPicker(emojiPickerDrawer);
       if (!state.isMobile) {
         setTimeout(() => {
@@ -1375,7 +1373,19 @@ import { supabase } from './js/supabaseClient.js';
       // scripts into the page), then URLs in the now-safe text are
       // converted into real clickable links — needed for things like the
       // recording download link to actually work as a link at all.
-      const safeText = linkifyText(escapeHtml(text));
+      let safeText = linkifyText(escapeHtml(text));
+
+      // The recording-upload message is sent as plain "🎥 Class recording
+      // ready: <raw storage URL>" so every past message keeps working
+      // exactly as before — but a raw Supabase storage URL is meaningless
+      // to read in chat. Every client already knows the class name from
+      // state.classTitle, so swap the link's visible text for that
+      // instead, without touching what's actually stored in the DB.
+      const recordingMatch = text.match(/^\uD83D\uDCF9 Class recording ready: (https?:\/\/\S+)$/);
+      if (recordingMatch) {
+        const url = recordingMatch[1];
+        safeText = `\uD83D\uDCF9 Class recording ready: <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="message-link">${escapeHtml(state.classTitle || 'View recording')}</a>`;
+      }
 
       if (sender === 'system') {
         messageDiv.className = 'message system';
@@ -2436,59 +2446,70 @@ import { supabase } from './js/supabaseClient.js';
         // this captures via the browser's own screen-capture + MediaRecorder
         // APIs. Browsers use the exact same permission dialog for "share
         // your screen" and "record your screen" — there's no way to make
-        // that native dialog itself look different — so this toast fires
-        // first specifically to make clear *why* that dialog is about to
-        // appear: it's for recording, not for sharing your screen with
-        // other participants.
-        showNotification('Choose what to record in the dialog that opens next', 'recording');
-        try {
-          const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: { displaySurface: 'browser' },
-            audio: true
-          });
-
-          state.recordedChunks = [];
-          const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-            ? 'video/webm;codecs=vp9,opus'
-            : 'video/webm';
-          state.mediaRecorder = new MediaRecorder(stream, { mimeType });
-          state.recordingStream = stream;
-
-          state.mediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
-          };
-
-          state.mediaRecorder.onstop = () => finishRecordingAndUpload();
-
-          // If the host stops sharing from the browser's own "Stop sharing"
-          // control (not our button), treat that the same as pressing stop.
-          stream.getVideoTracks()[0].addEventListener('ended', () => {
-            if (state.isRecording) toggleRecording(btn);
-          });
-
-          state.mediaRecorder.start(1000); // collect data in 1s chunks
-          state.isRecording = true;
-          btn.classList.add('recording');
-          showNotification('Recording started', 'recording');
-        } catch (err) {
-          console.error('Could not start recording:', err);
-          if (err.name === 'NotAllowedError') {
-            showNotification('Recording needs screen-share permission to work', 'error');
-          } else {
-            showNotification('Could not start recording. Please try again.', 'error');
-          }
-        }
+        // that native dialog itself look different — so a confirmation
+        // modal (not just a toast, which can be missed right before the
+        // native dialog pops up) explains this up front and tells the
+        // host exactly what to pick.
+        showConfirmationModal(
+          'Start Recording?',
+          'Recording uses your browser\u2019s own screen-capture permission — the same dialog used for screen sharing, since there\u2019s no separate "recording" permission in browsers. In the dialog that opens next, choose "This Tab" and make sure "Share tab audio" is checked so sound is captured too.',
+          () => startRecordingCapture(btn)
+        );
       } else {
         // STOP RECORDING — actual upload/posting happens in the
         // MediaRecorder's onstop handler once the final chunk is flushed.
         state.isRecording = false;
         btn.classList.remove('recording');
+        const recBadge = document.getElementById('rec-indicator');
+        if (recBadge) recBadge.classList.add('hidden');
         showNotification('Finishing recording\u2026', 'recording');
         if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
           state.mediaRecorder.stop();
         }
         if (state.recordingStream) {
           state.recordingStream.getTracks().forEach(t => t.stop());
+        }
+      }
+    }
+
+    async function startRecordingCapture(btn) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: 'browser' },
+          audio: true
+        });
+
+        state.recordedChunks = [];
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+          ? 'video/webm;codecs=vp9,opus'
+          : 'video/webm';
+        state.mediaRecorder = new MediaRecorder(stream, { mimeType });
+        state.recordingStream = stream;
+
+        state.mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
+        };
+
+        state.mediaRecorder.onstop = () => finishRecordingAndUpload();
+
+        // If the host stops sharing from the browser's own "Stop sharing"
+        // control (not our button), treat that the same as pressing stop.
+        stream.getVideoTracks()[0].addEventListener('ended', () => {
+          if (state.isRecording) toggleRecording(btn);
+        });
+
+        state.mediaRecorder.start(1000); // collect data in 1s chunks
+        state.isRecording = true;
+        btn.classList.add('recording');
+        const recBadge = document.getElementById('rec-indicator');
+        if (recBadge) recBadge.classList.remove('hidden');
+        showNotification('Recording started', 'recording');
+      } catch (err) {
+        console.error('Could not start recording:', err);
+        if (err.name === 'NotAllowedError') {
+          showNotification('Recording needs screen-capture permission — try again and allow it in the dialog', 'error');
+        } else {
+          showNotification('Could not start recording. Please try again.', 'error');
         }
       }
     }
