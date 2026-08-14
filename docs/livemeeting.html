@@ -109,8 +109,9 @@
 
   <!-- Desktop Chat Input (Above Control Bar) -->
   <div class="chat-input-desktop" id="chat-input-desktop">
+    <div id="emoji-picker-desktop" class="emoji-picker hidden"></div>
     <div class="chat-input-desktop-wrapper">
-      <input type="text" placeholder="Ask a question or share a thought..." class="chat-input-desktop-field" id="chat-desktop-input" />
+      <input type="text" placeholder="Ask a question or share a thought..." class="chat-input-desktop-field" id="chat-desktop-input" maxlength="1000" />
       <div class="chat-input-desktop-actions">
         <button class="chat-input-desktop-btn" id="desktop-attach-btn" title="Attach file">
           <i class="fas fa-paperclip"></i>
@@ -146,6 +147,7 @@
     </button>
     <button class="ctrl-btn" data-action="chat" data-tooltip="Chat">
       <i class="fas fa-comment-dots"></i>
+      <span id="chat-unread-badge" class="unread-badge hidden">0</span>
     </button>
     <button class="ctrl-btn" data-action="hand" data-tooltip="Raise Hand">
       <i class="fas fa-hand"></i>
@@ -164,25 +166,41 @@
   <!-- Chat Drawer -->
   <div id="chat-drawer">
     <div id="chat-header">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <i class="fas fa-comments" style="font-size: 20px;"></i>
-        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-color);">Class Chat</h3>
-        <div id="participant-count" style="background: var(--accent-blue); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</div>
+      <div class="chat-header-title">
+        <i class="fas fa-comments"></i>
+        <h3>Class Chat</h3>
+        <div id="participant-count">0</div>
       </div>
-      <button id="close-chat-drawer" class="tool-btn">
+      <button id="close-chat-drawer" class="tool-btn" title="Close chat" aria-label="Close chat">
         <i class="fas fa-times"></i>
       </button>
     </div>
-    
+
     <div id="chat-messages">
-      <!-- Messages will be loaded here -->
+      <div id="chat-empty-state" class="chat-empty-state hidden">
+        <i class="fas fa-comments"></i>
+        <p>No messages yet</p>
+        <span>Say hello to get the conversation started</span>
+      </div>
     </div>
-    
+
+    <button id="chat-jump-latest" class="chat-jump-latest hidden" type="button">
+      <i class="fas fa-arrow-down"></i>
+      <span id="chat-jump-latest-count">New messages</span>
+    </button>
+
     <!-- Chat Drawer Input -->
     <div id="chat-drawer-input-container">
+      <div id="emoji-picker-drawer" class="emoji-picker hidden"></div>
       <div id="chat-drawer-input">
-        <input type="text" placeholder="Type your message here..." id="chat-drawer-message-input" />
-        <button id="chat-drawer-send-btn" style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border: none; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <button id="drawer-attach-btn" class="chat-input-desktop-btn" type="button" title="Attach file" aria-label="Attach file">
+          <i class="fas fa-paperclip"></i>
+        </button>
+        <input type="text" placeholder="Type your message here..." id="chat-drawer-message-input" maxlength="1000" />
+        <button id="drawer-emoji-btn" class="chat-input-desktop-btn" type="button" title="Emoji" aria-label="Emoji">
+          <i class="fas fa-smile"></i>
+        </button>
+        <button id="chat-drawer-send-btn" type="button" title="Send message" aria-label="Send message">
           <i class="fas fa-paper-plane"></i>
         </button>
       </div>

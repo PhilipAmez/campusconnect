@@ -32,6 +32,8 @@ import { supabase } from './js/supabaseClient.js';
       classTitle: 'PeerLoom Live Session',
       aiApiKey: null,
       desktopChatInputVisible: false,
+      chatUnreadCount: 0,
+      renderedMessageIds: new Set(),
       isMobile: window.innerWidth <= 768,
       agoraAppId: '6f87382c37b444d2806c74bb889a598f',
       client: null,
@@ -78,6 +80,14 @@ import { supabase } from './js/supabaseClient.js';
     const drawerSendBtn = document.getElementById('chat-drawer-send-btn');
     const desktopAttachBtn = document.getElementById('desktop-attach-btn');
     const desktopEmojiBtn = document.getElementById('desktop-emoji-btn');
+    const drawerAttachBtn = document.getElementById('drawer-attach-btn');
+    const drawerEmojiBtn = document.getElementById('drawer-emoji-btn');
+    const emojiPickerDesktop = document.getElementById('emoji-picker-desktop');
+    const emojiPickerDrawer = document.getElementById('emoji-picker-drawer');
+    const chatUnreadBadge = document.getElementById('chat-unread-badge');
+    const chatEmptyState = document.getElementById('chat-empty-state');
+    const chatJumpLatest = document.getElementById('chat-jump-latest');
+    const chatJumpLatestCount = document.getElementById('chat-jump-latest-count');
     const aiPanel = document.getElementById('ai-panel');
     const aiLoading = document.getElementById('ai-loading');
     const whiteboardOverlay = document.getElementById('whiteboard-overlay');
@@ -1115,28 +1125,41 @@ import { supabase } from './js/supabaseClient.js';
     }
 
     // ============= CHAT SYSTEM REDESIGN =============
-    function toggleChatDrawer() {
-      chatDrawer.classList.toggle('open');
-      if (chatDrawer.classList.contains('open')) {
-        chatDrawerInput.focus();
-        hideDesktopChatInput();
-      } else {
-        if (!state.isMobile) {
-          setTimeout(() => {
-            showDesktopChatInput();
-          }, 300);
-        }
-      }
+    function clearChatUnread() {
+      state.chatUnreadCount = 0;
+      chatUnreadBadge.textContent = '0';
+      chatUnreadBadge.classList.add('hidden');
     }
 
-    document.getElementById('close-chat-drawer').addEventListener('click', () => {
+    function openChatDrawer() {
+      chatDrawer.classList.add('open');
+      document.body.classList.add('chat-open');
+      chatDrawerInput.focus();
+      hideDesktopChatInput();
+      clearChatUnread();
+      scrollChatToBottom(true);
+    }
+
+    function closeChatDrawer() {
       chatDrawer.classList.remove('open');
+      document.body.classList.remove('chat-open');
+      hideEmojiPicker(emojiPickerDrawer);
       if (!state.isMobile) {
         setTimeout(() => {
           showDesktopChatInput();
         }, 300);
       }
-    });
+    }
+
+    function toggleChatDrawer() {
+      if (chatDrawer.classList.contains('open')) {
+        closeChatDrawer();
+      } else {
+        openChatDrawer();
+      }
+    }
+
+    document.getElementById('close-chat-drawer').addEventListener('click', closeChatDrawer);
 
     // Cards are built with template strings and inserted via innerHTML, so
     // their action buttons can't close over real JS values directly — this
@@ -1161,7 +1184,11 @@ import { supabase } from './js/supabaseClient.js';
       
       let contentHTML = '';
       if (typeof content === 'string') {
-        contentHTML = `<p>${content.replace(/\n/g, '</p><p>')}</p>`;
+        // Escape first — this text can come from the AI response, and
+        // rendering it unescaped via innerHTML would let a crafted reply
+        // (or a prompt-injected one) execute arbitrary HTML/script in
+        // every viewer's chat.
+        contentHTML = `<p>${escapeHtml(content).replace(/\n/g, '</p><p>')}</p>`;
       } else {
         contentHTML = content;
       }
@@ -1293,9 +1320,56 @@ import { supabase } from './js/supabaseClient.js';
       });
     }
 
-    function addMessage(text, sender, isSelf = false, fromDesktop = false, time = null) {
+    // A user is treated as "at the bottom" if they're within this many
+    // pixels of it — lets a message that arrives while they're basically
+    // already caught up still auto-scroll, without yanking them down
+    // when they've deliberately scrolled up to read history.
+    const CHAT_AUTOSCROLL_THRESHOLD = 80;
+
+    function isChatScrolledToBottom() {
+      const el = document.getElementById('chat-messages');
+      return el.scrollHeight - el.scrollTop - el.clientHeight < CHAT_AUTOSCROLL_THRESHOLD;
+    }
+
+    function scrollChatToBottom(force = false) {
+      const el = document.getElementById('chat-messages');
+      if (force || isChatScrolledToBottom()) {
+        el.scrollTop = el.scrollHeight;
+      }
+      if (force) {
+        chatJumpLatest.classList.add('hidden');
+        chatJumpLatestCount.textContent = 'New messages';
+      }
+    }
+
+    chatJumpLatest.addEventListener('click', () => scrollChatToBottom(true));
+
+    document.getElementById('chat-messages').addEventListener('scroll', () => {
+      if (isChatScrolledToBottom()) {
+        chatJumpLatest.classList.add('hidden');
+        chatJumpLatestCount.textContent = 'New messages';
+      }
+    });
+
+    function updateChatEmptyState() {
       const messagesContainer = document.getElementById('chat-messages');
+      const hasContent = messagesContainer.querySelector('.message, .ai-message-card');
+      chatEmptyState.classList.toggle('hidden', !!hasContent);
+    }
+
+    function addMessage(text, sender, isSelf = false, fromDesktop = false, time = null, id = null) {
+      // Realtime INSERT events and the initial history fetch can overlap
+      // around the moment the subscription starts — without this a
+      // message could be rendered twice.
+      if (id != null) {
+        if (state.renderedMessageIds.has(id)) return;
+        state.renderedMessageIds.add(id);
+      }
+
+      const messagesContainer = document.getElementById('chat-messages');
+      const wasAtBottom = isChatScrolledToBottom();
       const messageDiv = document.createElement('div');
+      if (id != null) messageDiv.dataset.messageId = id;
       const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       // Text is escaped first (so a message can never inject real HTML/
       // scripts into the page), then URLs in the now-safe text are
@@ -1308,8 +1382,19 @@ import { supabase } from './js/supabaseClient.js';
         messageDiv.textContent = text;
       } else {
         messageDiv.className = isSelf ? 'message self' : 'message other';
-        
-        if (!isSelf && sender) {
+
+        // Group consecutive messages from the same sender the way most
+        // chat apps do, instead of repeating the name/tail on every line.
+        const prev = messagesContainer.lastElementChild;
+        const sameSenderAsPrev = prev
+          && prev.classList.contains('message')
+          && !prev.classList.contains('system')
+          && prev.classList.contains(isSelf ? 'self' : 'other')
+          && prev.dataset.sender === (sender || '');
+        if (sameSenderAsPrev) messageDiv.classList.add('grouped');
+        messageDiv.dataset.sender = sender || '';
+
+        if (!isSelf && sender && !sameSenderAsPrev) {
           messageDiv.innerHTML = `
             <div class="message-sender">${escapeHtml(sender)}</div>
             ${safeText}
@@ -1324,12 +1409,54 @@ import { supabase } from './js/supabaseClient.js';
       }
       
       messagesContainer.appendChild(messageDiv);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      updateChatEmptyState();
+
+      const drawerOpen = chatDrawer.classList.contains('open');
+      if (wasAtBottom || isSelf) {
+        scrollChatToBottom(true);
+      } else if (drawerOpen) {
+        // Drawer is open but the user scrolled up to read history —
+        // surface a "jump to latest" pill instead of yanking them down.
+        chatJumpLatest.classList.remove('hidden');
+      }
+
+      // Unread badge only matters for messages that aren't ours and
+      // arrived while the drawer is closed.
+      if (sender !== 'system' && !isSelf && !drawerOpen) {
+        state.chatUnreadCount += 1;
+        chatUnreadBadge.textContent = state.chatUnreadCount > 99 ? '99+' : String(state.chatUnreadCount);
+        chatUnreadBadge.classList.remove('hidden');
+      }
       
       if (fromDesktop && state.desktopChatInputVisible) {
         setTimeout(() => {
           hideDesktopChatInput();
         }, 300);
+      }
+    }
+
+    // ============= CHAT HISTORY =============
+    // The chat previously only listened for brand-new messages, so
+    // anyone joining mid-class (or reconnecting) opened to a completely
+    // empty chat and lost every message sent before they arrived. This
+    // backfills recent history once, before/alongside the realtime feed.
+    async function loadChatHistory(gid, currentUserId) {
+      try {
+        const { data, error } = await supabase
+          .from('live_meeting_messages')
+          .select('id, sender_id, sender_name, content, created_at')
+          .eq('group_id', gid)
+          .order('created_at', { ascending: true })
+          .limit(100);
+
+        if (error) throw error;
+
+        (data || []).forEach(msg => {
+          addMessage(msg.content, msg.sender_name, msg.sender_id === currentUserId, false, msg.created_at, msg.id);
+        });
+        scrollChatToBottom(true);
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
       }
     }
 
@@ -1339,6 +1466,8 @@ import { supabase } from './js/supabaseClient.js';
       const gid = new URLSearchParams(window.location.search).get('groupId');
       
       if (text) {
+        const sendBtn = fromDesktop ? desktopSendBtn : drawerSendBtn;
+        sendBtn.disabled = true;
         try {
           const { error } = await supabase
             .from('live_meeting_messages')
@@ -1358,6 +1487,8 @@ import { supabase } from './js/supabaseClient.js';
         } catch (error) {
           console.error('Error sending message:', error);
           showNotification('Failed to send message', 'info');
+        } finally {
+          sendBtn.disabled = false;
         }
       }
     }
@@ -1380,12 +1511,56 @@ import { supabase } from './js/supabaseClient.js';
       }
     });
 
+    // ============= EMOJI PICKER =============
+    const EMOJI_SET = ['😀','😂','😊','😍','🤔','😎','👍','👏','🙌','🎉','❤️','🔥','✅','❓','😅','😢','🙏','💡','📌','👀','🤝','😴','🎯','⭐'];
+
+    function buildEmojiPicker(container, input) {
+      container.innerHTML = EMOJI_SET.map(e => `<button type="button">${e}</button>`).join('');
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        input.value += btn.textContent;
+        input.focus();
+      });
+    }
+    buildEmojiPicker(emojiPickerDesktop, chatDesktopInput);
+    buildEmojiPicker(emojiPickerDrawer, chatDrawerInput);
+    updateChatEmptyState();
+
+    function hideEmojiPicker(picker) {
+      picker.classList.add('hidden');
+    }
+
+    function toggleEmojiPicker(picker) {
+      const willOpen = picker.classList.contains('hidden');
+      emojiPickerDesktop.classList.add('hidden');
+      emojiPickerDrawer.classList.add('hidden');
+      picker.classList.toggle('hidden', !willOpen);
+    }
+
     desktopAttachBtn.addEventListener('click', () => {
-      showNotification('File attachment dialog would open here', 'info');
+      showNotification('File attachments are coming soon', 'info');
     });
 
-    desktopEmojiBtn.addEventListener('click', () => {
-      showNotification('Emoji picker would open here', 'info');
+    drawerAttachBtn.addEventListener('click', () => {
+      showNotification('File attachments are coming soon', 'info');
+    });
+
+    desktopEmojiBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleEmojiPicker(emojiPickerDesktop);
+    });
+
+    drawerEmojiBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleEmojiPicker(emojiPickerDrawer);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.emoji-picker') && !e.target.closest('#desktop-emoji-btn') && !e.target.closest('#drawer-emoji-btn')) {
+        hideEmojiPicker(emojiPickerDesktop);
+        hideEmojiPicker(emojiPickerDrawer);
+      }
     });
 
     document.getElementById('modal-cancel').addEventListener('click', closeConfirmationModal);
@@ -1767,9 +1942,8 @@ import { supabase } from './js/supabaseClient.js';
         'AI-curated materials for deeper understanding',
         resources,
         [
-          { text: 'View Resources', icon: 'external-link-alt', primary: true },
-          { text: 'Save List', icon: 'bookmark' },
-          { text: 'Share', icon: 'share' }
+          { text: 'Download PDF', icon: 'file-pdf', primary: true, onclick: "downloadAICardAsPDF('__CARD_ID__')" },
+          { text: 'Copy', icon: 'copy', onclick: "copyAICardContent('__CARD_ID__')" }
         ]
       );
       
@@ -4048,7 +4222,7 @@ import { supabase } from './js/supabaseClient.js';
           }, (payload) => {
             const msg = payload.new;
             const isSelf = msg.sender_id === user.id;
-            addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at);
+            addMessage(msg.content, msg.sender_name, isSelf, false, msg.created_at, msg.id);
           })
           .on('broadcast', { event: 'caption' }, (payload) => {
             if (!state.captionsEnabled) return;
@@ -4369,6 +4543,8 @@ import { supabase } from './js/supabaseClient.js';
             }
           })
           .subscribe();
+
+        loadChatHistory(gid, user.id);
 
         supabase.channel(`status_${user.id}`)
           .on('postgres_changes', {
