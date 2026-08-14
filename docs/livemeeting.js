@@ -2976,7 +2976,19 @@ import { supabase } from './js/supabaseClient.js';
         }
 
         updateLoadingStatus("Connecting to media server...");
-        await state.client.join(state.agoraAppId, channelName, token, uid);
+        // Agora's SDK can end up in a state where it silently retries a
+        // failed "choose server" step forever (e.g. when its domains are
+        // DNS-blocked by a network/firewall) without ever resolving or
+        // rejecting join() — the caller just hangs indefinitely with no
+        // error and no way out except a manual refresh. Race it against a
+        // timeout so a blocked network produces a real, actionable error
+        // instead of a silently stuck loading screen.
+        await Promise.race([
+          state.client.join(state.agoraAppId, channelName, token, uid),
+          new Promise((_, reject) => setTimeout(() => {
+            reject(new Error("JOIN_TIMEOUT"));
+          }, 20000))
+        ]);
 
         // AUDIENCE-FIRST JOIN: a student joins as a pure viewer with no
         // local tracks and nothing published — this is what actually makes
@@ -3135,7 +3147,16 @@ import { supabase } from './js/supabaseClient.js';
       } catch (error) {
         console.error("Agora Error:", error);
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
-        if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
+        if (error.message === "JOIN_TIMEOUT") {
+          // Best-effort cleanup of the connection attempt that's still
+          // hanging in the background so a retry doesn't collide with it.
+          try { state.client.leave(); } catch (_) {}
+          showCriticalError(
+            "Couldn't connect to the video server after 20 seconds. This usually means the network you're on is blocking Agora's servers " +
+            "(school/office wifi and some ad blockers or VPNs are common causes). Try switching networks (e.g. mobile data) or a different device, " +
+            "then rejoin. If it keeps happening, ask your network admin to allow agora.io and sd-rtn.com."
+          );
+        } else if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
           showCriticalError("Security Error: Invalid App ID or Token. Please contact support.");
         } else {
           showCriticalError("Connection failed: " + error.message);
