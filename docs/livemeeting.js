@@ -2797,8 +2797,8 @@ import { supabase } from './js/supabaseClient.js';
         try {
           new Notification('PeerLoom', {
             body: message,
-            icon: '/docs/favicon.ico',
-            badge: '/docs/favicon.ico',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
             tag: 'peerloom-notification'
           });
           playNotificationSound();
