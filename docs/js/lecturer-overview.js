@@ -284,7 +284,7 @@ function wireOverviewNavigation(container) {
   });
 }
 
-function renderSectionContent(container, section, profile) {
+function renderSectionContent(container, section, profile, options = {}) {
   if (!container) return;
 
   if (section === 'overview') {
@@ -312,7 +312,7 @@ function renderSectionContent(container, section, profile) {
   }
 
   if (section === 'groups') {
-    renderGroupsSection(container, profile);
+    renderGroupsSection(container, profile, { highlightGroupId: options.highlightGroupId });
     return;
   }
 

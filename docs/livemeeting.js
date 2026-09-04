@@ -1,5 +1,20 @@
 import { supabase } from './js/supabaseClient.js';
 
+    // Lecturers land here from the "Live Class" action on their My Course
+    // Groups cards (lecturer-groups.js), which tags the URL with
+    // ?from=lecturer. Every exit path that would otherwise send the user to
+    // the student-facing dashboard.html should instead return them to the
+    // lecturer dashboard's Course Groups section, with their group briefly
+    // highlighted so it's obvious which one they just left.
+    function exitDestination(pulse = true) {
+      const params = new URLSearchParams(window.location.search);
+      const fromLecturer = params.get('from') === 'lecturer';
+      if (!fromLecturer) return 'dashboard.html';
+      const gid = params.get('groupId');
+      return `lecturer-dashboard.html?section=groups${pulse && gid ? `&pulseGroup=${encodeURIComponent(gid)}` : ''}`;
+    }
+    window.exitDestination = exitDestination;
+
     // ============= STATE MANAGEMENT =============
     const state = {
       isMicOn: false,
@@ -2691,10 +2706,11 @@ import { supabase } from './js/supabaseClient.js';
 
           setTimeout(() => {
             const gid = new URLSearchParams(window.location.search).get('groupId');
+            const fromLecturer = new URLSearchParams(window.location.search).get('from') === 'lecturer';
             if (gid) {
-              window.location.href = `chatroom.html?groupId=${gid}`;
+              window.location.href = `chatroom.html?groupId=${gid}${fromLecturer ? '&from=lecturer' : ''}`;
             } else {
-              window.location.href = 'dashboard.html';
+              window.location.href = exitDestination(false);
             }
           }, 500);
         }
@@ -3793,7 +3809,7 @@ import { supabase } from './js/supabaseClient.js';
           if (pollInterval) clearInterval(pollInterval);
           supabase.removeChannel(channel);
           showNotification('Access denied - you were not approved to join.', 'end');
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+          setTimeout(() => { window.location.href = exitDestination(false); }, 2000);
         }
       }
 
@@ -4579,7 +4595,7 @@ import { supabase } from './js/supabaseClient.js';
                 if (gid) {
                   window.location.href = `chatroom.html?groupId=${gid}`;
                 } else {
-                  window.location.href = 'dashboard.html';
+                  window.location.href = exitDestination(false);
                 }
               }, 2000);
             }
@@ -4597,7 +4613,7 @@ import { supabase } from './js/supabaseClient.js';
           }, (payload) => {
             if (payload.new.status === 'rejected' && payload.new.group_id === gid) {
               showNotification('You have been removed from the meeting.', 'end');
-              setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+              setTimeout(() => { window.location.href = exitDestination(false); }, 2000);
             }
           })
           .subscribe();

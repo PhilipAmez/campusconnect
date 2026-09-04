@@ -778,6 +778,52 @@ body.dark .quiz-preview-card {
   flex-wrap: wrap;
 }
 
+/* Chat Room / Live Class / Roster row on lecturer course-group cards.
+   Buttons grow evenly and wrap onto their own line(s) instead of
+   overlapping or shrinking illegibly on narrow widths. */
+.group-card-actions {
+  gap: 10px;
+}
+
+.group-card-actions .secondary-btn.small {
+  flex: 1 1 128px;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.group-card-actions .secondary-btn.small:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 420px) {
+  .group-card-actions .secondary-btn.small {
+    flex: 1 1 100%;
+  }
+}
+
+/* Briefly highlights a course-group card the lecturer just returned to
+   (from Chat Room / Live Class), so it's clear which one they were in. */
+@keyframes group-card-pulse {
+  0%, 100% {
+    box-shadow: var(--shadow);
+    border-color: var(--border);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35), 0 12px 32px rgba(124, 58, 237, 0.28);
+    border-color: var(--accent);
+  }
+}
+
+.group-card-pulse {
+  animation: group-card-pulse 1.25s ease-in-out 2;
+}
+
 .empty-state-card {
   padding: 24px;
   border-radius: 20px;

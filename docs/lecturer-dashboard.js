@@ -17,6 +17,27 @@ let activeSection = 'overview';
 let currentProfile = null;
 let darkMode = false;
 
+// Chat Room / Live Class on a course-group card send the lecturer into the
+// existing group chat / live class (lecturer-groups.js), tagged with
+// ?from=lecturer. When they navigate back, those pages return here with
+// ?section=groups&pulseGroup=<id> so we land back on Course Groups with the
+// group they were just in briefly highlighted. Consumed once, then the URL
+// is cleaned up so a manual refresh doesn't keep re-triggering the pulse.
+const _entryParams = new URLSearchParams(window.location.search);
+const _initialSection = _entryParams.get('section');
+const _knownSections = new Set([
+  'overview', 'groups', 'submissions', 'results', 'integrity',
+  'announcements', 'resources', 'settings',
+  'quiz-builder', 'published-quizzes', 'draft-quizzes'
+]);
+if (_initialSection && _knownSections.has(_initialSection)) {
+  activeSection = _initialSection;
+}
+let pendingHighlightGroupId = _entryParams.get('pulseGroup') || null;
+if (_initialSection || pendingHighlightGroupId) {
+  window.history.replaceState({}, '', 'lecturer-dashboard.html');
+}
+
 function openSidebar() {
   lecturerShell?.classList.add('sidebar-open');
   hamburgerBtn?.setAttribute('aria-expanded', 'true');
@@ -146,7 +167,11 @@ function render() {
 
   renderNavbar(topbar, currentProfile, toggleTheme);
   initLecturerNotifications(currentProfile).catch((err) => console.error('Failed to init notifications:', err));
-  renderSectionContent(contentArea, activeSection, currentProfile);
+  renderSectionContent(contentArea, activeSection, currentProfile, { highlightGroupId: pendingHighlightGroupId });
+  // Only the render that immediately follows arriving via the pulseGroup
+  // link should pulse — normal sidebar navigation back to Groups afterward
+  // shouldn't re-trigger it.
+  pendingHighlightGroupId = null;
 }
 
 window.addEventListener('lecturer-section-change', (event) => {

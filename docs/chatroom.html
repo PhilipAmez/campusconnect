@@ -263,6 +263,15 @@
     }
 
     const gid = _gidParam;
+
+    // Lecturers open this same chatroom via the "Chat Room" action on their
+    // My Course Groups cards (lecturer-groups.js), tagged with ?from=lecturer.
+    // When that's how we got here, every "back"/"leave"/"deleted" exit should
+    // return to the lecturer dashboard's Course Groups section instead of the
+    // student-facing dashboard/active-groups pages.
+    const cameFromLecturer = new URLSearchParams(window.location.search).get('from') === 'lecturer';
+    const lecturerGroupsUrl = (pulse = true) =>
+      `lecturer-dashboard.html?section=groups${pulse ? `&pulseGroup=${encodeURIComponent(gid)}` : ''}`;
     
     let state = {
       replyingMsg: null,
@@ -374,10 +383,10 @@
     applyTheme(savedTheme);
     
     elements.backButton.onclick = () => {
-      window.location.href = 'active-groups.html';
+      window.location.href = cameFromLecturer ? lecturerGroupsUrl() : 'active-groups.html';
     };
     document.getElementById('homeButton')?.addEventListener('click', () => {
-      window.location.href = 'dashboard.html';
+      window.location.href = cameFromLecturer ? lecturerGroupsUrl() : 'dashboard.html';
     });
     
     function createDefaultAvatar(name) {
@@ -567,7 +576,7 @@
 
         cancelBtn.onclick = () => {
           modal.classList.remove('visible');
-          window.location.href = 'dashboard.html';
+          window.location.href = cameFromLecturer ? lecturerGroupsUrl(false) : 'dashboard.html';
           resolve();
         };
       });
@@ -2777,7 +2786,7 @@
               .eq('user_id', user.id);
             
             closeDrawer();
-            window.location.href = 'dashboard.html';
+            window.location.href = cameFromLecturer ? lecturerGroupsUrl(false) : 'dashboard.html';
           } catch (error) {
             console.error('Error leaving group:', error);
             showError('Failed to leave group');
@@ -2805,7 +2814,7 @@
       });
       
       elements.videoCallButton.addEventListener('click', () => {
-        window.location.href = `livemeeting.html?groupId=${gid}`;
+        window.location.href = `livemeeting.html?groupId=${gid}${cameFromLecturer ? '&from=lecturer' : ''}`;
       });
       
       elements.shareGroupCancel.addEventListener('click', () => {
@@ -2869,7 +2878,7 @@
               .eq('id', gid);
             
             showSuccess('Group deleted successfully.');
-            window.location.href = 'dashboard.html';
+            window.location.href = cameFromLecturer ? lecturerGroupsUrl(false) : 'dashboard.html';
             
           } catch (error) {
             console.error('Error deleting group:', error);

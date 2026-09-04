@@ -22,7 +22,7 @@ async function loadMyGroups(profile) {
   if (!profile?.id) return [];
   const { data, error } = await supabase
     .from('groups')
-    .select('id, name, description, course_code, is_public, is_frozen, member_count, invite_code, cover_photo, created_at')
+    .select('id, name, description, course_code, is_public, is_frozen, member_count, invite_code, cover_photo, created_at, created_by')
     .eq('created_by', profile.id)
     .order('created_at', { ascending: false });
 
@@ -116,15 +116,20 @@ function renderGroupCard(group) {
         <span><i class="fa-solid fa-user-group"></i> ${group.member_count ?? 0} members</span>
         <span><i class="fa-regular fa-calendar"></i> ${formatDateLabel(group.created_at)}</span>
       </div>
+      ${group.invite_code ? `
       <div class="quiz-card-actions">
-        ${group.invite_code ? `<button class="secondary-btn small" data-action="copy-invite" data-code="${escapeHtml(group.invite_code)}"><i class="fa-solid fa-copy"></i> Invite code</button>` : ''}
+        <button class="secondary-btn small" data-action="copy-invite" data-code="${escapeHtml(group.invite_code)}"><i class="fa-solid fa-copy"></i> Invite code</button>
+      </div>` : ''}
+      <div class="quiz-card-actions group-card-actions">
+        <button class="secondary-btn small" data-action="open-chat" data-group-id="${group.id}"><i class="fa-solid fa-comment-dots"></i> Chat Room</button>
+        <button class="secondary-btn small" data-action="open-live" data-group-id="${group.id}"><i class="fa-solid fa-video"></i> Live Class</button>
         <button class="secondary-btn small" data-action="view-roster" data-group-id="${group.id}" data-group-name="${escapeHtml(group.name || 'Group')}"><i class="fa-solid fa-user-group"></i> Roster</button>
       </div>
     </article>
   `;
 }
 
-function bindGroupEvents(container, profile) {
+function bindGroupEvents(container, profile, groups = []) {
   container.querySelectorAll('[data-action="copy-invite"]').forEach((button) => {
     button.addEventListener('click', async () => {
       const code = button.dataset.code;
@@ -142,6 +147,76 @@ function bindGroupEvents(container, profile) {
   container.querySelectorAll('[data-action="view-roster"]').forEach((button) => {
     button.addEventListener('click', () => openRosterOverlay(button.dataset.groupId, button.dataset.groupName, profile));
   });
+
+  const groupsById = Object.fromEntries((groups || []).map((g) => [String(g.id), g]));
+
+  container.querySelectorAll('[data-action="open-chat"]').forEach((button) => {
+    button.addEventListener('click', () => openGroupDestination({
+      button,
+      container,
+      profile,
+      groupsById,
+      groupId: button.dataset.groupId,
+      route: 'chatroom.html',
+      loadingLabel: 'Opening chat…',
+      errorTitle: 'Unable to open chat room'
+    }));
+  });
+
+  container.querySelectorAll('[data-action="open-live"]').forEach((button) => {
+    button.addEventListener('click', () => openGroupDestination({
+      button,
+      container,
+      profile,
+      groupsById,
+      groupId: button.dataset.groupId,
+      route: 'livemeeting.html',
+      loadingLabel: 'Starting live class…',
+      errorTitle: 'Unable to open live class'
+    }));
+  });
+}
+
+// Reuses the exact same navigation pattern the student-facing experience
+// already uses (chatroom.html?groupId=… / livemeeting.html?groupId=…), so
+// the lecturer lands in the same group chat / live class implementation —
+// no separate chat or video system is created here.
+async function openGroupDestination({ button, container, profile, groupsById, groupId, route, loadingLabel, errorTitle }) {
+  const group = groupsById[String(groupId)];
+
+  // Defense in depth: "My Course Groups" is already scoped to groups this
+  // lecturer created (see loadMyGroups), so this should always pass — but
+  // never navigate into a group card action without confirming the group
+  // is actually one this lecturer owns.
+  if (!group || !profile?.id || group.created_by !== profile.id) {
+    showLecturerNotice(
+      errorTitle,
+      "We couldn't confirm you have access to this group. Please refresh the page and try again.",
+      'error'
+    );
+    return;
+  }
+
+  const cardActionButtons = container.querySelectorAll(
+    `[data-group-id="${groupId}"][data-action="open-chat"], [data-group-id="${groupId}"][data-action="open-live"], [data-group-id="${groupId}"][data-action="view-roster"]`
+  );
+
+  const original = button.innerHTML;
+  cardActionButtons.forEach((b) => { b.disabled = true; });
+  button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${loadingLabel}`;
+
+  try {
+    window.location.href = `${route}?groupId=${encodeURIComponent(group.id)}&from=lecturer`;
+  } catch (error) {
+    console.error(`Failed to navigate to ${route}:`, error);
+    cardActionButtons.forEach((b) => { b.disabled = false; });
+    button.innerHTML = original;
+    showLecturerNotice(
+      errorTitle,
+      'Something went wrong while starting this. Please try again.',
+      'error'
+    );
+  }
 }
 
 let rosterOverlay = null;
@@ -331,7 +406,7 @@ async function createCourseGroup({ name, course, description, isPublic, profile 
   return { ok: true, group: newGroup };
 }
 
-async function renderGroupsSection(container, profile) {
+async function renderGroupsSection(container, profile, options = {}) {
   if (!container) return;
 
   container.innerHTML = renderLoadingSkeleton();
@@ -359,8 +434,21 @@ async function renderGroupsSection(container, profile) {
     ${renderCreateGroupModal().replace('{{INSTITUTION}}', escapeHtml(profile?.institution || 'your institution'))}
   `;
 
-  bindGroupEvents(container, profile);
+  bindGroupEvents(container, profile, groups);
   bindCreateGroupModal(container, profile);
+  pulseHighlightedGroup(container, options.highlightGroupId);
+}
+
+// Briefly pulses the card for a group the lecturer just came back from
+// (Chat Room / Live Class), so it's obvious which one they were in.
+function pulseHighlightedGroup(container, groupId) {
+  if (!groupId) return;
+  const card = container.querySelector(`[data-group-id="${CSS.escape(String(groupId))}"]`);
+  if (!card) return;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('group-card-pulse');
+  setTimeout(() => card.classList.remove('group-card-pulse'), 2500);
 }
 
 export { renderGroupsSection, loadMyGroups };
