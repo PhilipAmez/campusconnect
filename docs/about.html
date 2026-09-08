@@ -46,7 +46,16 @@
   .topnav a:hover { background: var(--primary-light); color: var(--primary-dark); }
   .topnav a.cta { background: var(--ink); color: #fff; }
   .topnav a.cta:hover { background: var(--primary-dark); color: #fff; }
-  .menu-toggle { display: none; background: none; border: none; font-size: 1.3rem; color: var(--ink); cursor: pointer; }
+  .menu-toggle { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; background: none; border: none; color: var(--ink); cursor: pointer; }
+  .hamburger-icon { position: relative; width: 19px; height: 14px; transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1); }
+  .hamburger-icon span { position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px; background: currentColor; transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1), width 420ms cubic-bezier(0.34,1.56,0.64,1), opacity 180ms ease, top 420ms cubic-bezier(0.34,1.56,0.64,1); }
+  .hamburger-icon span:nth-child(1) { top: 0; width: 100%; }
+  .hamburger-icon span:nth-child(2) { top: 6px; width: 68%; }
+  .hamburger-icon span:nth-child(3) { top: 12px; width: 100%; }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon { transform: rotate(90deg); }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(1) { top: 6px; width: 100%; transform: rotate(45deg); }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(2) { opacity: 0; width: 0; left: 50%; }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(3) { top: 6px; width: 100%; transform: rotate(-45deg); }
 
   .hero { padding: 76px 0 56px; text-align: center; position: relative; overflow: hidden; }
   .hero::before {
@@ -119,9 +128,79 @@
     .story-grid, .founders-grid, .pillars { grid-template-columns: 1fr; }
     .values-list { grid-template-columns: 1fr; }
     .topnav { display: none; }
-    .menu-toggle { display: block; }
-    .topnav.open { display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border); }
+    .menu-toggle { display: flex; }
+    .topnav.open {
+      display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+      flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border);
+      animation: navDropIn 520ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .topnav.open a {
+      opacity: 0; transform: translateY(-8px);
+      animation: navLinkIn 360ms cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .topnav.open a:nth-child(1) { animation-delay: 60ms; }
+    .topnav.open a:nth-child(2) { animation-delay: 100ms; }
+    .topnav.open a:nth-child(3) { animation-delay: 140ms; }
+    .topnav.open a:nth-child(4) { animation-delay: 180ms; }
+    .topnav.open a:nth-child(5) { animation-delay: 220ms; }
+    @keyframes navDropIn {
+      from { opacity: 0; clip-path: circle(0% at calc(100% - 24px) 0%); }
+      to { opacity: 1; clip-path: circle(150% at calc(100% - 24px) 0%); }
+    }
+    @keyframes navLinkIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
     .cta-band { margin: 0 12px; padding: 40px 22px; }
+  }
+
+  /* Apple-style scroll reveal: elements fade + rise into place once, the
+     first time they cross into view, instead of just appearing on load. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 800ms cubic-bezier(0.16,1,0.3,1), transform 800ms cubic-bezier(0.16,1,0.3,1);
+    will-change: opacity, transform;
+  }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+  .reveal-item { opacity: 0; transform: translateY(28px); transition: opacity 700ms cubic-bezier(0.16,1,0.3,1), transform 700ms cubic-bezier(0.16,1,0.3,1); }
+  .reveal-group.in-view .reveal-item:nth-child(1) { transition-delay: 0ms; }
+  .reveal-group.in-view .reveal-item:nth-child(2) { transition-delay: 90ms; }
+  .reveal-group.in-view .reveal-item:nth-child(3) { transition-delay: 180ms; }
+  .reveal-group.in-view .reveal-item:nth-child(4) { transition-delay: 270ms; }
+  .reveal-group.in-view .reveal-item:nth-child(5) { transition-delay: 360ms; }
+  .reveal-group.in-view .reveal-item { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-item, .topnav.open, .topnav.open a { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
+  }
+
+  /* Subtle depth-on-hover, the way Apple's marketing pages treat cards */
+  .pillar, .founder-card, .pull-stat {
+    transition: transform 280ms cubic-bezier(0.16,1,0.3,1), box-shadow 280ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .pillar:hover, .founder-card:hover, .pull-stat:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -14px rgba(76, 29, 149, 0.22);
+  }
+
+  .trust-band { padding: 8px 0 64px; }
+  .trust-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .trust-item { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 20px; box-shadow: var(--shadow); text-align: center; transition: transform 280ms cubic-bezier(0.16,1,0.3,1), box-shadow 280ms cubic-bezier(0.16,1,0.3,1); }
+  .trust-item:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(76, 29, 149, 0.22); }
+  .trust-item .icn { width: 40px; height: 40px; border-radius: 12px; background: var(--primary-light); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 1rem; margin: 0 auto 12px; }
+  .trust-item h4 { font-size: 0.94rem; color: var(--ink); margin-bottom: 4px; font-weight: 700; }
+  .trust-item p { color: var(--muted); font-size: 0.84rem; }
+  @media (max-width: 860px) { .trust-grid { grid-template-columns: 1fr 1fr; } }
+
+  .hero .eyebrow { animation: heroIn 700ms cubic-bezier(0.16,1,0.3,1) both; }
+  .hero h1 { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 90ms both; }
+  .hero p.lead { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 180ms both; }
+  @keyframes heroIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero .eyebrow, .hero h1, .hero p.lead { animation: none; }
   }
 </style>
 </head>
@@ -136,7 +215,9 @@
         <a href="terms.html">Terms</a>
         <a href="login.html" class="cta">Sign in</a>
       </nav>
-      <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu" aria-expanded="false">
+        <span class="hamburger-icon"><span></span><span></span><span></span></span>
+      </button>
     </div>
   </div>
 
@@ -149,7 +230,7 @@
   </header>
 
   <section>
-    <div class="wrap story-grid">
+    <div class="wrap story-grid reveal">
       <div>
         <span class="kicker">Our story</span>
         <p>Peerloom started with a simple, familiar frustration: every course had a WhatsApp group, and every WhatsApp group eventually turned into a wall of memes, forwarded messages, and a single pinned PDF nobody could find again the night before an exam.</p>
@@ -165,6 +246,38 @@
     </div>
   </section>
 
+  <section class="trust-band">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="kicker">Trust &amp; security</span>
+        <h2>Built to be trusted with real coursework</h2>
+        <p>Academic tools handle sensitive information — grades, submissions, private group conversations. Here's how Peerloom treats that responsibility.</p>
+      </div>
+      <div class="trust-grid reveal-group">
+        <div class="trust-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-lock"></i></div>
+          <h4>Encrypted in transit</h4>
+          <p>Every connection to Peerloom runs over HTTPS, end to end.</p>
+        </div>
+        <div class="trust-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-user-shield"></i></div>
+          <h4>Row-level access</h4>
+          <p>You only ever see data you're authorized to — never another student's private attempt.</p>
+        </div>
+        <div class="trust-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-ban"></i></div>
+          <h4>We don't sell data</h4>
+          <p>No advertisers, no data brokers, no cross-site tracking. Ever.</p>
+        </div>
+        <div class="trust-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-eye-slash"></i></div>
+          <h4>No camera, no mic</h4>
+          <p>Quiz integrity checks never touch your webcam, microphone, or screen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="tight">
     <div class="wrap">
       <div class="section-head center">
@@ -172,18 +285,18 @@
         <h2>Three pillars, one platform</h2>
         <p>Everything on Peerloom is designed around how academic groups actually work — together, not in silos.</p>
       </div>
-      <div class="pillars">
-        <div class="pillar">
+      <div class="pillars reveal-group">
+        <div class="pillar reveal-item">
           <div class="icn"><i class="fa-solid fa-users"></i></div>
           <h3>Structured collaboration</h3>
           <p>Groups organized by course and cohort, with chat, resources, and announcements that stay where students expect to find them — not buried in scrollback.</p>
         </div>
-        <div class="pillar">
+        <div class="pillar reveal-item">
           <div class="icn"><i class="fa-solid fa-shield-halved"></i></div>
           <h3>Assessment you can trust</h3>
           <p>Quizzes with attempt limits, deadlines, and an integrity log that tracks tab switches and copy/paste activity, so results mean what they say.</p>
         </div>
-        <div class="pillar">
+        <div class="pillar reveal-item">
           <div class="icn"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
           <h3>AI that's actually useful</h3>
           <p>PeerPal AI helps explain concepts and prepare for exams inside the same space students already study in, instead of another app to context-switch to.</p>
@@ -199,8 +312,8 @@
         <h2>Founded by people who lived the problem</h2>
         <p>Peerloom is built by Peerloom Technologies Limited, led by:</p>
       </div>
-      <div class="founders-grid">
-        <div class="founder-card">
+      <div class="founders-grid reveal-group">
+        <div class="founder-card reveal-item">
           <div class="founder-top">
             <div class="founder-avatar">CA</div>
             <div>
@@ -210,7 +323,7 @@
           </div>
           <p>Charles founded Peerloom to fix a problem he ran into constantly as a student: academic conversations scattered across chat apps never built for coursework. He leads product direction and the company's long-term vision, with a focus on building tools that hold up under real classroom conditions — not just demo conditions.</p>
         </div>
-        <div class="founder-card">
+        <div class="founder-card reveal-item">
           <div class="founder-top">
             <div class="founder-avatar">PA</div>
             <div>
@@ -230,11 +343,11 @@
         <span class="kicker">What we believe</span>
         <h2>The principles behind every decision</h2>
       </div>
-      <div class="values-list">
-        <div class="value-item"><span class="num">01</span><div><h4>Structure beats volume</h4><p>A well-organized group of ten messages beats a chaotic one of ten thousand. We design for findability first.</p></div></div>
-        <div class="value-item"><span class="num">02</span><div><h4>Integrity isn't optional</h4><p>An assessment tool that can't be trusted isn't useful to anyone. We treat academic integrity as core infrastructure, not a feature flag.</p></div></div>
-        <div class="value-item"><span class="num">03</span><div><h4>Built with real users</h4><p>Every feature on Peerloom exists because a student or lecturer described a real problem to us — not because it looked good on a roadmap.</p></div></div>
-        <div class="value-item"><span class="num">04</span><div><h4>Respect people's time</h4><p>Whether it's a lecturer grading a hundred submissions or a student prepping the night before an exam, we design to save minutes, not just add features.</p></div></div>
+      <div class="values-list reveal-group">
+        <div class="value-item reveal-item"><span class="num">01</span><div><h4>Structure beats volume</h4><p>A well-organized group of ten messages beats a chaotic one of ten thousand. We design for findability first.</p></div></div>
+        <div class="value-item reveal-item"><span class="num">02</span><div><h4>Integrity isn't optional</h4><p>An assessment tool that can't be trusted isn't useful to anyone. We treat academic integrity as core infrastructure, not a feature flag.</p></div></div>
+        <div class="value-item reveal-item"><span class="num">03</span><div><h4>Built with real users</h4><p>Every feature on Peerloom exists because a student or lecturer described a real problem to us — not because it looked good on a roadmap.</p></div></div>
+        <div class="value-item reveal-item"><span class="num">04</span><div><h4>Respect people's time</h4><p>Whether it's a lecturer grading a hundred submissions or a student prepping the night before an exam, we design to save minutes, not just add features.</p></div></div>
       </div>
     </div>
   </section>
@@ -246,28 +359,28 @@
         <h2>From a course roster to a working quiz in minutes</h2>
         <p>Peerloom is designed so a lecturer can go from "I need a group for this course" to a graded quiz without fighting the tool along the way.</p>
       </div>
-      <div class="timeline">
-        <div class="tl-item">
+      <div class="timeline reveal-group">
+        <div class="tl-item reveal-item">
           <span class="tl-date">Step 1</span>
           <h4>Create a course group</h4>
           <p>A lecturer creates a group for a course or cohort, sets the institution and course code, and shares an invite — students join in seconds.</p>
         </div>
-        <div class="tl-item">
+        <div class="tl-item reveal-item">
           <span class="tl-date">Step 2</span>
           <h4>Organize the space</h4>
           <p>Chat, shared resources, and announcements live in that same group — no separate folders, no separate app for "the important stuff."</p>
         </div>
-        <div class="tl-item">
+        <div class="tl-item reveal-item">
           <span class="tl-date">Step 3</span>
           <h4>Publish a quiz</h4>
           <p>Build multiple-choice, short-answer, or mixed quizzes with deadlines and attempt limits, and assign them to one or more groups at once.</p>
         </div>
-        <div class="tl-item">
+        <div class="tl-item reveal-item">
           <span class="tl-date">Step 4</span>
           <h4>Students take it, honestly</h4>
           <p>While the quiz is open, Peerloom quietly logs tab switches, copies, and pastes tied to that attempt — visible only to that quiz's lecturer.</p>
         </div>
-        <div class="tl-item">
+        <div class="tl-item reveal-item">
           <span class="tl-date">Step 5</span>
           <h4>Grade and release results</h4>
           <p>Lecturers grade short-answer and essay responses directly against each submission, then choose whether students can review their graded answers afterward.</p>
@@ -282,18 +395,18 @@
         <span class="kicker">Who it's for</span>
         <h2>Two very different jobs, one shared space</h2>
       </div>
-      <div class="pillars">
-        <div class="pillar">
+      <div class="pillars reveal-group">
+        <div class="pillar reveal-item">
           <div class="icn"><i class="fa-solid fa-user-graduate"></i></div>
           <h3>For students</h3>
           <p>One place to find your course group, catch up on announcements, grab shared resources, take quizzes, and ask PeerPal AI a question at 2am before an exam.</p>
         </div>
-        <div class="pillar">
+        <div class="pillar reveal-item">
           <div class="icn"><i class="fa-solid fa-chalkboard-user"></i></div>
           <h3>For lecturers</h3>
           <p>Publish quizzes with real deadlines and attempt limits, see an integrity log per attempt, grade submissions in context, and export results as a proper report.</p>
         </div>
-        <div class="pillar">
+        <div class="pillar reveal-item">
           <div class="icn"><i class="fa-solid fa-building-columns"></i></div>
           <h3>For institutions</h3>
           <p>A platform that keeps academic activity organized by course and campus, instead of scattered across personal chat apps with no institutional visibility.</p>
@@ -308,17 +421,17 @@
         <span class="kicker">FAQ</span>
         <h2>Common questions</h2>
       </div>
-      <div class="values-list">
-        <div class="value-item"><span class="num">Q</span><div><h4>Is Peerloom free to use?</h4><p>Yes — creating an account, joining groups, and using core features is free. There's no payment step in the product today.</p></div></div>
-        <div class="value-item"><span class="num">Q</span><div><h4>Does Peerloom replace my institution's LMS?</h4><p>No. Peerloom is built for the day-to-day collaboration and lightweight assessment layer — group chat, resources, and quizzes — alongside whatever official LMS your institution already uses.</p></div></div>
-        <div class="value-item"><span class="num">Q</span><div><h4>What does the integrity log actually track?</h4><p>Only tab switches, copy actions, and paste actions during an active quiz attempt — never your camera, microphone, screen, or activity outside the quiz. See our <a href="privacy.html#quiz-integrity">Privacy Policy</a> for specifics.</p></div></div>
-        <div class="value-item"><span class="num">Q</span><div><h4>Can students see their answers after a quiz?</h4><p>Only if the lecturer explicitly turns on review for that quiz, and only once grading is complete — it's entirely the lecturer's decision, per quiz.</p></div></div>
+      <div class="values-list reveal-group">
+        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>Is Peerloom free to use?</h4><p>Yes — creating an account, joining groups, and using core features is free. There's no payment step in the product today.</p></div></div>
+        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>Does Peerloom replace my institution's LMS?</h4><p>No. Peerloom is built for the day-to-day collaboration and lightweight assessment layer — group chat, resources, and quizzes — alongside whatever official LMS your institution already uses.</p></div></div>
+        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>What does the integrity log actually track?</h4><p>Only tab switches, copy actions, and paste actions during an active quiz attempt — never your camera, microphone, screen, or activity outside the quiz. See our <a href="privacy.html#quiz-integrity">Privacy Policy</a> for specifics.</p></div></div>
+        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>Can students see their answers after a quiz?</h4><p>Only if the lecturer explicitly turns on review for that quiz, and only once grading is complete — it's entirely the lecturer's decision, per quiz.</p></div></div>
       </div>
     </div>
   </section>
 
   <section>
-    <div class="wrap story-grid">
+    <div class="wrap story-grid reveal">
       <div>
         <span class="kicker">Where we're headed</span>
         <p>Peerloom today covers the core of academic group life — chat, resources, quizzes, and results. We're actively building toward richer analytics for lecturers, deeper AI-assisted study tools for students, and institution-level administration for schools running Peerloom across many courses at once.</p>
@@ -333,7 +446,7 @@
 
   <section class="tight">
     <div class="wrap">
-      <div class="cta-band">
+      <div class="cta-band reveal">
         <h2>Bring your course onto Peerloom</h2>
         <p>Whether you're a lecturer running a module or a student organizing your cohort, Peerloom gives your group room to actually work.</p>
         <div class="cta-buttons">
@@ -362,9 +475,35 @@
   </footer>
 
   <script>
-    document.getElementById('menuToggle').addEventListener('click', () => {
-      document.getElementById('topnav').classList.toggle('open');
+    const menuToggle = document.getElementById('menuToggle');
+    const topnav = document.getElementById('topnav');
+    menuToggle.addEventListener('click', () => {
+      const isOpen = topnav.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
+    topnav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        topnav.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // Apple-style scroll reveal: fade + rise each block in once, the first
+    // time it crosses into the viewport.
+    if ('IntersectionObserver' in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+      document.querySelectorAll('.reveal, .reveal-group').forEach(el => revealObserver.observe(el));
+    } else {
+      document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('in-view'));
+    }
   </script>
 </body>
 </html>

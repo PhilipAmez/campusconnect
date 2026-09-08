@@ -635,14 +635,39 @@
         }
         .nav-toggle {
             display: none;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
             background: none;
             border: none;
-            font-size: 2rem;
             color: var(--primary);
             cursor: pointer;
         }
+        .hamburger-icon {
+            position: relative;
+            width: 21px;
+            height: 15px;
+            transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .hamburger-icon span {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            border-radius: 2px;
+            background: currentColor;
+            transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1), width 420ms cubic-bezier(0.34,1.56,0.64,1), opacity 180ms ease, top 420ms cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .hamburger-icon span:nth-child(1) { top: 0; width: 100%; }
+        .hamburger-icon span:nth-child(2) { top: 6.5px; width: 68%; }
+        .hamburger-icon span:nth-child(3) { top: 13px; width: 100%; }
+        .nav-toggle[aria-expanded="true"] .hamburger-icon { transform: rotate(90deg); }
+        .nav-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(1) { top: 6.5px; width: 100%; transform: rotate(45deg); }
+        .nav-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(2) { opacity: 0; width: 0; left: 50%; }
+        .nav-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(3) { top: 6.5px; width: 100%; transform: rotate(-45deg); }
         .nav-links.mobile {
-            display: none;
+            display: flex;
             flex-direction: column;
             gap: 1rem;
             background: #fff;
@@ -654,9 +679,32 @@
             border-radius: 0.7rem;
             padding: 1rem 0.5rem;
             z-index: 1001;
+            opacity: 0;
+            pointer-events: none;
+            clip-path: circle(0% at calc(100% - 20px) 0%);
+            transition: clip-path 520ms cubic-bezier(0.16,1,0.3,1), opacity 260ms ease;
         }
         .nav-links.mobile.show {
-            display: flex;
+            opacity: 1;
+            pointer-events: auto;
+            clip-path: circle(150% at calc(100% - 20px) 0%);
+        }
+        .nav-links.mobile .nav-link {
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 240ms ease, transform 240ms ease;
+        }
+        .nav-links.mobile.show .nav-link {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .nav-links.mobile.show .nav-link:nth-child(1) { transition-delay: 60ms; }
+        .nav-links.mobile.show .nav-link:nth-child(2) { transition-delay: 100ms; }
+        .nav-links.mobile.show .nav-link:nth-child(3) { transition-delay: 140ms; }
+        .nav-links.mobile.show .nav-link:nth-child(4) { transition-delay: 180ms; }
+        .nav-links.mobile.show .nav-link:nth-child(5) { transition-delay: 220ms; }
+        @media (prefers-reduced-motion: reduce) {
+            .nav-links.mobile, .nav-links.mobile .nav-link { transition: none !important; }
         }
         @media (max-width: 700px) {
             .navbar {
@@ -669,7 +717,7 @@
                 display: none;
             }
             .nav-toggle {
-                display: block;
+                display: flex;
             }
             .notification {
                 top: 70px;
@@ -960,7 +1008,7 @@
                 <img src="logo.png" alt="PeerLoom">
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinksMobile">
-                <i class="fas fa-bars" aria-hidden="true"></i>
+                <span class="hamburger-icon"><span></span><span></span><span></span></span>
             </button>
             <div class="nav-links" id="navLinks" role="menubar">
                 <a href="/about.html" class="nav-link" role="menuitem">About</a>

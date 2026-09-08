@@ -331,6 +331,88 @@ body {
   backdrop-filter: blur(20px) saturate(160%);
 }
 
+/* Message content: preserve real line breaks so multi-line replies (and
+   especially PeerPal AI answers) don't collapse into one run-on paragraph.
+   Scoped to .message-text (added only for plain-text messages) rather than
+   .message-content, since that shared class also wraps resource cards,
+   polls, files, etc. whose own HTML relies on normal whitespace collapsing. */
+.message-text {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.message-text p {
+  margin: 0 0 10px;
+}
+
+.message-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* Sub-heading style for short "Heading:" lines inside AI replies */
+.message-text .ai-heading {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ios-info);
+  margin: 14px 0 6px;
+  opacity: 0.9;
+}
+
+.message-text .ai-heading:first-child {
+  margin-top: 0;
+}
+
+/* Bulleted / numbered lists parsed out of plain-text AI replies */
+.message-text ul.ai-list,
+.message-text ol.ai-list {
+  list-style: none;
+  margin: 2px 0 12px;
+  padding-left: 0;
+}
+
+.message-text ul.ai-list li,
+.message-text ol.ai-list li {
+  position: relative;
+  padding: 3px 0 3px 24px;
+  line-height: 1.5;
+}
+
+.message-text ul.ai-list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ios-info);
+  opacity: 0.85;
+}
+
+.message-text ol.ai-list {
+  counter-reset: ai-counter;
+}
+
+.message-text ol.ai-list li::before {
+  counter-increment: ai-counter;
+  content: counter(ai-counter) '.';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ios-info);
+}
+
+.message-text ul.ai-list li:last-child,
+.message-text ol.ai-list li:last-child {
+  padding-bottom: 0;
+}
+
 .msg:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);

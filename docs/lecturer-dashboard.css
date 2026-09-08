@@ -992,7 +992,52 @@ body.dark .logout-overlay {
   flex-shrink: 0;
 }
 .hamburger-btn:hover { transform: translateY(-1px); }
-.hamburger-btn:active { transform: scale(0.94); }
+.hamburger-btn:active { transform: scale(0.9); }
+
+/* Asymmetric bars at rest (shorter middle bar reads more sculptural than
+   three equal lines), spring/overshoot easing, and the whole icon does a
+   quick 90° spin as it collapses into an X — a bit more considered than
+   the flat bars-to-X morph every template ships with. */
+.hamburger-icon {
+  position: relative;
+  width: 18px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hamburger-icon span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              width 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 180ms ease,
+              top 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hamburger-icon span:nth-child(1) { top: 0; width: 100%; }
+.hamburger-icon span:nth-child(2) { top: 6px; width: 68%; }
+.hamburger-icon span:nth-child(3) { top: 12px; width: 100%; }
+
+.hamburger-btn[aria-expanded="true"] .hamburger-icon {
+  transform: rotate(90deg);
+}
+.hamburger-btn[aria-expanded="true"] .hamburger-icon span:nth-child(1) {
+  top: 6px;
+  width: 100%;
+  transform: rotate(45deg);
+}
+.hamburger-btn[aria-expanded="true"] .hamburger-icon span:nth-child(2) {
+  opacity: 0;
+  width: 0;
+  left: 50%;
+}
+.hamburger-btn[aria-expanded="true"] .hamburger-icon span:nth-child(3) {
+  top: 6px;
+  transform: rotate(-45deg);
+}
 
 .sidebar-backdrop {
   display: none;
@@ -1040,23 +1085,85 @@ body.dark .logout-overlay {
     top: 0;
     left: 0;
     height: 100vh;
+    height: 100dvh; /* accounts for the mobile browser's collapsing toolbar */
     width: min(78vw, 300px);
     z-index: 1200;
     border-right: 1px solid var(--border);
-    transform: translateX(-104%);
-    transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: left center;
+    /* Swings open like a hinged door instead of a flat slide-in — the
+       drawer rotates around its left edge while sliding into place. */
+    transform: perspective(1000px) translateX(-104%) rotateY(-22deg) translateZ(0);
+    transition: transform 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Forces its own compositing layer so WebKit keeps it correctly
+       pinned to the viewport instead of clipping/jumping while the
+       page behind it scrolls. */
+    will-change: transform;
+    backface-visibility: hidden;
     box-shadow: var(--shadow);
   }
 
+  /* .lecturer-shell has backdrop-filter (below), and per spec that makes it
+     a new containing block for any position:fixed descendant — so .sidebar
+     was really being positioned relative to .lecturer-shell's box (which
+     spans the whole scrollable page) instead of the actual viewport. That's
+     why the drawer didn't reach the bottom of the screen when opened after
+     scrolling down. Dropping the filter while the drawer is open restores
+     the viewport as .sidebar's containing block. The dark overlay + solid
+     drawer already cover the screen at this point, so the change is
+     visually unnoticeable. */
+  .lecturer-shell.sidebar-open {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .lecturer-shell.sidebar-open .sidebar {
+    transform: perspective(1000px) translateX(0) rotateY(0deg) translateZ(0);
+  }
+
+  /* Staggered reveal for nav items as the drawer slides open */
+  .sidebar .brand-block,
+  .sidebar .nav-item {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 260ms ease, transform 260ms ease;
+  }
+  .lecturer-shell.sidebar-open .sidebar .brand-block,
+  .lecturer-shell.sidebar-open .sidebar .nav-item {
+    opacity: 1;
     transform: translateX(0);
   }
+  .lecturer-shell.sidebar-open .sidebar .brand-block { transition-delay: 60ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(1) { transition-delay: 100ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(2) { transition-delay: 130ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(3) { transition-delay: 160ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(4) { transition-delay: 190ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(5) { transition-delay: 220ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(6) { transition-delay: 250ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(7) { transition-delay: 280ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(8) { transition-delay: 310ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(9) { transition-delay: 340ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(10) { transition-delay: 370ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(11) { transition-delay: 400ms; }
+  .lecturer-shell.sidebar-open .sidebar .nav-item:nth-child(12) { transition-delay: 430ms; }
 
   .lecturer-shell.sidebar-open .sidebar-backdrop {
     display: block;
     opacity: 1;
     pointer-events: auto;
+  }
+
+  /* Locks the page in place behind the drawer so touch-scrolling the
+     backdrop can't drag the underlying dashboard (and the fixed sidebar)
+     out of sync. Scroll position is restored on close via JS. */
+  body.sidebar-scroll-lock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    width: 100%;
+    overflow: hidden;
   }
 
   .hero-card,

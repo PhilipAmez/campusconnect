@@ -26,7 +26,16 @@
   .topnav a { text-decoration: none; color: var(--text); font-weight: 600; font-size: 0.92rem; padding: 8px 14px; border-radius: 8px; transition: background 150ms ease, color 150ms ease; }
   .topnav a:hover { background: var(--primary-light); color: var(--primary-dark); }
   .topnav a.cta { background: var(--ink); color: #fff; }
-  .menu-toggle { display: none; background: none; border: none; font-size: 1.3rem; color: var(--ink); cursor: pointer; }
+  .menu-toggle { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; background: none; border: none; color: var(--ink); cursor: pointer; }
+  .hamburger-icon { position: relative; width: 19px; height: 14px; transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1); }
+  .hamburger-icon span { position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px; background: currentColor; transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1), width 420ms cubic-bezier(0.34,1.56,0.64,1), opacity 180ms ease, top 420ms cubic-bezier(0.34,1.56,0.64,1); }
+  .hamburger-icon span:nth-child(1) { top: 0; width: 100%; }
+  .hamburger-icon span:nth-child(2) { top: 6px; width: 68%; }
+  .hamburger-icon span:nth-child(3) { top: 12px; width: 100%; }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon { transform: rotate(90deg); }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(1) { top: 6px; width: 100%; transform: rotate(45deg); }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(2) { opacity: 0; width: 0; left: 50%; }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(3) { top: 6px; width: 100%; transform: rotate(-45deg); }
 
   .hero { padding: 56px 0 32px; text-align: center; }
   .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: var(--primary-light); color: var(--primary-dark); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; margin-bottom: 18px; }
@@ -65,9 +74,61 @@
     .toc { position: static; }
     .doc { padding: 26px; }
     .topnav { display: none; }
-    .menu-toggle { display: block; }
-    .topnav.open { display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border); }
+    .menu-toggle { display: flex; }
+    .topnav.open {
+      display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+      flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border);
+      animation: navDropIn 520ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .topnav.open a {
+      opacity: 0; transform: translateY(-8px);
+      animation: navLinkIn 360ms cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .topnav.open a:nth-child(1) { animation-delay: 60ms; }
+    .topnav.open a:nth-child(2) { animation-delay: 100ms; }
+    .topnav.open a:nth-child(3) { animation-delay: 140ms; }
+    .topnav.open a:nth-child(4) { animation-delay: 180ms; }
+    .topnav.open a:nth-child(5) { animation-delay: 220ms; }
+    @keyframes navDropIn {
+      from { opacity: 0; clip-path: circle(0% at calc(100% - 24px) 0%); }
+      to { opacity: 1; clip-path: circle(150% at calc(100% - 24px) 0%); }
+    }
+    @keyframes navLinkIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .glance-grid { grid-template-columns: 1fr 1fr; }
   }
+
+  .hero .eyebrow { animation: heroIn 700ms cubic-bezier(0.16,1,0.3,1) both; }
+  .hero h1 { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 90ms both; }
+  .hero .updated { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 180ms both; }
+  @keyframes heroIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Apple-style scroll reveal for each clause as you scroll down */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 700ms cubic-bezier(0.16,1,0.3,1), transform 700ms cubic-bezier(0.16,1,0.3,1); }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+  .reveal-item { opacity: 0; transform: translateY(22px); transition: opacity 600ms cubic-bezier(0.16,1,0.3,1), transform 600ms cubic-bezier(0.16,1,0.3,1); }
+  .reveal-group.in-view .reveal-item:nth-child(1) { transition-delay: 0ms; }
+  .reveal-group.in-view .reveal-item:nth-child(2) { transition-delay: 80ms; }
+  .reveal-group.in-view .reveal-item:nth-child(3) { transition-delay: 160ms; }
+  .reveal-group.in-view .reveal-item:nth-child(4) { transition-delay: 240ms; }
+  .reveal-group.in-view .reveal-item { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-item, .hero .eyebrow, .hero h1, .hero .updated, .topnav.open, .topnav.open a { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
+  }
+
+  /* Quick-glance summary band under the hero */
+  .glance { padding: 4px 0 8px; }
+  .glance-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .glance-item { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 18px; box-shadow: var(--shadow); text-align: center; transition: transform 260ms cubic-bezier(0.16,1,0.3,1), box-shadow 260ms cubic-bezier(0.16,1,0.3,1); }
+  .glance-item:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(76, 29, 149, 0.22); }
+  .glance-item .icn { width: 38px; height: 38px; border-radius: 11px; background: var(--primary-light); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; margin: 0 auto 10px; }
+  .glance-item h4 { font-size: 0.88rem; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+  .glance-item p { color: var(--muted); font-size: 0.8rem; margin: 0; }
 </style>
 </head>
 <body>
@@ -81,7 +142,9 @@
         <a href="terms.html">Terms</a>
         <a href="login.html" class="cta">Sign in</a>
       </nav>
-      <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu" aria-expanded="false">
+        <span class="hamburger-icon"><span></span><span></span><span></span></span>
+      </button>
     </div>
   </div>
 
@@ -92,6 +155,33 @@
       <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: July 22, 2026</p>
     </div>
   </header>
+
+  <section class="glance">
+    <div class="wrap">
+      <div class="glance-grid reveal-group">
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-graduation-cap"></i></div>
+          <h4>You own your work</h4>
+          <p>Content you submit or upload stays yours — we don't claim ownership.</p>
+        </div>
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-user-check"></i></div>
+          <h4>One account, one person</h4>
+          <p>Accounts are personal and non-transferable — keep your login private.</p>
+        </div>
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-scale-balanced"></i></div>
+          <h4>Fair, honest use</h4>
+          <p>No cheating, impersonation, or abuse of the quiz and AI tools.</p>
+        </div>
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-right-from-bracket"></i></div>
+          <h4>Leave anytime</h4>
+          <p>Close your account whenever you like — no lock-in, no penalties.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="wrap layout">
     <nav class="toc">
@@ -117,18 +207,18 @@
     </nav>
 
     <article class="doc">
-      <section id="acceptance">
+      <section class="reveal" id="acceptance">
         <h2><span class="num">1.</span> Acceptance of terms</h2>
         <p>These Terms of Service ("Terms") govern your access to and use of Peerloom, operated by Peerloom Technologies Limited ("Peerloom", "we", "us", "our"). By creating an account or using any part of the platform, you agree to be bound by these Terms and our <a href="privacy.html">Privacy Policy</a>. If you do not agree, please do not use Peerloom.</p>
       </section>
 
-      <section id="eligibility">
+      <section class="reveal" id="eligibility">
         <h2><span class="num">2.</span> Eligibility &amp; accounts</h2>
         <p>Peerloom is intended for students, lecturers, and staff affiliated with a tertiary or higher-education institution. You must provide accurate information when creating your account, including your correct role (student or lecturer) and institution, and you're responsible for keeping your login credentials secure.</p>
         <p>You're responsible for all activity that happens under your account. If you believe your account has been compromised, contact us immediately at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
       </section>
 
-      <section id="acceptable-use">
+      <section class="reveal" id="acceptable-use">
         <h2><span class="num">3.</span> Acceptable use</h2>
         <p>When using Peerloom, you agree not to:</p>
         <ul>
@@ -141,70 +231,70 @@
         <p>We reserve the right to remove content or restrict accounts that violate these standards.</p>
       </section>
 
-      <section id="quizzes">
+      <section class="reveal" id="quizzes">
         <h2><span class="num">4.</span> Quizzes &amp; academic integrity</h2>
         <p>Lecturers may create quizzes with configurable time limits, attempt limits, and deadlines. While a quiz is in progress, Peerloom records a limited set of integrity signals — tab switches, copy actions, and paste actions — as described in our <a href="privacy.html#quiz-integrity">Privacy Policy</a>. These signals are visible to the lecturer who owns the quiz and are intended to support, not replace, that lecturer's own academic integrity judgment.</p>
         <p>Students agree to complete quizzes honestly and in accordance with the academic integrity policies of their own institution. Peerloom is a tool that surfaces information to lecturers — decisions about grading, discipline, or academic consequences are made by the lecturer and institution, not by Peerloom.</p>
         <div class="callout"><strong>Note:</strong> Attempt limits and deadlines are set by each lecturer per quiz. Once your attempts are used or a deadline passes, Peerloom will not grant additional attempts automatically — contact your lecturer directly for exceptions.</div>
       </section>
 
-      <section id="content">
+      <section class="reveal" id="content">
         <h2><span class="num">5.</span> Content &amp; ownership</h2>
         <p>You retain ownership of the content you create or upload to Peerloom — messages, quiz questions, resources, and announcements. By posting content, you grant Peerloom a limited license to host, store, and display that content as needed to operate the platform (for example, showing your message to other members of your group).</p>
         <p>You're responsible for having the necessary rights to any material you upload as a resource, and for not infringing third-party copyright or intellectual property.</p>
       </section>
 
-      <section id="ai">
+      <section class="reveal" id="ai">
         <h2><span class="num">6.</span> PeerPal AI</h2>
         <p>PeerPal AI is an assistant built into Peerloom to help with studying, explanations, and exam preparation. Responses from PeerPal AI are generated automatically and may occasionally be incomplete or inaccurate. You should verify important academic information independently and use your own judgment before relying on it for graded work.</p>
       </section>
 
-      <section id="groups">
+      <section class="reveal" id="groups">
         <h2><span class="num">7.</span> Groups &amp; lecturer responsibilities</h2>
         <p>Lecturers who create and manage groups are responsible for the accuracy of the quizzes, announcements, and resources they publish, and for managing membership appropriately. Students who join a group are expected to follow the norms and instructions set by that group's lecturer, in addition to these Terms.</p>
       </section>
 
-      <section id="fees">
+      <section class="reveal" id="fees">
         <h2><span class="num">8.</span> Fees</h2>
         <p>Peerloom does not currently charge for access to the platform. If we introduce paid plans or features in the future, we'll communicate pricing clearly in advance, and existing free functionality won't be retroactively locked behind a paywall without notice.</p>
       </section>
 
-      <section id="feedback">
+      <section class="reveal" id="feedback">
         <h2><span class="num">9.</span> Feedback</h2>
         <p>If you send us feedback, suggestions, or ideas about Peerloom, you agree that we may use them to improve the platform without any obligation to compensate you, and without treating them as your confidential information.</p>
       </section>
 
-      <section id="copyright">
+      <section class="reveal" id="copyright">
         <h2><span class="num">10.</span> Copyright complaints</h2>
         <p>If you believe content on Peerloom infringes your copyright, contact us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a> with a description of the work, its location on the platform, and your contact information. We'll review and take appropriate action, which may include removing the content and, where warranted, restricting the responsible account.</p>
       </section>
 
-      <section id="availability">
+      <section class="reveal" id="availability">
         <h2><span class="num">11.</span> Availability &amp; changes to the service</h2>
         <p>We work to keep Peerloom available and reliable, but we don't guarantee uninterrupted access. We may add, change, or remove features over time as the platform evolves, and we'll aim to communicate significant changes that affect how you use the platform.</p>
       </section>
 
-      <section id="termination">
+      <section class="reveal" id="termination">
         <h2><span class="num">12.</span> Suspension &amp; termination</h2>
         <p>We may suspend or terminate an account that violates these Terms, poses a security risk, or is used in a way that harms other users or the platform. You may stop using Peerloom and request deletion of your account at any time by contacting us.</p>
       </section>
 
-      <section id="disclaimers">
+      <section class="reveal" id="disclaimers">
         <h2><span class="num">13.</span> Disclaimers</h2>
         <p>Peerloom is provided "as is" and "as available." To the fullest extent permitted by law, we disclaim warranties of any kind, express or implied, including fitness for a particular purpose, regarding the platform's operation, quiz results, or AI-generated content.</p>
       </section>
 
-      <section id="liability">
+      <section class="reveal" id="liability">
         <h2><span class="num">14.</span> Limitation of liability</h2>
         <p>To the fullest extent permitted by applicable law, Peerloom Technologies Limited will not be liable for indirect, incidental, or consequential damages arising from your use of the platform, including academic outcomes resulting from quiz results, grading decisions, or reliance on AI-generated content.</p>
       </section>
 
-      <section id="governing-law">
+      <section class="reveal" id="governing-law">
         <h2><span class="num">15.</span> Governing law</h2>
         <p>These Terms are governed by the laws applicable to Peerloom Technologies Limited's place of incorporation, without regard to conflict-of-law principles, unless a different governing law is required by the mandatory consumer protection laws of your jurisdiction.</p>
       </section>
 
-      <section id="general">
+      <section class="reveal" id="general">
         <h2><span class="num">16.</span> General provisions</h2>
         <p><strong>Severability.</strong> If any provision of these Terms is found unenforceable, the remaining provisions continue in full effect.</p>
         <p><strong>Entire agreement.</strong> These Terms, together with our Privacy Policy, make up the entire agreement between you and Peerloom Technologies Limited regarding use of the platform, superseding any prior understandings on the same subject.</p>
@@ -212,12 +302,12 @@
         <p><strong>Assignment.</strong> You may not assign these Terms without our consent; we may assign them in connection with a merger, acquisition, or sale of assets.</p>
       </section>
 
-      <section id="changes">
+      <section class="reveal" id="changes">
         <h2><span class="num">17.</span> Changes to these terms</h2>
         <p>We may update these Terms from time to time. If we make material changes, we'll update the "Last updated" date above and, where appropriate, notify you directly. Continuing to use Peerloom after changes take effect means you accept the revised Terms.</p>
       </section>
 
-      <section id="contact">
+      <section class="reveal" id="contact">
         <h2><span class="num">18.</span> Contact us</h2>
         <p>Questions about these Terms? Reach us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
       </section>
@@ -242,9 +332,33 @@
   </footer>
 
   <script>
-    document.getElementById('menuToggle').addEventListener('click', () => {
-      document.getElementById('topnav').classList.toggle('open');
+    const menuToggle = document.getElementById('menuToggle');
+    const topnav = document.getElementById('topnav');
+    menuToggle.addEventListener('click', () => {
+      const isOpen = topnav.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
+    topnav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        topnav.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    if ('IntersectionObserver' in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+      document.querySelectorAll('.reveal, .reveal-group').forEach(el => revealObserver.observe(el));
+    } else {
+      document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('in-view'));
+    }
   </script>
 </body>
 </html>

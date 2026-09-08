@@ -38,12 +38,29 @@ if (_initialSection || pendingHighlightGroupId) {
   window.history.replaceState({}, '', 'lecturer-dashboard.html');
 }
 
+const MOBILE_LAYOUT_QUERY = '(max-width: 980px)';
+let sidebarScrollY = 0;
+
+function isMobileLayout() {
+  return window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+}
+
 function openSidebar() {
+  if (isMobileLayout()) {
+    sidebarScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.top = `-${sidebarScrollY}px`;
+    document.body.classList.add('sidebar-scroll-lock');
+  }
   lecturerShell?.classList.add('sidebar-open');
   hamburgerBtn?.setAttribute('aria-expanded', 'true');
 }
 
 function closeSidebar() {
+  if (document.body.classList.contains('sidebar-scroll-lock')) {
+    document.body.classList.remove('sidebar-scroll-lock');
+    document.body.style.top = '';
+    window.scrollTo(0, sidebarScrollY);
+  }
   lecturerShell?.classList.remove('sidebar-open');
   hamburgerBtn?.setAttribute('aria-expanded', 'false');
 }

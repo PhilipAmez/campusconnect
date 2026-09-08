@@ -935,7 +935,8 @@
           ct.innerHTML = '<p>Could not load this resource.</p>';
         });
       } else {
-        ct.innerHTML = processMentions(m.content);
+        ct.classList.add('message-text');
+        ct.innerHTML = formatMessageContent(m.content, isAI);
       }
       
       div.appendChild(ct);
@@ -1725,6 +1726,66 @@
       state.currentMentionQuery = '';
     }
     
+    // Turns a plain-text message into properly separated HTML.
+    // Regular messages just keep their line breaks. AI replies get their
+    // dash/number "lists" and short "Heading:" lines turned into real
+    // <ul>/<ol>/heading blocks so they don't run together into one blob.
+    function formatMessageContent(content, isAI) {
+      const withMentions = processMentions(content);
+      if (!isAI) {
+        return withMentions.replace(/\r?\n/g, '<br>');
+      }
+      return formatAIMessageBlocks(withMentions);
+    }
+
+    function formatAIMessageBlocks(text) {
+      const lines = text.split(/\r?\n/);
+      const blocks = [];
+      let listItems = [];
+      let listType = null; // 'ul' | 'ol'
+
+      function flushList() {
+        if (!listItems.length) return;
+        const tag = listType === 'ol' ? 'ol' : 'ul';
+        blocks.push(`<${tag} class="ai-list">${listItems.map(li => `<li>${li}</li>`).join('')}</${tag}>`);
+        listItems = [];
+        listType = null;
+      }
+
+      lines.forEach(rawLine => {
+        const line = rawLine.trim();
+        if (!line) { flushList(); return; }
+
+        const bulletMatch = line.match(/^[-*•]\s+(.*)/);
+        const numberedMatch = line.match(/^\d+[.)]\s+(.*)/);
+
+        if (bulletMatch) {
+          if (listType && listType !== 'ul') flushList();
+          listType = 'ul';
+          listItems.push(bulletMatch[1]);
+          return;
+        }
+        if (numberedMatch) {
+          if (listType && listType !== 'ol') flushList();
+          listType = 'ol';
+          listItems.push(numberedMatch[1]);
+          return;
+        }
+
+        flushList();
+        // Short standalone lines ending in ":" (no other sentence punctuation)
+        // read as an intended sub-heading — give them their own styled block.
+        const headingMatch = line.match(/^([^.?!:]{2,60}):$/);
+        if (headingMatch) {
+          blocks.push(`<span class="ai-heading">${headingMatch[1]}</span>`);
+        } else {
+          blocks.push(`<p>${line}</p>`);
+        }
+      });
+      flushList();
+      return blocks.join('');
+    }
+
     function processMentions(content) {
       let processedContent = content;
       const mentionRegex = /(@[^\s]+)/g;

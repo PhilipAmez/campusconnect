@@ -26,7 +26,16 @@
   .topnav a { text-decoration: none; color: var(--text); font-weight: 600; font-size: 0.92rem; padding: 8px 14px; border-radius: 8px; transition: background 150ms ease, color 150ms ease; }
   .topnav a:hover { background: var(--primary-light); color: var(--primary-dark); }
   .topnav a.cta { background: var(--ink); color: #fff; }
-  .menu-toggle { display: none; background: none; border: none; font-size: 1.3rem; color: var(--ink); cursor: pointer; }
+  .menu-toggle { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; background: none; border: none; color: var(--ink); cursor: pointer; }
+  .hamburger-icon { position: relative; width: 19px; height: 14px; transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1); }
+  .hamburger-icon span { position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px; background: currentColor; transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1), width 420ms cubic-bezier(0.34,1.56,0.64,1), opacity 180ms ease, top 420ms cubic-bezier(0.34,1.56,0.64,1); }
+  .hamburger-icon span:nth-child(1) { top: 0; width: 100%; }
+  .hamburger-icon span:nth-child(2) { top: 6px; width: 68%; }
+  .hamburger-icon span:nth-child(3) { top: 12px; width: 100%; }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon { transform: rotate(90deg); }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(1) { top: 6px; width: 100%; transform: rotate(45deg); }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(2) { opacity: 0; width: 0; left: 50%; }
+  .menu-toggle[aria-expanded="true"] .hamburger-icon span:nth-child(3) { top: 6px; width: 100%; transform: rotate(-45deg); }
 
   .hero { padding: 56px 0 32px; text-align: center; }
   .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: var(--primary-light); color: var(--primary-dark); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; margin-bottom: 18px; }
@@ -68,9 +77,61 @@
     .toc { position: static; }
     .doc { padding: 26px; }
     .topnav { display: none; }
-    .menu-toggle { display: block; }
-    .topnav.open { display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border); }
+    .menu-toggle { display: flex; }
+    .topnav.open {
+      display: flex; position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+      flex-direction: column; padding: 12px 24px 20px; border-bottom: 1px solid var(--border);
+      animation: navDropIn 520ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .topnav.open a {
+      opacity: 0; transform: translateY(-8px);
+      animation: navLinkIn 360ms cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .topnav.open a:nth-child(1) { animation-delay: 60ms; }
+    .topnav.open a:nth-child(2) { animation-delay: 100ms; }
+    .topnav.open a:nth-child(3) { animation-delay: 140ms; }
+    .topnav.open a:nth-child(4) { animation-delay: 180ms; }
+    .topnav.open a:nth-child(5) { animation-delay: 220ms; }
+    @keyframes navDropIn {
+      from { opacity: 0; clip-path: circle(0% at calc(100% - 24px) 0%); }
+      to { opacity: 1; clip-path: circle(150% at calc(100% - 24px) 0%); }
+    }
+    @keyframes navLinkIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .glance-grid { grid-template-columns: 1fr 1fr; }
   }
+
+  .hero .eyebrow { animation: heroIn 700ms cubic-bezier(0.16,1,0.3,1) both; }
+  .hero h1 { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 90ms both; }
+  .hero .updated { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 180ms both; }
+  @keyframes heroIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Apple-style scroll reveal for each policy section as you scroll down */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 700ms cubic-bezier(0.16,1,0.3,1), transform 700ms cubic-bezier(0.16,1,0.3,1); }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+  .reveal-item { opacity: 0; transform: translateY(22px); transition: opacity 600ms cubic-bezier(0.16,1,0.3,1), transform 600ms cubic-bezier(0.16,1,0.3,1); }
+  .reveal-group.in-view .reveal-item:nth-child(1) { transition-delay: 0ms; }
+  .reveal-group.in-view .reveal-item:nth-child(2) { transition-delay: 80ms; }
+  .reveal-group.in-view .reveal-item:nth-child(3) { transition-delay: 160ms; }
+  .reveal-group.in-view .reveal-item:nth-child(4) { transition-delay: 240ms; }
+  .reveal-group.in-view .reveal-item { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-item, .hero .eyebrow, .hero h1, .hero .updated, .topnav.open, .topnav.open a { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
+  }
+
+  /* Quick-glance summary band under the hero */
+  .glance { padding: 4px 0 8px; }
+  .glance-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .glance-item { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 18px; box-shadow: var(--shadow); text-align: center; transition: transform 260ms cubic-bezier(0.16,1,0.3,1), box-shadow 260ms cubic-bezier(0.16,1,0.3,1); }
+  .glance-item:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(76, 29, 149, 0.22); }
+  .glance-item .icn { width: 38px; height: 38px; border-radius: 11px; background: var(--primary-light); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; margin: 0 auto 10px; }
+  .glance-item h4 { font-size: 0.88rem; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+  .glance-item p { color: var(--muted); font-size: 0.8rem; margin: 0; }
 </style>
 </head>
 <body>
@@ -84,7 +145,9 @@
         <a href="terms.html">Terms</a>
         <a href="login.html" class="cta">Sign in</a>
       </nav>
-      <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu" aria-expanded="false">
+        <span class="hamburger-icon"><span></span><span></span><span></span></span>
+      </button>
     </div>
   </div>
 
@@ -95,6 +158,33 @@
       <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: July 22, 2026</p>
     </div>
   </header>
+
+  <section class="glance">
+    <div class="wrap">
+      <div class="glance-grid reveal-group">
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-ban"></i></div>
+          <h4>We never sell data</h4>
+          <p>No advertisers, no data brokers, no exceptions.</p>
+        </div>
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-video-slash"></i></div>
+          <h4>No camera or mic access</h4>
+          <p>Quiz monitoring never touches your camera or screen.</p>
+        </div>
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-trash-can"></i></div>
+          <h4>You can delete anytime</h4>
+          <p>Request deletion of your account and data whenever you like.</p>
+        </div>
+        <div class="glance-item reveal-item">
+          <div class="icn"><i class="fa-solid fa-file-shield"></i></div>
+          <h4>Row-level access</h4>
+          <p>You only ever see data you're actually authorized to see.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="wrap layout">
     <nav class="toc">
@@ -116,13 +206,13 @@
     </nav>
 
     <article class="doc">
-      <section id="overview">
+      <section class="reveal" id="overview">
         <h2><span class="num">1.</span> Overview</h2>
         <p>Peerloom Technologies Limited ("Peerloom", "we", "us", or "our") provides an academic collaboration platform for students and lecturers, including course groups, chat, quizzes, shared resources, and an AI study assistant ("PeerPal AI"). This Privacy Policy explains what information we collect when you use Peerloom, why we collect it, how it's stored and protected, and the choices and rights you have.</p>
         <p>This policy applies to everyone who uses Peerloom — students, lecturers, and administrators — across our web application and any associated mobile experiences. By creating a Peerloom account, you agree to the practices described here. If you don't agree, please don't use the platform.</p>
       </section>
 
-      <section id="data-we-collect">
+      <section class="reveal" id="data-we-collect">
         <h2><span class="num">2.</span> Data we collect</h2>
         <p>We collect the minimum data needed to run a functioning academic platform. Broadly, this falls into four categories:</p>
         <table>
@@ -135,7 +225,7 @@
         <p>We do not collect payment information at this time, as Peerloom does not currently process payments directly on the platform.</p>
       </section>
 
-      <section id="quiz-integrity">
+      <section class="reveal" id="quiz-integrity">
         <h2><span class="num">3.</span> Quiz integrity monitoring</h2>
         <p>When a lecturer publishes a quiz, Peerloom can record specific, limited signals during that quiz attempt to help lecturers assess whether a submission was completed independently. This monitoring is active <strong>only while a quiz is in progress</strong> — never at any other time, and never outside the quiz session itself.</p>
         <p>The signals we currently record are:</p>
@@ -148,13 +238,13 @@
         <p>These events are visible to the lecturer who owns the quiz, as a timestamped log tied to that specific attempt. They're used to support academic integrity decisions and are not shared for any other purpose.</p>
       </section>
 
-      <section id="cookies">
+      <section class="reveal" id="cookies">
         <h2><span class="num">4.</span> Cookies &amp; local storage</h2>
         <p>Peerloom uses essential cookies and browser local storage to keep you signed in, remember your theme preference, and maintain your place in an active quiz session. We don't use third-party advertising cookies, and we don't run cross-site tracking scripts.</p>
         <p>Because these cookies are essential to the platform functioning (staying logged in, keeping a quiz attempt in sync), there isn't a cookie preference toggle to disable them — disabling cookies in your browser entirely will prevent Peerloom from working correctly.</p>
       </section>
 
-      <section id="how-we-use">
+      <section class="reveal" id="how-we-use">
         <h2><span class="num">5.</span> How we use your data</h2>
         <p>We use the data described above to:</p>
         <ul>
@@ -168,7 +258,7 @@
         <p>We do not sell your personal data, and we do not use your academic content (messages, quiz answers, resources) to train third-party advertising profiles.</p>
       </section>
 
-      <section id="sharing">
+      <section class="reveal" id="sharing">
         <h2><span class="num">6.</span> Who we share data with</h2>
         <p>We share data only in the following limited circumstances:</p>
         <ul>
@@ -180,19 +270,19 @@
         <p>We do not share your data with advertisers or data brokers.</p>
       </section>
 
-      <section id="retention">
+      <section class="reveal" id="retention">
         <h2><span class="num">7.</span> Data retention</h2>
         <p>We retain account and academic data for as long as your account is active, so that groups, quiz history, and results remain available to you and your lecturers or students. If you delete your account, we remove your profile and personal identifiers within a reasonable period, though some records (such as a quiz score tied to a group's academic record) may be retained in de-identified or aggregate form for institutional record-keeping.</p>
         <p>You can request earlier deletion of specific content at any time — see Section 8.</p>
       </section>
 
-      <section id="security">
+      <section class="reveal" id="security">
         <h2><span class="num">8.</span> Security</h2>
         <p>We apply industry-standard safeguards to protect your data, including encrypted connections (HTTPS) for all traffic, hashed password storage, and row-level access controls so that a user can only read data they're authorized to see (for example, a student cannot read another student's private quiz attempt). No system is perfectly secure, and we continue to invest in strengthening these protections as the platform grows.</p>
         <p>If we become aware of a security incident affecting your personal data, we will notify affected users and relevant authorities as required by applicable law.</p>
       </section>
 
-      <section id="your-rights">
+      <section class="reveal" id="your-rights">
         <h2><span class="num">9.</span> Your rights and choices</h2>
         <p>Depending on your location, you may have the right to:</p>
         <ul>
@@ -205,7 +295,7 @@
         <p>To exercise any of these rights, contact us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>. We'll respond within a reasonable timeframe and may need to verify your identity before acting on a request.</p>
       </section>
 
-      <section id="regional">
+      <section class="reveal" id="regional">
         <h2><span class="num">10.</span> Regional privacy rights</h2>
         <h3>If you're in the European Economic Area or UK</h3>
         <p>We process your data under one or more of the following legal bases: performance of a contract (running the platform you signed up for), legitimate interests (keeping the platform secure and improving it), and consent (where applicable). You have the rights described in Section 9, plus the right to lodge a complaint with your local data protection authority.</p>
@@ -215,22 +305,22 @@
         <p>Regardless of where you're located, we apply the same core protections described throughout this policy — access, correction, and deletion rights are available to every Peerloom user, not just where legally mandated.</p>
       </section>
 
-      <section id="children">
+      <section class="reveal" id="children">
         <h2><span class="num">11.</span> Age requirements</h2>
         <p>Peerloom is intended for users enrolled in or affiliated with a tertiary/higher-education institution and is not directed at children under 13. If we learn that we've collected personal data from a child under 13 without appropriate consent, we will delete it promptly.</p>
       </section>
 
-      <section id="international">
+      <section class="reveal" id="international">
         <h2><span class="num">12.</span> International use</h2>
         <p>Peerloom may be used by students and lecturers across different countries and institutions. Your data may be processed and stored in locations outside your own country by our infrastructure providers. We take steps to ensure any such transfer is handled consistently with this Privacy Policy.</p>
       </section>
 
-      <section id="changes">
+      <section class="reveal" id="changes">
         <h2><span class="num">13.</span> Changes to this policy</h2>
         <p>We may update this Privacy Policy from time to time as Peerloom evolves. If we make material changes, we'll update the "Last updated" date above and, where appropriate, notify you directly (for example, via an in-app notification). Continued use of Peerloom after a change takes effect constitutes acceptance of the revised policy.</p>
       </section>
 
-      <section id="contact">
+      <section class="reveal" id="contact">
         <h2><span class="num">14.</span> Contact us</h2>
         <p>Questions about this Privacy Policy or how your data is handled? Reach us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
       </section>
@@ -255,9 +345,33 @@
   </footer>
 
   <script>
-    document.getElementById('menuToggle').addEventListener('click', () => {
-      document.getElementById('topnav').classList.toggle('open');
+    const menuToggle = document.getElementById('menuToggle');
+    const topnav = document.getElementById('topnav');
+    menuToggle.addEventListener('click', () => {
+      const isOpen = topnav.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
+    topnav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        topnav.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    if ('IntersectionObserver' in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+      document.querySelectorAll('.reveal, .reveal-group').forEach(el => revealObserver.observe(el));
+    } else {
+      document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('in-view'));
+    }
   </script>
 </body>
 </html>
