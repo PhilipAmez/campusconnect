@@ -17,8 +17,10 @@
   a { color: var(--primary-dark); }
   .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
 
-  .topbar { position: sticky; top: 0; z-index: 50; background: rgba(251,250,255,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
-  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
+  .topbar { position: sticky; top: 0; z-index: 50; background: rgba(251,250,255,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); transition: background 300ms ease, box-shadow 300ms ease; }
+  .topbar.scrolled { background: rgba(251,250,255,0.97); box-shadow: 0 8px 30px -14px rgba(76,29,149,0.22); }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; transition: padding 300ms ease; }
+  .topbar.scrolled .topbar-inner { padding: 11px 24px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
   .brand-mark { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 0 0 1px var(--border); }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
@@ -45,8 +47,13 @@
   .layout { display: grid; grid-template-columns: 230px 1fr; gap: 44px; padding: 20px 0 90px; align-items: start; }
   .toc { position: sticky; top: 90px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
   .toc h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 10px; }
-  .toc a { display: block; font-size: 0.88rem; color: var(--text); text-decoration: none; padding: 6px 0; border-bottom: 1px solid transparent; }
-  .toc a:hover { color: var(--primary-dark); }
+  .toc a {
+    display: block; font-size: 0.88rem; color: var(--text); text-decoration: none;
+    padding: 6px 0 6px 12px; border-left: 2px solid transparent;
+    transition: color 220ms ease, border-color 220ms ease, transform 220ms ease;
+  }
+  .toc a:hover { color: var(--primary-dark); transform: translateX(2px); }
+  .toc a.active { color: var(--primary-dark); font-weight: 700; border-left-color: var(--primary); }
 
   .doc { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 44px; box-shadow: var(--shadow); }
   .doc section { margin-bottom: 36px; scroll-margin-top: 90px; }
@@ -103,7 +110,6 @@
   }
 
   .hero .eyebrow { animation: heroIn 700ms cubic-bezier(0.16,1,0.3,1) both; }
-  .hero h1 { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 90ms both; }
   .hero .updated { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 180ms both; }
   @keyframes heroIn {
     from { opacity: 0; transform: translateY(18px); }
@@ -121,21 +127,54 @@
   .reveal-group.in-view .reveal-item { opacity: 1; transform: translateY(0); }
 
   @media (prefers-reduced-motion: reduce) {
-    .reveal, .reveal-item, .hero .eyebrow, .hero h1, .hero .updated, .topnav.open, .topnav.open a { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
+    .reveal, .reveal-item, .hero .eyebrow, .hero .updated, .topnav.open, .topnav.open a { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
   }
 
   /* Quick-glance summary band under the hero */
   .glance { padding: 4px 0 8px; }
   .glance-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .glance-item { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 18px; box-shadow: var(--shadow); text-align: center; transition: transform 260ms cubic-bezier(0.16,1,0.3,1), box-shadow 260ms cubic-bezier(0.16,1,0.3,1); }
-  .glance-item:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(76, 29, 149, 0.22); }
+  .glance-item { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 18px; box-shadow: var(--shadow); text-align: center; }
   .glance-item .icn { width: 38px; height: 38px; border-radius: 11px; background: var(--primary-light); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; margin: 0 auto 10px; }
   .glance-item h4 { font-size: 0.88rem; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
   .glance-item p { color: var(--muted); font-size: 0.8rem; margin: 0; }
+
+  /* ============================================================
+     MOTION SYSTEM (shared visual language with about.html)
+     ============================================================ */
+  .scroll-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); z-index: 2000; pointer-events: none; }
+
+  .hero { position: relative; overflow: hidden; }
+  .hero::before {
+    content: '';
+    position: absolute; inset: -20%;
+    background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 10%), rgba(124,58,237,0.14), transparent 62%);
+    opacity: 0; transition: opacity 500ms ease; pointer-events: none;
+  }
+  .hero.spotlight-on::before { opacity: 1; }
+
+  .hero h1 .word { display: inline-block; opacity: 0; transform: translateY(20px); filter: blur(5px); animation: wordIn 600ms cubic-bezier(0.16,1,0.3,1) forwards; }
+  @keyframes wordIn { to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+
+  .tilt-card { transform-style: preserve-3d; transition: transform 120ms ease-out, box-shadow 280ms ease; will-change: transform; position: relative; }
+  .tilt-card::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit;
+    background: radial-gradient(200px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,0.5), transparent 62%);
+    opacity: 0; transition: opacity 250ms ease; pointer-events: none;
+  }
+  .tilt-card:hover::after { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero h1 .word { animation: none; opacity: 1; transform: none; filter: none; }
+    .tilt-card { transition: none !important; }
+  }
+  @media (hover: none) {
+    .tilt-card:hover::after { opacity: 0; }
+  }
 </style>
 </head>
 <body>
-  <div class="topbar">
+  <div class="scroll-progress" id="scrollProgress"></div>
+  <div class="topbar" id="topbar">
     <div class="topbar-inner">
       <a href="index.html" class="brand"><span class="brand-mark"><img src="logo.png" alt="Peerloom logo"></span> Peerloom</a>
       <nav class="topnav" id="topnav">
@@ -162,22 +201,22 @@
   <section class="glance">
     <div class="wrap">
       <div class="glance-grid reveal-group">
-        <div class="glance-item reveal-item">
+        <div class="glance-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-ban"></i></div>
           <h4>We never sell data</h4>
           <p>No advertisers, no data brokers, no exceptions.</p>
         </div>
-        <div class="glance-item reveal-item">
+        <div class="glance-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-video-slash"></i></div>
           <h4>No camera or mic access</h4>
           <p>Quiz monitoring never touches your camera or screen.</p>
         </div>
-        <div class="glance-item reveal-item">
+        <div class="glance-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-trash-can"></i></div>
           <h4>You can delete anytime</h4>
           <p>Request deletion of your account and data whenever you like.</p>
         </div>
-        <div class="glance-item reveal-item">
+        <div class="glance-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-file-shield"></i></div>
           <h4>Row-level access</h4>
           <p>You only ever see data you're actually authorized to see.</p>
@@ -371,6 +410,83 @@
       document.querySelectorAll('.reveal, .reveal-group').forEach(el => revealObserver.observe(el));
     } else {
       document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('in-view'));
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isTouch = window.matchMedia('(hover: none)').matches;
+
+    // Split the hero heading into words so each rises in with its own delay
+    const heroHeading = document.querySelector('.hero h1');
+    if (heroHeading && !prefersReducedMotion) {
+      const words = heroHeading.textContent.trim().split(/\s+/);
+      heroHeading.innerHTML = words.map((w, i) =>
+        `<span class="word" style="animation-delay:${90 + i * 40}ms">${w}</span>`
+      ).join(' ');
+    }
+
+    // Scroll progress + nav condense, batched into one rAF per scroll event
+    const progressBar = document.getElementById('scrollProgress');
+    const topbar = document.getElementById('topbar');
+    function updateScrollUI() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+      progressBar.style.width = pct + '%';
+      topbar.classList.toggle('scrolled', scrollTop > 24);
+    }
+    let scrollTicking = false;
+    window.addEventListener('scroll', () => {
+      if (!scrollTicking) {
+        requestAnimationFrame(() => { updateScrollUI(); scrollTicking = false; });
+        scrollTicking = true;
+      }
+    }, { passive: true });
+    updateScrollUI();
+
+    // Hero cursor-tracking spotlight (desktop only)
+    const hero = document.querySelector('.hero');
+    if (hero && !isTouch && !prefersReducedMotion) {
+      hero.addEventListener('pointermove', (e) => {
+        const rect = hero.getBoundingClientRect();
+        hero.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        hero.style.setProperty('--my', `${e.clientY - rect.top}px`);
+        hero.classList.add('spotlight-on');
+      });
+      hero.addEventListener('pointerleave', () => hero.classList.remove('spotlight-on'));
+    }
+
+    // 3D tilt + glare on the quick-glance cards (desktop only)
+    if (!isTouch && !prefersReducedMotion) {
+      document.querySelectorAll('.tilt-card').forEach(card => {
+        card.addEventListener('pointermove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const px = (e.clientX - rect.left) / rect.width;
+          const py = (e.clientY - rect.top) / rect.height;
+          card.style.transform = `perspective(700px) rotateX(${(0.5 - py) * 8}deg) rotateY(${(px - 0.5) * 8}deg) translateY(-3px)`;
+          card.style.setProperty('--gx', `${px * 100}%`);
+          card.style.setProperty('--gy', `${py * 100}%`);
+        });
+        card.addEventListener('pointerleave', () => { card.style.transform = ''; });
+      });
+    }
+
+    // Scroll-spy: highlight the TOC link for whichever section is in view
+    const tocLinks = Array.from(document.querySelectorAll('.toc a'));
+    const sections = tocLinks
+      .map(link => document.getElementById(link.getAttribute('href').slice(1)))
+      .filter(Boolean);
+    if ('IntersectionObserver' in window && sections.length) {
+      const spyObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const link = document.querySelector(`.toc a[href="#${entry.target.id}"]`);
+          if (!link) return;
+          if (entry.isIntersecting) {
+            tocLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+      sections.forEach(section => spyObserver.observe(section));
     }
   </script>
 </body>

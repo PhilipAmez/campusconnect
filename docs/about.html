@@ -36,8 +36,14 @@
     background: rgba(251, 250, 255, 0.85);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border);
+    transition: background 300ms ease, box-shadow 300ms ease;
   }
-  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
+  .topbar.scrolled {
+    background: rgba(251, 250, 255, 0.97);
+    box-shadow: 0 8px 30px -14px rgba(76,29,149,0.22);
+  }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; transition: padding 300ms ease; }
+  .topbar.scrolled .topbar-inner { padding: 11px 24px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
   .brand-mark { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 0 0 1px var(--border); }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
@@ -193,7 +199,6 @@
   @media (max-width: 860px) { .trust-grid { grid-template-columns: 1fr 1fr; } }
 
   .hero .eyebrow { animation: heroIn 700ms cubic-bezier(0.16,1,0.3,1) both; }
-  .hero h1 { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 90ms both; }
   .hero p.lead { animation: heroIn 750ms cubic-bezier(0.16,1,0.3,1) 180ms both; }
   @keyframes heroIn {
     from { opacity: 0; transform: translateY(18px); }
@@ -202,10 +207,176 @@
   @media (prefers-reduced-motion: reduce) {
     .hero .eyebrow, .hero h1, .hero p.lead { animation: none; }
   }
+
+  /* ============================================================
+     MOTION SYSTEM
+     ============================================================ */
+
+  /* Scroll progress */
+  .scroll-progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    z-index: 2000; pointer-events: none;
+  }
+
+  /* Hero cursor-tracking spotlight */
+  .hero { position: relative; overflow: hidden; }
+  .hero::before {
+    content: '';
+    position: absolute; inset: -20%;
+    background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 10%), rgba(124,58,237,0.16), transparent 62%);
+    opacity: 0;
+    transition: opacity 500ms ease;
+    pointer-events: none;
+  }
+  .hero.spotlight-on::before { opacity: 1; }
+
+  /* Hero heading: words rise in with a blur-to-sharp reveal */
+  .hero h1 .word {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(6px);
+    animation: wordIn 640ms cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes wordIn { to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+
+  /* Section kickers draw their own underline once revealed */
+  .kicker { position: relative; display: inline-block; padding-bottom: 5px; }
+  .kicker::after {
+    content: '';
+    position: absolute; left: 0; bottom: 0;
+    height: 2px; width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transition: width 750ms cubic-bezier(0.16,1,0.3,1) 120ms;
+  }
+  .reveal.in-view .kicker::after,
+  .reveal-group.in-view .kicker::after { width: 100%; }
+  .section-head { opacity: 0; transform: translateY(24px); transition: opacity 700ms cubic-bezier(0.16,1,0.3,1), transform 700ms cubic-bezier(0.16,1,0.3,1); }
+  .section-head.in-view { opacity: 1; transform: translateY(0); }
+  .section-head.in-view .kicker::after { width: 100%; }
+
+  /* 3D tilt + light-glare cards, driven by JS mousemove */
+  .tilt-card {
+    transform-style: preserve-3d;
+    transition: transform 120ms ease-out, box-shadow 280ms ease;
+    will-change: transform;
+    position: relative;
+  }
+  .tilt-card::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,0.55), transparent 62%);
+    opacity: 0;
+    transition: opacity 250ms ease;
+    pointer-events: none;
+  }
+  .tilt-card:hover::after { opacity: 1; }
+
+  /* Magnetic CTA buttons — nudge toward the cursor within their bounds */
+  .magnetic { transition: transform 260ms cubic-bezier(0.34,1.56,0.64,1); will-change: transform; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero h1 .word { animation: none; opacity: 1; transform: none; filter: none; }
+    .tilt-card, .magnetic { transition: none !important; }
+    .kicker::after { transition: none !important; width: 100% !important; }
+    .section-head { opacity: 1 !important; transform: none !important; }
+  }
+  @media (hover: none) {
+    .tilt-card:hover::after { opacity: 0; }
+  }
+
+  /* ---- Real styling for the "How it works" timeline (previously unstyled) ---- */
+  .timeline {
+    position: relative;
+    display: grid;
+    gap: 28px;
+    padding-left: 42px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 13px; top: 6px; bottom: 6px;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline::after {
+    content: '';
+    position: absolute;
+    left: 13px; top: 6px;
+    width: 2px; height: 0%;
+    background: linear-gradient(180deg, var(--primary), var(--secondary));
+    transition: height 1400ms cubic-bezier(0.16,1,0.3,1) 100ms;
+  }
+  .timeline.in-view::after { height: calc(100% - 12px); }
+  .tl-item {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    transition: transform 280ms cubic-bezier(0.16,1,0.3,1), box-shadow 280ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .tl-item:hover { transform: translateX(4px); box-shadow: 0 20px 40px -14px rgba(76,29,149,0.22); }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -42px; top: 22px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--primary);
+    transform: scale(0.4);
+    opacity: 0;
+    transition: transform 420ms cubic-bezier(0.34,1.56,0.64,1), opacity 300ms ease;
+  }
+  .reveal-group.in-view .tl-item::before { opacity: 1; transform: scale(1); }
+  .reveal-group.in-view .tl-item:nth-child(1)::before { transition-delay: 60ms; }
+  .reveal-group.in-view .tl-item:nth-child(2)::before { transition-delay: 260ms; }
+  .reveal-group.in-view .tl-item:nth-child(3)::before { transition-delay: 460ms; }
+  .reveal-group.in-view .tl-item:nth-child(4)::before { transition-delay: 660ms; }
+  .reveal-group.in-view .tl-item:nth-child(5)::before { transition-delay: 860ms; }
+  .tl-date {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--primary-dark);
+    background: var(--primary-light);
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .tl-item h4 { font-size: 1rem; color: var(--ink); margin-bottom: 4px; }
+  .tl-item p { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+  /* ---- Before / after comparison band ---- */
+  .compare-band { padding: 8px 0 12px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .compare-col {
+    border-radius: 20px;
+    padding: 26px 24px;
+    border: 1px solid var(--border);
+  }
+  .compare-col.before { background: #fbfaff; }
+  .compare-col.after { background: linear-gradient(165deg, var(--primary-light), #fff); border-color: rgba(124,58,237,0.25); }
+  .compare-label { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 14px; }
+  .compare-col.before .compare-label { color: var(--muted); }
+  .compare-col.after .compare-label { color: var(--primary-dark); }
+  .compare-list { list-style: none; display: grid; gap: 12px; }
+  .compare-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.92rem; color: var(--text); }
+  .compare-list i { margin-top: 3px; flex-shrink: 0; }
+  .compare-col.before .compare-list i { color: #c4c0d6; }
+  .compare-col.after .compare-list i { color: var(--primary); }
+  @media (max-width: 780px) { .compare-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-  <div class="topbar">
+  <div class="scroll-progress" id="scrollProgress"></div>
+  <div class="topbar" id="topbar">
     <div class="topbar-inner">
       <a href="index.html" class="brand"><span class="brand-mark"><img src="logo.png" alt="Peerloom logo"></span> Peerloom</a>
       <nav class="topnav" id="topnav">
@@ -239,9 +410,41 @@
         <p><strong>The result is a platform students actually want to use, and lecturers can actually rely on.</strong></p>
       </div>
       <div class="pull-stats">
-        <div class="pull-stat"><div class="num">One place</div><div class="lbl">for chat, quizzes, resources, and results — instead of five disconnected tools</div></div>
-        <div class="pull-stat"><div class="num">Built-in</div><div class="lbl">quiz integrity monitoring, not a bolted-on add-on</div></div>
-        <div class="pull-stat"><div class="num">Course-first</div><div class="lbl">design, so every conversation lives inside the right group and module</div></div>
+        <div class="pull-stat tilt-card"><div class="num">One place</div><div class="lbl">for chat, quizzes, resources, and results — instead of five disconnected tools</div></div>
+        <div class="pull-stat tilt-card"><div class="num">Built-in</div><div class="lbl">quiz integrity monitoring, not a bolted-on add-on</div></div>
+        <div class="pull-stat tilt-card"><div class="num">Course-first</div><div class="lbl">design, so every conversation lives inside the right group and module</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="compare-band">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <span class="kicker">The difference</span>
+        <h2>What actually changes for a course</h2>
+        <p>Not a feature list — this is the day-to-day difference between running a course the old way and running it on Peerloom.</p>
+      </div>
+      <div class="compare-grid reveal-group">
+        <div class="compare-col before reveal-item tilt-card">
+          <div class="compare-label"><i class="fa-solid fa-triangle-exclamation"></i> Without Peerloom</div>
+          <ul class="compare-list">
+            <li><i class="fa-solid fa-xmark"></i> Course chat lives in WhatsApp, buried under memes and forwards</li>
+            <li><i class="fa-solid fa-xmark"></i> Quizzes are a Google Form with zero visibility into how they were taken</li>
+            <li><i class="fa-solid fa-xmark"></i> Resources get pinned once, then lost within a week</li>
+            <li><i class="fa-solid fa-xmark"></i> Grading means exporting a spreadsheet with no context</li>
+            <li><i class="fa-solid fa-xmark"></i> Study help means waiting for a reply at midnight before an exam</li>
+          </ul>
+        </div>
+        <div class="compare-col after reveal-item tilt-card">
+          <div class="compare-label"><i class="fa-solid fa-circle-check"></i> With Peerloom</div>
+          <ul class="compare-list">
+            <li><i class="fa-solid fa-check"></i> One organized group per course — chat, resources, and quizzes together</li>
+            <li><i class="fa-solid fa-check"></i> Quizzes with attempt limits, deadlines, and a real integrity log</li>
+            <li><i class="fa-solid fa-check"></i> Resources stay attached to the group, searchable whenever you need them</li>
+            <li><i class="fa-solid fa-check"></i> Results and grading happen in context, attempt by attempt</li>
+            <li><i class="fa-solid fa-check"></i> PeerPal AI is there at 2am, inside the same space you already study in</li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
@@ -254,22 +457,22 @@
         <p>Academic tools handle sensitive information — grades, submissions, private group conversations. Here's how Peerloom treats that responsibility.</p>
       </div>
       <div class="trust-grid reveal-group">
-        <div class="trust-item reveal-item">
+        <div class="trust-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-lock"></i></div>
           <h4>Encrypted in transit</h4>
           <p>Every connection to Peerloom runs over HTTPS, end to end.</p>
         </div>
-        <div class="trust-item reveal-item">
+        <div class="trust-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-user-shield"></i></div>
           <h4>Row-level access</h4>
           <p>You only ever see data you're authorized to — never another student's private attempt.</p>
         </div>
-        <div class="trust-item reveal-item">
+        <div class="trust-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-ban"></i></div>
           <h4>We don't sell data</h4>
           <p>No advertisers, no data brokers, no cross-site tracking. Ever.</p>
         </div>
-        <div class="trust-item reveal-item">
+        <div class="trust-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-eye-slash"></i></div>
           <h4>No camera, no mic</h4>
           <p>Quiz integrity checks never touch your webcam, microphone, or screen.</p>
@@ -286,17 +489,17 @@
         <p>Everything on Peerloom is designed around how academic groups actually work — together, not in silos.</p>
       </div>
       <div class="pillars reveal-group">
-        <div class="pillar reveal-item">
+        <div class="pillar reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-users"></i></div>
           <h3>Structured collaboration</h3>
           <p>Groups organized by course and cohort, with chat, resources, and announcements that stay where students expect to find them — not buried in scrollback.</p>
         </div>
-        <div class="pillar reveal-item">
+        <div class="pillar reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-shield-halved"></i></div>
           <h3>Assessment you can trust</h3>
           <p>Quizzes with attempt limits, deadlines, and an integrity log that tracks tab switches and copy/paste activity, so results mean what they say.</p>
         </div>
-        <div class="pillar reveal-item">
+        <div class="pillar reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
           <h3>AI that's actually useful</h3>
           <p>PeerPal AI helps explain concepts and prepare for exams inside the same space students already study in, instead of another app to context-switch to.</p>
@@ -313,7 +516,7 @@
         <p>Peerloom is built by Peerloom Technologies Limited, led by:</p>
       </div>
       <div class="founders-grid reveal-group">
-        <div class="founder-card reveal-item">
+        <div class="founder-card reveal-item tilt-card">
           <div class="founder-top">
             <div class="founder-avatar">CA</div>
             <div>
@@ -323,7 +526,7 @@
           </div>
           <p>Charles founded Peerloom to fix a problem he ran into constantly as a student: academic conversations scattered across chat apps never built for coursework. He leads product direction and the company's long-term vision, with a focus on building tools that hold up under real classroom conditions — not just demo conditions.</p>
         </div>
-        <div class="founder-card reveal-item">
+        <div class="founder-card reveal-item tilt-card">
           <div class="founder-top">
             <div class="founder-avatar">PA</div>
             <div>
@@ -344,10 +547,10 @@
         <h2>The principles behind every decision</h2>
       </div>
       <div class="values-list reveal-group">
-        <div class="value-item reveal-item"><span class="num">01</span><div><h4>Structure beats volume</h4><p>A well-organized group of ten messages beats a chaotic one of ten thousand. We design for findability first.</p></div></div>
-        <div class="value-item reveal-item"><span class="num">02</span><div><h4>Integrity isn't optional</h4><p>An assessment tool that can't be trusted isn't useful to anyone. We treat academic integrity as core infrastructure, not a feature flag.</p></div></div>
-        <div class="value-item reveal-item"><span class="num">03</span><div><h4>Built with real users</h4><p>Every feature on Peerloom exists because a student or lecturer described a real problem to us — not because it looked good on a roadmap.</p></div></div>
-        <div class="value-item reveal-item"><span class="num">04</span><div><h4>Respect people's time</h4><p>Whether it's a lecturer grading a hundred submissions or a student prepping the night before an exam, we design to save minutes, not just add features.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">01</span><div><h4>Structure beats volume</h4><p>A well-organized group of ten messages beats a chaotic one of ten thousand. We design for findability first.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">02</span><div><h4>Integrity isn't optional</h4><p>An assessment tool that can't be trusted isn't useful to anyone. We treat academic integrity as core infrastructure, not a feature flag.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">03</span><div><h4>Built with real users</h4><p>Every feature on Peerloom exists because a student or lecturer described a real problem to us — not because it looked good on a roadmap.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">04</span><div><h4>Respect people's time</h4><p>Whether it's a lecturer grading a hundred submissions or a student prepping the night before an exam, we design to save minutes, not just add features.</p></div></div>
       </div>
     </div>
   </section>
@@ -396,17 +599,17 @@
         <h2>Two very different jobs, one shared space</h2>
       </div>
       <div class="pillars reveal-group">
-        <div class="pillar reveal-item">
+        <div class="pillar reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-user-graduate"></i></div>
           <h3>For students</h3>
           <p>One place to find your course group, catch up on announcements, grab shared resources, take quizzes, and ask PeerPal AI a question at 2am before an exam.</p>
         </div>
-        <div class="pillar reveal-item">
+        <div class="pillar reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-chalkboard-user"></i></div>
           <h3>For lecturers</h3>
           <p>Publish quizzes with real deadlines and attempt limits, see an integrity log per attempt, grade submissions in context, and export results as a proper report.</p>
         </div>
-        <div class="pillar reveal-item">
+        <div class="pillar reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-building-columns"></i></div>
           <h3>For institutions</h3>
           <p>A platform that keeps academic activity organized by course and campus, instead of scattered across personal chat apps with no institutional visibility.</p>
@@ -422,10 +625,10 @@
         <h2>Common questions</h2>
       </div>
       <div class="values-list reveal-group">
-        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>Is Peerloom free to use?</h4><p>Yes — creating an account, joining groups, and using core features is free. There's no payment step in the product today.</p></div></div>
-        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>Does Peerloom replace my institution's LMS?</h4><p>No. Peerloom is built for the day-to-day collaboration and lightweight assessment layer — group chat, resources, and quizzes — alongside whatever official LMS your institution already uses.</p></div></div>
-        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>What does the integrity log actually track?</h4><p>Only tab switches, copy actions, and paste actions during an active quiz attempt — never your camera, microphone, screen, or activity outside the quiz. See our <a href="privacy.html#quiz-integrity">Privacy Policy</a> for specifics.</p></div></div>
-        <div class="value-item reveal-item"><span class="num">Q</span><div><h4>Can students see their answers after a quiz?</h4><p>Only if the lecturer explicitly turns on review for that quiz, and only once grading is complete — it's entirely the lecturer's decision, per quiz.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">Q</span><div><h4>Is Peerloom free to use?</h4><p>Yes — creating an account, joining groups, and using core features is free. There's no payment step in the product today.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">Q</span><div><h4>Does Peerloom replace my institution's LMS?</h4><p>No. Peerloom is built for the day-to-day collaboration and lightweight assessment layer — group chat, resources, and quizzes — alongside whatever official LMS your institution already uses.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">Q</span><div><h4>What does the integrity log actually track?</h4><p>Only tab switches, copy actions, and paste actions during an active quiz attempt — never your camera, microphone, screen, or activity outside the quiz. See our <a href="privacy.html#quiz-integrity">Privacy Policy</a> for specifics.</p></div></div>
+        <div class="value-item reveal-item tilt-card"><span class="num">Q</span><div><h4>Can students see their answers after a quiz?</h4><p>Only if the lecturer explicitly turns on review for that quiz, and only once grading is complete — it's entirely the lecturer's decision, per quiz.</p></div></div>
       </div>
     </div>
   </section>
@@ -438,8 +641,8 @@
         <p>We ship in response to what real students and lecturers tell us is missing — if there's something you wish Peerloom did, <a href="mailto:peerloomonline@gmail.com">we want to hear it</a>.</p>
       </div>
       <div class="pull-stats">
-        <div class="pull-stat"><div class="num">Shipping often</div><div class="lbl">features go out as they're ready, not on a fixed quarterly cycle</div></div>
-        <div class="pull-stat"><div class="num">User-driven</div><div class="lbl">roadmap shaped directly by lecturer and student feedback</div></div>
+        <div class="pull-stat tilt-card"><div class="num">Shipping often</div><div class="lbl">features go out as they're ready, not on a fixed quarterly cycle</div></div>
+        <div class="pull-stat tilt-card"><div class="num">User-driven</div><div class="lbl">roadmap shaped directly by lecturer and student feedback</div></div>
       </div>
     </div>
   </section>
@@ -450,8 +653,8 @@
         <h2>Bring your course onto Peerloom</h2>
         <p>Whether you're a lecturer running a module or a student organizing your cohort, Peerloom gives your group room to actually work.</p>
         <div class="cta-buttons">
-          <a href="signup.html" class="btn btn-light">Create a free account</a>
-          <a href="mailto:peerloomonline@gmail.com" class="btn btn-outline">Talk to us</a>
+          <a href="signup.html" class="btn btn-light magnetic">Create a free account</a>
+          <a href="mailto:peerloomonline@gmail.com" class="btn btn-outline magnetic">Talk to us</a>
         </div>
       </div>
     </div>
@@ -488,8 +691,12 @@
       });
     });
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isTouch = window.matchMedia('(hover: none)').matches;
+
     // Apple-style scroll reveal: fade + rise each block in once, the first
-    // time it crosses into the viewport.
+    // time it crosses into the viewport. Also drives the timeline's
+    // self-drawing connector line and the kicker underline sweep.
     if ('IntersectionObserver' in window) {
       const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -500,9 +707,91 @@
         });
       }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
 
-      document.querySelectorAll('.reveal, .reveal-group').forEach(el => revealObserver.observe(el));
+      document.querySelectorAll('.reveal, .reveal-group, .section-head, .timeline').forEach(el => revealObserver.observe(el));
     } else {
-      document.querySelectorAll('.reveal, .reveal-group').forEach(el => el.classList.add('in-view'));
+      document.querySelectorAll('.reveal, .reveal-group, .section-head, .timeline').forEach(el => el.classList.add('in-view'));
+    }
+
+    // Split the hero heading into words so each can rise in with its own delay
+    const heroHeading = document.querySelector('.hero h1');
+    if (heroHeading && !prefersReducedMotion) {
+      const words = heroHeading.textContent.trim().split(/\s+/);
+      heroHeading.innerHTML = words.map((w, i) =>
+        `<span class="word" style="animation-delay:${90 + i * 45}ms">${w}</span>`
+      ).join(' ');
+    }
+
+    // Scroll progress bar
+    const progressBar = document.getElementById('scrollProgress');
+    function updateProgress() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+      progressBar.style.width = pct + '%';
+    }
+
+    // Nav condenses once you've scrolled past the hero
+    const topbar = document.getElementById('topbar');
+    function updateNav() {
+      topbar.classList.toggle('scrolled', window.scrollY > 24);
+    }
+
+    let scrollTicking = false;
+    window.addEventListener('scroll', () => {
+      if (!scrollTicking) {
+        requestAnimationFrame(() => {
+          updateProgress();
+          updateNav();
+          scrollTicking = false;
+        });
+        scrollTicking = true;
+      }
+    }, { passive: true });
+    updateProgress();
+    updateNav();
+
+    // Hero cursor-tracking spotlight (desktop only)
+    const hero = document.querySelector('.hero');
+    if (hero && !isTouch && !prefersReducedMotion) {
+      hero.addEventListener('pointermove', (e) => {
+        const rect = hero.getBoundingClientRect();
+        hero.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        hero.style.setProperty('--my', `${e.clientY - rect.top}px`);
+        hero.classList.add('spotlight-on');
+      });
+      hero.addEventListener('pointerleave', () => hero.classList.remove('spotlight-on'));
+    }
+
+    // 3D tilt + glare on cards (desktop only)
+    if (!isTouch && !prefersReducedMotion) {
+      document.querySelectorAll('.tilt-card').forEach(card => {
+        card.addEventListener('pointermove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const px = (e.clientX - rect.left) / rect.width;
+          const py = (e.clientY - rect.top) / rect.height;
+          const rotateY = (px - 0.5) * 10;
+          const rotateX = (0.5 - py) * 10;
+          card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+          card.style.setProperty('--gx', `${px * 100}%`);
+          card.style.setProperty('--gy', `${py * 100}%`);
+        });
+        card.addEventListener('pointerleave', () => {
+          card.style.transform = '';
+        });
+      });
+
+      // Magnetic buttons — nudge toward the cursor within their bounds
+      document.querySelectorAll('.magnetic').forEach(btn => {
+        btn.addEventListener('pointermove', (e) => {
+          const rect = btn.getBoundingClientRect();
+          const x = (e.clientX - rect.left - rect.width / 2) * 0.35;
+          const y = (e.clientY - rect.top - rect.height / 2) * 0.35;
+          btn.style.transform = `translate(${x}px, ${y}px)`;
+        });
+        btn.addEventListener('pointerleave', () => {
+          btn.style.transform = '';
+        });
+      });
     }
   </script>
 </body>
