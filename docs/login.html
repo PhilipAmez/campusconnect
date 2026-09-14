@@ -289,6 +289,60 @@
         <i class="fas fa-headset"></i>
         <span>Support</span>
     </a>
+
+    <!-- Looks like an ordinary copyright line. Hold it down and it
+         pulses while held — the exact hold time isn't fixed, it rotates
+         day to day, so it can't be reverse-engineered by timing it once. -->
+    <p id="pl-foot-mark" style="text-align:center; font-size:0.72rem; color:#9ca3af; padding:14px 12px 22px; -webkit-user-select:none; user-select:none; cursor:default; transition:color 220ms ease, transform 220ms ease;">
+        © Peerloom Technologies
+    </p>
+    <style>
+        @keyframes plFootPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(1.05); }
+        }
+        #pl-foot-mark.pl-holding {
+            animation: plFootPulse 900ms ease-in-out infinite;
+            color: #7c3aed;
+        }
+    </style>
+    <script>
+    (function () {
+        const mark = document.getElementById('pl-foot-mark');
+        let timer = null, active = false;
+
+        // Rotates through 5s / 10s / 15s by day-of-year, so the required
+        // hold time changes daily instead of always being the same —
+        // someone who stumbles onto it once and times it won't get it
+        // to work again tomorrow.
+        function todaysHoldMs() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const dayOfYear = Math.floor((now - start) / 86400000);
+            const options = [5000, 10000, 15000];
+            return options[dayOfYear % options.length];
+        }
+
+        function start() {
+            active = true;
+            mark.classList.add('pl-holding');
+            timer = setTimeout(() => {
+                if (active) window.location.href = 'staff-access.html';
+            }, todaysHoldMs());
+        }
+        function cancel() {
+            active = false;
+            clearTimeout(timer);
+            mark.classList.remove('pl-holding');
+        }
+
+        mark.addEventListener('mousedown', start);
+        mark.addEventListener('touchstart', start, { passive: true });
+        ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => mark.addEventListener(evt, cancel));
+        mark.addEventListener('contextmenu', (e) => e.preventDefault());
+    })();
+    </script>
+
 <script type="module">
     import { supabase } from './js/supabaseClient.js'
     const form = document.getElementById('loginForm')
@@ -339,7 +393,7 @@
     }
     // ========== END ADDED ==========
     // ── Helper: read joinGroup from URL param first, fall back to localStorage ──
-    function getRedirectUrl(profile = null) {
+    function getRedirectUrl(profile = null, isSuperAdmin = false) {
         const params = new URLSearchParams(window.location.search)
         const explicitRedirect = params.get('redirect') || localStorage.getItem('pendingRedirect')
         const groupId = params.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
@@ -361,6 +415,14 @@
             } catch (e) { /* fall through to normal routing */ }
         }
 
+        // A super admin signing in goes straight to the Command Center,
+        // not the student/lecturer dashboard — their profile.role is
+        // usually just a placeholder from the hidden staff-access.html
+        // signup and doesn't reflect what they're actually here to do.
+        if (isSuperAdmin) {
+            return 'command-center.html'
+        }
+
         if (isLecturer) {
             return 'lecturer-dashboard.html'
         }
@@ -375,6 +437,46 @@
     async function redirectAfterAuth(session) {
         button.classList.add('loading')
         let profile = null
+
+        // Bootstrap: if nobody has Command Center access yet, this is the
+        // moment a session first genuinely exists for whoever's signing
+        // in — so this is where the very first admin gets seated if
+        // staff-access.html couldn't do it already (e.g. because email
+        // confirmation was required and there was no session yet at
+        // signup time). The RLS policy only allows this insert to
+        // succeed while the table is truly empty, so it's a no-op for
+        // everyone after the first person.
+        try {
+            const { data: isEmpty, error: checkErr } = await supabase.rpc('peerloom_super_admins_is_empty')
+            if (!checkErr && isEmpty === true) {
+                const { error: bootstrapError } = await supabase.from('super_admins').insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    full_name: session.user.user_metadata?.fullName || session.user.user_metadata?.full_name || session.user.email,
+                })
+                if (!bootstrapError) {
+                    okEl.textContent = "You're now the first Command Center admin. Redirecting…"
+                }
+            }
+        } catch (err) {
+            console.warn('Bootstrap admin check skipped:', err)
+        }
+
+        // Whether or not bootstrap just ran, check if this signed-in user
+        // is (now) a super admin at all — this is what actually decides
+        // where they land. Reading your own row here is always allowed
+        // by the select_self policy on super_admins.
+        let isSuperAdmin = false
+        try {
+            const { data: adminRow } = await supabase
+                .from('super_admins')
+                .select('id')
+                .eq('id', session.user.id)
+                .maybeSingle()
+            isSuperAdmin = !!adminRow
+        } catch (err) {
+            console.warn('Super admin check skipped:', err)
+        }
 
         try {
             const { data, error } = await supabase
@@ -391,7 +493,7 @@
         }
 
         setTimeout(() => {
-            window.location.href = getRedirectUrl(profile)
+            window.location.href = getRedirectUrl(profile, isSuperAdmin)
         }, 1000)
     }
 

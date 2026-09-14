@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Peerloom Command Center</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="command-center.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       BOOT SCREEN — shown while we check who's signed in
+       ============================================================ -->
+  <div class="cc-boot" id="ccBoot">
+    <div class="cc-boot-mark">
+      <img src="logo.png" alt="" style="width:44px;height:44px;object-fit:contain;">
+      <div class="cc-boot-ring"></div>
+      <div class="cc-boot-text" id="ccBootText">Checking your access…</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ACCESS DENIED
+       ============================================================ -->
+  <div class="cc-denied" id="ccDenied" style="display:none;">
+    <div class="cc-denied-card">
+      <div class="cc-denied-icon"><i class="fa-solid fa-lock"></i></div>
+      <h1>This is a restricted area</h1>
+      <p id="ccDeniedMessage">The Peerloom Command Center is limited to super admins. If you believe you should have access, ask an existing admin to add you from their Settings panel.</p>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="cc-btn cc-btn-ghost" id="ccDeniedBack">Back to Peerloom</button>
+        <button class="cc-btn cc-btn-primary" id="ccDeniedSignOut">Sign in with a different account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       APP SHELL
+       ============================================================ -->
+  <div class="cc-app" id="ccApp">
+    <div class="cc-sidebar-backdrop" id="ccSidebarBackdrop"></div>
+
+    <!-- ---------------- SIDEBAR ---------------- -->
+    <aside class="cc-sidebar" id="ccSidebar">
+      <div class="cc-brand">
+        <img src="logo.png" alt="Peerloom">
+        <div class="cc-brand-text">
+          <strong>Peerloom</strong>
+          <span>Command Center</span>
+        </div>
+      </div>
+
+      <nav class="cc-nav" id="ccNav">
+        <div class="cc-nav-group">
+          <div class="cc-nav-label">Overview</div>
+          <button class="cc-nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span class="label">Dashboard</span></button>
+          <button class="cc-nav-item" data-view="analytics"><i class="fa-solid fa-chart-line"></i><span class="label">Analytics</span></button>
+        </div>
+        <div class="cc-nav-group">
+          <div class="cc-nav-label">People</div>
+          <button class="cc-nav-item" data-view="users"><i class="fa-solid fa-users"></i><span class="label">Users</span></button>
+          <button class="cc-nav-item" data-view="lecturers"><i class="fa-solid fa-chalkboard-user"></i><span class="label">Lecturers</span></button>
+          <button class="cc-nav-item" data-view="students"><i class="fa-solid fa-user-graduate"></i><span class="label">Students</span></button>
+        </div>
+        <div class="cc-nav-group">
+          <div class="cc-nav-label">Places</div>
+          <button class="cc-nav-item" data-view="institutions"><i class="fa-solid fa-building-columns"></i><span class="label">Institutions</span></button>
+          <button class="cc-nav-item" data-view="campuses"><i class="fa-solid fa-map-location-dot"></i><span class="label">Campuses</span></button>
+          <button class="cc-nav-item" data-view="groups"><i class="fa-solid fa-people-group"></i><span class="label">Groups</span></button>
+        </div>
+        <div class="cc-nav-group">
+          <div class="cc-nav-label">Platform</div>
+          <button class="cc-nav-item" data-view="reports"><i class="fa-solid fa-flag"></i><span class="label">Reports</span><span class="cc-nav-badge" id="ccReportsBadge" style="display:none;">0</span></button>
+          <button class="cc-nav-item" data-view="notifications"><i class="fa-solid fa-bell"></i><span class="label">Notifications</span></button>
+          <button class="cc-nav-item locked" data-view="advertisements" data-locked="true"><i class="fa-solid fa-rectangle-ad"></i><span class="label">Advertisements</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
+          <button class="cc-nav-item locked" data-view="subscriptions" data-locked="true"><i class="fa-solid fa-credit-card"></i><span class="label">Subscriptions</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
+          <button class="cc-nav-item locked" data-view="support" data-locked="true"><i class="fa-solid fa-headset"></i><span class="label">Support</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
+        </div>
+        <div class="cc-nav-group">
+          <div class="cc-nav-label">System</div>
+          <button class="cc-nav-item" data-view="system-health"><i class="fa-solid fa-heart-pulse"></i><span class="label">System Health</span></button>
+          <button class="cc-nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span class="label">Settings</span></button>
+        </div>
+      </nav>
+
+      <div class="cc-sidebar-foot">
+        <button class="cc-nav-item" id="ccLogoutBtn" style="color:var(--danger);"><i class="fa-solid fa-right-from-bracket"></i><span class="label">Log out</span></button>
+        <button class="cc-collapse-btn" id="ccCollapseBtn"><i class="fa-solid fa-angles-left"></i><span class="label">Collapse</span></button>
+      </div>
+    </aside>
+
+    <!-- ---------------- TOPBAR ---------------- -->
+    <header class="cc-topbar">
+      <button class="cc-hamburger" id="ccHamburger" aria-label="Open menu" aria-expanded="false">
+        <span class="cc-hamburger-icon"><span></span><span></span><span></span></span>
+      </button>
+
+      <div class="cc-search" id="ccSearchTrigger">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="ccSearchInput" placeholder="Search users, institutions, campuses…" readonly>
+        <kbd>⌘K</kbd>
+      </div>
+
+      <div class="cc-topbar-spacer"></div>
+
+      <div class="cc-topbar-right">
+        <div class="cc-clock">
+          <span class="cc-clock-time" id="ccClockTime">--:--</span>
+          <span class="cc-clock-date" id="ccClockDate">—</span>
+        </div>
+
+        <button class="cc-icon-btn" id="ccThemeToggle" title="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+
+        <button class="cc-icon-btn" id="ccNotifBtn" title="Notifications">
+          <i class="fa-regular fa-bell"></i>
+          <span class="cc-dot" id="ccNotifDot" style="display:none;"></span>
+        </button>
+
+        <button class="cc-icon-btn" title="Realtime connected">
+          <i class="fa-solid fa-satellite-dish"></i>
+          <span class="cc-live-dot" id="ccLiveDot"></span>
+        </button>
+
+        <div class="cc-user-menu" id="ccUserMenu">
+          <div class="cc-avatar" id="ccUserAvatar">–</div>
+          <div class="cc-user-menu-text">
+            <strong id="ccUserName">—</strong>
+            <span>Super Admin</span>
+          </div>
+          <i class="fa-solid fa-chevron-down" style="font-size:0.68rem; color:var(--ink-mute);"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- Notification panel -->
+    <div class="cc-notif-panel" id="ccNotifPanel">
+      <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+        <strong style="font-size:0.88rem;">Activity</strong>
+        <span style="font-size:0.72rem; color:var(--ink-mute);" id="ccNotifCount">—</span>
+      </div>
+      <div id="ccNotifList"></div>
+    </div>
+
+    <!-- ---------------- MAIN CONTENT ---------------- -->
+    <main class="cc-main" id="ccMain">
+
+      <!-- ========== DASHBOARD ========== -->
+      <section class="cc-view active" data-view="dashboard" id="view-dashboard">
+        <div class="cc-view-head">
+          <div>
+            <h1 id="ccWelcomeText">Welcome back</h1>
+            <p id="ccTodayDate">—</p>
+          </div>
+          <div class="cc-view-actions">
+            <span class="cc-badge cc-badge-ok"><i class="fa-solid fa-circle" style="font-size:6px;"></i> Realtime connected</span>
+          </div>
+        </div>
+
+        <div class="cc-stat-grid" id="ccStatGrid">
+          <!-- populated by JS -->
+        </div>
+
+        <div class="cc-grid-2" style="margin-bottom:16px;">
+          <div class="cc-panel">
+            <div class="cc-panel-head">
+              <div><h3>Registrations, last 14 days</h3><p>New profiles created per day</p></div>
+            </div>
+            <div class="cc-chart-wrap"><canvas id="chartRegistrations14"></canvas></div>
+          </div>
+          <div class="cc-panel">
+            <div class="cc-panel-head">
+              <div><h3>Role split</h3><p>Students vs lecturers</p></div>
+            </div>
+            <div class="cc-chart-wrap"><canvas id="chartRoleSplitMini"></canvas></div>
+          </div>
+        </div>
+
+        <div class="cc-panel">
+          <div class="cc-panel-head">
+            <div><h3>Recently joined</h3><p>Newest 8 profiles on Peerloom</p></div>
+            <button class="cc-btn cc-btn-ghost cc-btn-sm" data-goto-view="users">View all users</button>
+          </div>
+          <div class="cc-table-wrap" style="box-shadow:none; border-radius:14px;">
+            <div class="cc-table-scroll">
+              <table class="cc-table" id="ccRecentTable">
+                <thead><tr><th>User</th><th>Role</th><th>Institution</th><th>Joined</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== ANALYTICS ========== -->
+      <section class="cc-view" data-view="analytics" id="view-analytics">
+        <div class="cc-view-head">
+          <div><h1>Analytics</h1><p>Growth, distribution, and verification across Peerloom</p></div>
+          <div class="cc-view-actions">
+            <button class="cc-btn cc-btn-ghost" id="ccExportAnalyticsBtn"><i class="fa-solid fa-file-export"></i> Export report</button>
+          </div>
+        </div>
+
+        <div class="cc-grid-2" style="margin-bottom:16px;">
+          <div class="cc-panel">
+            <div class="cc-panel-head"><div><h3>Registrations over time</h3><p id="ccRegRangeLabel">Daily, last 30 days</p></div>
+              <div class="cc-view-actions">
+                <button class="cc-filter-pill active" data-range="daily">Daily</button>
+                <button class="cc-filter-pill" data-range="weekly">Weekly</button>
+                <button class="cc-filter-pill" data-range="monthly">Monthly</button>
+              </div>
+            </div>
+            <div class="cc-chart-wrap tall"><canvas id="chartGrowth"></canvas></div>
+          </div>
+          <div class="cc-panel">
+            <div class="cc-panel-head"><div><h3>Verification rate</h3><p>Verified vs unverified profiles</p></div></div>
+            <div class="cc-chart-wrap tall"><canvas id="chartVerification"></canvas></div>
+          </div>
+        </div>
+
+        <div class="cc-grid-3">
+          <div class="cc-panel">
+            <div class="cc-panel-head"><div><h3>Role distribution</h3><p>Across all profiles</p></div></div>
+            <div class="cc-chart-wrap"><canvas id="chartRoles"></canvas></div>
+          </div>
+          <div class="cc-panel">
+            <div class="cc-panel-head"><div><h3>Top institutions</h3><p>By user count</p></div></div>
+            <div class="cc-chart-wrap"><canvas id="chartInstitutions"></canvas></div>
+          </div>
+          <div class="cc-panel">
+            <div class="cc-panel-head"><div><h3>Top campuses</h3><p>By user count</p></div></div>
+            <div class="cc-chart-wrap"><canvas id="chartCampuses"></canvas></div>
+          </div>
+        </div>
+
+        <div class="cc-panel" style="margin-top:16px;">
+          <div class="cc-panel-head"><div><h3>Gender distribution</h3><p>Not yet collected — reserved for a future profile field</p></div></div>
+          <div class="cc-empty" style="padding:34px 24px;">
+            <i class="fa-solid fa-chart-pie"></i>
+            <h4>No data source yet</h4>
+            <p>Peerloom doesn't currently collect gender on profiles. This panel will populate automatically the moment that field exists.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== USERS ========== -->
+      <section class="cc-view" data-view="users" id="view-users">
+        <div class="cc-view-head">
+          <div><h1>Users</h1><p id="ccUsersCountLabel">Every profile on Peerloom</p></div>
+          <div class="cc-view-actions">
+            <button class="cc-btn cc-btn-ghost" data-export="users"><i class="fa-solid fa-file-export"></i> Export</button>
+          </div>
+        </div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar">
+            <button class="cc-filter-pill active" data-users-filter="all">All</button>
+            <button class="cc-filter-pill" data-users-filter="student">Students</button>
+            <button class="cc-filter-pill" data-users-filter="lecturer">Lecturers</button>
+            <button class="cc-filter-pill" data-users-filter="verified">Verified</button>
+            <button class="cc-filter-pill" data-users-filter="unverified">Unverified</button>
+            <button class="cc-filter-pill" data-users-filter="suspended">Suspended</button>
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccUsersSearch" placeholder="Search name, username, email…"></div>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table" id="ccUsersTable">
+              <thead><tr><th>User</th><th>Role</th><th>Institution</th><th>Campus</th><th>Verified</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot">
+            <span id="ccUsersFootCount">—</span>
+            <div class="cc-pagination" id="ccUsersPagination"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== LECTURERS ========== -->
+      <section class="cc-view" data-view="lecturers" id="view-lecturers">
+        <div class="cc-view-head">
+          <div><h1>Lecturers</h1><p id="ccLecturersCountLabel">Every lecturer profile</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="lecturers"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar">
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccLecturersSearch" placeholder="Search lecturers…"></div>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table" id="ccLecturersTable">
+              <thead><tr><th>Lecturer</th><th>Institution</th><th>Campus</th><th>Department</th><th>Quizzes</th><th>Resources</th><th>Announcements</th><th>Verified</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot"><span id="ccLecturersFootCount">—</span></div>
+        </div>
+      </section>
+
+      <!-- ========== STUDENTS ========== -->
+      <section class="cc-view" data-view="students" id="view-students">
+        <div class="cc-view-head">
+          <div><h1>Students</h1><p id="ccStudentsCountLabel">Every student profile</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="students"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar">
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccStudentsSearch" placeholder="Search students…"></div>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table" id="ccStudentsTable">
+              <thead><tr><th>Student</th><th>Institution</th><th>Campus</th><th>Department</th><th>Level</th><th>Verified</th><th>Status</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot"><span id="ccStudentsFootCount">—</span></div>
+        </div>
+      </section>
+
+      <!-- ========== INSTITUTIONS ========== -->
+      <section class="cc-view" data-view="institutions" id="view-institutions">
+        <div class="cc-view-head">
+          <div><h1>Institutions</h1><p id="ccInstitutionsCountLabel">Built automatically from every profile's institution field</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="institutions"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div class="cc-stat-grid" id="ccInstitutionsGrid"></div>
+      </section>
+
+      <!-- ========== CAMPUSES ========== -->
+      <section class="cc-view" data-view="campuses" id="view-campuses">
+        <div class="cc-view-head">
+          <div><h1>Campuses</h1><p id="ccCampusesCountLabel">Built automatically from campus and custom campus fields</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="campuses"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div id="ccCampusesByInstitution"></div>
+      </section>
+
+      <!-- ========== GROUPS ========== -->
+      <section class="cc-view" data-view="groups" id="view-groups">
+        <div class="cc-view-head">
+          <div><h1>Groups</h1><p id="ccGroupsCountLabel">Every course/community group on Peerloom</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="groups"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar">
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccGroupsSearch" placeholder="Search groups…"></div>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table" id="ccGroupsTable">
+              <thead><tr><th>Group</th><th>Course code</th><th>Institution</th><th>Members</th><th>Created</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot"><span id="ccGroupsFootCount">—</span></div>
+        </div>
+      </section>
+
+      <!-- ========== REPORTS (moderation queue) ========== -->
+      <section class="cc-view" data-view="reports" id="view-reports">
+        <div class="cc-view-head">
+          <div><h1>Reports</h1><p>Content flagged by users across group chats, awaiting review</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="reports"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar">
+            <button class="cc-filter-pill active" data-reports-filter="pending">Pending</button>
+            <button class="cc-filter-pill" data-reports-filter="resolved">Resolved</button>
+            <button class="cc-filter-pill" data-reports-filter="all">All</button>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table" id="ccReportsTable">
+              <thead><tr><th>Reason</th><th>Reported user</th><th>Reported by</th><th>Filed</th><th>Status</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot"><span id="ccReportsFootCount">—</span></div>
+        </div>
+      </section>
+
+      <!-- ========== NOTIFICATIONS (activity view) ========== -->
+      <section class="cc-view" data-view="notifications" id="view-notifications">
+        <div class="cc-view-head">
+          <div><h1>Notifications</h1><p>A live feed of platform activity — built from real signups, reports, and status changes, not a separate mock feed</p></div>
+        </div>
+        <div class="cc-panel">
+          <div id="ccActivityFeedFull"></div>
+        </div>
+      </section>
+
+      <!-- ========== ADVERTISEMENTS (locked) ========== -->
+      <section class="cc-view" data-view="advertisements" id="view-advertisements">
+        <div class="cc-view-head"><div><h1>Advertisements</h1><p>Coming soon</p></div></div>
+        <div class="cc-lockscreen">
+          <div class="cc-lockscreen-icn"><i class="fa-solid fa-rectangle-ad"></i></div>
+          <h3>Advertisements isn't built yet</h3>
+          <p>There's no ad system or ad table in Peerloom today. This module will unlock once ad campaigns become a real, storable feature — no placeholder numbers in the meantime.</p>
+          <span class="cc-badge cc-badge-mute">Coming soon</span>
+        </div>
+      </section>
+
+      <!-- ========== SUBSCRIPTIONS (locked) ========== -->
+      <section class="cc-view" data-view="subscriptions" id="view-subscriptions">
+        <div class="cc-view-head"><div><h1>Subscriptions</h1><p>Coming soon</p></div></div>
+        <div class="cc-lockscreen">
+          <div class="cc-lockscreen-icn"><i class="fa-solid fa-credit-card"></i></div>
+          <h3>Subscriptions isn't built yet</h3>
+          <p>Peerloom has no billing or plan tables today. This module will unlock the moment subscriptions become real — no invented revenue numbers in the meantime.</p>
+          <span class="cc-badge cc-badge-mute">Coming soon</span>
+        </div>
+      </section>
+
+      <!-- ========== SUPPORT (locked) ========== -->
+      <section class="cc-view" data-view="support" id="view-support">
+        <div class="cc-view-head"><div><h1>Support</h1><p>Coming soon</p></div></div>
+        <div class="cc-lockscreen">
+          <div class="cc-lockscreen-icn"><i class="fa-solid fa-headset"></i></div>
+          <h3>A support desk isn't built yet</h3>
+          <p>There's no support-ticket table in Peerloom today. Once one exists, this becomes a real queue here — until then, support requests are handled outside the Command Center.</p>
+          <span class="cc-badge cc-badge-mute">Coming soon</span>
+        </div>
+      </section>
+
+      <!-- ========== SYSTEM HEALTH ========== -->
+      <section class="cc-view" data-view="system-health" id="view-system-health">
+        <div class="cc-view-head">
+          <div><h1>System Health</h1><p>Live checks against Peerloom's actual Supabase project</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" id="ccRecheckHealthBtn"><i class="fa-solid fa-arrows-rotate"></i> Recheck now</button></div>
+        </div>
+        <div class="cc-health-grid" id="ccHealthGrid"></div>
+      </section>
+
+      <!-- ========== SETTINGS ========== -->
+      <section class="cc-view" data-view="settings" id="view-settings">
+        <div class="cc-view-head"><div><h1>Settings</h1><p>Command Center preferences and admin access</p></div></div>
+
+        <div class="cc-grid-2">
+          <div class="cc-panel">
+            <div class="cc-panel-head"><h3>Appearance</h3></div>
+            <div class="cc-setting-row">
+              <div><h4>Theme</h4><p>Choose light, dark, or match your system</p></div>
+              <div class="cc-theme-picker">
+                <button class="cc-theme-opt" data-theme-opt="light">Light</button>
+                <button class="cc-theme-opt" data-theme-opt="dark">Dark</button>
+                <button class="cc-theme-opt active" data-theme-opt="system">System</button>
+              </div>
+            </div>
+            <div class="cc-setting-row">
+              <div><h4>Animations</h4><p>Turn off motion throughout the Command Center</p></div>
+              <label class="cc-switch"><input type="checkbox" id="ccAnimToggle" checked><span class="cc-switch-track"></span></label>
+            </div>
+            <div class="cc-setting-row">
+              <div><h4>Desktop notification sound</h4><p>Play a sound when a new report or signup comes in</p></div>
+              <label class="cc-switch"><input type="checkbox" id="ccSoundToggle"><span class="cc-switch-track"></span></label>
+            </div>
+          </div>
+
+          <div class="cc-panel">
+            <div class="cc-panel-head">
+              <div><h3>Super admins</h3><p>Who can access this Command Center</p></div>
+              <button class="cc-btn cc-btn-soft cc-btn-sm" id="ccAddAdminBtn"><i class="fa-solid fa-plus"></i> Add</button>
+            </div>
+            <div id="ccAdminsList"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer style="text-align:center; padding:34px 0 10px; color:var(--ink-mute); font-size:0.78rem;">
+        Copyright © Peerloom Technologies
+      </footer>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       COMMAND PALETTE
+       ============================================================ -->
+  <div class="cc-palette-backdrop" id="ccPaletteBackdrop">
+    <div class="cc-palette">
+      <div class="cc-palette-input-wrap">
+        <i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute);"></i>
+        <input type="text" id="ccPaletteInput" placeholder="Search users, institutions, campuses, or jump to a section…">
+        <kbd style="font-size:0.68rem; color:var(--ink-mute); border:1px solid var(--border); border-radius:5px; padding:2px 6px;">ESC</kbd>
+      </div>
+      <div class="cc-palette-results" id="ccPaletteResults"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       USER DETAIL MODAL
+       ============================================================ -->
+  <div class="cc-modal-backdrop" id="ccUserModalBackdrop">
+    <div class="cc-modal" id="ccUserModal">
+      <div class="cc-modal-head">
+        <h3>User details</h3>
+        <button class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="ccUserModalBody"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CONFIRM ACTION MODAL
+       ============================================================ -->
+  <div class="cc-modal-backdrop" id="ccConfirmModalBackdrop">
+    <div class="cc-modal" style="max-width:400px;">
+      <div class="cc-confirm-icn" id="ccConfirmIcon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h3 id="ccConfirmTitle" style="margin:0 0 8px;">Are you sure?</h3>
+      <p id="ccConfirmBody" style="color:var(--ink-mute); font-size:0.86rem; margin:0;">This action cannot be undone.</p>
+      <div class="cc-modal-foot">
+        <button class="cc-btn cc-btn-ghost" data-close-modal>Cancel</button>
+        <button class="cc-btn cc-btn-danger" id="ccConfirmActionBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ADD ADMIN MODAL
+       ============================================================ -->
+  <div class="cc-modal-backdrop" id="ccAddAdminBackdrop">
+    <div class="cc-modal" style="max-width:420px;">
+      <div class="cc-modal-head">
+        <h3>Add a super admin</h3>
+        <button class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="font-size:0.82rem; color:var(--ink-mute); margin:-8px 0 16px;">The person must already have a Peerloom account. Enter the exact <strong>username</strong> they signed up with — Peerloom's client can't look up accounts by email directly, only by username.</p>
+      <div class="cc-field">
+        <label>Username</label>
+        <input type="text" id="ccAddAdminInput" placeholder="jane_doe">
+      </div>
+      <div id="ccAddAdminError" style="color:var(--danger); font-size:0.8rem; display:none; margin-bottom:8px;"></div>
+      <div class="cc-modal-foot">
+        <button class="cc-btn cc-btn-ghost" data-close-modal>Cancel</button>
+        <button class="cc-btn cc-btn-primary" id="ccAddAdminConfirm">Grant access</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       EXPORT MODAL
+       ============================================================ -->
+  <div class="cc-modal-backdrop" id="ccExportModalBackdrop">
+    <div class="cc-modal" style="max-width:400px;">
+      <div class="cc-modal-head">
+        <h3>Export</h3>
+        <button class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="font-size:0.82rem; color:var(--ink-mute); margin:-8px 0 16px;" id="ccExportModalDesc">Choose a format for this export.</p>
+      <div style="display:grid; gap:10px;">
+        <button class="cc-btn cc-btn-ghost" style="justify-content:flex-start;" data-export-format="pdf"><i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i> Branded PDF report</button>
+        <button class="cc-btn cc-btn-ghost" style="justify-content:flex-start;" data-export-format="excel"><i class="fa-solid fa-file-excel" style="color:#22c55e;"></i> Excel workbook (.xlsx)</button>
+        <button class="cc-btn cc-btn-ghost" style="justify-content:flex-start;" data-export-format="csv"><i class="fa-solid fa-file-csv" style="color:#3b82f6;"></i> CSV file</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cc-toast-stack" id="ccToastStack"></div>
+
+  <!-- ============================================================
+       LIBRARIES
+       ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="command-center.js"></script>
+</body>
+</html>

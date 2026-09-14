@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peerloom</title>
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { margin: 0; }
+        .auth-container {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%);
+            display: flex; justify-content: center; align-items: center;
+            padding: 24px;
+        }
+        .auth-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 2.4rem; border-radius: 1.5rem; width: 100%; max-width: 460px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .auth-title {
+            font-weight: 500; color: #1f2937; text-align: center; width: 100%;
+            margin-bottom: 6px; padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px);
+            border-radius: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .auth-sub { text-align: center; font-size: 0.82rem; color: #6b7280; margin-bottom: 22px; }
+        .input-group input {
+            transition: all 0.2s ease; border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.35);
+        }
+        .input-group input:focus { background: rgba(255,255,255,0.55); }
+        .auth-button {
+            background: linear-gradient(135deg, #7c3aed, #3b82f6); color: #fff; border: none; cursor: pointer;
+            transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease;
+        }
+        .auth-button:hover { transform: translateY(-1px); }
+        .auth-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .field-error { color: #dc2626; font-size: 0.78rem; margin-top: 4px; display: none; align-items: center; gap: 5px; }
+        .form-error { color: #dc2626; font-size: 0.85rem; margin-top: 10px; display: none; text-align: center; }
+        .success-panel { display: none; text-align: center; }
+        .success-icn {
+            width: 60px; height: 60px; border-radius: 18px; margin: 0 auto 18px;
+            background: rgba(16,185,129,0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+        }
+        .username-pill {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(124,58,237,0.1); color: #7c3aed;
+            padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 0.88rem; margin: 10px 0 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2 class="auth-title text-2xl text-center text-gray-800">Team access</h2>
+            <p class="auth-sub">Create your Peerloom account. Command Center access is granted separately by an existing admin, after this.</p>
+
+            <form id="staffForm" class="auth-form space-y-4">
+                <div class="input-group relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full name</label>
+                    <input type="text" id="fullName" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Your full name">
+                </div>
+                <div class="input-group relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="username" required minlength="3" class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Choose a username">
+                    <div class="field-error" id="usernameError"><i class="fas fa-circle-exclamation"></i><span>That username is taken.</span></div>
+                </div>
+                <div class="input-group relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="email" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="you@peerloom.example">
+                    <div class="field-error" id="emailError"><i class="fas fa-circle-exclamation"></i><span>That email is already registered.</span></div>
+                </div>
+                <div class="input-group relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password" required minlength="8" class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="At least 8 characters">
+                </div>
+                <div class="input-group relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
+                    <input type="password" id="confirmPassword" required minlength="8" class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Re-enter your password">
+                    <div class="field-error" id="passwordError"><i class="fas fa-circle-exclamation"></i><span>Passwords don't match.</span></div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="auth-button w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
+                    <span>Create account</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <div class="form-error" id="formError"></div>
+            </form>
+
+            <div class="success-panel" id="successPanel">
+                <div class="success-icn"><i class="fa-solid fa-check"></i></div>
+                <h3 class="text-lg font-semibold text-gray-800">Account created</h3>
+                <p class="text-sm text-gray-600 mt-2">Check <strong id="successEmail"></strong> for a verification link. Once verified, give an existing Command Center admin your username so they can grant you access:</p>
+                <div class="username-pill"><i class="fa-solid fa-at"></i><span id="successUsername"></span></div>
+                <p class="text-sm text-gray-600">They'll add you from their own Settings panel. After that, sign in the normal way.</p>
+                <a href="login.html" class="auth-button w-full py-3 px-4 rounded-lg font-semibold inline-flex items-center justify-center space-x-2 mt-6" style="text-decoration:none;">
+                    <span>Go to login</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
+    const form = document.getElementById('staffForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const formError = document.getElementById('formError');
+    const usernameEl = document.getElementById('username');
+    const emailEl = document.getElementById('email');
+    const usernameError = document.getElementById('usernameError');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+
+    async function checkUsernameExists(username) {
+        const { data } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
+        return !!data;
+    }
+    async function checkEmailExists(email) {
+        const { data } = await supabase.from('profiles').select('email').eq('email', email).maybeSingle();
+        return !!data;
+    }
+
+    usernameEl.addEventListener('blur', async () => {
+        const v = usernameEl.value.trim();
+        if (v.length < 3) return;
+        usernameError.style.display = (await checkUsernameExists(v)) ? 'flex' : 'none';
+    });
+    emailEl.addEventListener('blur', async () => {
+        const v = emailEl.value.trim();
+        if (!v) return;
+        emailError.style.display = (await checkEmailExists(v)) ? 'flex' : 'none';
+    });
+
+    function generateInitialsAvatar(name) {
+        const initials = (name || 'U').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+        const canvas = document.createElement('canvas');
+        canvas.width = 200; canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 200, 200);
+        grad.addColorStop(0, '#7c3aed'); grad.addColorStop(1, '#3b82f6');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 80px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(initials, 100, 108);
+        return canvas.toDataURL('image/png');
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        formError.style.display = 'none';
+        passwordError.style.display = 'none';
+
+        const fullName = document.getElementById('fullName').value.trim();
+        const username = usernameEl.value.trim();
+        const email = emailEl.value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (password !== confirmPassword) {
+            passwordError.style.display = 'flex';
+            return;
+        }
+        if (await checkUsernameExists(username)) { usernameError.style.display = 'flex'; usernameEl.focus(); return; }
+        if (await checkEmailExists(email)) { emailError.style.display = 'flex'; emailEl.focus(); return; }
+
+        submitBtn.disabled = true;
+        submitBtn.querySelector('span').textContent = 'Creating account…';
+
+        try {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email, password,
+                options: {
+                    data: { fullName, username, role: 'student', userType: 'student' },
+                    emailRedirectTo: `${window.location.origin}/email-verified.html`,
+                },
+            });
+
+            if (signUpError) {
+                formError.textContent = signUpError.message.includes('already registered')
+                    ? 'That email is already registered. Use login.html instead.'
+                    : 'Sign up failed: ' + signUpError.message;
+                formError.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.querySelector('span').textContent = 'Create account';
+                return;
+            }
+
+            if (signUpData.user) {
+                const avatar = generateInitialsAvatar(fullName);
+                const nameParts = fullName.split(' ');
+                await supabase.from('profiles').insert({
+                    id: signUpData.user.id,
+                    first_name: nameParts[0] || fullName,
+                    last_name: nameParts.slice(1).join(' ') || '',
+                    full_name: fullName,
+                    username,
+                    email,
+                    profile_photo: avatar,
+                    role: 'student',
+                    user_type: 'student',
+                    is_lecturer: false,
+                    lecturer_badge: false,
+                    verified: false,
+                    created_at: new Date().toISOString(),
+                });
+            }
+
+            // If this project doesn't require email confirmation, signUp()
+            // already returns an active session — in that case we can try
+            // seating the first admin right now. If confirmation IS
+            // required, there's no session yet and this silently no-ops;
+            // login.html runs the same check on first successful sign-in,
+            // which is when a session actually exists in that case.
+            let becameFirstAdmin = false;
+            if (signUpData.session) {
+                try {
+                    const { data: isEmpty } = await supabase.rpc('peerloom_super_admins_is_empty');
+                    if (isEmpty === true) {
+                        const { error: bootstrapError } = await supabase.from('super_admins').insert({
+                            id: signUpData.user.id, email, full_name: fullName,
+                        });
+                        becameFirstAdmin = !bootstrapError;
+                    }
+                } catch { /* non-fatal — login.html covers this case too */ }
+            }
+
+            form.style.display = 'none';
+            document.getElementById('successEmail').textContent = email;
+            document.getElementById('successUsername').textContent = '@' + username;
+            if (becameFirstAdmin) {
+                document.getElementById('successPanel').querySelector('p').textContent =
+                    "You're the first Command Center admin — access is already granted. Verify your email, then log in normally.";
+                document.getElementById('successPanel').querySelector('.username-pill').style.display = 'none';
+                document.getElementById('successPanel').querySelectorAll('p')[1].style.display = 'none';
+            }
+            document.getElementById('successPanel').style.display = 'block';
+        } catch (err) {
+            formError.textContent = 'An unexpected error occurred. Please try again.';
+            formError.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.querySelector('span').textContent = 'Create account';
+        }
+    });
+</script>
+</body>
+</html>
