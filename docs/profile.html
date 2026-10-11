@@ -459,10 +459,25 @@
         }
         .bio-section {
             position: relative;
+            min-width: 0;
         }
         .bio-content {
             line-height: 1.6;
             color: var(--text-secondary);
+            min-width: 0;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: normal;
+            padding-right: 2.5rem;
+        }
+        .bio-section .academic-input,
+        .bio-section textarea {
+            box-sizing: border-box;
+            max-width: 100%;
+            resize: vertical;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
         .edit-bio-btn {
             position: absolute;
@@ -473,6 +488,7 @@
             color: var(--primary);
             cursor: pointer;
             transition: var(--transition);
+            z-index: 1;
         }
         .edit-bio-btn:hover {
             transform: scale(1.1);
@@ -1322,6 +1338,21 @@
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
+            }
+
+            .bio-section {
+                padding-right: 0.25rem;
+            }
+
+            .bio-content {
+                padding-right: 2.75rem;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+
+            .edit-bio-btn {
+                top: 1.25rem;
+                right: 1rem;
             }
           
             /* Make posts drawer full-screen on smaller devices */
