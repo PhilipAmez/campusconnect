@@ -248,6 +248,7 @@
         // Import supabase client
         import { supabase } from './js/supabaseClient.js';
         import { initGlobalTheme, toggleLightDarkTheme } from './js/themeManager.js';
+        import { showSponsoredSlide } from './js/feed-ads.js';
         import { getCurrentUserContext, isSameInstitution, mixCampusFirstItems, renderCampusIndicator, resolveCampus } from './js/campusDiscovery.js';
         
         // App state
@@ -1320,6 +1321,14 @@
           
             // Set up intersection observer after videos are loaded
             setupIntersectionObserver();
+            // One sponsored slide in the main For You feed only (not shared links or profile feeds).
+            // The database decides whether an ad is eligible; if not, nothing is added.
+            {
+                const sp = new URLSearchParams(window.location.search);
+                if (currentFeedType === 'for-you' && !sp.has('videoId') && !sp.has('userId')) {
+                    showSponsoredSlide(supabase, feed);
+                }
+            }
             renderTopBar(); // Render the static top bar
 
             // Re-attach event listeners for newly created elements like feed tabs
@@ -2564,7 +2573,7 @@
                     setTimeout(() => {
                         videoContainer.remove();
                         // If feed is now empty, refresh to show empty state
-                        const remaining = document.querySelectorAll('.video-container').length;
+                        const remaining = document.querySelectorAll('.video-container:not(.sponsored-slide)').length;
                         if (remaining === 0) {
                             fetchPostsFromDatabase();
                         }
@@ -3209,7 +3218,7 @@
                     // The simple search doesn't have a relevance score, so we sort client-side if needed.
                     sortAndRenderResults(enrichedResults, sortOrder);
                 } else {
-                    searchResultsContainer.innerHTML = `<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">No results found for "${query}"</div>`;
+                    searchResultsContainer.innerHTML = `<div style="text-align: center; opacity: 0.7; padding-top: 2rem;">No results found for "${escapeHtml(query)}"</div>`;
                 }
             } catch (error) {
                 console.error('Error performing search:', error);
