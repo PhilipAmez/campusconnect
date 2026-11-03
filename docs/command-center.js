@@ -2,12 +2,12 @@
 // PEERLOOM COMMAND CENTER
 // Everything here reads from the SAME Supabase project the
 // student and lecturer dashboards use. No mock data anywhere —
-// if a section has no real table behind it yet (Advertisements,
-// Subscriptions, Support), it's shown locked in the HTML rather
+// if a section has no real table behind it yet (Support), it's shown locked in the HTML rather
 // than faked here.
 // ============================================================
 
 import { supabase } from './js/supabaseClient.js';
+import { createAdsModule } from './js/cc-ads.js';
 
 // ---------- lecturer detection matches login.html's own logic ----------
 // (is_lecturer boolean OR role/level/custom_level === 'lecturer' — the
@@ -95,6 +95,15 @@ const state = {
   pollTimer: null,
 };
 
+let _ads = null;
+function adsModule() {
+  if (!_ads) {
+    _ads = createAdsModule({ supabase, toast, escapeHtml, formatDate, reasonAction, confirmAction, openModal, closeModal, getAdminId: () => state.adminId });
+    _ads.init();
+  }
+  return _ads;
+}
+
 const PALETTE = ['#7c3aed', '#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#64748b', '#ec4899', '#06b6d4', '#a78bfa', '#14b8a6'];
 
 // ============================================================
@@ -136,6 +145,7 @@ async function boot() {
     await fetchLecturerContentCounts();
     await fetchPlatformContentCounts();
     await fetchSubscriptionsAndPayments();
+    try { await adsModule().load(); } catch (e) { console.error('Ads data failed to load', e); }
 
     document.getElementById('ccBoot').style.display = 'none';
     document.getElementById('ccApp').classList.add('is-ready');
@@ -750,6 +760,7 @@ function renderAll() {
   renderActivityFeed();
   renderNotifDropdown();
   renderSubscriptionsView();
+  adsModule().render();
 }
 
 function renderWelcome() {
