@@ -59,7 +59,6 @@ async function loadData(profile) {
     .in('quiz_id', quizIds)
     .in('status', ['submitted', 'graded']);
   if (attemptsError) console.error('Failed to load attempts for results:', attemptsError);
-  state.attempts = attempts || [];
 
   const { data: questions, error: questionsError } = await supabase
     .from('quiz_questions')
@@ -69,16 +68,28 @@ async function loadData(profile) {
   state.questions = questions || [];
 
   // Question difficulty needs per-answer scoring
-  const attemptIds = state.attempts.map((a) => a.id);
+  const rawAttempts = attempts || [];
+  const attemptIds = rawAttempts.map((a) => a.id);
+  let answers = [];
   if (attemptIds.length) {
-    const { data: answers } = await supabase
+    const { data } = await supabase
       .from('quiz_answers')
       .select('attempt_id, question_id, points_awarded, is_correct')
       .in('attempt_id', attemptIds);
-    state.answers = answers || [];
-  } else {
-    state.answers = [];
+    answers = data || [];
   }
+
+  // Defense in depth against a ghost attempt: quiz-session.js used to be
+  // able to mark an attempt "graded"/"submitted" with a computed score even
+  // when the actual quiz_answers write behind it had silently failed (fixed
+  // there now), and a row like that can still exist from before the fix. A
+  // "graded"/"submitted" attempt with zero real answers isn't a real
+  // submission — left in, it skews every stat below (average, pass rate,
+  // completion) with a score nobody actually earned. Same rule applied in
+  // lecturer-submissions.js and quiz-review.html.
+  const attemptIdsWithAnswers = new Set(answers.map((a) => a.attempt_id));
+  state.attempts = rawAttempts.filter((a) => attemptIdsWithAnswers.has(a.id));
+  state.answers = answers.filter((a) => attemptIdsWithAnswers.has(a.attempt_id));
 
   // Completion rate needs total assigned students across the linked groups
   const { data: links } = await supabase.from('quiz_groups').select('quiz_id, group_id').in('quiz_id', quizIds);

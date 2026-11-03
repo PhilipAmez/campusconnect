@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>My Active Groups - PeerLoom</title>
     <style>
         :root {
@@ -1979,11 +1979,14 @@
             }
         }
     </style>
+  <script src="js/a11y.js" defer></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body data-theme="light">
     <!-- iOS 26 Liquid Glass Navigation -->
     <nav class="ios-nav" id="navBar">
-        <button class="back-button" id="backButton">
+        <button aria-label="Go back" class="back-button" id="backButton">
             <i class="fas fa-arrow-left"></i>
         </button>
         <div class="nav-title">My Active Groups</div>
@@ -2057,13 +2060,13 @@
         <div class="search-filters-container animate-fade-in">
             <div class="ios-search">
                 <i class="fas fa-search"></i>
-                <input type="text" id="groupSearch" placeholder="Search your active groups...">
+                <input aria-label="Search your active groups..." type="text" id="groupSearch" placeholder="Search your active groups...">
             </div>
             
             <div class="filters-row">
                 <div class="filter-group">
                     <label class="filter-label">Sort By</label>
-                    <select class="ios-select" id="sortSelect">
+                    <select aria-label="Sort groups" class="ios-select" id="sortSelect">
                         <option value="recent">Most Recent</option>
                         <option value="active">Most Active</option>
                         <option value="name">Name A-Z</option>
@@ -2073,7 +2076,7 @@
                 
                 <div class="filter-group">
                     <label class="filter-label">Category</label>
-                    <select class="ios-select" id="categoryFilter">
+                    <select aria-label="Category Filter" class="ios-select" id="categoryFilter">
                         <option value="all">All Categories</option>
                         <option value="course">Course</option>
                         <option value="academic">Academic</option>
@@ -2085,7 +2088,7 @@
                 
                 <div class="filter-group">
                     <label class="filter-label">Role</label>
-                    <select class="ios-select" id="roleFilter">
+                    <select aria-label="Role Filter" class="ios-select" id="roleFilter">
                         <option value="all">All Roles</option>
                         <option value="admin">Admin</option>
                         <option value="member">Member</option>
@@ -2137,7 +2140,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" data-i18n="modal_create_group_title">Create New Group</h3>
-                <button class="modal-close" id="closeModal">
+                <button aria-label="Close" class="modal-close" id="closeModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -2159,7 +2162,7 @@
                 
                 <div class="form-group">
                     <label class="form-label" data-i18n="label_privacy">Privacy</label>
-                    <select class="form-input" id="groupPrivacy">
+                    <select aria-label="Group privacy" class="form-input" id="groupPrivacy">
                         <option value="public" data-i18n="option_public">Public - Anyone can join</option>
                         <option value="private" data-i18n="option_private">Private - Invite only</option>
                     </select>
@@ -2183,14 +2186,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" data-i18n="modal_join_group_title">Join a Private Group</h3>
-                <button class="modal-close" id="closeJoinModal">
+                <button aria-label="Close" class="modal-close" id="closeJoinModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <form class="modal-form" id="joinGroupForm">
                 <div class="form-group">
                     <label class="form-label" data-i18n="label_invite_code">Invite Code</label>
-                    <input type="text" class="form-input" id="joinGroupCode" placeholder="e.g. 7K3PQ9" maxlength="6" style="text-transform:uppercase; letter-spacing:0.15em; font-weight:700; text-align:center;" required>
+                    <input aria-label="Group join code" type="text" class="form-input" id="joinGroupCode" placeholder="e.g. 7K3PQ9" maxlength="6" style="text-transform:uppercase; letter-spacing:0.15em; font-weight:700; text-align:center;" required>
                 </div>
                 <div class="form-group" style="flex-direction: row; gap: var(--space-md); margin-top: var(--space-lg);">
                     <button type="button" class="ios-btn secondary" id="cancelJoin" style="flex: 1;">
@@ -2210,7 +2213,7 @@
         <div class="modal-content progress-modal">
             <div class="modal-header">
                 <h3 class="modal-title" data-i18n="modal_your_progress">Your Progress</h3>
-                <button class="modal-close" id="closeProgressModal">
+                <button aria-label="Close" class="modal-close" id="closeProgressModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -2271,14 +2274,14 @@
         
         <div class="peerpal-input-container">
             <div class="peerpal-input-wrapper">
-                <textarea 
+                <textarea aria-label="Message PeerPal" 
                     class="peerpal-input" 
                     id="peerpalInput" 
                     placeholder="Message PeerPal..." 
                     rows="1"
                     maxlength="2000"
                 ></textarea>
-                <button class="peerpal-send" id="peerpalSend">
+                <button aria-label="Send message to PeerPal" class="peerpal-send" id="peerpalSend">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
@@ -2309,6 +2312,7 @@
         import { enrichGroupsWithInstitution, getCurrentUserContext, renderCampusIndicator } from './js/campusDiscovery.js';
         import { initGlobalTheme, setThemePreference } from './js/themeManager.js';
         import { initLanguage, applyTranslations, t } from './js/i18n.js';
+        import { canAccess } from './js/membership.js';
         
         // DOM Elements
         const groupsList = document.getElementById('groupsList');
@@ -2573,6 +2577,12 @@
                     <button class="ios-btn resources-btn" data-group-id="${group.id}">
                         <i class="fas fa-folder-open"></i>
                         ${t('btn_resources')}
+                    </button>
+                    ` : ''}
+                    ${group.created_by === currentUser?.id ? `
+                    <button class="ios-btn live-class-btn" data-group-id="${group.id}">
+                        <i class="fas fa-video"></i>
+                        ${t('btn_live_class')}
                     </button>
                     ` : ''}
                     <button class="ios-btn danger leave-group-btn" data-group-id="${group.id}">
@@ -3144,6 +3154,40 @@
 
                 const groupId = button.dataset.groupId;
                 window.location.href = `group-resources.html?group=${groupId}`;
+            }
+
+            if (e.target.closest('.live-class-btn')) {
+                const button = e.target.closest('.live-class-btn');
+                const groupId = button.dataset.groupId;
+                const group = userGroups.find(g => g.id == groupId);
+
+                // Defense in depth: this button is only ever rendered for the
+                // group's creator/admin (see createGroupCard), but never trust
+                // the DOM alone — confirm ownership again before navigating.
+                if (!group || group.created_by !== currentUser?.id) {
+                    showNotification("We couldn't confirm you can start a live class for this group. Please refresh and try again.");
+                    return;
+                }
+
+                button.disabled = true;
+                const original = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting live class…';
+
+                // PeerLoom membership gate (spec item #6/#7): starting a live
+                // class is gated the same way for a student group creator as
+                // it is for a lecturer — the real enforcement is server-side
+                // (trg_entitled_live_class), this is just the UX short-circuit
+                // so they're not dropped into livemeeting.html only to be
+                // bounced back out.
+                const allowed = await canAccess('live_class');
+                if (!allowed) {
+                    button.disabled = false;
+                    button.innerHTML = original;
+                    showNotification('Your PeerLoom membership is inactive. Reactivate it to start a live class — GHS 6/month.');
+                    return;
+                }
+
+                window.location.href = `livemeeting.html?groupId=${groupId}`;
             }
 
             if (e.target.closest('.leave-group-btn')) {

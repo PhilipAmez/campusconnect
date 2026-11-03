@@ -49,7 +49,7 @@ function hasPendingEssay(attempt) {
 async function loadData(profile) {
   const { data: quizzes, error: quizzesError } = await supabase
     .from('quizzes')
-    .select('id, title, close_date, attempts_allowed')
+    .select('id, title, close_date, attempts_allowed, status')
     .eq('creator_id', profile.id)
     .eq('is_deleted', false);
   if (quizzesError) console.error('Failed to load quizzes for submissions:', quizzesError);
@@ -112,13 +112,102 @@ async function loadData(profile) {
   state.quizzes = quizList;
   state.questionsByQuiz = questionsByQuiz;
   state.questionsById = questionsById;
-  state.attempts = (attempts || []).map((a) => ({
+  const realRows = (attempts || []).map((a) => ({
     ...a,
     __quiz: quizById[a.quiz_id],
     __groupName: groupNameById[a.group_id] || 'Unknown group',
     __answers: answersByAttempt[a.id] || [],
     __questionsById: questionsById
   }));
+
+  // Students who were assigned a quiz but never attempted it don't have a
+  // quiz_attempts row at all, so the query above never surfaces them — the
+  // lecturer only ever saw "0 submissions" with no indication who was
+  // actually missing. This builds a synthetic "expired" row for each
+  // assigned student with no attempt, but only once the quiz's close_date
+  // has actually passed: while a quiz is still open, "hasn't attempted yet"
+  // isn't a problem to flag, it's just normal. (A quiz with no close_date
+  // never expires, so it never generates these rows.)
+  const expiredQuizzes = quizList.filter((q) => q.status === 'published' && q.close_date && new Date(q.close_date) < new Date());
+  state.attempts = realRows;
+  if (expiredQuizzes.length) {
+    const expiredQuizIds = expiredQuizzes.map((q) => q.id);
+    const { data: links } = await supabase
+      .from('quiz_groups')
+      .select('quiz_id, group_id')
+      .in('quiz_id', expiredQuizIds);
+
+    const groupIdsForExpired = [...new Set((links || []).map((l) => l.group_id))];
+    let membersByGroup = {};
+    if (groupIdsForExpired.length) {
+      const { data: members } = await supabase
+        .from('group_members')
+        .select('group_id, user_id')
+        .in('group_id', groupIdsForExpired);
+      (members || []).forEach((m) => {
+        if (!membersByGroup[m.group_id]) membersByGroup[m.group_id] = [];
+        membersByGroup[m.group_id].push(m.user_id);
+      });
+    }
+
+    const studentIds = [...new Set(Object.values(membersByGroup).flat())];
+    let profileById = {};
+    if (studentIds.length) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, is_lecturer, role')
+        .in('id', studentIds);
+      (profiles || []).forEach((p) => { profileById[p.id] = p; });
+    }
+
+    const attemptedByQuiz = {};
+    realRows.forEach((a) => {
+      if (!attemptedByQuiz[a.quiz_id]) attemptedByQuiz[a.quiz_id] = new Set();
+      attemptedByQuiz[a.quiz_id].add(a.student_id);
+    });
+
+    const expiredRows = [];
+    (links || []).forEach((link) => {
+      const quiz = quizById[link.quiz_id];
+      const memberIds = membersByGroup[link.group_id] || [];
+      memberIds.forEach((studentId) => {
+        const p = profileById[studentId];
+        // Only students, never the lecturer themself or a co-instructor
+        // accidentally swept in as a group member.
+        if (!p || p.is_lecturer || p.role === 'lecturer') return;
+        if (attemptedByQuiz[link.quiz_id]?.has(studentId)) return;
+        expiredRows.push({
+          id: `expired_${link.quiz_id}_${studentId}`,
+          quiz_id: link.quiz_id,
+          student_id: studentId,
+          group_id: link.group_id,
+          full_name: p.full_name || p.username || 'Unnamed student',
+          index_number: null,
+          status: 'expired',
+          score: null,
+          max_score: null,
+          submitted_at: null,
+          attempt_number: 0,
+          __quiz: quiz,
+          __groupName: groupNameById[link.group_id] || 'Unknown group',
+          __answers: [],
+          __questionsById: questionsById
+        });
+      });
+    });
+
+    // A student can be a member of more than one group the same quiz was
+    // assigned to — de-dupe so they only ever show up once per quiz.
+    const seen = new Set();
+    state.attempts = realRows.concat(
+      expiredRows.filter((r) => {
+        const key = `${r.quiz_id}:${r.student_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+    );
+  }
 }
 
 function getFilteredAttempts() {
@@ -132,6 +221,7 @@ function getFilteredAttempts() {
   else if (state.filter === 'graded') list = list.filter((a) => a.status === 'graded');
   else if (state.filter === 'essay-pending') list = list.filter((a) => hasPendingEssay(a));
   else if (state.filter === 'late') list = list.filter((a) => isLate(a, a.__quiz));
+  else if (state.filter === 'expired') list = list.filter((a) => a.status === 'expired');
 
   if (state.search.trim()) {
     const term = state.search.trim().toLowerCase();
@@ -146,6 +236,12 @@ function getFilteredAttempts() {
 }
 
 function renderStatusBadge(attempt) {
+  // A student who never attempted a now-closed quiz was never graded and
+  // never will be — showing "Not graded" (or worse, a score-looking dash)
+  // reads as if grading is still pending. "Expired" says plainly that the
+  // window closed with no submission, whether the quiz was MCQ/auto-graded
+  // or not.
+  if (attempt.status === 'expired') return '<span class="badge-pill badge-muted">Expired</span>';
   if (attempt.status === 'graded') return '<span class="badge-pill badge-success">Graded</span>';
   if (hasPendingEssay(attempt)) return '<span class="badge-pill badge-warning">Essay Pending</span>';
   return '<span class="badge-pill">Submitted</span>';
@@ -153,10 +249,21 @@ function renderStatusBadge(attempt) {
 
 function renderRow(attempt) {
   const quiz = attempt.__quiz;
+  const isExpired = attempt.status === 'expired';
   const late = isLate(attempt, quiz);
   const scoreLabel = attempt.status === 'graded' && attempt.score != null
     ? `${attempt.score} / ${attempt.max_score ?? '—'}`
     : '—';
+
+  // There's nothing to grade for a student who never submitted anything —
+  // the Grade/Review button only makes sense when a real attempt exists.
+  const actionHtml = isExpired
+    ? ''
+    : `
+      <button class="secondary-btn small" data-action="grade" data-attempt-id="${attempt.id}">
+        <i class="fa-solid fa-pen-to-square"></i> ${attempt.status === 'graded' ? 'Review' : 'Grade'}
+      </button>
+    `;
 
   return `
     <div class="submission-row" data-attempt-id="${attempt.id}">
@@ -166,13 +273,11 @@ function renderRow(attempt) {
       </div>
       <div class="submission-quiz">
         <span>${escapeHtml(quiz?.title || 'Untitled quiz')}</span>
-        <small>${formatDateTime(attempt.submitted_at)}${late ? ' · <span class="late-tag">Late</span>' : ''}</small>
+        <small>${isExpired ? 'No submission received' : formatDateTime(attempt.submitted_at)}${late ? ' · <span class="late-tag">Late</span>' : ''}</small>
       </div>
       <div class="submission-score">${scoreLabel}</div>
       <div class="submission-status">${renderStatusBadge(attempt)}</div>
-      <button class="secondary-btn small" data-action="grade" data-attempt-id="${attempt.id}">
-        <i class="fa-solid fa-pen-to-square"></i> ${attempt.status === 'graded' ? 'Review' : 'Grade'}
-      </button>
+      ${actionHtml}
     </div>
   `;
 }
@@ -218,7 +323,8 @@ function renderCounts() {
   const essayPending = state.attempts.filter((a) => hasPendingEssay(a)).length;
   const graded = state.attempts.filter((a) => a.status === 'graded').length;
   const late = state.attempts.filter((a) => isLate(a, a.__quiz)).length;
-  return { pending, essayPending, graded, late };
+  const expired = state.attempts.filter((a) => a.status === 'expired').length;
+  return { pending, essayPending, graded, late, expired };
 }
 
 function renderSkeleton() {
@@ -249,6 +355,7 @@ function renderShell() {
           <div class="stat-card"><p class="value">${counts.essayPending}</p><p class="label">Essay pending</p></div>
           <div class="stat-card"><p class="value">${counts.graded}</p><p class="label">Graded</p></div>
           <div class="stat-card"><p class="value">${counts.late}</p><p class="label">Late submissions</p></div>
+          <div class="stat-card"><p class="value">${counts.expired}</p><p class="label">Expired (no submission)</p></div>
         </div>
       </div>
     </section>
@@ -272,6 +379,7 @@ function renderShell() {
         <button class="preview-tab ${state.filter === 'essay-pending' ? 'active' : ''}" data-filter="essay-pending">Essay Pending</button>
         <button class="preview-tab ${state.filter === 'graded' ? 'active' : ''}" data-filter="graded">Graded</button>
         <button class="preview-tab ${state.filter === 'late' ? 'active' : ''}" data-filter="late">Late</button>
+        <button class="preview-tab ${state.filter === 'expired' ? 'active' : ''}" data-filter="expired">Expired</button>
         <button class="preview-tab ${state.filter === 'all' ? 'active' : ''}" data-filter="all">All</button>
       </div>
       <div class="submissions-list" id="submissionsList"></div>

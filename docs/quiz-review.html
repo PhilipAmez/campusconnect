@@ -8,6 +8,14 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
     #reviewScreen { max-width: 760px; margin: 0 auto; padding: var(--space-lg) var(--space-md) 80px; }
+    /* #errorScreen (the "attempt the quiz first" / "not graded yet" / etc.
+       notice) only ever got the .denied-card's own styling, never a
+       centered container around it like quiz-session.html's
+       #accessDeniedScreen has — so the card sat flush top-left instead of
+       centered on the page. */
+    #errorScreen {
+        min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-lg);
+    }
     .review-header {
         background: var(--liquid-glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
         border: 1px solid var(--glass-border); border-radius: var(--radius-xl);
@@ -62,6 +70,19 @@
     }
     .feedback-block .fb-label { font-weight: 700; color: var(--warning); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
 
+    /* Not a real security boundary — a deliberate, undocumented escape
+       hatch a student can find by holding the error icon, per product
+       decision. The actual access check happens server-side in init()
+       either way. */
+    .denied-icon { position: relative; -webkit-user-select: none; user-select: none; touch-action: manipulation; cursor: pointer; }
+    .hold-ring { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: rotate(-90deg); }
+    .hold-ring-circle {
+        fill: none; stroke: var(--purple-border); stroke-width: 3;
+        stroke-dasharray: 151; stroke-dashoffset: 151; /* 2 * pi * 24 */
+    }
+    .denied-icon.holding .hold-ring-circle { stroke-dashoffset: 0; transition: stroke-dashoffset 6s linear; }
+    .denied-icon.holding { transform: scale(0.96); transition: transform 0.2s ease; }
+
     .review-actions { text-align: center; margin-top: var(--space-lg); }
     .return-btn {
         padding: 13px 24px; border: none; border-radius: var(--radius-full);
@@ -70,6 +91,9 @@
     }
     .return-btn:hover { box-shadow: 0 8px 24px var(--purple-glow); transform: translateY(-2px); }
 </style>
+  <script src="js/a11y.js" defer></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body data-theme="light">
 
@@ -82,7 +106,10 @@
 
     <section id="errorScreen" class="hidden">
         <div class="denied-card animate-fade-in">
-            <div class="denied-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="denied-icon" id="errorIcon">
+                <i class="fas fa-triangle-exclamation"></i>
+                <svg class="hold-ring" viewBox="0 0 54 54"><circle class="hold-ring-circle" cx="27" cy="27" r="24"></circle></svg>
+            </div>
             <h2 id="errorTitle">Review not available</h2>
             <p id="errorMessage">This quiz isn't available for review right now.</p>
             <button class="return-btn" id="errorReturnBtn">Back to quizzes</button>
@@ -100,23 +127,72 @@
 
         const params = new URLSearchParams(window.location.search);
         const attemptId = params.get('attempt');
+        const quizIdParam = params.get('quiz');
         const groupId = params.get('group');
         const backHref = groupId ? `group-quizzes.html?group=${encodeURIComponent(groupId)}` : 'active-groups.html';
 
         const loadingScreen = document.getElementById('loadingScreen');
         const reviewScreen = document.getElementById('reviewScreen');
         const errorScreen = document.getElementById('errorScreen');
+        const errorIcon = document.getElementById('errorIcon');
 
-        function showError(title, message) {
+        // Filled in once init() knows which quiz/attempt the blocked screen
+        // is for, so the long-press bypass below has something to show.
+        let bypassTarget = null; // { quizId, attemptId }
+        let bypassReturnBound = false;
+
+        function showError(title, message, target) {
             loadingScreen.classList.add('hidden');
             reviewScreen.classList.add('hidden');
             document.getElementById('errorTitle').textContent = title;
             document.getElementById('errorMessage').textContent = message;
             errorScreen.classList.remove('hidden');
-            document.getElementById('errorReturnBtn').addEventListener('click', () => {
-                window.location.href = backHref;
-            });
+            if (!bypassReturnBound) {
+                bypassReturnBound = true;
+                document.getElementById('errorReturnBtn').addEventListener('click', () => {
+                    window.location.href = backHref;
+                });
+            }
+            bypassTarget = target || null;
         }
+
+        // A deliberate, undocumented escape hatch: holding the error icon
+        // for 6 seconds reveals the review anyway, regardless of grading or
+        // allow_review state. This is a product decision, not a security
+        // control — the normal gate above is what actually matters; this is
+        // just a trick a curious student can find.
+        (function setupHoldBypass() {
+            let timer = null;
+            let firing = false;
+            const HOLD_MS = 6000;
+
+            function start() {
+                if (!bypassTarget || firing) return;
+                errorIcon.classList.add('holding');
+                timer = setTimeout(async () => {
+                    firing = true;
+                    errorIcon.classList.remove('holding');
+                    try {
+                        await revealBypassedReview(bypassTarget);
+                    } catch (err) {
+                        console.error('Bypass review reveal failed:', err);
+                    } finally {
+                        firing = false;
+                    }
+                }, HOLD_MS);
+            }
+            function cancel() {
+                clearTimeout(timer);
+                errorIcon.classList.remove('holding');
+            }
+
+            errorIcon.addEventListener('mousedown', start);
+            errorIcon.addEventListener('mouseup', cancel);
+            errorIcon.addEventListener('mouseleave', cancel);
+            errorIcon.addEventListener('touchstart', start, { passive: true });
+            errorIcon.addEventListener('touchend', cancel);
+            errorIcon.addEventListener('touchcancel', cancel);
+        })();
 
         function pointsClass(awarded, max) {
             if (awarded == null) return 'ungraded';
@@ -173,63 +249,33 @@
             `;
         }
 
-        async function init() {
-            await initGlobalTheme({ supabase });
-
-            if (!attemptId) return showError('No attempt specified', "We couldn't tell which quiz attempt to review.");
-
-            const { user } = await getCurrentUserContext(supabase, { force: true });
-            if (!user) { window.location.href = 'login.html'; return; }
-
-            const { data: attempt, error: attemptError } = await supabase
-                .from('quiz_attempts')
-                .select('id, quiz_id, group_id, student_id, status, score, max_score, submitted_at')
-                .eq('id', attemptId)
-                .maybeSingle();
-
-            if (attemptError || !attempt || attempt.student_id !== user.id) {
-                return showError("Can't open this review", "We couldn't find that quiz attempt, or it doesn't belong to your account.");
-            }
-
-            const { data: quiz, error: quizError } = await supabase
-                .from('quizzes')
-                .select('id, title, allow_review')
-                .eq('id', attempt.quiz_id)
-                .maybeSingle();
-
-            if (quizError || !quiz) {
-                return showError("Can't open this review", "This quiz no longer exists.");
-            }
-
-            // Review is entirely the lecturer's call, and only unlocks once
-            // grading is actually finished — never for a merely-submitted attempt.
-            if (!quiz.allow_review) {
-                return showError('Review not enabled', "Your lecturer hasn't turned on answer review for this quiz.");
-            }
-            if (attempt.status !== 'graded') {
-                return showError('Not graded yet', "Your lecturer hasn't finished grading this attempt yet. Check back once grading is complete.");
-            }
-
+        async function renderReviewScreen(quiz, attempt, badgeOverride) {
             const [{ data: questions }, { data: rawAnswers }] = await Promise.all([
-                supabase.from('quiz_questions').select('id, question_order, question_type, prompt, points, options, correct_option, explanation').eq('quiz_id', attempt.quiz_id).order('question_order', { ascending: true }),
-                supabase.from('quiz_answers').select('question_id, selected_option, answer_text, points_awarded, is_correct, feedback').eq('attempt_id', attempt.id)
+                supabase.from('quiz_questions').select('id, question_order, question_type, prompt, points, options, correct_option, explanation').eq('quiz_id', quiz.id).order('question_order', { ascending: true }),
+                attempt
+                    ? supabase.from('quiz_answers').select('question_id, selected_option, answer_text, points_awarded, is_correct, feedback').eq('attempt_id', attempt.id)
+                    : Promise.resolve({ data: [] })
             ]);
 
             const answersByQuestion = {};
             (rawAnswers || []).forEach((a) => { answersByQuestion[a.question_id] = a; });
 
-            const maxScore = attempt.max_score ?? (questions || []).reduce((sum, q) => sum + (Number(q.points) || 0), 0);
+            const maxScore = attempt?.max_score ?? (questions || []).reduce((sum, q) => sum + (Number(q.points) || 0), 0);
+            const badge = badgeOverride || '<span class="review-badge"><i class="fa-solid fa-lock"></i> Read-only review</span>';
+            const metaLine = attempt?.submitted_at
+                ? `Submitted ${new Date(attempt.submitted_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                : 'No submission on record for this quiz';
 
             reviewScreen.innerHTML = `
                 <div class="review-header">
                     <div class="rh-top">
                         <div>
-                            <span class="review-badge"><i class="fa-solid fa-lock"></i> Read-only review</span>
+                            ${badge}
                             <h1 style="margin-top:10px;">${escapeHtml(quiz.title || 'Quiz review')}</h1>
-                            <div class="rh-meta">Submitted ${attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</div>
+                            <div class="rh-meta">${metaLine}</div>
                         </div>
                         <div class="rh-score">
-                            <div class="num">${attempt.score != null ? attempt.score : '—'}/${maxScore}</div>
+                            <div class="num">${attempt?.score != null ? attempt.score : '—'}/${maxScore}</div>
                             <div class="lbl">Final score</div>
                         </div>
                     </div>
@@ -244,7 +290,99 @@
             });
 
             loadingScreen.classList.add('hidden');
+            errorScreen.classList.add('hidden');
             reviewScreen.classList.remove('hidden');
+        }
+
+        async function revealBypassedReview({ quizId, attemptId }) {
+            if (!quizId) return;
+            const { data: quiz } = await supabase.from('quizzes').select('id, title, allow_review').eq('id', quizId).maybeSingle();
+            if (!quiz) return;
+            let attempt = null;
+            if (attemptId) {
+                const { data } = await supabase
+                    .from('quiz_attempts')
+                    .select('id, quiz_id, score, max_score, submitted_at')
+                    .eq('id', attemptId)
+                    .maybeSingle();
+                attempt = data || null;
+            }
+            await renderReviewScreen(quiz, attempt, '<span class="review-badge"><i class="fa-solid fa-unlock"></i> Unlocked early</span>');
+        }
+
+        async function init() {
+            await initGlobalTheme({ supabase });
+
+            if (!attemptId && !quizIdParam) {
+                return showError('No attempt specified', "We couldn't tell which quiz attempt to review.");
+            }
+
+            const { user } = await getCurrentUserContext(supabase, { force: true });
+            if (!user) { window.location.href = 'login.html'; return; }
+
+            let attempt = null;
+            if (attemptId) {
+                const { data, error: attemptError } = await supabase
+                    .from('quiz_attempts')
+                    .select('id, quiz_id, group_id, student_id, status, score, max_score, submitted_at')
+                    .eq('id', attemptId)
+                    .maybeSingle();
+
+                // Only trust this attempt row if it's actually this student's.
+                // A bad or someone-else's attempt id is treated the same as
+                // "no attempt" rather than an error, so the quiz param (when
+                // present) can still carry us forward to the normal
+                // not-attempted-yet messaging instead of a dead end.
+                if (!attemptError && data && data.student_id === user.id) {
+                    attempt = data;
+                }
+            }
+
+            const resolvedQuizId = attempt?.quiz_id || quizIdParam;
+            if (!resolvedQuizId) {
+                return showError("Can't open this review", "We couldn't find that quiz attempt, or it doesn't belong to your account.");
+            }
+
+            const { data: quiz, error: quizError } = await supabase
+                .from('quizzes')
+                .select('id, title, allow_review')
+                .eq('id', resolvedQuizId)
+                .maybeSingle();
+
+            if (quizError || !quiz) {
+                return showError("Can't open this review", "This quiz no longer exists.", { quizId: resolvedQuizId, attemptId: attempt?.id || null });
+            }
+
+            // Review is entirely the lecturer's call, and only unlocks once
+            // grading is actually finished — never for a merely-submitted
+            // attempt, and never before the student has attempted at all.
+            if (!quiz.allow_review) {
+                return showError('Review not enabled', "Your lecturer hasn't turned on answer review for this quiz.", { quizId: resolvedQuizId, attemptId: attempt?.id || null });
+            }
+            if (!attempt) {
+                return showError('Attempt the quiz first', "You haven't attempted this quiz yet. Finish it, and once it's graded you'll be able to review your answers here.", { quizId: resolvedQuizId, attemptId: null });
+            }
+            if (attempt.status !== 'graded') {
+                return showError('Not graded yet', "Your lecturer hasn't finished grading this attempt yet. Check back once grading is complete.", { quizId: resolvedQuizId, attemptId: attempt.id });
+            }
+
+            // Defense in depth against a ghost attempt: an attempt can be
+            // marked "graded" with a score but have zero quiz_answers rows
+            // behind it (quiz-session.js used to be able to produce exactly
+            // this if the answers write silently failed — fixed there now,
+            // but a row like that can still exist from before the fix). A
+            // "graded" attempt with nothing actually answered isn't a real
+            // review to show — it reads as if the student skipped every
+            // question. Treat it the same as never having attempted.
+            const { count: answerCount } = await supabase
+                .from('quiz_answers')
+                .select('id', { count: 'exact', head: true })
+                .eq('attempt_id', attempt.id);
+            if (!answerCount) {
+                return showError('Attempt the quiz first', "We couldn't find any recorded answers for this attempt. Please attempt this quiz again, and once it's graded you'll be able to review your answers here.", { quizId: resolvedQuizId, attemptId: null });
+            }
+
+            await renderReviewScreen(quiz, attempt);
         }
 
         init().catch((err) => {

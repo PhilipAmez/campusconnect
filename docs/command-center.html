@@ -8,6 +8,7 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="command-center.css">
+  <script src="js/a11y.js" defer></script>
 </head>
 <body>
 
@@ -74,9 +75,10 @@
         <div class="cc-nav-group">
           <div class="cc-nav-label">Platform</div>
           <button class="cc-nav-item" data-view="reports"><i class="fa-solid fa-flag"></i><span class="label">Reports</span><span class="cc-nav-badge" id="ccReportsBadge" style="display:none;">0</span></button>
+          <button class="cc-nav-item" data-view="moderation"><i class="fa-solid fa-shield-halved"></i><span class="label">Moderation</span><span class="cc-nav-badge" id="ccModerationBadge" style="display:none;">0</span></button>
           <button class="cc-nav-item" data-view="notifications"><i class="fa-solid fa-bell"></i><span class="label">Notifications</span></button>
           <button class="cc-nav-item locked" data-view="advertisements" data-locked="true"><i class="fa-solid fa-rectangle-ad"></i><span class="label">Advertisements</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
-          <button class="cc-nav-item locked" data-view="subscriptions" data-locked="true"><i class="fa-solid fa-credit-card"></i><span class="label">Subscriptions</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
+          <button class="cc-nav-item" data-view="subscriptions"><i class="fa-solid fa-credit-card"></i><span class="label">Subscriptions</span></button>
           <button class="cc-nav-item locked" data-view="support" data-locked="true"><i class="fa-solid fa-headset"></i><span class="label">Support</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
         </div>
         <div class="cc-nav-group">
@@ -100,7 +102,7 @@
 
       <div class="cc-search" id="ccSearchTrigger">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="ccSearchInput" placeholder="Search users, institutions, campuses…" readonly>
+        <input aria-label="Search users, institutions, campuses…" type="text" id="ccSearchInput" placeholder="Search users, institutions, campuses…" readonly>
         <kbd>⌘K</kbd>
       </div>
 
@@ -261,11 +263,12 @@
             <button class="cc-filter-pill" data-users-filter="verified">Verified</button>
             <button class="cc-filter-pill" data-users-filter="unverified">Unverified</button>
             <button class="cc-filter-pill" data-users-filter="suspended">Suspended</button>
-            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccUsersSearch" placeholder="Search name, username, email…"></div>
+            <button class="cc-filter-pill" data-users-filter="banned">Banned</button>
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input aria-label="Search name, username, email…" type="text" id="ccUsersSearch" placeholder="Search name, username, email…"></div>
           </div>
           <div class="cc-table-scroll">
             <table class="cc-table" id="ccUsersTable">
-              <thead><tr><th>User</th><th>Role</th><th>Institution</th><th>Campus</th><th>Verified</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+              <thead><tr><th>User</th><th>Role</th><th>Campus</th><th>Verified</th><th>Status</th><th>Joined</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -284,7 +287,7 @@
         </div>
         <div class="cc-table-wrap">
           <div class="cc-table-toolbar">
-            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccLecturersSearch" placeholder="Search lecturers…"></div>
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input aria-label="Search lecturers…" type="text" id="ccLecturersSearch" placeholder="Search lecturers…"></div>
           </div>
           <div class="cc-table-scroll">
             <table class="cc-table" id="ccLecturersTable">
@@ -304,7 +307,7 @@
         </div>
         <div class="cc-table-wrap">
           <div class="cc-table-toolbar">
-            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccStudentsSearch" placeholder="Search students…"></div>
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input aria-label="Search students…" type="text" id="ccStudentsSearch" placeholder="Search students…"></div>
           </div>
           <div class="cc-table-scroll">
             <table class="cc-table" id="ccStudentsTable">
@@ -342,11 +345,11 @@
         </div>
         <div class="cc-table-wrap">
           <div class="cc-table-toolbar">
-            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input type="text" id="ccGroupsSearch" placeholder="Search groups…"></div>
+            <div class="cc-table-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute); font-size:0.78rem;"></i><input aria-label="Search groups…" type="text" id="ccGroupsSearch" placeholder="Search groups…"></div>
           </div>
           <div class="cc-table-scroll">
             <table class="cc-table" id="ccGroupsTable">
-              <thead><tr><th>Group</th><th>Course code</th><th>Institution</th><th>Members</th><th>Created</th></tr></thead>
+              <thead><tr><th>Group</th><th>Course code</th><th>Institution</th><th>Members</th><th>Status</th><th>Created</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -357,7 +360,7 @@
       <!-- ========== REPORTS (moderation queue) ========== -->
       <section class="cc-view" data-view="reports" id="view-reports">
         <div class="cc-view-head">
-          <div><h1>Reports</h1><p>Content flagged by users across group chats, awaiting review</p></div>
+          <div><h1>Reports</h1><p>Content flagged by users across group chats and Skrolz posts, awaiting review</p></div>
           <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="reports"><i class="fa-solid fa-file-export"></i> Export</button></div>
         </div>
         <div class="cc-table-wrap">
@@ -368,11 +371,32 @@
           </div>
           <div class="cc-table-scroll">
             <table class="cc-table" id="ccReportsTable">
-              <thead><tr><th>Reason</th><th>Reported user</th><th>Reported by</th><th>Filed</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Type</th><th>Reason</th><th>Reported user</th><th>Reported by</th><th>Filed</th><th>Status</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
           <div class="cc-table-foot"><span id="ccReportsFootCount">—</span></div>
+        </div>
+      </section>
+
+      <section class="cc-view" data-view="moderation" id="view-moderation">
+        <div class="cc-view-head">
+          <div><h1>Moderation</h1><p>Automatically detected from chat messages, Skrolz posts, and comments the instant they're written — not a page someone has to remember to check</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="moderation"><i class="fa-solid fa-file-export"></i> Export</button></div>
+        </div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar">
+            <button class="cc-filter-pill active" data-moderation-filter="unseen">Needs review</button>
+            <button class="cc-filter-pill" data-moderation-filter="high">High severity</button>
+            <button class="cc-filter-pill" data-moderation-filter="all">All</button>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table" id="ccModerationTable">
+              <thead><tr><th>Severity</th><th>Category</th><th>User</th><th>Where</th><th>Excerpt</th><th>Action taken</th><th>When</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot"><span id="ccModerationFootCount">—</span></div>
         </div>
       </section>
 
@@ -397,14 +421,41 @@
         </div>
       </section>
 
-      <!-- ========== SUBSCRIPTIONS (locked) ========== -->
+      <!-- ========== SUBSCRIPTIONS ========== -->
       <section class="cc-view" data-view="subscriptions" id="view-subscriptions">
-        <div class="cc-view-head"><div><h1>Subscriptions</h1><p>Coming soon</p></div></div>
-        <div class="cc-lockscreen">
-          <div class="cc-lockscreen-icn"><i class="fa-solid fa-credit-card"></i></div>
-          <h3>Subscriptions isn't built yet</h3>
-          <p>Peerloom has no billing or plan tables today. This module will unlock the moment subscriptions become real — no invented revenue numbers in the meantime.</p>
-          <span class="cc-badge cc-badge-mute">Coming soon</span>
+        <div class="cc-view-head">
+          <div><h1>Subscriptions</h1><p>Real membership &amp; revenue data from Peerloom's live subscriptions and payments tables</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" data-export="payments"><i class="fa-solid fa-file-export"></i> Export payments</button></div>
+        </div>
+
+        <div class="cc-stat-grid" id="ccSubsStatGrid"></div>
+
+        <div class="cc-panel" style="margin-bottom:16px;">
+          <div class="cc-panel-head">
+            <div><h3>Active subscriptions</h3><p>Every currently active student/lecturer plan</p></div>
+          </div>
+          <div class="cc-table-wrap" style="box-shadow:none; border-radius:14px;">
+            <div class="cc-table-scroll">
+              <table class="cc-table" id="ccSubscriptionsTable">
+                <thead><tr><th>User</th><th>Plan</th><th>Billing</th><th>Status</th><th>Current period ends</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-panel">
+          <div class="cc-panel-head">
+            <div><h3>Recent payments</h3><p>Newest 50 payment attempts across all users</p></div>
+          </div>
+          <div class="cc-table-wrap" style="box-shadow:none; border-radius:14px;">
+            <div class="cc-table-scroll">
+              <table class="cc-table" id="ccPaymentsTable">
+                <thead><tr><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -448,7 +499,7 @@
               <label class="cc-switch"><input type="checkbox" id="ccAnimToggle" checked><span class="cc-switch-track"></span></label>
             </div>
             <div class="cc-setting-row">
-              <div><h4>Desktop notification sound</h4><p>Play a sound when a new report or signup comes in</p></div>
+              <div><h4>Desktop notification sound</h4><p>Play a sound for new reports, new signups, and flagged moderation events</p></div>
               <label class="cc-switch"><input type="checkbox" id="ccSoundToggle"><span class="cc-switch-track"></span></label>
             </div>
           </div>
@@ -476,7 +527,7 @@
     <div class="cc-palette">
       <div class="cc-palette-input-wrap">
         <i class="fa-solid fa-magnifying-glass" style="color:var(--ink-mute);"></i>
-        <input type="text" id="ccPaletteInput" placeholder="Search users, institutions, campuses, or jump to a section…">
+        <input aria-label="Search command palette" type="text" id="ccPaletteInput" placeholder="Search users, institutions, campuses, or jump to a section…">
         <kbd style="font-size:0.68rem; color:var(--ink-mute); border:1px solid var(--border); border-radius:5px; padding:2px 6px;">ESC</kbd>
       </div>
       <div class="cc-palette-results" id="ccPaletteResults"></div>
@@ -490,7 +541,7 @@
     <div class="cc-modal" id="ccUserModal">
       <div class="cc-modal-head">
         <h3>User details</h3>
-        <button class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+        <button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div id="ccUserModalBody"></div>
     </div>
@@ -512,18 +563,61 @@
   </div>
 
   <!-- ============================================================
+       REASON MODAL — warn/suspend a user, group, or post. The
+       reason is what the affected person actually sees, so this is
+       never a plain yes/no confirm.
+       ============================================================ -->
+  <div class="cc-modal-backdrop" id="ccReasonModalBackdrop">
+    <div class="cc-modal" style="max-width:440px;">
+      <div class="cc-confirm-icn" id="ccReasonIcon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h3 id="ccReasonTitle" style="margin:0 0 6px;">Warn this account</h3>
+      <p id="ccReasonSubtitle" style="color:var(--ink-mute); font-size:0.86rem; margin:0 0 16px;">This message is shown directly to them — be specific about what was breached.</p>
+      <div class="cc-field" id="ccReasonPolicyField">
+        <label for="ccReasonPolicy">Rule breached</label>
+        <select id="ccReasonPolicy" aria-label="Which rule was breached">
+          <option value="">Select the rule this action is about…</option>
+        </select>
+        <p style="font-size:0.74rem; color:var(--ink-mute); margin:6px 0 0;">Shown to them as a link straight to this section, highlighted so they can see exactly what it says.</p>
+      </div>
+      <div class="cc-field">
+        <label id="ccReasonLabel">Reason</label>
+        <textarea aria-label="Reason for action" id="ccReasonInput" rows="3" placeholder="e.g. This post contains content unrelated to academic use, which breaches our Terms of Service (Acceptable Use)."></textarea>
+      </div>
+      <div id="ccReasonError" style="color:var(--danger); font-size:0.8rem; display:none; margin-bottom:8px;"></div>
+      <div class="cc-modal-foot">
+        <button class="cc-btn cc-btn-ghost" data-close-modal>Cancel</button>
+        <button class="cc-btn cc-btn-danger" id="ccReasonConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       POST PREVIEW MODAL — for reviewing a reported Skrolz post
+       without leaving the Command Center.
+       ============================================================ -->
+  <div class="cc-modal-backdrop" id="ccPostPreviewBackdrop">
+    <div class="cc-modal wide">
+      <div class="cc-modal-head">
+        <h3>Reported post</h3>
+        <button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="ccPostPreviewBody"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        ADD ADMIN MODAL
        ============================================================ -->
   <div class="cc-modal-backdrop" id="ccAddAdminBackdrop">
     <div class="cc-modal" style="max-width:420px;">
       <div class="cc-modal-head">
         <h3>Add a super admin</h3>
-        <button class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+        <button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
       </div>
       <p style="font-size:0.82rem; color:var(--ink-mute); margin:-8px 0 16px;">The person must already have a Peerloom account. Enter the exact <strong>username</strong> they signed up with — Peerloom's client can't look up accounts by email directly, only by username.</p>
       <div class="cc-field">
         <label>Username</label>
-        <input type="text" id="ccAddAdminInput" placeholder="jane_doe">
+        <input aria-label="Cc Add Admin" type="text" id="ccAddAdminInput" placeholder="jane_doe">
       </div>
       <div id="ccAddAdminError" style="color:var(--danger); font-size:0.8rem; display:none; margin-bottom:8px;"></div>
       <div class="cc-modal-foot">
@@ -540,7 +634,7 @@
     <div class="cc-modal" style="max-width:400px;">
       <div class="cc-modal-head">
         <h3>Export</h3>
-        <button class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+        <button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
       </div>
       <p style="font-size:0.82rem; color:var(--ink-mute); margin:-8px 0 16px;" id="ccExportModalDesc">Choose a format for this export.</p>
       <div style="display:grid; gap:10px;">
@@ -560,6 +654,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="js/policy-refs.js"></script>
+  <script src="js/cc-sound-manager.js"></script>
   <script type="module" src="command-center.js"></script>
 </body>
 </html>

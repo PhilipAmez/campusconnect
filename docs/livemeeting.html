@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PeerLoom • Live Class</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/js/all.min.js"></script>
@@ -15,6 +15,9 @@
       console.log('AI Key initialized');
     };
   </script>
+  <script src="js/a11y.js" defer></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body class="dark-mode">
 
@@ -62,13 +65,13 @@
 
       <div style="margin-bottom: 15px;">
         <label style="display: block; margin-bottom: 8px; font-size: 14px; opacity: 0.8; color: var(--text-color);">Camera</label>
-        <select id="camera-select" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--glass-border); outline: none;">
+        <select aria-label="Camera" id="camera-select" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--glass-border); outline: none;">
         </select>
       </div>
 
       <div style="margin-bottom: 25px;">
         <label style="display: block; margin-bottom: 8px; font-size: 14px; opacity: 0.8; color: var(--text-color);">Microphone</label>
-        <select id="mic-select" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--glass-border); outline: none;">
+        <select aria-label="Microphone" id="mic-select" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--glass-border); outline: none;">
         </select>
       </div>
 
@@ -93,12 +96,16 @@
 
   <!-- Top Bar -->
   <div id="top-bar">
+    <img src="logo.png" alt="" style="height:20px; width:auto; flex-shrink:0; border-radius:4px;" onerror="this.style.display='none'">
     <div class="title" id="class-title">PeerLoom Live Class</div>
     <div id="timer" class="text-base">00:00:00</div>
     <span id="rec-indicator" class="rec-indicator hidden"><i class="fas fa-circle"></i> REC</span>
     <div class="flex items-center gap-4">
       <i class="fas fa-signal" style="color: var(--accent-green);"></i>
       <span class="text-sm opacity-90">HD</span>
+      <button id="home-btn" class="tool-btn" title="Go to Dashboard" aria-label="Go to Dashboard">
+        <i class="fas fa-house"></i>
+      </button>
       <button id="ai-toggle" class="tool-btn" title="AI Assistant">
         <i class="fas fa-robot"></i>
       </button>
@@ -112,7 +119,7 @@
   <div class="chat-input-desktop" id="chat-input-desktop">
     <div id="emoji-picker-desktop" class="emoji-picker hidden"></div>
     <div class="chat-input-desktop-wrapper">
-      <input type="text" placeholder="Ask a question or share a thought..." class="chat-input-desktop-field" id="chat-desktop-input" maxlength="1000" />
+      <input aria-label="Ask a question or share a thought..." type="text" placeholder="Ask a question or share a thought..." class="chat-input-desktop-field" id="chat-desktop-input" maxlength="1000" />
       <div class="chat-input-desktop-actions">
         <button class="chat-input-desktop-btn" id="desktop-attach-btn" title="Attach file">
           <i class="fas fa-paperclip"></i>
@@ -131,35 +138,35 @@
   <div id="captions-overlay" class="hidden"></div>
 
   <div id="control-bar">
-    <button class="ctrl-btn active" data-action="mic" data-tooltip="Microphone">
+    <button aria-label="Microphone" class="ctrl-btn active" data-action="mic" data-tooltip="Microphone">
       <i class="fas fa-microphone"></i>
     </button>
-    <button class="ctrl-btn" data-action="cam" data-tooltip="Camera">
+    <button aria-label="Camera" class="ctrl-btn" data-action="cam" data-tooltip="Camera">
       <i class="fas fa-video"></i>
     </button>
-    <button class="ctrl-btn" data-action="share" data-tooltip="Share Screen">
+    <button aria-label="Share Screen" class="ctrl-btn" data-action="share" data-tooltip="Share Screen">
       <i class="fas fa-desktop"></i>
     </button>
-    <button class="ctrl-btn host-only" data-action="record" data-tooltip="Record Session">
+    <button aria-label="Record Session" class="ctrl-btn host-only" data-action="record" data-tooltip="Record Session">
       <i class="fas fa-circle-dot"></i>
     </button>
-    <button class="ctrl-btn host-only" data-action="attendance" data-tooltip="Attendance">
+    <button aria-label="Attendance" class="ctrl-btn host-only" data-action="attendance" data-tooltip="Attendance">
       <i class="fas fa-user-check"></i>
     </button>
     <button class="ctrl-btn" data-action="chat" data-tooltip="Chat">
       <i class="fas fa-comment-dots"></i>
       <span id="chat-unread-badge" class="unread-badge hidden">0</span>
     </button>
-    <button class="ctrl-btn" data-action="hand" data-tooltip="Raise Hand">
+    <button aria-label="Raise Hand" class="ctrl-btn" data-action="hand" data-tooltip="Raise Hand">
       <i class="fas fa-hand"></i>
     </button>
-    <button class="ctrl-btn" data-action="whiteboard" data-tooltip="Whiteboard">
+    <button aria-label="Whiteboard" class="ctrl-btn" data-action="whiteboard" data-tooltip="Whiteboard">
       <i class="fas fa-paint-brush"></i>
     </button>
-    <button class="ctrl-btn" data-action="captions" data-tooltip="Live Captions">
+    <button aria-label="Live Captions" class="ctrl-btn" data-action="captions" data-tooltip="Live Captions">
       <i class="fas fa-closed-captioning"></i>
     </button>
-    <button class="ctrl-btn end" data-action="end" data-tooltip="End Call">
+    <button aria-label="End Call" class="ctrl-btn end" data-action="end" data-tooltip="End Call">
       <i class="fas fa-phone-slash"></i>
     </button>
   </div>
@@ -197,7 +204,7 @@
         <button id="drawer-attach-btn" class="chat-input-desktop-btn" type="button" title="Attach file" aria-label="Attach file">
           <i class="fas fa-paperclip"></i>
         </button>
-        <input type="text" placeholder="Type your message here..." id="chat-drawer-message-input" maxlength="1000" />
+        <input aria-label="Type your message here..." type="text" placeholder="Type your message here..." id="chat-drawer-message-input" maxlength="1000" />
         <button id="drawer-emoji-btn" class="chat-input-desktop-btn" type="button" title="Emoji" aria-label="Emoji">
           <i class="fas fa-smile"></i>
         </button>
@@ -220,7 +227,7 @@
       </div>
     </div>
     
-    <div class="ai-feature" onclick="generateSummary()">
+    <div role="button" tabindex="0" class="ai-feature" onclick="generateSummary()">
       <div style="font-weight: 600; margin-bottom: 4px;">
         <i class="fas fa-file-alt" style="margin-right: 10px;"></i>
         Lesson Summary
@@ -229,7 +236,7 @@
       <div style="font-size: 13px; opacity: 0.8;">Summarize the class discussion and download it as a PDF</div>
     </div>
     
-    <div class="ai-feature" onclick="generateQuiz()">
+    <div role="button" tabindex="0" class="ai-feature" onclick="generateQuiz()">
       <div style="font-weight: 600; margin-bottom: 4px;">
         <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
         Instant Quiz Generator
@@ -310,7 +317,7 @@
     <div class="attendance-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Attendance Report</h2>
-        <button onclick="closeAttendanceModal()" class="tool-btn">
+        <button aria-label="Close" onclick="closeAttendanceModal()" class="tool-btn">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -337,7 +344,7 @@
         <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Waiting Room</h2>
         <div style="display: flex; gap: 10px; align-items: center;">
           <button id="accept-all-btn" onclick="approveAllStudents()" style="display: none; padding: 8px 16px; background: rgba(0,255,148,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">Accept All</button>
-          <button onclick="closeWaitingRoomModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+          <button aria-label="Close" onclick="closeWaitingRoomModal()" class="tool-btn"><i class="fas fa-times"></i></button>
         </div>
       </div>
       <div id="waiting-list" class="attendance-list">
@@ -351,7 +358,7 @@
     <div class="attendance-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="margin: 0; font-size: 24px; color: var(--text-color);">Pending Requests</h2>
-        <button onclick="closeRequestsModal()" class="tool-btn"><i class="fas fa-times"></i></button>
+        <button aria-label="Close" onclick="closeRequestsModal()" class="tool-btn"><i class="fas fa-times"></i></button>
       </div>
       <div id="requests-list" class="attendance-list">
         <!-- Requests will be added here -->

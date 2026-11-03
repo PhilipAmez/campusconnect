@@ -3,6 +3,25 @@ import { showLecturerNotice, showLecturerConfirm } from './lecturer-notify.js';
 import { loadMyGroups } from './lecturer-groups.js';
 import { notifyGroupMembers } from './student-notify.js';
 
+// membership.js is imported lazily (see lecturer-quizzes.js for the full
+// rationale): a missing/unreachable membership.js must never break the
+// static import graph that every lecturer dashboard section shares.
+let _membershipModPromise = null;
+function loadMembership() {
+  if (!_membershipModPromise) {
+    _membershipModPromise = import('./membership.js').catch((err) => {
+      console.error('lecturer-announcements.js: membership.js failed to load — gating fails closed:', err);
+      return null;
+    });
+  }
+  return _membershipModPromise;
+}
+async function canAccess(feature, opts) {
+  const mod = await loadMembership();
+  if (!mod) return false;
+  return mod.canAccess(feature, opts);
+}
+
 let state = {
   profile: null,
   groups: [],
@@ -255,6 +274,14 @@ async function saveAnnouncement(container, editingId, { asDraft }) {
   if (!asDraft && !isScheduled) payload.published_at = now;
 
   try {
+    // PeerLoom membership gate (spec item #13): only a NEW announcement is
+    // blocked once a lecturer's free year/paid plan has lapsed — editing an
+    // existing announcement (editingId set) is untouched, matching the
+    // trg_entitled_announcements trigger (INSERT only, never UPDATE).
+    if (!editingId && !(await canAccess('lecturer_announcements'))) {
+      throw new Error('Your PeerLoom Lecturer Access is inactive. Reactivate it to post new announcements.');
+    }
+
     let savedResult;
     if (editingId) {
       const { error } = await supabase.from('announcements').update(payload).eq('id', editingId);

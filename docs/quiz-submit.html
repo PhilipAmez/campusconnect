@@ -11,6 +11,12 @@
         min-height: 100vh; display: flex; align-items: center; justify-content: center;
         flex-direction: column; gap: var(--space-md); text-align: center; padding: var(--space-lg);
     }
+    /* #errorScreen never had a centered container around the .denied-card
+       (unlike quiz-session.html's #accessDeniedScreen), so it sat flush
+       top-left instead of centered. */
+    #errorScreen {
+        min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-lg);
+    }
     .completed-card {
         background: var(--liquid-glass);
         backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
@@ -78,6 +84,9 @@
     [data-theme="dark"] .return-btn.secondary { background: rgba(255,255,255,0.08); }
     .return-btn.secondary:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
 </style>
+  <script src="js/a11y.js" defer></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body data-theme="light">
 
@@ -106,6 +115,8 @@
             </div>
 
             <div id="statusPillBlock"></div>
+
+            <div id="reviewAnswersBlock"></div>
 
             <div class="completed-actions">
                 <button class="return-btn" id="returnGroupBtn">Return to Active Groups</button>
@@ -164,7 +175,7 @@
                 return showError("We couldn't find that quiz attempt, or it doesn't belong to your account.");
             }
 
-            const { data: quiz } = await supabase.from('quizzes').select('title').eq('id', attempt.quiz_id).maybeSingle();
+            const { data: quiz } = await supabase.from('quizzes').select('title, allow_review').eq('id', attempt.quiz_id).maybeSingle();
 
             document.getElementById('quizNameText').textContent = quiz?.title || 'Your quiz';
             document.getElementById('submissionTimeText').textContent = attempt.submitted_at
@@ -202,6 +213,26 @@
             }
 
             const resolvedGroupId = groupId || attempt.group_id || '';
+
+            // "Review Answers" only appears once the attempt is actually
+            // graded (a short-answer/essay quiz isn't reviewable until the
+            // lecturer has graded it — there's no final answer key state to
+            // show yet) and only when the lecturer has switched on
+            // allow_review for this quiz. quiz-review.html independently
+            // re-checks both of these itself from the database before
+            // showing anything, so this button is purely a convenience, not
+            // the actual permission check.
+            if (attempt.status === 'graded' && quiz?.allow_review) {
+                document.getElementById('reviewAnswersBlock').innerHTML = `
+                    <button class="return-btn secondary" id="reviewAnswersBtn" style="margin-bottom: 10px;">
+                        <i class="fas fa-list-check"></i> Review Answers
+                    </button>
+                `;
+                document.getElementById('reviewAnswersBtn').addEventListener('click', () => {
+                    window.location.href = `quiz-review.html?attempt=${encodeURIComponent(attemptId)}${resolvedGroupId ? `&group=${encodeURIComponent(resolvedGroupId)}` : ''}`;
+                });
+            }
+
             document.getElementById('returnGroupBtn').addEventListener('click', () => {
                 window.location.replace('active-groups.html');
             });

@@ -1953,6 +1953,9 @@
             pointer-events: none;
         }
     </style>
+  <script src="js/a11y.js" defer></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body data-theme="light">
     <div id="splashContainer" class="splash-container">
@@ -1974,7 +1977,7 @@
     <div class="dashboard-content">
         <nav class="navbar" id="navbar">
             <a href="index.html" class="logo" style="pointer-events: none;">
-                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')" style="pointer-events: none;">
+                <img src="logo.png" alt="Peerloom" onerror="console.warn('Logo not found')" style="pointer-events: none;">
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinksMobile">
                 <span class="hamburger-icon"><span></span><span></span><span></span></span>
@@ -2004,7 +2007,7 @@
             <div class="sidebar">
                 <h3 class="auth-title text-xl"><i class="fas fa-users"></i> Groups</h3>
                 <div class="search-container">
-                    <input type="text" id="groupSearch" class="search-bar" placeholder="Search groups..." />
+                    <input aria-label="Search groups..." type="text" id="groupSearch" class="search-bar" placeholder="Search groups..." />
                     <button class="btn search-btn" id="searchGroupsBtn">Search</button>
                     <div id="groupLoading" class="loading"></div>
                 </div>
@@ -2023,7 +2026,7 @@
             <div class="main-content">
                 <h3 class="auth-title text-xl"><i class="fas fa-book"></i> Your Courses</h3>
                 <div class="search-container">
-                    <input type="text" id="courseSearch" class="search-bar" placeholder="Search educational videos..." />
+                    <input aria-label="Search educational videos..." type="text" id="courseSearch" class="search-bar" placeholder="Search educational videos..." />
                     <button class="btn search-btn" id="searchCoursesBtn">Search</button>
                     <div id="courseLoading" class="loading"></div>
                 </div>
@@ -2038,7 +2041,7 @@
             <div class="connections">
                 <h3 class="auth-title text-xl"><i class="fas fa-user-plus"></i> Connections </h3>
                 <div class="search-container">
-                    <input type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
+                    <input aria-label="Search for coursemates..." type="text" id="connectionSearch" class="search-bar" placeholder="Search for coursemates..." />
                     <button class="btn search-btn" id="searchConnectionsBtn">Search</button>
                     <div id="connectionLoading" class="loading"></div>
                 </div>
@@ -2126,7 +2129,7 @@
                         <!-- file upload (placeholder) -->
                         <button class="icon-btn" id="fileUploadBtn" title="Attach file" aria-label="Attach file"><i class="fa-regular fa-file"></i></button>
                     </div>
-                    <textarea 
+                    <textarea aria-label="Message PeerPal" 
                         class="peerpal-input" 
                         id="peerpalInput" 
                         placeholder="Message PeerPal..." 
@@ -2151,13 +2154,10 @@
                     <div class="paywall-icon">
                         <i class="fas fa-lock"></i>
                     </div>
-                    <h3 class="paywall-title">Limit Reached</h3>
-                    <p class="paywall-text">You've used your 5 free requests</p>
-                    <p class="paywall-text">Unlock PeerPal for $1/month</p>
-                    <div class="paywall-features">
-                        Unlimited requests • All AI models • Voice features • Priority access
-                    </div>
-                    <button class="paywall-button" id="unlockButton">Unlock Premium</button>
+                    <h3 class="paywall-title">Daily limit reached</h3>
+                    <p class="paywall-text">You've used your 5 free PeerPal requests for today.</p>
+                    <p class="paywall-text">They reset tomorrow. A paid plan isn't available yet.</p>
+                    <button class="paywall-button" id="unlockButton">Got it</button>
                 </div>
             </div>
         </div>
@@ -2528,8 +2528,13 @@
                 this.maxFreeRequests = 5;
                 this.isProcessing = false;
                 
-                // AI models (placeholders)
-                this.apiKey = 'AIzaSyAT4Kkg8HMU_zMBtfZHnkMi9Q9Us9Hqhtc';
+                // No API key lives in the browser: requests go through the
+                // server-side /api/peerpal proxy, which holds the key.
+                // Voice and image input were never wired to a real service
+                // (they only pretended to work), so they are hidden rather
+                // than left looking functional.
+                if (this.micBtn) this.micBtn.style.display = 'none';
+                if (this.imageUploadBtn) this.imageUploadBtn.style.display = 'none';
                 this.geminiModel = 'gemini-2.5-flash';
                 this.embeddingModel = 'gemini-embedding-1.0';
                 this.reasoningModel = 'gemini-3-flash';
@@ -2611,14 +2616,23 @@
                 this.sendWaveformBtn.addEventListener('click', () => this.sendVoiceMessage());
             }
             
+            // Free requests are per day: the count resets when the date changes.
             loadUsage() {
-                const saved = localStorage.getItem('peerpalUsage');
-                this.usageCount = saved ? parseInt(saved) : 0;
+                const today = new Date().toISOString().slice(0, 10);
+                let saved = null, savedDate = null;
+                try {
+                    saved = localStorage.getItem('peerpalUsage');
+                    savedDate = localStorage.getItem('peerpalUsageDate');
+                } catch (e) { /* storage blocked: start at 0 */ }
+                this.usageCount = (saved && savedDate === today) ? (parseInt(saved) || 0) : 0;
                 this.updateUsageDisplay();
             }
-            
+
             saveUsage() {
-                localStorage.setItem('peerpalUsage', this.usageCount.toString());
+                try {
+                    localStorage.setItem('peerpalUsage', this.usageCount.toString());
+                    localStorage.setItem('peerpalUsageDate', new Date().toISOString().slice(0, 10));
+                } catch (e) { /* storage blocked: count lives in memory only */ }
             }
             
             updateUsageDisplay() {
@@ -2928,20 +2942,11 @@
                     this.saveUsage();
                     this.updateUsageDisplay();
                     
-                    // Simulate AI response with optional audio
                     const response = await this.getAIResponse(message);
-                    
+
                     typingIndicator.remove();
-                    
-                    // Simulate TTS generation (audioUrl would be real)
-                    // For demo, we'll sometimes add audio controls
-                    const withAudio = Math.random() > 0.5; // 50% chance to have audio
-                    if (withAudio) {
-                        this.addMessage(response, 'ai', 'dummy-audio-url'); // audioUrl triggers controls
-                    } else {
-                        this.addMessage(response, 'ai');
-                    }
-                    
+                    this.addMessage(response, 'ai');
+
                 } catch (error) {
                     console.error('AI Error:', error);
                     typingIndicator.remove();
@@ -2963,43 +2968,39 @@
                 }
             }
             
+            // Real answer from the server-side proxy (api/peerpal.js), which
+            // holds the Gemini key. Throws on any failure so sendMessage()
+            // shows its error message and does not count the attempt.
             async getAIResponse(message) {
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                const lowerMessage = message.toLowerCase();
-                
-                if (lowerMessage.includes('study') || lowerMessage.includes('homework')) {
-                    return "I can help you with your studies. Consider breaking down complex topics into smaller chunks, using active recall techniques like spaced repetition, and teaching the material to someone else—it's one of the most effective ways to learn.";
-                } else if (lowerMessage.includes('group') || lowerMessage.includes('collaborate')) {
-                    return "For effective group study, I recommend setting clear goals for each session, assigning roles, using collaborative tools like shared documents, and scheduling regular check-ins. PeerLoom's group features are perfect for this.";
-                } else if (lowerMessage.includes('time') || lowerMessage.includes('schedule')) {
-                    return "Try the Pomodoro technique: 25 minutes of focused work followed by a 5-minute break. After four cycles, take a longer 15-30 minute break. This helps maintain focus and prevents burnout.";
-                } else if (lowerMessage.includes('stress') || lowerMessage.includes('anxious')) {
-                    return "Academic stress is common. Remember to practice self-care: take regular breaks, maintain a consistent sleep schedule, exercise, and don't hesitate to reach out to campus mental health resources if needed.";
-                } else if (lowerMessage.includes('career') || lowerMessage.includes('future')) {
-                    return "Building your professional network now is crucial. Attend campus events, connect with professors, join relevant student organizations, and consider informational interviews with alumni in fields you're interested in.";
-                } else {
-                    const responses = [
-                        "I'm here to help with your academic journey. Could you elaborate on what specific area you'd like assistance with?",
-                        "As your study companion, I can help with study techniques, time management, group collaboration strategies, and academic planning. What's on your mind?",
-                        "That's an interesting point. From an academic perspective, I'd recommend approaching this systematically: define your goal, break it into actionable steps, and track your progress.",
-                        "I understand. Many students face similar challenges. The key is consistent, deliberate practice and leveraging available resources like study groups and academic support services."
-                    ];
-                    return responses[Math.floor(Math.random() * responses.length)];
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error('not_signed_in');
+
+                const response = await fetch('/api/peerpal', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ message })
+                });
+                if (!response.ok) throw new Error('peerpal_http_' + response.status);
+
+                const result = await response.json().catch(() => null);
+                if (!result || typeof result.reply !== 'string' || !result.reply.trim()) {
+                    throw new Error('peerpal_empty_reply');
                 }
+                return result.reply;
             }
-            
+
             showPaywall() {
                 this.paywall.classList.add('active');
                 this.messages.scrollTop = this.messages.scrollHeight;
             }
-            
+
+            // Premium does not exist yet: no payment provider is connected,
+            // so this must never pretend to charge or unlock anything. It
+            // only closes the notice; free requests come back tomorrow.
             showPremiumModal() {
-                alert('Premium upgrade would be processed here. In production, this would connect to Stripe/Paddle.\n\nAfter payment, you get:\n• Unlimited requests for one month\n• Access to all AI models (gemini-2.5-flash, gemini-3-flash, etc.)\n• Voice features enabled\n• Priority processing');
-                
-                this.usageCount = 0;
-                this.saveUsage();
-                this.updateUsageDisplay();
                 this.paywall.classList.remove('active');
             }
         }
@@ -3193,14 +3194,18 @@
             });
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
         function createGroupCardHtml(group, currentProfile) {
             return `
                 <div class="group-item">
                     <div class="avatar">${(group.name || 'G').charAt(0).toUpperCase()}</div>
                     <div class="dashboard-row-copy">
-                        <p class="dashboard-row-title font-semibold text-gray-800">${group.name || 'Untitled Group'}</p>
-                        <p class="text-gray-600 text-sm truncate">${group.course_code || 'General'}</p>
-                        ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${group.description}</p>` : ''}
+                        <p class="dashboard-row-title font-semibold text-gray-800">${escapeHtml(group.name || 'Untitled Group')}</p>
+                        <p class="text-gray-600 text-sm truncate">${escapeHtml(group.course_code || 'General')}</p>
+                        ${group.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${escapeHtml(group.description)}</p>` : ''}
                     </div>
                     <div class="dashboard-row-actions">
                         ${renderCampusIndicator(currentProfile, group)}
@@ -3350,10 +3355,10 @@
             bindJoinButtons(suggestedGroupsDiv);
         }
 
-        function loadDefaultVideos() {
+        function loadDefaultVideos(noticeMessage) {
             const courseList = document.getElementById('courseList');
             if (!courseList) return;
-            
+
             const videos = [
                 {
                     title: 'AI 101 - College Writing',
@@ -3398,13 +3403,27 @@
                         <i class="${video.icon}"></i> ${video.title}
                     </h4>
                     <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/${video.videoId}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                     </div>
                 `;
                 videoGrid.appendChild(div);
             });
             
             courseList.innerHTML = '';
+            // Previously these default videos were shown silently whenever a
+            // real search failed (e.g. the shared YouTube quota ran out) —
+            // from the student's side that looked indistinguishable from an
+            // actual search result for whatever they typed, which was the
+            // root of the "everyone gets the same unrelated videos" bug.
+            // Now it's always labeled honestly when it's standing in for a
+            // search that didn't go through.
+            if (noticeMessage) {
+                const notice = document.createElement('p');
+                notice.className = 'text-center text-gray-500';
+                notice.style.marginBottom = '10px';
+                notice.innerHTML = `<i class="fas fa-circle-info"></i> ${escapeHtml(noticeMessage)}`;
+                courseList.appendChild(notice);
+            }
             courseList.appendChild(videoGrid);
         }
 
@@ -3564,19 +3583,27 @@
         }
        
         function renderConnectionCard(profile, viewerProfile) {
-            const fullName = profile.full_name || 'Unknown User';
-            const status = profile.status || 'Recently active';
-            const profilePhoto = profile.profile_photo;
-            const initials = fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-            const department = profile.department || 'No department';
-            const level = profile.custom_level || profile.level || 'Student';
+            // Every field here is the OTHER user's own profile data (name,
+            // status, photo, department, level) — fully under their control
+            // and rendered for anyone who searches connections. Escape before
+            // innerHTML so a crafted name/status/photo URL can't break out of
+            // its attribute or inject markup into the search results of every
+            // user who looks this person up.
+            const fullNameRaw = profile.full_name || 'Unknown User';
+            const fullName = escapeHtml(fullNameRaw);
+            const status = escapeHtml(profile.status || 'Recently active');
+            const profilePhoto = profile.profile_photo ? escapeHtml(profile.profile_photo) : null;
+            const initials = fullNameRaw.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            const department = escapeHtml(profile.department || 'No department');
+            const level = escapeHtml(profile.custom_level || profile.level || 'Student');
+            const profileId = escapeHtml(profile.id);
             // Use explicitly-passed viewerProfile; fall back to module-level only as last resort
             const viewer = viewerProfile || currentViewerProfile;
 
             return `
                 <div class="connection-item">
                     <div class="connection-avatar">
-                        <div class="avatar" onclick="navigateToUserProfile('${profile.id}')">
+                        <div role="button" tabindex="0" aria-label="View profile" class="avatar" onclick="navigateToUserProfile('${profileId}')">
                             ${profilePhoto ? `<img src="${profilePhoto}" alt="${fullName}" />` : initials}
                         </div>
                     </div>
@@ -3587,7 +3614,7 @@
                     </div>
                     <div class="connection-actions">
                         ${renderCampusIndicator(viewer, profile)}
-                        <button class="btn follow-btn" data-userid="${profile.id}">Follow</button>
+                        <button class="btn follow-btn" data-userid="${profileId}">Follow</button>
                     </div>
                 </div>
             `;
@@ -3755,7 +3782,7 @@
                 div.className = 'connection-item';
                 div.innerHTML = `
                     <div class="connection-avatar">
-                        <div class="avatar" onclick="navigateToUserProfile('${connection.id}')">
+                        <div role="button" tabindex="0" aria-label="View profile" class="avatar" onclick="navigateToUserProfile('${connection.id}')">
                             ${connection.initials}
                         </div>
                     </div>
@@ -3878,72 +3905,100 @@
             }
         }
 
-        const YOUTUBE_API_KEY = 'AIzaSyDoc4GupRnGbRW-O8fegyID9J23Bu5BCVE';
         let lastSearchQuery = '';
 
         async function searchCourses(refresh = false) {
             resetLogoutTimer();
-          
+
             let courseSearch = document.getElementById('courseSearch').value.trim();
             const courseLoading = document.getElementById('courseLoading');
             const courseList = document.getElementById('courseList');
             const searchCoursesBtn = document.getElementById('searchCoursesBtn');
-           
+
             if (!courseSearch && !refresh) {
                 loadDefaultVideos();
                 return;
             }
-           
+
             searchCoursesBtn.disabled = true;
             courseLoading.style.display = 'block';
-           
+
             if (refresh && lastSearchQuery) {
                 courseSearch = lastSearchQuery;
                 const randomTerms = ['tutorial', 'lecture', 'explained', 'basics', 'guide'];
                 courseSearch += ' ' + randomTerms[Math.floor(Math.random() * randomTerms.length)];
             }
-           
+
             lastSearchQuery = courseSearch;
-           
+
             try {
-                const educationalKeywords = 'educational tutorial lecture course university college learning';
-                const query = `${courseSearch} ${educationalKeywords}`;
-                const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=8&key=${YOUTUBE_API_KEY}`;
-                const response = await fetch(url);
-               
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-               
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message || 'YouTube API error');
-              
+                // Video search now goes through a server-side proxy
+                // (api/youtube-search.js) instead of calling YouTube
+                // directly with a key shared by every student. That old
+                // setup had a very small shared daily quota (YouTube's
+                // search.list call costs 100 of the 10,000 free daily
+                // units — only ~100 searches/day for the whole platform),
+                // so once it ran out, every student's search — whatever
+                // they'd actually typed — silently fell back to the same
+                // 6 default videos. The proxy caches repeated/similar
+                // searches server-side to make that quota go much further,
+                // and now tells the student honestly when a search
+                // couldn't be completed instead of quietly substituting
+                // unrelated videos.
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                if (!token) {
+                    courseList.innerHTML = '';
+                    loadDefaultVideos('Sign in to search for course videos — showing general subjects for now.');
+                    return;
+                }
+
+                const response = await fetch(`/api/youtube-search?q=${encodeURIComponent(courseSearch)}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const result = await response.json().catch(() => null);
+
                 courseList.innerHTML = '';
-               
-                if (data.items && data.items.length > 0) {
+
+                if (result && result.ok && result.items && result.items.length > 0) {
                     const videoGrid = document.createElement('div');
                     videoGrid.className = 'video-grid';
-                   
-                    data.items.slice(0, 6).forEach(item => {
+
+                    result.items.slice(0, 6).forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'card';
                         div.innerHTML = `
                             <h4 class="text-lg font-semibold text-purple-600 flex items-center gap-2">
-                                <i class="fas fa-book"></i> ${item.snippet.title}
+                                <i class="fas fa-book"></i> ${escapeHtml(item.title)}
                             </h4>
                             <div class="video-container">
-                                <iframe src="https://www.youtube.com/embed/${item.id.videoId}" title="${item.snippet.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                <iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(item.videoId)}" title="${escapeHtml(item.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                             </div>
                         `;
                         videoGrid.appendChild(div);
                     });
-                   
+
                     courseList.appendChild(videoGrid);
+                } else if (result && result.ok) {
+                    courseList.innerHTML = '<p class="text-center text-gray-500">No educational videos found for that search.</p>';
                 } else {
-                    courseList.innerHTML = '<p class="text-center text-gray-500">No educational videos found.</p>';
+                    // Honest fallback: say plainly that the search itself
+                    // didn't go through, rather than silently showing
+                    // generic videos as if they matched the query.
+                    const reason = result?.reason;
+                    // Logged to the browser console (not shown on-page) so
+                    // the real cause — not_configured / quota / auth / a
+                    // network failure — can be read straight from DevTools
+                    // instead of guessing blind.
+                    console.warn('[Course video search] proxy returned ok:false — reason:', reason, 'http status:', response.status, 'full response:', result);
+                    const message = reason === 'rate_limited'
+                        ? "You're searching a bit fast — please wait a moment and try again. Showing general subjects for now."
+                        : "Video search is temporarily unavailable — showing general subjects for now. Please try your search again shortly.";
+                    loadDefaultVideos(message);
                 }
             } catch (error) {
-                console.error('YouTube API error:', error.message);
-                loadDefaultVideos();
-                showNotification('Error loading videos. Showing default content.');
+                console.error('Course video search error:', error.message);
+                loadDefaultVideos('Video search is temporarily unavailable — showing general subjects for now.');
             } finally {
                 searchCoursesBtn.disabled = false;
                 courseLoading.style.display = 'none';

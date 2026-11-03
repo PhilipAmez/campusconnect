@@ -697,6 +697,7 @@
             }
         }
     </style>
+  <script src="js/a11y.js" defer></script>
 </head>
 <body>
     <div class="floating-shapes">
@@ -708,7 +709,7 @@
     <nav class="navbar">
         <div class="nav-left">
             <a href="index.html" class="logo">
-                <img src="../logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
+                <img src="logo.png" alt="Peerloom" onerror="console.warn('Logo not found')">
             </a>
         </div>
         <div class="nav-right">
@@ -763,46 +764,46 @@
                 
                 <div class="form-grid">
                     <div class="form-group">
-                        <input type="text" 
+                        <input aria-label="First name" type="text" 
                                id="firstName" 
                                class="form-input" 
                                placeholder="First name"
-                               required>
+                               required autocomplete="given-name">
                         <div class="error-message" id="firstNameError" style="display: none;"></div>
                     </div>
                     
                     <div class="form-group">
-                        <input type="text" 
+                        <input aria-label="Last name" type="text" 
                                id="lastName" 
                                class="form-input" 
                                placeholder="Last name"
-                               required>
+                               required autocomplete="family-name">
                         <div class="error-message" id="lastNameError" style="display: none;"></div>
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <input type="text" 
+                    <input aria-label="Username" type="text" 
                            id="username" 
                            class="form-input" 
                            placeholder="Username (e.g., @charles_fx)" 
                            pattern="^@?\w{3,}$" 
                            title="Start with @ or a letter, at least 3 characters, only letters, numbers, and underscores."
-                           required>
+                           required autocomplete="username">
                     <div class="error-message" id="usernameError" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
-                    <input type="tel" 
+                    <input aria-label="Contact - phone or WhatsApp" type="tel" 
                            id="contact" 
                            class="form-input" 
                            placeholder="Contact - phone or WhatsApp"
-                           required>
+                           required autocomplete="tel">
                 </div>
                 
                 <div class="form-group">
                     <div class="form-select-wrapper">
-                        <select id="campus" class="form-select" required>
+                        <select aria-label="Campus" id="campus" class="form-select" required>
                             <option value="" disabled selected>Select your campus</option>
                             <option value="type" class="custom-option">Type my campus...</option>
                             <optgroup label="Ghana">
@@ -866,7 +867,7 @@
                 
                 <div class="form-group">
                     <div class="form-select-wrapper">
-                        <select id="department" class="form-select" required>
+                        <select aria-label="Department" id="department" class="form-select" required>
                             <option value="" disabled selected>Select your department</option>
                             <option value="type" class="custom-option">Type my department...</option>
                             <option>Information Technology</option>
@@ -891,7 +892,7 @@
                 
                 <div class="form-group">
                     <div class="form-select-wrapper">
-                        <select id="level" class="form-select" required>
+                        <select aria-label="Level" id="level" class="form-select" required>
                             <option value="" disabled selected>Select your level</option>
                             <option value="type" class="custom-option">Type my level...</option>
                             <option>University 1st Year</option>
@@ -917,31 +918,35 @@
                 </div>
                 
                 <div class="form-group">
-                    <input type="email" 
+                    <input aria-label="Email" type="email" 
                            id="email" 
                            class="form-input" 
                            placeholder="Email"
-                           required>
+                           required autocomplete="email">
                     <div class="error-message" id="emailError" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
-                    <input type="password" 
+                    <input aria-label="Password" type="password" 
                            id="password" 
                            class="form-input" 
                            placeholder="Password"
-                           required>
+                           required autocomplete="new-password">
                     <div class="error-message" id="passwordError" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
-                    <input type="password" 
+                    <input aria-label="Confirm Password" type="password" 
                            id="confirmPassword" 
                            class="form-input" 
                            placeholder="Confirm Password"
-                           required>
+                           required autocomplete="new-password">
                 </div>
                 
+                <p style="font-size:13px; line-height:1.5; text-align:center; margin:0 0 12px; opacity:0.85;">
+                    Your first month is free, no card needed. After that, membership is GHS 6/month (or GHS 69.84/year).
+                </p>
+
                 <button type="submit" class="submit-btn">
                     <i class="fas fa-user-plus"></i>
                     <span>Sign Up</span>
@@ -1005,24 +1010,16 @@
 
     // Check if username already exists
     async function checkUsernameExists(username) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('username', username)
-            .maybeSingle();
-        
-        return { exists: !!data, error };
+        // Server-side yes/no check: signed-out visitors can no longer read
+        // the profiles table directly (it held everyone's email and phone).
+        const { data, error } = await supabase.rpc('username_taken', { p_username: username });
+        return { exists: data === true, error };
     }
 
     // Check if email already exists
     async function checkEmailExists(email) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('email', email)
-            .maybeSingle();
-        
-        return { exists: !!data, error };
+        const { data, error } = await supabase.rpc('email_registered', { p_email: email });
+        return { exists: data === true, error };
     }
 
     // Real-time validation for username

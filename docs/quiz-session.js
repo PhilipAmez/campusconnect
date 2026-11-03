@@ -6,6 +6,7 @@
 import { supabase } from './js/supabaseClient.js';
 import { getCurrentUserContext } from './js/campusDiscovery.js';
 import { initGlobalTheme } from './js/themeManager.js';
+import { canAccess } from './js/membership.js';
 
 const params = new URLSearchParams(window.location.search);
 const quizId = params.get('quiz') || params.get('quiz_id');
@@ -98,7 +99,7 @@ async function init() {
 
     const validation = await validateAccess();
     if (!validation.ok) {
-        return denyAccess(validation.title, validation.message);
+        return denyAccess(validation.title, validation.message, { membershipLocked: validation.membershipLocked });
     }
 
     const ok = await loadOrCreateAttempt();
@@ -111,10 +112,33 @@ async function init() {
     wireGlobalEvents();
 }
 
-function denyAccess(title, message) {
+function denyAccess(title, message, { membershipLocked = false } = {}) {
     hide(els.loadingScreen);
     els.deniedTitle.textContent = title;
     els.deniedMessage.textContent = message;
+
+    // Being told the quiz is locked with nowhere to act on it is a dead
+    // end — when the denial is specifically the membership gate, the way
+    // to fix it (reactivating) has to be right there alongside "Back to
+    // Quizzes", not just implied by the message text.
+    let reactivateBtn = document.getElementById('deniedReactivateBtn');
+    if (membershipLocked) {
+        if (!reactivateBtn) {
+            reactivateBtn = document.createElement('button');
+            reactivateBtn.className = 'return-btn';
+            reactivateBtn.id = 'deniedReactivateBtn';
+            reactivateBtn.style.marginBottom = '10px';
+            reactivateBtn.innerHTML = '<i class="fas fa-crown"></i> Reactivate Membership';
+            reactivateBtn.addEventListener('click', () => {
+                window.location.href = 'membership.html';
+            });
+            els.deniedReturnBtn.parentNode.insertBefore(reactivateBtn, els.deniedReturnBtn);
+        }
+        reactivateBtn.classList.remove('hidden');
+    } else if (reactivateBtn) {
+        reactivateBtn.classList.add('hidden');
+    }
+
     show(els.accessDeniedScreen);
     const backGroupId = groupIdParam || '';
     els.deniedReturnBtn.onclick = () => {
@@ -141,6 +165,23 @@ async function fetchQuizRow() {
 async function validateAccess() {
     if (quiz.status !== 'published') {
         return { ok: false, title: 'Not available yet', message: "This quiz hasn't been published by your lecturer." };
+    }
+
+    // PeerLoom membership gate (spec item #10): this runs before the
+    // question list or attempt-start is ever reached, so it blocks direct
+    // URL navigation straight to quiz-session.html?quiz=<id> just as much
+    // as the normal UI path — the student never sees the questions, and
+    // loadOrCreateAttempt() is never called. The real enforcement is the
+    // trg_entitled_quiz_attempt database trigger on quiz_attempts; this is
+    // the UX-friendly version of the same rule.
+    const entitled = await canAccess('quiz_attempt');
+    if (!entitled) {
+        return {
+            ok: false,
+            title: 'QUIZ ACCESS LOCKED',
+            message: 'Your group has an available quiz. Activate your PeerLoom membership to take it — GHS 6/month.',
+            membershipLocked: true,
+        };
     }
 
     const now = new Date();
@@ -961,30 +1002,50 @@ async function submitQuiz(autoSubmitted) {
         ? { status: 'submitted', score: null }
         : { status: 'graded', score: autoScore, graded_at: new Date().toISOString() };
 
-    const [answersResult, attemptResult] = await Promise.allSettled([
-        rows.length
-            ? supabase.from('quiz_answers').upsert(rows, { onConflict: 'attempt_id,question_id' })
-            : Promise.resolve(),
-        supabase
-            .from('quiz_attempts')
-            .update({
-                ...attemptUpdate,
-                submitted_at: new Date().toISOString(),
-                time_remaining_seconds: timeRemaining,
-                max_score: maxScore
-            })
-            .eq('id', attempt.id)
-            .select()
-            .single()
-    ]);
-
-    if (answersResult.status === 'rejected' || answersResult.value?.error) {
-        console.error('Failed to save answers on submit:', answersResult.reason || answersResult.value.error);
+    // These two writes used to fire in parallel via Promise.allSettled, each
+    // succeeding or failing independently. That let the quiz_attempts update
+    // mark the attempt "graded"/"submitted" with a real score even when the
+    // quiz_answers upsert right above it had silently failed — producing a
+    // ghost attempt the lecturer sees as complete and graded, backed by zero
+    // actual answers, while the student never finds out anything went wrong
+    // (found exactly this in production: a 'graded' attempt with a score
+    // and no quiz_answers rows behind it at all). Answers now have to save
+    // successfully first; only then is the attempt marked done.
+    let answersError = null;
+    if (rows.length) {
+        const { error } = await supabase.from('quiz_answers').upsert(rows, { onConflict: 'attempt_id,question_id' });
+        answersError = error || null;
     }
-    if (attemptResult.status === 'fulfilled' && attemptResult.value?.data) {
-        attempt = attemptResult.value.data;
+
+    if (answersError) {
+        console.error('Failed to save answers on submit:', answersError);
+        submitting = false;
+        hide(els.processingScreen);
+        show(els.sessionScreen);
+        startAutosave();
+        window.addEventListener('beforeunload', flushOnUnload);
+        window.addEventListener('online', handleReconnect);
+        els.autosaveStatus.classList.remove('saving');
+        els.autosaveStatus.innerHTML = '<i class="fas fa-triangle-exclamation"></i> <span>Submit failed — not saved. Check your connection and press Submit again.</span>';
+        return;
+    }
+
+    const { data: attemptData, error: attemptError } = await supabase
+        .from('quiz_attempts')
+        .update({
+            ...attemptUpdate,
+            submitted_at: new Date().toISOString(),
+            time_remaining_seconds: timeRemaining,
+            max_score: maxScore
+        })
+        .eq('id', attempt.id)
+        .select()
+        .single();
+
+    if (attemptData) {
+        attempt = attemptData;
     } else {
-        console.error('Failed to finalize attempt submission:', attemptResult.reason || attemptResult.value?.error);
+        console.error('Failed to finalize attempt submission:', attemptError);
     }
 
     notifyLecturerOfSubmission();

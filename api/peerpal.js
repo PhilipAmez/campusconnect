@@ -124,22 +124,108 @@ function buildFallbackReply(message) {
 }
 
 /**
+ * ── Rate limiting ───────────────────────────────────────────────
+ * This calls a metered, paid external API (Gemini), so an
+ * unprotected endpoint is a real cost/abuse risk, not just a data
+ * risk — anyone could script requests against it and run up the
+ * bill or exhaust quota for real users.
+ *
+ * This is a best-effort, zero-dependency, zero-infrastructure
+ * limiter: it lives in memory on whichever serverless instance
+ * handles a given request. That's a real limitation, not a
+ * complete solution — Vercel can spin up multiple instances in
+ * parallel under load, each with its own separate map, so a
+ * genuinely determined, distributed attacker could exceed this.
+ * It stops casual/scripted abuse from a single source, which is
+ * the common case, but it is NOT a substitute for a shared store
+ * (Vercel KV / Upstash Redis) if this ever needs to be bulletproof
+ * against a targeted attack.
+ */
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 12;
+const rateLimitBuckets = new Map();
+
+function isRateLimited(clientKey, max = RATE_LIMIT_MAX_REQUESTS) {
+  const now = Date.now();
+  const bucket = rateLimitBuckets.get(clientKey);
+
+  if (!bucket || now - bucket.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitBuckets.set(clientKey, { windowStart: now, count: 1 });
+    return false;
+  }
+
+  bucket.count += 1;
+  if (bucket.count > max) {
+    return true;
+  }
+  return false;
+}
+
+// Prevents rateLimitBuckets from growing unbounded across a long-lived
+// warm instance — sweeps out anything older than the window on a timer
+// rather than on every request.
+if (typeof globalThis.__peerpalRateLimitSweepStarted === 'undefined') {
+  globalThis.__peerpalRateLimitSweepStarted = true;
+  setInterval(() => {
+    const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS;
+    for (const [key, bucket] of rateLimitBuckets) {
+      if (bucket.windowStart < cutoff) rateLimitBuckets.delete(key);
+    }
+  }, RATE_LIMIT_WINDOW_MS).unref?.();
+}
+
+/**
+ * Allowed origins for CORS. This function is served from the SAME
+ * Vercel deployment as the site (see vercel.json — it's not actually
+ * a separate domain despite an earlier comment here claiming
+ * otherwise), so it doesn't need a wildcard for the site's own
+ * frontend to call it. A wildcard here would let any other website
+ * call this paid, metered endpoint on a visitor's behalf.
+ */
+const ALLOWED_ORIGINS = [
+  'https://peerloom.online',
+  'https://www.peerloom.online',
+];
+
+/**
  * Main handler — compatible with Express, Next.js API routes,
  * and any Node.js framework that follows the (req, res) convention.
  *
  * For Vercel / Next.js export it as `export default handler`.
  * For Express mount it as `app.post('/api/peerpal', handler)`.
  */
+/**
+ * ── Authentication ───────────────────────────────────────────────
+ * PeerPal is only for signed-in Peerloom users. The browser sends its
+ * Supabase access token; we ask Supabase whether that token is real.
+ * (The anon key below is the same public key already shipped in the
+ * frontend — it identifies the project, it is not a secret. Set the env
+ * vars instead if you'd rather not hardcode them.)
+ */
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://mdofjippejpqylwuzsqp.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kb2ZqaXBwZWpwcXlsd3V6c3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NjcyNzAsImV4cCI6MjA2ODI0MzI3MH0.PKtUqmGKciAQH3f_kz2q9VeYSdOcYHQDCJFu6UHcAw4';
+
+// Resolves to the user object, or null if the token is invalid/expired.
+// Throws only if Supabase itself can't be reached.
+async function verifySupabaseUser(token) {
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` }
+  });
+  if (r.status === 401 || r.status === 403) return null;
+  if (!r.ok) throw new Error(`Supabase auth responded ${r.status}`);
+  const u = await r.json();
+  return u && u.id ? u : null;
+}
+
 async function handler(req, res) {
   // ── 0. CORS ───────────────────────────────────────────────────
-  // This function lives on a different domain than peerloom.online (it's
-  // a standalone Vercel deployment, not served from the same origin as
-  // the site), so the browser will block the request entirely unless
-  // these headers are present — including a preflight OPTIONS request
-  // that the browser sends automatically before the real POST.
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
@@ -151,7 +237,35 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
   }
 
-  // ── 2. Input validation ──────────────────────────────────────
+  // ── 2. Rate limit ─────────────────────────────────────────────
+  // Coarse per-IP limit first, so an unauthenticated flood can't hammer the
+  // auth check below. Generous on purpose: many students share one campus IP.
+  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  if (isRateLimited('ip:' + ip, 120)) {
+    res.setHeader('Retry-After', '60');
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' });
+  }
+
+  // Must be a signed-in user. Without this the endpoint is an open, paid
+  // proxy to Gemini that any script on the internet can call.
+  const bearer = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  let user = null;
+  try {
+    user = bearer ? await verifySupabaseUser(bearer) : null;
+  } catch (authErr) {
+    console.error('[PeerPal] Auth service unreachable:', authErr.message);
+    return res.status(503).json({ error: 'Authentication service unavailable. Please try again.' });
+  }
+  if (!user) {
+    return res.status(401).json({ error: 'Please sign in to use PeerPal.' });
+  }
+  const clientKey = 'user:' + user.id;
+  if (isRateLimited(clientKey)) {
+    res.setHeader('Retry-After', '60');
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' });
+  }
+
+  // ── 3. Input validation ──────────────────────────────────────
   const { message } = req.body || {};
 
   if (!message || typeof message !== 'string') {
@@ -166,19 +280,19 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Message too long. Maximum 8000 characters.' });
   }
 
-  // ── 3. API key guard ─────────────────────────────────────────
+  // ── 4. API key guard ─────────────────────────────────────────
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error('[PeerPal] GEMINI_API_KEY is not set in environment variables.');
     return res.status(500).json({ reply: buildFallbackReply(trimmedMessage) });
   }
 
-  // ── 4. Call Gemini API, trying each model in the fallback chain ──
+  // ── 5. Call Gemini API, trying each model in the fallback chain ──
   for (const model of GEMINI_MODEL_CHAIN) {
     try {
-      const geminiRes = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
+      const geminiRes = await fetch(`${GEMINI_BASE}/${model}:generateContent`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body:    JSON.stringify(buildRequestBody(model, trimmedMessage))
       });
 

@@ -87,10 +87,27 @@ async function loadOverviewStats(profile) {
     if (totalMembers > 0) {
       const { data: attemptStudents, error: attemptsError } = await supabase
         .from('quiz_attempts')
-        .select('student_id')
+        .select('id, student_id')
         .in('quiz_id', quizIds);
       if (attemptsError) console.error('Failed to load attempt students for overview:', attemptsError);
-      const engaged = new Set((attemptStudents || []).map((a) => a.student_id)).size;
+      const attemptIds = (attemptStudents || []).map((a) => a.id);
+      // Defense in depth against a ghost attempt (see lecturer-submissions.js
+      // / lecturer-results.js / quiz-review.html for the full story): an
+      // attempt with zero quiz_answers rows behind it isn't a real
+      // engagement, so it shouldn't inflate this percentage.
+      let answeredAttemptIds = new Set();
+      if (attemptIds.length) {
+        const { data: answerRows } = await supabase
+          .from('quiz_answers')
+          .select('attempt_id')
+          .in('attempt_id', attemptIds);
+        answeredAttemptIds = new Set((answerRows || []).map((a) => a.attempt_id));
+      }
+      const engaged = new Set(
+        (attemptStudents || [])
+          .filter((a) => answeredAttemptIds.has(a.id))
+          .map((a) => a.student_id)
+      ).size;
       engagementPct = Math.round((engaged / totalMembers) * 100);
     }
   }

@@ -118,19 +118,23 @@ function showSkeletonLoaders() {
     }
 }
 
+const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Neutral inline avatar, so a missing photo doesn't trigger a request to a third-party host.
+const PLACEHOLDER_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="24" fill="#cbd5e1"/><circle cx="24" cy="19" r="8" fill="#fff"/><path d="M8 44c2-10 10-14 16-14s14 4 16 14z" fill="#fff"/></svg>');
+
 function renderNotifications(data) {
     data.forEach(notif => {
         const item = document.createElement('div');
         item.className = `notification-item ${!notif.read ? 'unread' : ''}`;
         item.dataset.id = notif.id;
 
-        const avatarUrl = notif.sender?.profile_photo || 'https://via.placeholder.com/48';
+        const avatarUrl = notif.sender?.profile_photo || PLACEHOLDER_AVATAR;
         const senderName = notif.sender?.full_name || 'System';
 
         item.innerHTML = `
-            <img src="${avatarUrl}" alt="${senderName}" class="avatar">
+            <img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(senderName)}" class="avatar">
             <div class="content">
-                <p>${notif.content}</p>
+                <p>${escapeHtml(notif.content)}</p>
                 <div class="timestamp">${new Date(notif.created_at).toLocaleString()}</div>
             </div>
         `;

@@ -62,6 +62,16 @@ body::before {
   background: rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  /* Desktop: pinned to the viewport and scrolls independently of the main
+     content column, instead of being a normal grid item that scrolls away
+     with the page as content-area grows taller than one screen. The mobile
+     breakpoint below overrides this back to its off-canvas drawer
+     positioning, so this only applies above 980px. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .brand-block {
@@ -71,6 +81,19 @@ body::before {
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   margin-bottom: 18px;
+}
+
+.brand-logo-link {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.brand-logo {
+  height: 34px;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .brand-block h1 {
@@ -392,6 +415,9 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  /* Room so the fixed .quiz-floating-actions bar never covers the last
+     card's content (Publishing / Quick tips). */
+  padding-bottom: 76px;
 }
 
 .quiz-hero {
@@ -399,6 +425,47 @@ body::before {
   justify-content: space-between;
   align-items: center;
   gap: 18px;
+}
+
+.quiz-bottom-add-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+/* A plain, solid (never translucent) bar fixed to the bottom of the
+   viewport so Save draft / Publish stay reachable while scrolling a long
+   question list — without the glass-card's blur/transparency, which
+   looked like broken "ghosting" when it was tried as a sticky *top* bar
+   instead (it let scrolling content show faintly through it). Solid and
+   fixed avoids that entirely. Extra bottom padding is added to
+   .quiz-shell in JS-adjacent markup isn't needed since this bar floats
+   above content rather than reserving space for itself. */
+.quiz-floating-actions {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+  max-width: calc(100vw - 32px);
+}
+body.dark .quiz-floating-actions {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.quiz-floating-actions .primary-btn,
+.quiz-floating-actions .secondary-btn {
+  padding: 10px 16px;
+  font-size: 0.86rem;
+  white-space: nowrap;
 }
 
 .quiz-stepper {
@@ -961,6 +1028,19 @@ body.dark .logout-overlay {
   background: rgba(185, 28, 28, 0.1);
 }
 
+.nav-item.nav-item-membership {
+  color: #8A2BE2;
+  font-weight: 700;
+}
+
+.nav-item.nav-item-membership i {
+  color: #8A2BE2;
+}
+
+.nav-item.nav-item-membership:hover {
+  background: rgba(138, 43, 226, 0.1);
+}
+
 .nav-divider {
   height: 1px;
   background: var(--border);
@@ -1075,9 +1155,27 @@ body.dark .logout-overlay {
     display: flex;
   }
 
+  .mobile-toolbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    min-width: 0;
+  }
+
+  .mobile-toolbar-logo {
+    height: 24px;
+    width: auto;
+    display: block;
+    flex-shrink: 0;
+  }
+
   .mobile-toolbar-title {
     font-weight: 700;
     color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .sidebar {
@@ -1395,6 +1493,7 @@ body.dark .logout-overlay {
 
 .badge-success { background: rgba(22, 163, 74, 0.14); color: #15803d; }
 .badge-warning { background: rgba(217, 119, 6, 0.14); color: #b45309; }
+.badge-muted { background: var(--chip); color: var(--muted); }
 body.dark .badge-success { background: rgba(22, 163, 74, 0.22); color: #4ade80; }
 body.dark .badge-warning { background: rgba(217, 119, 6, 0.22); color: #fbbf24; }
 

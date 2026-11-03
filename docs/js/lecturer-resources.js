@@ -3,6 +3,25 @@ import { showLecturerNotice, showLecturerConfirm } from './lecturer-notify.js';
 import { loadMyGroups } from './lecturer-groups.js';
 import { notifyGroupMembers } from './student-notify.js';
 
+// membership.js is imported lazily (see lecturer-quizzes.js for the full
+// rationale): a missing/unreachable membership.js must never break the
+// static import graph that every lecturer dashboard section shares.
+let _membershipModPromise = null;
+function loadMembership() {
+  if (!_membershipModPromise) {
+    _membershipModPromise = import('./membership.js').catch((err) => {
+      console.error('lecturer-resources.js: membership.js failed to load — gating fails closed:', err);
+      return null;
+    });
+  }
+  return _membershipModPromise;
+}
+async function canAccess(feature, opts) {
+  const mod = await loadMembership();
+  if (!mod) return false;
+  return mod.canAccess(feature, opts);
+}
+
 let state = {
   profile: null,
   groups: [],
@@ -334,6 +353,16 @@ async function saveResource(container, editingId, { asDraft }) {
   draftBtn.disabled = true;
 
   try {
+    // PeerLoom membership gate (spec item #12): only a NEW upload is
+    // blocked once a lecturer's free year/paid plan has lapsed — editing
+    // metadata on something already uploaded (editingId set) is untouched,
+    // matching the trg_entitled_resources trigger (INSERT only, never
+    // UPDATE). Checked before the file upload itself so an inactive
+    // lecturer doesn't waste bandwidth uploading a file that gets rejected.
+    if (!editingId && !(await canAccess('lecturer_resources'))) {
+      throw new Error('Your PeerLoom Lecturer Access is inactive. Reactivate it to upload new resources.');
+    }
+
     const payload = {
       title,
       description,

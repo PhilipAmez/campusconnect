@@ -2,6 +2,25 @@ import { supabase } from './supabaseClient.js';
 import { showLecturerNotice } from './lecturer-notify.js';
 import { openStudentProfile } from './lecturer-student-profile.js';
 
+// membership.js is imported lazily (see lecturer-quizzes.js for the full
+// rationale): a missing/unreachable membership.js must never break the
+// static import graph that every lecturer dashboard section shares.
+let _membershipModPromise = null;
+function loadMembership() {
+  if (!_membershipModPromise) {
+    _membershipModPromise = import('./membership.js').catch((err) => {
+      console.error('lecturer-groups.js: membership.js failed to load — gating fails closed:', err);
+      return null;
+    });
+  }
+  return _membershipModPromise;
+}
+async function canAccess(feature, opts) {
+  const mod = await loadMembership();
+  if (!mod) return false;
+  return mod.canAccess(feature, opts);
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -192,6 +211,18 @@ async function openGroupDestination({ button, container, profile, groupsById, gr
     showLecturerNotice(
       errorTitle,
       "We couldn't confirm you have access to this group. Please refresh the page and try again.",
+      'error'
+    );
+    return;
+  }
+
+  // PeerLoom membership gate (spec item #6): starting a live class is a
+  // lecturer tool, gated the same way as quizzes/resources/announcements —
+  // only blocks the "Live Class" route, never the group chat route.
+  if (route === 'livemeeting.html' && !(await canAccess('live_class'))) {
+    showLecturerNotice(
+      'Lecturer Access inactive',
+      'Your PeerLoom Lecturer Access is inactive. Reactivate it to start a live class.',
       'error'
     );
     return;

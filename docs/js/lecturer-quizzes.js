@@ -2,6 +2,29 @@ import { supabase } from './supabaseClient.js';
 import { notifyGroupMembers } from './student-notify.js';
 import { showLecturerNotice, showLecturerConfirm } from './lecturer-notify.js';
 
+// membership.js is imported lazily (not as a static top-level import) so
+// that if it's ever missing, misnamed, or briefly unreachable on a given
+// deployment, it fails closed on THIS feature instead of throwing a
+// module-resolution error that would blank out the entire lecturer
+// dashboard (every section is reached through one shared import graph).
+// Server-side enforcement (trg_entitled_quiz_builder) is the real backstop
+// regardless of whether this frontend check can run.
+let _membershipModPromise = null;
+function loadMembership() {
+  if (!_membershipModPromise) {
+    _membershipModPromise = import('./membership.js').catch((err) => {
+      console.error('lecturer-quizzes.js: membership.js failed to load — gating fails closed:', err);
+      return null;
+    });
+  }
+  return _membershipModPromise;
+}
+async function canAccess(feature, opts) {
+  const mod = await loadMembership();
+  if (!mod) return false;
+  return mod.canAccess(feature, opts);
+}
+
 const QUESTION_TYPE_LABELS = {
   mcq: 'Multiple Choice',
   short_answer: 'Short Answer',
@@ -34,7 +57,7 @@ function createEmptyQuestion(type = 'mcq') {
     id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
     type,
     prompt: '',
-    points: 10,
+    points: type === 'mcq' ? 1 : 10,
     required: false,
     explanation: '',
     character_limit: 200,
@@ -157,7 +180,10 @@ async function loadQuizDraft(quizId, profile) {
     id: question.id,
     type: question.question_type,
     prompt: question.prompt || '',
-    points: question.points || 10,
+    // MCQ is always worth 1 point, no exceptions — even normalizing an
+    // older saved question here, so loading one into the editor can't show
+    // a stale value from before this rule existed.
+    points: question.points || (question.question_type === 'mcq' ? 1 : 10),
     required: question.required || false,
     explanation: question.explanation || '',
     character_limit: question.character_limit || 200,
@@ -191,6 +217,17 @@ async function loadQuizDraft(quizId, profile) {
 }
 
 async function saveQuiz(payload, profile, isPublishing = false) {
+  // PeerLoom membership gate (spec item #14): covers draft save, draft
+  // update, AND publish — a lecturer outside their free year/paid plan
+  // can't create or edit quiz content at all, matching the
+  // trg_entitled_quiz_builder database trigger this backs up (it fires on
+  // every INSERT and on an UPDATE by the quiz's own creator, regardless of
+  // draft/published status). Existing quizzes/drafts are never touched —
+  // this only blocks a new write attempt.
+  if (!(await canAccess('lecturer_quiz_builder'))) {
+    throw new Error('Your PeerLoom Lecturer Access is inactive. Reactivate it to create, edit, or publish quizzes.');
+  }
+
   const normalized = {
     ...payload,
     institution: profile?.institution || payload.institution || 'Your institution',
@@ -252,12 +289,20 @@ async function saveQuiz(payload, profile, isPublishing = false) {
     if (questionError) throw questionError;
   }
 
-  await supabase.from('quiz_groups').delete().eq('quiz_id', quizId);
-  if (normalized.target_groups?.length) {
-    const groupRows = normalized.target_groups.map((groupId) => ({ quiz_id: quizId, group_id: groupId }));
-    const { error: groupError } = await supabase.from('quiz_groups').insert(groupRows);
-    if (groupError) throw groupError;
+  // A raw client-side delete().insert() pair on quiz_groups here used to
+  // silently fail: the delete's result was never checked (Supabase doesn't
+  // throw on a database error), and when it quietly failed, old group rows
+  // survived and the next insert collided with them — the exact "duplicate
+  // key value violates... quiz_groups_quiz_id_group_id_key" error on every
+  // republish. One atomic server-side function instead, same fix already
+  // proven for deleteQuiz()/delete_quiz_cascade.
+  const { error: groupError } = await supabase.rpc('set_quiz_target_groups', {
+    p_quiz_id: quizId,
+    p_group_ids: normalized.target_groups?.length ? normalized.target_groups : [],
+  });
+  if (groupError) throw groupError;
 
+  if (normalized.target_groups?.length) {
     if (isPublishing) {
       await notifyGroupMembers(supabase, {
         groupIds: normalized.target_groups,
@@ -290,7 +335,7 @@ function renderQuestionCard(question, index, onUpdate, onDelete, onReorder) {
           <div class="option-row" draggable="true" data-option-index="${optionIndex}">
             <div class="option-handle"><i class="fa-solid fa-grip-lines"></i></div>
             <label class="option-radio">
-              <input type="radio" name="correct-${index}" value="${optionIndex}" ${Number(question.correct_option) === optionIndex ? 'checked' : ''}>
+              <input type="radio" name="correct-${index}" value="${optionIndex}" data-action="correct-option" data-index="${index}" data-option-index="${optionIndex}" ${Number(question.correct_option) === optionIndex ? 'checked' : ''}>
             </label>
             <input class="quiz-input" type="text" value="${escapeHtml(option.text)}" data-action="option-text" data-index="${index}" data-option-index="${optionIndex}" placeholder="Option ${optionIndex + 1}" />
             <button class="subtle-action" data-action="delete-option" data-index="${index}" data-option-index="${optionIndex}"><i class="fa-solid fa-xmark"></i></button>
@@ -342,7 +387,7 @@ function renderQuestionCard(question, index, onUpdate, onDelete, onReorder) {
         </label>
         <label class="field-group">
           <span>Points</span>
-          <input class="quiz-input" type="number" min="1" value="${question.points || 10}" data-action="question-points" data-index="${index}">
+          <input class="quiz-input" type="number" min="1" value="${question.points || (question.type === 'mcq' ? 1 : 10)}" data-action="question-points" data-index="${index}">
         </label>
         <label class="field-group">
           <span>Required</span>
@@ -378,8 +423,6 @@ function renderBuilderView(container, profile, onSectionChange) {
           <p>Create a quiz with a calm, guided workflow tailored for your institution. Drafts stay private until you publish them to your course groups.</p>
         </div>
         <div class="hero-actions">
-          <button class="primary-btn" data-action="save-draft"><i class="fa-solid fa-floppy-disk"></i> Save draft</button>
-          <button class="secondary-btn" data-action="publish-quiz"><i class="fa-solid fa-paper-plane"></i> Publish</button>
           <button class="secondary-btn" data-action="open-drafts"><i class="fa-solid fa-file-lines"></i> Drafts</button>
         </div>
       </div>
@@ -528,6 +571,13 @@ function renderBuilderView(container, profile, onSectionChange) {
             <div class="question-stack">
               ${(state.questions || []).map((question, index) => renderQuestionCard(question, index)).join('')}
             </div>
+            ${(state.questions || []).length ? `
+              <div class="quiz-bottom-add-row">
+                <button class="secondary-btn small" data-action="add-question-mcq"><i class="fa-solid fa-plus"></i> Add MCQ</button>
+                <button class="secondary-btn small" data-action="add-question-short"><i class="fa-solid fa-plus"></i> Add short answer</button>
+                <button class="secondary-btn small" data-action="add-question-essay"><i class="fa-solid fa-plus"></i> Add essay</button>
+              </div>
+            ` : ''}
           </section>
 
           <section class="glass-card quiz-section">
@@ -585,12 +635,11 @@ function renderBuilderView(container, profile, onSectionChange) {
               <span class="badge-pill soft">Step 5</span>
             </div>
             <div class="stacked-actions">
-              <button class="primary-btn full" data-action="save-draft"><i class="fa-solid fa-floppy-disk"></i> Save draft</button>
               <button class="secondary-btn full" data-action="update-draft"><i class="fa-solid fa-pen-to-square"></i> Update draft</button>
-              <button class="secondary-btn full" data-action="publish-quiz"><i class="fa-solid fa-paper-plane"></i> Publish</button>
               <button class="secondary-btn full" data-action="archive-quiz"><i class="fa-solid fa-box-archive"></i> Archive</button>
               <button class="secondary-btn full danger" data-action="delete-quiz"><i class="fa-solid fa-trash"></i> Delete</button>
             </div>
+            <p class="field-hint" style="margin-top:4px;">Save draft and Publish are always available from the bar at the bottom of the screen.</p>
             <div class="status-box">
               <strong>Current status</strong>
               <p>${escapeHtml(getStatusBadge(state.status || 'draft'))}</p>
@@ -608,6 +657,10 @@ function renderBuilderView(container, profile, onSectionChange) {
         </aside>
       </div>
     </section>
+    <div class="quiz-floating-actions">
+      <button class="primary-btn" data-action="save-draft"><i class="fa-solid fa-floppy-disk"></i> Save draft</button>
+      <button class="secondary-btn" data-action="publish-quiz"><i class="fa-solid fa-paper-plane"></i> Publish</button>
+    </div>
   `;
 
   bindBuilderEvents(container, profile, onSectionChange);
@@ -762,6 +815,19 @@ function bindQuizCardEvents(container, section, profile, onSectionChange) {
         }
       });
     }
+  });
+}
+
+// Scrolls straight to the question a lecturer just added and puts the
+// cursor in its prompt field, so adding another question never means
+// scrolling down through the whole stack to find the new (empty) card.
+function focusNewestQuestion(container, index) {
+  requestAnimationFrame(() => {
+    const card = container.querySelector(`.question-card[data-question-index="${index}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const prompt = card.querySelector('[data-action="question-prompt"]');
+    if (prompt) prompt.focus({ preventScroll: true });
   });
 }
 
@@ -935,18 +1001,21 @@ function bindBuilderEvents(container, profile, onSectionChange) {
       element.addEventListener('click', () => {
         const questions = [...(quizState.questions || []), createEmptyQuestion('mcq')];
         setState({ questions });
+        focusNewestQuestion(container, questions.length - 1);
       });
     }
     if (action === 'add-question-short') {
       element.addEventListener('click', () => {
         const questions = [...(quizState.questions || []), createEmptyQuestion('short_answer')];
         setState({ questions });
+        focusNewestQuestion(container, questions.length - 1);
       });
     }
     if (action === 'add-question-essay') {
       element.addEventListener('click', () => {
         const questions = [...(quizState.questions || []), createEmptyQuestion('essay')];
         setState({ questions });
+        focusNewestQuestion(container, questions.length - 1);
       });
     }
 
@@ -963,8 +1032,23 @@ function bindBuilderEvents(container, profile, onSectionChange) {
         const index = Number(event.target.dataset.index);
         const questions = [...quizState.questions];
         const nextType = event.target.value;
-        questions[index] = { ...questions[index], type: nextType, options: nextType === 'mcq' ? questions[index].options || [] : [], character_limit: nextType === 'mcq' ? questions[index].character_limit : 200 };
+        questions[index] = { ...questions[index], type: nextType, points: nextType === 'mcq' ? 1 : (questions[index].points === 1 ? 10 : questions[index].points), options: nextType === 'mcq' ? questions[index].options || [] : [], character_limit: nextType === 'mcq' ? questions[index].character_limit : 200 };
         setState({ questions });
+      });
+    }
+    // This radio had no data-action at all, so selecting a different
+    // "correct" option only moved the native radio dot (the browser
+    // handles mutual exclusivity for same-name radios on its own) without
+    // ever updating quizState.questions[index].correct_option. The UI
+    // looked changed; the saved quiz, and the grading that reads from it,
+    // silently kept the old answer key. This is the actual fix.
+    if (action === 'correct-option') {
+      element.addEventListener('change', (event) => {
+        const index = Number(event.target.dataset.index);
+        const optionIndex = Number(event.target.dataset.optionIndex);
+        const questions = [...quizState.questions];
+        questions[index] = { ...questions[index], correct_option: optionIndex };
+        mutateState({ questions });
       });
     }
     if (action === 'question-points') {

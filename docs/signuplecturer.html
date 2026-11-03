@@ -673,6 +673,7 @@
             }
         }
     </style>
+  <script src="js/a11y.js" defer></script>
 </head>
 <body>
     <div class="floating-shapes">
@@ -683,8 +684,8 @@
     
     <nav class="navigation">
         <div class="nav-left">
-            <a href="index.html" class="nav-link">
-                <i class="fas fa-home"></i>
+            <a href="index.html" class="nav-link" style="gap:8px;">
+                <img src="logo.png" alt="Peerloom" style="height:22px; width:auto;" onerror="this.style.display='none'">
                 Home
             </a>
         </div>
@@ -718,7 +719,7 @@
                                id="firstName" 
                                class="form-input" 
                                placeholder="Enter first name"
-                               required>
+                               required autocomplete="given-name">
                         <div class="error-message" id="firstNameError">
                             Please enter your first name
                         </div>
@@ -732,7 +733,7 @@
                                id="lastName" 
                                class="form-input" 
                                placeholder="Enter last name"
-                               required>
+                               required autocomplete="family-name">
                         <div class="error-message" id="lastNameError">
                             Please enter your last name
                         </div>
@@ -847,7 +848,7 @@
                            id="email" 
                            class="form-input" 
                            placeholder="name@institution.edu"
-                           required>
+                           required autocomplete="email">
                     <div class="error-message" id="emailError">
                         Please enter a valid academic email
                     </div>
@@ -862,7 +863,7 @@
                                id="password" 
                                class="form-input" 
                                placeholder="Create a password"
-                               required>
+                               required autocomplete="new-password">
                         <div class="error-message" id="passwordError">
                             Password must be at least 6 characters
                         </div>
@@ -876,7 +877,7 @@
                                id="confirmPassword" 
                                class="form-input" 
                                placeholder="Confirm your password"
-                               required>
+                               required autocomplete="new-password">
                         <div class="error-message" id="confirmPasswordError">
                             Passwords do not match
                         </div>
@@ -1057,13 +1058,8 @@
         
         // Check if email already exists
         async function checkEmailExists(email) {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('email')
-                .eq('email', email)
-                .maybeSingle();
-            
-            return { exists: !!data, error };
+            const { data, error } = await supabase.rpc('email_registered', { p_email: email });
+            return { exists: data === true, error };
         }
 
         // Real-time validation for email

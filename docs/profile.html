@@ -1799,12 +1799,15 @@
         .toast.info { border-left-color: var(--secondary); }
         .toast.info .toast-icon { color: var(--secondary); }
     </style>
+  <script src="js/a11y.js" defer></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body data-theme="dark">
     <div class="app-container">
         <!-- Header with swipe functionality -->
         <header class="header" id="header">
-            <button class="back-btn" id="backBtn">
+            <button aria-label="Go back" class="back-btn" id="backBtn">
                 <i class="fas fa-arrow-left"></i>
             </button>
             <div class="theme-indicator" id="themeIndicator">
@@ -1934,7 +1937,7 @@
                                     Bio
                                 </h2>
                             </div>
-                            <button class="edit-bio-btn" id="editBioBtn">
+                            <button aria-label="Edit bio" class="edit-bio-btn" id="editBioBtn">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <div class="bio-content" id="bioContent">
@@ -1987,8 +1990,8 @@
                 </div>
             </div>
 
-            <button class="viewer-nav prev" id="viewerPrevBtn"><i class="fas fa-chevron-left"></i></button>
-            <button class="viewer-nav next" id="viewerNextBtn"><i class="fas fa-chevron-right"></i></button>
+            <button aria-label="Previous post" class="viewer-nav prev" id="viewerPrevBtn"><i class="fas fa-chevron-left"></i></button>
+            <button aria-label="Next post" class="viewer-nav next" id="viewerNextBtn"><i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
 
@@ -1999,7 +2002,7 @@
             <h2 class="drawer-title">Content</h2>
             <div class="drawer-header-actions">
                 <button class="btn btn-primary btn-small" id="createPostBtn" style="display: none;">Create Post</button>
-                <button class="close-drawer" id="closePostsDrawer">
+                <button aria-label="Close" class="close-drawer" id="closePostsDrawer">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -2031,7 +2034,7 @@
     <div class="settings-drawer" id="settingsDrawer">
         <div class="drawer-header">
             <h2 class="drawer-title">Settings</h2>
-            <button class="close-drawer" id="closeDrawer">
+            <button aria-label="Close" class="close-drawer" id="closeDrawer">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -2123,7 +2126,7 @@
                         <div class="settings-label">Notification Frequency</div>
                         <div class="settings-desc">How often to receive notifications</div>
                     </div>
-                    <select class="settings-select" id="notificationFrequency">
+                    <select aria-label="Notification frequency" class="settings-select" id="notificationFrequency">
                         <option value="immediate">Immediate</option>
                         <option value="daily">Daily Digest</option>
                         <option value="weekly">Weekly Summary</option>
@@ -2167,7 +2170,7 @@
                         <div class="settings-label">Allow Direct Messages</div>
                         <div class="settings-desc">Who can send you direct messages</div>
                     </div>
-                    <select class="settings-select" id="directMessagesSetting">
+                    <select aria-label="Who can message you" class="settings-select" id="directMessagesSetting">
                         <option value="everyone">Everyone</option>
                         <option value="followers">Followers Only</option>
                         <option value="none">No One</option>
@@ -2200,7 +2203,7 @@
                         <div class="settings-label">Font Size</div>
                         <div class="settings-desc">Adjust the text size</div>
                     </div>
-                    <select class="settings-select" id="fontSizeSetting">
+                    <select aria-label="Font size" class="settings-select" id="fontSizeSetting">
                         <option value="small">Small</option>
                         <option value="medium" selected>Medium</option>
                         <option value="large">Large</option>
@@ -2265,7 +2268,7 @@
                         <div class="settings-label">Language</div>
                         <div class="settings-desc">Choose your preferred language</div>
                     </div>
-                    <select class="settings-select" id="languageSetting">
+                    <select aria-label="Language Setting" class="settings-select" id="languageSetting">
                         <option value="en" selected>English</option>
                         <option value="es">Spanish</option>
                         <option value="fr">French</option>
@@ -2278,7 +2281,7 @@
                         <div class="settings-label">Time Format</div>
                         <div class="settings-desc">12-hour or 24-hour clock</div>
                     </div>
-                    <select class="settings-select" id="timeFormatSetting">
+                    <select aria-label="Time Format Setting" class="settings-select" id="timeFormatSetting">
                         <option value="12h">12-hour</option>
                         <option value="24h">24-hour</option>
                     </select>
@@ -2298,7 +2301,7 @@
     <div class="followers-drawer" id="followersDrawer">
         <div class="drawer-header">
             <h2 class="drawer-title">Followers & Following</h2>
-            <button class="close-drawer" id="closeFollowersDrawer">
+            <button aria-label="Close" class="close-drawer" id="closeFollowersDrawer">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -2332,11 +2335,11 @@
             <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem;">
                 <div>
                     <label style="font-size:.875rem;color:var(--text-secondary);display:block;margin-bottom:.35rem;">Full Name</label>
-                    <input type="text" id="editProfileFullName" placeholder="Your full name" class="academic-input" style="display:block;">
+                    <input aria-label="Your full name" type="text" id="editProfileFullName" placeholder="Your full name" class="academic-input" style="display:block;">
                 </div>
                 <div>
                     <label style="font-size:.875rem;color:var(--text-secondary);display:block;margin-bottom:.35rem;">Username</label>
-                    <input type="text" id="editProfileUsername" placeholder="@username" class="academic-input" style="display:block;">
+                    <input aria-label="@username" type="text" id="editProfileUsername" placeholder="@username" class="academic-input" style="display:block;">
                 </div>
                 <div id="editProfileError" style="color:var(--danger);font-size:.875rem;display:none;"></div>
             </div>
@@ -2992,7 +2995,7 @@
                     <div class="group-avatar">${initials}</div>
                     <div class="group-info">
                         <div class="group-name-row">
-                            <span class="group-name">${group.name || 'Unnamed Group'}</span>
+                            <span class="group-name">${escapeHtml(group.name || 'Unnamed Group')}</span>
                             ${groupData.role === 'admin' ? '<span class="admin-badge"><i class="fas fa-shield-alt"></i>Admin</span>' : ''}
                         </div>
                         <div class="group-members"><i class="fas fa-user" style="font-size:0.75rem; opacity:0.6;"></i> ${memberCount} member${memberCount !== 1 ? 's' : ''}</div>
@@ -3111,7 +3114,7 @@
                         ${videoHtml}
                         ${profileUserId === currentUser.id ? `
                             <div class="post-actions">
-                                <button class="post-menu-btn" data-post-id="${post.id}" onclick="event.stopPropagation();">
+                                <button aria-label="Post options" class="post-menu-btn" data-post-id="${post.id}" onclick="event.stopPropagation();">
                                     <i class="fas fa-ellipsis-h"></i>
                                 </button>
                                 <div class="post-menu" id="post-menu-${post.id}">
@@ -3390,7 +3393,7 @@
                 viewerAuthorName.textContent = author.full_name;
                 viewerAuthorUsername.textContent = `@${author.username || 'user'}`;
                 const authorAvatarHtml = author.avatar_url || author.profile_photo
-                    ? `<img src="${author.profile_photo}" alt="${author.full_name}">`
+                    ? `<img src="${escapeHtml(author.profile_photo)}" alt="${escapeHtml(author.full_name)}">`
                     : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:bold; background-color: var(--primary); color: white;">${getInitials(author.full_name)}</div>`;
                 viewerAuthorAvatar.innerHTML = authorAvatarHtml;
             }
@@ -3584,13 +3587,13 @@
                 followerItem.innerHTML = `
                     <div class="follower-avatar">
                         ${follower.profile_photo ?
-                            `<img src="${follower.profile_photo}" alt="${follower.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            `<img src="${escapeHtml(follower.profile_photo)}" alt="${escapeHtml(follower.full_name)}" style="width: 100%; height: 100%; border-radius: 50%;">` :
                             getInitials(follower.full_name)
                         }
                     </div>
                     <div class="follower-info">
-                        <div class="follower-name">${follower.full_name}</div>
-                        <div class="follower-username">@${follower.username}</div>
+                        <div class="follower-name">${escapeHtml(follower.full_name)}</div>
+                        <div class="follower-username">@${escapeHtml(follower.username)}</div>
                     </div>
                     <button class="follow-action ${isFollowing(follower.id) ? 'following' : ''}"
                             onclick="toggleFollow('${follower.id}')"
@@ -3621,13 +3624,13 @@
                 followingItem.innerHTML = `
                     <div class="following-avatar">
                         ${followedUser.profile_photo ?
-                            `<img src="${followedUser.profile_photo}" alt="${followedUser.full_name}" style="width: 100%; height: 100%; border-radius: 50%;">` :
+                            `<img src="${escapeHtml(followedUser.profile_photo)}" alt="${escapeHtml(followedUser.full_name)}" style="width: 100%; height: 100%; border-radius: 50%;">` :
                             getInitials(followedUser.full_name)
                         }
                     </div>
                     <div class="following-info">
-                        <div class="following-name">${followedUser.full_name}</div>
-                        <div class="following-username">@${followedUser.username}</div>
+                        <div class="following-name">${escapeHtml(followedUser.full_name)}</div>
+                        <div class="following-username">@${escapeHtml(followedUser.username)}</div>
                     </div>
                     <button class="unfollow-btn" onclick="unfollowUser('${followedUser.id}')" ${profileUserId !== currentUser.id ? 'style="display:none;"' : ''}>
                         Unfollow
@@ -3807,17 +3810,17 @@
                 const avatarUrl = sender?.profile_photo;
 
                 const avatarHtml = avatarUrl
-                    ? `<img src="${avatarUrl}" alt="${senderName}">`
+                    ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(senderName)}">`
                     : `<span>${getInitials(senderName)}</span>`;
 
                 notificationItem.innerHTML = `
                     <div class="notification-avatar">${avatarHtml}</div>
                     <div class="notification-body">
                         <div class="notification-header">
-                            <div class="notification-sender">${senderName}</div>
+                            <div class="notification-sender">${escapeHtml(senderName)}</div>
                             <div class="notification-time">${time}</div>
                         </div>
-                        <div class="notification-message">${message}</div>
+                        <div class="notification-message">${escapeHtml(message)}</div>
                     </div>
                 `;
               
@@ -3970,11 +3973,11 @@
                             let toastAction = null;
 
                             if (newNotification.type === 'new_follower') {
-                                toastMessage = `<strong>${senderName}</strong> started following you.`;
+                                toastMessage = `<strong>${escapeHtml(senderName)}</strong> started following you.`;
                                 toastType = 'follow';
                                 toastAction = () => window.location.href = `profile.html?userId=${newNotification.sender_id}`;
                             } else if (newNotification.type === 'new_like') {
-                                toastMessage = `<strong>${senderName}</strong> liked your post.`;
+                                toastMessage = `<strong>${escapeHtml(senderName)}</strong> liked your post.`;
                                 toastType = 'like';
                                 // Action to view the post
                                 toastAction = () => window.location.href = 'notifications.html';
@@ -4013,7 +4016,7 @@
                         const groupEntry = userGroups.find(g => g.groups && g.groups.id === newMessage.group_id);
                         const groupName = groupEntry?.groups?.name || 'a group';
                         const preview = escapeHtml((newMessage.content || '').substring(0, 50));
-                        const toastMessage = `New message in <strong>${groupName}</strong>: "${preview}"`;
+                        const toastMessage = `New message in <strong>${escapeHtml(groupName)}</strong>: "${preview}"`;
                         const toastAction = () => window.location.href = `chatroom.html?groupId=${newMessage.group_id}`;
                         showToast(toastMessage, 'message', 8000, toastAction);
                         playNotificationSound();

@@ -26,8 +26,10 @@ function renderSidebar(container, activeSection, onSelect, onLogout) {
 
   container.innerHTML = `
     <div class="brand-block">
-      <h1><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Lecturer Studio</h1>
-      <p>Academic operations, thoughtfully orchestrated.</p>
+      <a href="lecturer-dashboard.html" class="brand-logo-link" aria-label="Peerloom home">
+        <img src="logo.png" alt="Peerloom" class="brand-logo" />
+      </a>
+      <p>Lecturer Studio — academic operations, thoughtfully orchestrated.</p>
     </div>
     <nav class="nav-list">
       ${lecturerSections.map((section) => `
@@ -41,6 +43,10 @@ function renderSidebar(container, activeSection, onSelect, onLogout) {
         </button>
       `).join('')}
       <div class="nav-divider" role="separator"></div>
+      <button class="nav-item nav-item-membership" data-action="membership" aria-label="PeerLoom Lecturer Membership">
+        <i class="fa-solid fa-crown" aria-hidden="true"></i>
+        <span>${t('sidebar_membership')}</span>
+      </button>
       <button class="nav-item logout-item" data-action="logout" aria-label="Log out of lecturer dashboard">
         <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
         <span>${t('sidebar_logout')}</span>
@@ -51,6 +57,19 @@ function renderSidebar(container, activeSection, onSelect, onLogout) {
   container.querySelectorAll('.nav-item[data-section]').forEach((button) => {
     button.addEventListener('click', () => onSelect(button.dataset.section));
   });
+
+  // PeerLoom membership (Task #19): the lecturer dashboard had no entry
+  // point at all to lecturer-membership.html — a lecturer whose free year
+  // had lapsed could be shown a locked tool, but had no sidebar link to
+  // actually get to the plan/payment page. This is a real page navigation,
+  // not a dashboard section switch, so it's wired directly rather than
+  // through onSelect.
+  const membershipButton = container.querySelector('[data-action="membership"]');
+  if (membershipButton) {
+    membershipButton.addEventListener('click', () => {
+      window.location.href = 'lecturer-membership.html';
+    });
+  }
 
   const logoutButton = container.querySelector('[data-action="logout"]');
   if (logoutButton && typeof onLogout === 'function') {

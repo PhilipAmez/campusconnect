@@ -544,13 +544,18 @@
       to { transform: translateX(0); opacity: 1; }
     }
   </style>
+  <script src="js/a11y.js" defer></script>
+  <script src="js/policy-refs.js"></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body>
   <div class="notifications-container">
     <div class="header">
       <div class="header-top">
         <div class="header-left">
-          <button class="back-btn" onclick="window.history.back()"><i class="fas fa-arrow-left"></i></button>
+          <button aria-label="Go back" class="back-btn" onclick="window.history.back()"><i class="fas fa-arrow-left"></i></button>
+          <img src="logo.png" alt="" style="height:20px; width:auto; flex-shrink:0;" onerror="this.style.display='none'">
           <h2 class="title" id="title">Notifications</h2>
         </div>
         <div class="header-actions">
@@ -809,6 +814,7 @@
             post_id,
             origin,
             sender_id,
+            policy_ref,
             sender:profiles!notifications_sender_id_fkey(id, full_name, username, profile_photo)
           `)
           .eq('user_id', currentUser.id)
@@ -835,6 +841,10 @@
     /* ─────────────────────────────────────────────────────
        RENDER LIST
     ───────────────────────────────────────────────────── */
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
     function getInitials(name) {
       if (!name) return '?';
       return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -890,8 +900,8 @@
         const photo    = sender?.profile_photo;
 
         const avatarHtml = photo
-          ? `<img class="avatar" src="${photo}" alt="${name}" onerror="this.outerHTML='<div class=\\'avatar\\'><span style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-weight:700;\\'>${getInitials(name)}</span></div>'">`
-          : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;background:#3498db22;color:var(--text-primary);">${getInitials(name)}</div>`;
+          ? `<img class="avatar" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}" data-fallback="${escapeHtml(getInitials(name))}">`
+          : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;background:#3498db22;color:var(--text-primary);">${escapeHtml(getInitials(name))}</div>`;
 
         const item = document.createElement('div');
         item.className = `notification-item${isUnread ? ' unread' : ''}`;
@@ -899,10 +909,24 @@
         item.innerHTML = `
           ${avatarHtml}
           <div class="content">
-            <p><strong>${name}</strong> ${n.content || n.type?.replace(/_/g, ' ') || 'notification'} ${notifIcon(n.type)}</p>
+            <p><strong>${escapeHtml(name)}</strong> ${escapeHtml(n.content || n.type?.replace(/_/g, ' ') || 'notification')} ${notifIcon(n.type)}</p>
+            ${window.PeerloomPolicy ? window.PeerloomPolicy.noticeHtml(n.policy_ref) : ''}
             <div class="timestamp">${timeAgo(n.created_at)}</div>
           </div>
         `;
+
+        // Avatar fallback is wired up here (not as an inline onerror string) so no
+        // user-controlled text is ever interpolated into executable code.
+        item.querySelector('img.avatar')?.addEventListener('error', (ev) => {
+          const img = ev.currentTarget;
+          const fb = document.createElement('div');
+          fb.className = 'avatar';
+          const span = document.createElement('span');
+          span.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;font-weight:700;';
+          span.textContent = img.dataset.fallback || '?';
+          fb.appendChild(span);
+          img.replaceWith(fb);
+        }, { once: true });
 
         item.addEventListener('click', () => markOneRead(n));
         listEl.appendChild(item);

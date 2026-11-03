@@ -242,11 +242,16 @@
             }
         }
     </style>
+  <script src="js/a11y.js" defer></script>
+  <script src="js/policy-refs.js"></script>
 </head>
 <body>
     <div class="auth-container">
         <div class="auth-card" id="authCard">
             <div class="auth-content">
+                <a href="index.html" style="display:flex; justify-content:center; margin-bottom:14px;">
+                    <img src="logo.png" alt="Peerloom" style="height:40px; width:auto;" onerror="this.style.display='none'">
+                </a>
                 <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 Login</h2>
                 <form id="loginForm" class="auth-form space-y-6">
                     <div class="input-group relative">
@@ -256,7 +261,7 @@
                     </div>
                     <div class="input-group relative">
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password">
+                        <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password" autocomplete="current-password">
                         <!-- ADDED: password visibility toggle icon -->
                         <i class="fas fa-eye password-toggle-icon" id="passwordToggle"></i>
                     </div>
@@ -285,6 +290,57 @@
             </div>
         </div>
     </div>
+
+    <!-- ============================================================
+         SUSPENSION SCREEN — shown in place of a redirect when a
+         suspended account signs in. Not a separate page, so there's
+         no flash of the dashboard before it appears.
+         ============================================================ -->
+    <style>
+        #pl-suspended-overlay {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #pl-suspended-overlay > div {
+            margin: auto; /* keeps it centered when it fits, but lets it scroll from the top when it doesn't */
+        }
+        @media (max-width: 480px) {
+            #pl-suspended-overlay { padding: 16px !important; align-items: flex-start !important; }
+            #pl-suspended-overlay > div { padding: 30px 22px !important; margin-top: 20px; }
+            #pl-suspended-overlay h1 { font-size: 1.15rem !important; }
+            #pl-suspended-overlay .pl-suspend-btnrow { flex-direction: column !important; }
+            #pl-suspended-overlay .pl-suspend-btnrow a { width: 100%; text-align: center; box-sizing: border-box; }
+        }
+    </style>
+    <div id="pl-suspended-overlay" style="display:none; position:fixed; inset:0; z-index:4000; background:linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%); align-items:center; justify-content:center; padding:24px;">
+        <div style="max-width:480px; width:100%; text-align:center; background:rgba(255,255,255,0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.6); border-radius:26px; padding:44px 34px; box-shadow:0 20px 60px -20px rgba(76,29,149,0.35);">
+            <div style="width:64px; height:64px; border-radius:20px; margin:0 auto 22px; background:rgba(239,68,68,0.12); color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                <i class="fa-solid fa-ban"></i>
+            </div>
+            <h1 id="pl-suspend-title" style="font-size:1.35rem; font-weight:800; color:#1f2937; margin:0 0 10px;">Your account has been suspended</h1>
+            <p id="pl-suspend-subtitle" style="color:#6b7280; font-size:0.9rem; margin:0 0 22px;">You won't be able to sign in to Peerloom until this is resolved.</p>
+
+            <div style="text-align:left; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.18); border-radius:14px; padding:16px 18px; margin-bottom:22px;">
+                <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#b91c1c; margin-bottom:6px;">Reason given</div>
+                <p id="pl-suspend-reason" style="color:#374151; font-size:0.88rem; margin:0; line-height:1.5;"></p>
+                <div id="pl-suspend-date" style="font-size:0.74rem; color:#9ca3af; margin-top:10px;"></div>
+                <div id="pl-suspend-rule"></div>
+            </div>
+
+            <p style="color:#6b7280; font-size:0.84rem; margin:0 0 24px;">This action was taken under Peerloom's Terms of Service. If you believe this was a mistake, you can review the specific terms below or contact support.</p>
+
+            <div class="pl-suspend-btnrow" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
+                <a href="index.html" style="text-decoration:none; padding:10px 18px; border-radius:10px; border:1px solid #d1d5db; color:#374151; font-weight:600; font-size:0.85rem;">Back to Peerloom</a>
+                <a href="terms.html" style="text-decoration:none; padding:10px 18px; border-radius:10px; border:1px solid #d1d5db; color:#374151; font-weight:600; font-size:0.85rem;">Read Terms of Service</a>
+                <a href="support.html" style="text-decoration:none; padding:10px 18px; border-radius:10px; background:linear-gradient(135deg, #7c3aed, #3b82f6); color:#fff; font-weight:700; font-size:0.85rem;">Contact support</a>
+            </div>
+
+            <button onclick="dismissSuspendedScreen()" style="margin-top:16px; background:none; border:none; color:#7c3aed; font-weight:600; font-size:0.82rem; cursor:pointer; text-decoration:underline;">
+                If this was resolved, try signing in again
+            </button>
+        </div>
+    </div>
+
     <a href="support.html" class="support-button">
         <i class="fas fa-headset"></i>
         <span>Support</span>
@@ -393,6 +449,40 @@
     }
     // ========== END ADDED ==========
     // ── Helper: read joinGroup from URL param first, fall back to localStorage ──
+    function dismissSuspendedScreen() {
+        document.getElementById('pl-suspended-overlay').style.display = 'none'
+        errorEl.textContent = ''
+        okEl.textContent = ''
+    }
+
+    // status: 'suspended' | 'banned' | 'removed' (profile deleted by a moderator).
+    // policyRef is a key from js/policy-refs.js — it's only ever used as a
+    // lookup key there, so nothing stored in the database is rendered as HTML.
+    function showSuspendedScreen(reason, suspendedAt, status = 'suspended', policyRef = null) {
+        const isBan = status === 'banned'
+        const isRemoved = status === 'removed'
+        const noun = isRemoved ? 'removal' : isBan ? 'ban' : 'suspension'
+        document.getElementById('pl-suspend-title').textContent =
+            isRemoved ? 'Your Peerloom profile was removed'
+            : isBan ? 'Your account has been banned' : 'Your account has been suspended'
+        document.getElementById('pl-suspend-subtitle').textContent =
+            isRemoved ? 'A moderator removed your profile data from Peerloom.'
+            : isBan ? "You won't be able to sign in to Peerloom." : "You won't be able to sign in to Peerloom until this is resolved."
+        document.getElementById('pl-suspend-reason').textContent =
+            reason && reason.trim() ? reason.trim() : `No specific reason was recorded for this ${noun}.`
+        const dateEl = document.getElementById('pl-suspend-date')
+        if (suspendedAt) {
+            const d = new Date(suspendedAt)
+            dateEl.textContent = (isRemoved ? 'Removed on ' : isBan ? 'Banned on ' : 'Suspended on ') +
+                d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        } else {
+            dateEl.textContent = ''
+        }
+        document.getElementById('pl-suspend-rule').innerHTML =
+            (window.PeerloomPolicy && window.PeerloomPolicy.noticeHtml(policyRef)) || ''
+        document.getElementById('pl-suspended-overlay').style.display = 'flex'
+    }
+
     function getRedirectUrl(profile = null, isSuperAdmin = false) {
         const params = new URLSearchParams(window.location.search)
         const explicitRedirect = params.get('redirect') || localStorage.getItem('pendingRedirect')
@@ -437,6 +527,57 @@
     async function redirectAfterAuth(session) {
         button.classList.add('loading')
         let profile = null
+
+        // Suspended accounts are stopped right here, before anything
+        // else runs — no bootstrap check, no dashboard redirect. They
+        // see exactly why, then get signed straight back out.
+        try {
+            const { data: statusRow } = await supabase
+                .from('profiles')
+                .select('account_status, suspended_reason, suspended_at')
+                .eq('id', session.user.id)
+                .maybeSingle()
+
+            if (statusRow?.account_status === 'suspended' || statusRow?.account_status === 'banned') {
+                // The rule reference is fetched separately (and optionally) so this
+                // suspension check itself never depends on a newer column existing.
+                let policyRef = null
+                try {
+                    const { data: refRow } = await supabase
+                        .from('profiles')
+                        .select('suspended_policy_ref')
+                        .eq('id', session.user.id)
+                        .maybeSingle()
+                    policyRef = refRow?.suspended_policy_ref || null
+                } catch (refErr) { /* optional enrichment only */ }
+                await supabase.auth.signOut()
+                showSuspendedScreen(statusRow.suspended_reason, statusRow.suspended_at, statusRow.account_status, policyRef)
+                button.classList.remove('loading')
+                return
+            }
+
+            // No profile row at all: a moderator may have removed it. Show them
+            // why, once, then sign back out.
+            if (!statusRow) {
+                const { data: notice } = await supabase
+                    .from('account_notices')
+                    .select('id, reason, policy_ref, created_at')
+                    .eq('user_id', session.user.id)
+                    .is('seen_at', null)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+                if (notice) {
+                    await supabase.rpc('acknowledge_account_notice', { p_id: notice.id })
+                    await supabase.auth.signOut()
+                    showSuspendedScreen(notice.reason, notice.created_at, 'removed', notice.policy_ref)
+                    button.classList.remove('loading')
+                    return
+                }
+            }
+        } catch (err) {
+            console.warn('Suspension check skipped:', err)
+        }
 
         // Bootstrap: if nobody has Command Center access yet, this is the
         // moment a session first genuinely exists for whoever's signing

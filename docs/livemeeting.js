@@ -1,5 +1,25 @@
 import { supabase } from './js/supabaseClient.js';
 
+// membership.js is imported lazily so that if it's ever missing or
+// unreachable, this entire page (and the live class) doesn't fail to load
+// at all — it instead fails closed on just the entitlement check, the same
+// way the lecturer dashboard's gated sections do.
+let _membershipModPromise = null;
+function loadMembership() {
+  if (!_membershipModPromise) {
+    _membershipModPromise = import('./js/membership.js').catch((err) => {
+      console.error('livemeeting.js: membership.js failed to load — gating fails closed:', err);
+      return null;
+    });
+  }
+  return _membershipModPromise;
+}
+async function canAccess(feature, opts) {
+  const mod = await loadMembership();
+  if (!mod) return false;
+  return mod.canAccess(feature, opts);
+}
+
     // Lecturers land here from the "Live Class" action on their My Course
     // Groups cards (lecturer-groups.js), which tags the URL with
     // ?from=lecturer. Every exit path that would otherwise send the user to
@@ -9,11 +29,27 @@ import { supabase } from './js/supabaseClient.js';
     function exitDestination(pulse = true) {
       const params = new URLSearchParams(window.location.search);
       const fromLecturer = params.get('from') === 'lecturer';
-      if (!fromLecturer) return 'dashboard.html';
       const gid = params.get('groupId');
-      return `lecturer-dashboard.html?section=groups${pulse && gid ? `&pulseGroup=${encodeURIComponent(gid)}` : ''}`;
+      if (fromLecturer) {
+        return `lecturer-dashboard.html?section=groups${pulse && gid ? `&pulseGroup=${encodeURIComponent(gid)}` : ''}`;
+      }
+      // "Back" always returns a student to the group chat they came from —
+      // not a generic dashboard. Going to the dashboard is now a separate,
+      // explicit action (the Home button in the top bar), so this is never
+      // ambiguous about where "back" leads. Falls back to the dashboard
+      // only when there's genuinely no group to go back to (e.g. a bad or
+      // missing link).
+      return gid ? `chatroom.html?groupId=${encodeURIComponent(gid)}` : 'dashboard.html';
     }
     window.exitDestination = exitDestination;
+
+    // Separate from exitDestination() (which answers "where does BACK go"):
+    // this is the explicit Home action, always the user's own dashboard.
+    function homeDestination() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('from') === 'lecturer' ? 'lecturer-dashboard.html' : 'dashboard.html';
+    }
+    window.homeDestination = homeDestination;
 
     // ============= STATE MANAGEMENT =============
     const state = {
@@ -229,11 +265,11 @@ import { supabase } from './js/supabaseClient.js';
       try {
         showAILoading();
         
+        const { data: { session: aiSession } } = await supabase.auth.getSession();
         const response = await fetch('/api/peerpal', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-          },
+            'Content-Type': 'application/json', 'Authorization': `Bearer ${aiSession?.access_token ?? ''}` },
           body: JSON.stringify({
             message: prompt
           })
@@ -946,7 +982,7 @@ import { supabase } from './js/supabaseClient.js';
       const messagesContainer = document.getElementById('chat-messages');
       const systemDiv = document.createElement('div');
       systemDiv.className = 'message system';
-      systemDiv.innerHTML = `${state.currentUser?.name} wants to share screen.`;
+      systemDiv.innerHTML = `${escapeHtml(state.currentUser?.name || 'Someone')} wants to share screen.`;
       messagesContainer.appendChild(systemDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
@@ -2862,9 +2898,14 @@ import { supabase } from './js/supabaseClient.js';
         case 'spotlight': icon = 'star'; iconColor = 'var(--accent-yellow)'; break;
       }
       
+      // message often embeds another participant's display name (join/leave/
+      // network events below) — that name is their own profile data, fully
+      // under their control, so it has to be escaped before going into
+      // innerHTML or a crafted name would run as script for everyone else
+      // currently in the call who sees the toast.
       notification.innerHTML = `
         <i class="fas fa-${icon}" style="color: ${iconColor}; font-size: 18px;"></i>
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
       `;
       
       document.body.appendChild(notification);
@@ -2878,6 +2919,15 @@ import { supabase } from './js/supabaseClient.js';
     }
 
 
+
+    // ============= HOME BUTTON =============
+    // Deliberately separate from "Leave"/"End Call": Home always goes to
+    // the dashboard, without ending the class or leaving the call for
+    // anyone else — it's a quick escape hatch to the rest of the app, not
+    // an exit action, so it skips the leave-confirmation flow entirely.
+    document.getElementById('home-btn')?.addEventListener('click', () => {
+      window.location.href = homeDestination();
+    });
 
     // ============= THEME TOGGLE =============
     document.getElementById('dark-mode-toggle').addEventListener('click', () => {
@@ -3097,7 +3147,7 @@ import { supabase } from './js/supabaseClient.js';
           const nameTag = document.createElement('div');
           nameTag.className = 'name-tag';
           nameTag.style.zIndex = '2';
-          nameTag.innerHTML = `<span>${userName} (You)</span><span class="host-badge">HOST</span>`;
+          nameTag.innerHTML = `<span>${escapeHtml(userName)} (You)</span><span class="host-badge">HOST</span>`;
           hostTile.appendChild(nameTag);
           
           if (state.localVideoTrack) {
@@ -3226,12 +3276,17 @@ import { supabase } from './js/supabaseClient.js';
       placeholder.className = 'video-placeholder';
       
       if (photoUrl) {
+        // photoUrl/name ultimately come from other participants' own profile
+        // data (full_name / avatar), which they control — escape before
+        // dropping into innerHTML so a crafted name/photo URL can't break
+        // out of the attribute or inject markup into every other tile.
+        const safePhotoUrl = escapeHtml(photoUrl);
         placeholder.innerHTML = `
-          <img src="${photoUrl}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; filter: blur(20px); opacity: 0.3;">
-          <img src="${photoUrl}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; position: relative; z-index: 1; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          <img src="${safePhotoUrl}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; filter: blur(20px); opacity: 0.3;">
+          <img src="${safePhotoUrl}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; position: relative; z-index: 1; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
         `;
       } else {
-        const initials = name ? name.charAt(0).toUpperCase() : '?';
+        const initials = name ? escapeHtml(name.charAt(0).toUpperCase()) : '?';
         placeholder.innerHTML = `<div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">${initials}</div>`;
       }
       div.appendChild(placeholder);
@@ -3251,7 +3306,7 @@ import { supabase } from './js/supabaseClient.js';
       const nameTag = document.createElement('div');
       nameTag.className = 'name-tag';
       nameTag.style.zIndex = '2';
-      nameTag.innerHTML = `<span>${name}</span>`;
+      nameTag.innerHTML = `<span>${escapeHtml(name)}</span>`;
       if (state.isHost && uid === state.currentUser.id) {
         nameTag.innerHTML += `<span class="host-badge">HOST</span>`;
       }
@@ -3349,7 +3404,7 @@ import { supabase } from './js/supabaseClient.js';
             const nameTag = document.createElement('div');
             nameTag.className = 'name-tag';
             nameTag.style.zIndex = '2';
-            nameTag.innerHTML = `<span>${name}</span><span class="host-badge">HOST</span>`;
+            nameTag.innerHTML = `<span>${escapeHtml(name)}</span><span class="host-badge">HOST</span>`;
             tile.appendChild(nameTag);
           }
         }
@@ -4662,18 +4717,57 @@ import { supabase } from './js/supabaseClient.js';
       gate.id = 'guest-gate';
       gate.innerHTML = `
         <div class="guest-gate-card">
-          <div class="guest-gate-logo"><i class="fas fa-layer-group"></i> Peerloom</div>
+          <div class="guest-gate-logo"><img src="logo.png" alt="Peerloom" class="guest-gate-logo-img"></div>
           <h2>You've been invited to join</h2>
           <p class="guest-gate-class-name">${className}${hostName ? ` <span>· hosted by ${hostName}</span>` : ''}</p>
           <p class="guest-gate-note">Sign in or create a free account to join this live class — you'll be brought right back here afterward.</p>
           <div class="guest-gate-actions">
-            <a class="guest-gate-btn primary" href="login.html?redirect=${redirectParam}">Log In</a>
-            <a class="guest-gate-btn" href="signup.html?redirect=${redirectParam}">Sign Up</a>
+            <a class="guest-gate-btn primary" href="login.html?redirect=${redirectParam}"><i class="fas fa-right-to-bracket"></i> Log In</a>
+            <a class="guest-gate-btn" href="signup.html?redirect=${redirectParam}"><i class="fas fa-user-plus"></i> Sign Up</a>
           </div>
         </div>
       `;
       document.body.appendChild(gate);
     }
+
+    // ============= MEMBERSHIP GATE (live_class) =============
+    // PeerLoom membership gate (spec item #6/#7): live classes require an
+    // active entitlement for BOTH the lecturer host (free year or paid) and
+    // a joining student (active subscription). Checked server-side too
+    // (meeting_requests insert trigger), so this is defense in depth, not
+    // the only line of defense — a lapsed user is stopped here before any
+    // camera/mic/Agora setup ever runs.
+    // NOTE: this gate's destination/copy must key off the user's ACTUAL
+    // profile role (lecturer vs student), never off whether they happen to
+    // be hosting this particular class. A student who is a group admin can
+    // now host a live class (see isGroupAdmin below), but they are not a
+    // verified lecturer — sending them to lecturer-membership.html dead-ends
+    // them on a "Lecturer access only" screen they can never pass. They
+    // still have (or can buy) a perfectly normal student membership, which
+    // already covers live_class, so they belong on membership.html same as
+    // any other student.
+    function showMembershipGate({ isLecturer }) {
+      if (loadingOverlay) { loadingOverlay.classList.add('hidden'); loadingOverlay.style.display = 'none'; }
+
+      const destination = isLecturer ? 'lecturer-membership.html' : 'membership.html';
+      const gate = document.createElement('div');
+      gate.id = 'guest-gate';
+      gate.innerHTML = `
+        <div class="guest-gate-card">
+          <div class="guest-gate-logo"><img src="logo.png" alt="Peerloom" class="guest-gate-logo-img"></div>
+          <h2>🔒 Membership Required</h2>
+          <p class="guest-gate-note">${isLecturer
+            ? 'Your PeerLoom Lecturer Access is inactive. Reactivate it to start this live class.'
+            : 'Your PeerLoom membership is inactive. Activate it to join this live class — GHS 6/month.'}</p>
+          <div class="guest-gate-actions">
+            <a class="guest-gate-btn primary" href="${destination}"><i class="fas fa-crown"></i> View Plans</a>
+            <a class="guest-gate-btn" href="${exitDestination()}"><i class="fas fa-arrow-left"></i> Go Back</a>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(gate);
+    }
+
     async function initialize() {
       // Load AI API key first
       await initializeAIKey();
@@ -4693,8 +4787,14 @@ import { supabase } from './js/supabaseClient.js';
         photo: user.user_metadata.avatar_url
       };
       
-      const { data: myProfile } = await supabase.from('profiles').select('profile_photo').eq('id', user.id).single();
+      const { data: myProfile } = await supabase.from('profiles').select('profile_photo, role').eq('id', user.id).single();
       if (myProfile?.profile_photo) state.currentUser.photo = myProfile.profile_photo;
+      // Actual account role — used only to decide which membership page a
+      // locked-out user is sent to (lecturer-membership.html vs
+      // membership.html). Deliberately kept separate from "willBeHost"
+      // below, which just means "will run this specific class" and now
+      // includes student group admins, not just lecturers.
+      const isActualLecturer = myProfile?.role === 'lecturer';
 
       state.isAuthenticated = true;
 
@@ -4711,8 +4811,37 @@ import { supabase } from './js/supabaseClient.js';
           classTitleEl.textContent = group.name;
           
           state.hostId = group.created_by;
-          
-          if (group.created_by === user.id || state.currentUser.role === 'admin') {
+
+          const isAdminUser = state.currentUser.role === 'admin';
+
+          // Live Class hosting was previously limited to the group's
+          // creator (the lecturer) only. Group admins — members promoted
+          // via chatroom.html's "Promote to Admin" action
+          // (group_members.role = 'admin') — should be able to host too,
+          // not just the original creator.
+          let isGroupAdmin = false;
+          if (!isAdminUser && group.created_by !== user.id) {
+            const { data: membership } = await supabase
+              .from('group_members')
+              .select('role')
+              .eq('group_id', gid)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            isGroupAdmin = membership?.role === 'admin';
+          }
+
+          const willBeHost = group.created_by === user.id || isAdminUser || isGroupAdmin;
+
+          // PeerLoom membership gate (spec item #6/#7): checked before any
+          // host tools are shown or any join flow proceeds. Admins (who
+          // bypass entitlement server-side too, see peerloom_is_super_admin)
+          // are never gated here.
+          if (!isAdminUser && !(await canAccess('live_class'))) {
+            showMembershipGate({ isLecturer: isActualLecturer });
+            return;
+          }
+
+          if (willBeHost) {
             state.isHost = true;
             state.currentUser.role = 'host';
             hostTools.style.display = 'flex';
@@ -4725,7 +4854,7 @@ import { supabase } from './js/supabaseClient.js';
               .select('full_name, username')
               .eq('id', group.created_by)
               .single();
-            
+
             state.hostName = hostProfile?.full_name || hostProfile?.username || 'Host';
             hostNameEl.textContent = state.hostName;
           }

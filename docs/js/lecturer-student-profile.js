@@ -1,16 +1,5 @@
 import { supabase } from './supabaseClient.js';
 
-const SEVERITY = {
-  text_selection: 'low',
-  tab_switch: 'medium',
-  window_blur: 'medium',
-  context_menu: 'low',
-  copy: 'high',
-  paste: 'high',
-  fullscreen_exit: 'high',
-  fullscreen_return: 'low'
-};
-
 let overlay = null;
 
 function escapeHtml(value = '') {
@@ -77,7 +66,7 @@ async function loadProfileData(studentId, lecturerId) {
 
   const { data: quizzes } = await supabase
     .from('quizzes')
-    .select('id, title')
+    .select('id, title, status')
     .eq('creator_id', lecturerId)
     .eq('is_deleted', false);
   const quizById = Object.fromEntries((quizzes || []).map((q) => [q.id, q]));
@@ -94,24 +83,39 @@ async function loadProfileData(studentId, lecturerId) {
     attempts = data || [];
   }
 
+  // Which of this lecturer's published quizzes were actually assigned to
+  // this student (via a course group they're in), so the "Quiz performance"
+  // list can show a clear "Not attempted" row for those — instead of just
+  // silently omitting them, which left the lecturer unable to tell "never
+  // attempted" apart from "I just haven't looked at this student yet".
+  let assignedNotAttempted = [];
+  const publishedQuizIds = (quizzes || []).filter((q) => q.status === 'published').map((q) => q.id);
+  if (publishedQuizIds.length) {
+    const { data: memberGroups } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', studentId);
+    const studentGroupIds = new Set((memberGroups || []).map((g) => g.group_id));
+
+    if (studentGroupIds.size) {
+      const { data: links } = await supabase
+        .from('quiz_groups')
+        .select('quiz_id, group_id')
+        .in('quiz_id', publishedQuizIds);
+      const attemptedQuizIds = new Set(attempts.map((a) => a.quiz_id));
+      const assignedQuizIds = new Set(
+        (links || [])
+          .filter((l) => studentGroupIds.has(l.group_id))
+          .map((l) => l.quiz_id)
+      );
+      assignedNotAttempted = [...assignedQuizIds]
+        .filter((qid) => !attemptedQuizIds.has(qid))
+        .map((qid) => ({ quiz_id: qid, status: 'not_attempted' }));
+    }
+  }
+
   const graded = attempts.filter((a) => a.status === 'graded' && a.score != null && a.max_score);
   const avgPct = graded.length ? graded.reduce((s, a) => s + (a.score / a.max_score) * 100, 0) / graded.length : null;
-
-  const eventCounts = { high: 0, medium: 0, low: 0 };
-  let integrityScore = null;
-  if (attempts.length) {
-    const attemptIds = attempts.map((a) => a.id);
-    const { data: events } = await supabase
-      .from('quiz_proctor_events')
-      .select('event_type')
-      .in('attempt_id', attemptIds);
-    (events || []).forEach((e) => {
-      const sev = SEVERITY[e.event_type] || 'low';
-      eventCounts[sev] += 1;
-    });
-    const deduction = eventCounts.high * 8 + eventCounts.medium * 3 + eventCounts.low * 1;
-    integrityScore = Math.max(0, 100 - deduction);
-  }
 
   const indexNumber = attempts.find((a) => a.index_number)?.index_number || null;
   const level = attempts.find((a) => a.level)?.level || profile?.level || profile?.custom_level || null;
@@ -121,7 +125,13 @@ async function loadProfileData(studentId, lecturerId) {
     at: a.submitted_at
   }));
 
-  return { profile, quizById, attempts, graded, avgPct, integrityScore, eventCounts, indexNumber, level, recentActivity };
+  // What "Quiz performance" actually renders: real attempts (graded or
+  // awaiting grading) plus a "Not attempted" row for every quiz this
+  // student was assigned but never started — sorted so attempts (most
+  // recent first) lead and not-attempted rows trail.
+  const performanceRows = [...attempts, ...assignedNotAttempted];
+
+  return { profile, quizById, attempts, performanceRows, graded, avgPct, indexNumber, level, recentActivity };
 }
 
 function renderStatCard(value, label) {
@@ -129,18 +139,25 @@ function renderStatCard(value, label) {
 }
 
 function renderBody(data) {
-  const { attempts, graded, avgPct, integrityScore, recentActivity } = data;
+  const { attempts, performanceRows, graded, avgPct, recentActivity } = data;
 
-  const quizRows = attempts.length
-    ? attempts.slice(0, 8).map((a) => `
+  const quizRows = performanceRows.length
+    ? performanceRows.slice(0, 8).map((a) => {
+        const isNotAttempted = a.status === 'not_attempted';
+        const badgeClass = a.status === 'graded' ? 'badge-success' : isNotAttempted ? 'badge-muted' : '';
+        const badgeLabel = a.status === 'graded'
+          ? `${a.score ?? 0}/${a.max_score ?? '—'}`
+          : isNotAttempted ? 'Not attempted' : 'Not graded yet';
+        return `
         <div class="list-item">
           <div>
             <strong>${escapeHtml(data.quizById[a.quiz_id]?.title || 'Untitled quiz')}</strong>
-            <small>${formatDateTime(a.submitted_at)}</small>
+            <small>${isNotAttempted ? 'Assigned — no submission yet' : formatDateTime(a.submitted_at)}</small>
           </div>
-          <span class="badge-pill ${a.status === 'graded' ? 'badge-success' : ''}">${a.status === 'graded' ? `${a.score ?? 0}/${a.max_score ?? '—'}` : 'Ungraded'}</span>
+          <span class="badge-pill ${badgeClass}">${badgeLabel}</span>
         </div>
-      `).join('')
+      `;
+      }).join('')
     : `<div class="list-item"><div><strong>No quiz activity yet</strong><small>Nothing submitted to your quizzes so far</small></div></div>`;
 
   const activityRows = recentActivity.length
@@ -152,11 +169,9 @@ function renderBody(data) {
     : `<div class="list-item"><div><strong>No recent activity</strong></div></div>`;
 
   return `
-    <div class="stats-grid student-profile-stats">
+    <div class="stats-grid stats-grid-2 student-profile-stats">
       ${renderStatCard(attempts.length, 'Quizzes attempted')}
       ${renderStatCard(avgPct != null ? Math.round(avgPct) + '%' : '—', 'Average score')}
-      ${renderStatCard(integrityScore != null ? integrityScore : '—', 'Integrity score')}
-      ${renderStatCard('—', 'Resources downloaded')}
     </div>
 
     <div class="grid-2">
@@ -169,12 +184,6 @@ function renderBody(data) {
         <div class="list-card">${activityRows}</div>
       </section>
     </div>
-
-    <p class="student-profile-note">
-      <i class="fa-solid fa-circle-info"></i>
-      Attendance tracking and resource-download tracking aren't wired up in PeerLoom yet — those show as "—" rather than made-up numbers.
-      Integrity score is a simple heuristic (100 minus weighted deductions for logged events across this student's attempts on your quizzes), not an official metric.
-    </p>
   `;
 }
 

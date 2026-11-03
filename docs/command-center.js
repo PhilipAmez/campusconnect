@@ -16,8 +16,20 @@ function isLecturerProfile(p) {
   return p.is_lecturer === true || p.role === 'lecturer' || p.level === 'lecturer' || p.custom_level === 'lecturer';
 }
 function institutionOf(p) { return (p.institution && p.institution.trim()) || 'Unspecified'; }
-function campusOf(p) { return (p.custom_campus && p.custom_campus.trim()) || (p.campus && p.campus.trim()) || 'Unspecified'; }
+function campusOf(p) {
+  if (p.custom_campus && p.custom_campus.trim()) return p.custom_campus.trim();
+  // At signup, profiles.campus is set equal to profiles.institution by
+  // default (only custom_campus is a genuinely distinct field) — so
+  // falling back to profiles.campus unconditionally just duplicates the
+  // institution name as a fake "campus". Only treat it as a real campus
+  // when it's actually different from the institution.
+  const inst = institutionOf(p);
+  const camp = (p.campus && p.campus.trim()) || '';
+  if (camp && camp !== inst) return camp;
+  return 'Unspecified';
+}
 function isSuspended(p) { return p.account_status === 'suspended'; }
+function isBanned(p) { return p.account_status === 'banned'; }
 function isVerified(p) { return p.verified === true; }
 function displayName(p) { return p.full_name || p.username || 'Unnamed user'; }
 function initials(name) {
@@ -56,17 +68,31 @@ const state = {
   profiles: [],       // full lean cache, kept in sync via realtime
   reports: [],
   groups: [],
+  subscriptions: [],
+  payments: [],
   groupMemberCounts: {}, // group_id -> count
   lecturerContentCounts: {}, // profile id -> { quizzes, resources, announcements }
+  platformContentCounts: { quizzes: 0, resources: 0, announcements: 0 },
+  superAdminIds: new Set(),
   charts: {},
   usersFilter: 'all',
   usersSearch: '',
   usersPage: 1,
   usersPageSize: 15,
   reportsFilter: 'pending',
+  moderationEvents: [],
+  moderationFilter: 'unseen',
   registrationsRange: 'daily',
   exportContext: null,
   pendingConfirm: null,
+  // Polling fallback (see pollCommandCenterUpdates below) — tracks which
+  // report/moderation-event/profile ids have already been shown to the
+  // admin, whether realtime delivered them or a poll did, so neither path
+  // ever double-toasts or double-plays a sound for the same row.
+  knownReportIds: new Set(),
+  knownModerationEventIds: new Set(),
+  knownProfileIds: new Set(),
+  pollTimer: null,
 };
 
 const PALETTE = ['#7c3aed', '#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#64748b', '#ec4899', '#06b6d4', '#a78bfa', '#14b8a6'];
@@ -105,14 +131,25 @@ async function boot() {
       .maybeSingle();
     state.adminProfile = profile || { full_name: adminRow.full_name || adminRow.email };
 
-    await Promise.all([fetchAllProfiles(), fetchReports(), fetchGroups()]);
+    await Promise.all([fetchAllProfiles(), fetchReports(), fetchGroups(), fetchSuperAdminIds()]);
+    await fetchModerationEvents();
     await fetchLecturerContentCounts();
+    await fetchPlatformContentCounts();
+    await fetchSubscriptionsAndPayments();
 
     document.getElementById('ccBoot').style.display = 'none';
     document.getElementById('ccApp').classList.add('is-ready');
     initShell();
     renderAll();
     initRealtime();
+    // Realtime (postgres_changes) depends on the Supabase project having
+    // replication enabled for these tables — if it isn't, or the socket
+    // drops without reconnecting, nothing above ever fires again and the
+    // admin has to manually refresh. This 20s poll is the resilience layer
+    // underneath it: same pattern already used for the student-facing
+    // notification fallback in global-notifications.js.
+    seedPollingWatermarks();
+    startCommandCenterPolling();
     runHealthChecks();
   } catch (err) {
     console.error(err);
@@ -155,42 +192,115 @@ async function fetchAllRows(table, select, applyFilters = q => q, orderCol = 'cr
 async function fetchAllProfiles() {
   state.profiles = await fetchAllRows(
     'profiles',
-    'id, full_name, username, profile_photo, institution, campus, custom_campus, department, level, custom_level, role, is_lecturer, verified, account_status, suspended_reason, created_at'
+    'id, full_name, username, profile_photo, institution, campus, custom_campus, department, level, custom_level, role, is_lecturer, verified, account_status, suspended_reason, created_at, lecturer_free_started_at, lecturer_free_ends_at'
   );
 }
 
-async function fetchReports() {
-  const raw = await fetchAllRows('reports', 'id, message_id, reported_user_id, reported_by, reason, status, created_at, group_id');
-  // attach display names from the profiles cache we already have
+async function fetchSubscriptionsAndPayments() {
+  state.subscriptions = await fetchAllRows(
+    'subscriptions',
+    'id, user_id, plan, status, amount, currency, billing_interval, started_at, current_period_start, current_period_end, cancelled_at, provider, provider_customer_id, provider_subscription_id, created_at, updated_at'
+  );
+  const { data, error } = await supabase
+    .from('payments')
+    .select('id, user_id, subscription_id, amount, currency, status, provider, provider_reference, failure_reason, created_at')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) { console.error('fetchSubscriptionsAndPayments(payments)', error); state.payments = []; }
+  else state.payments = data || [];
+}
+
+async function fetchModerationEvents() {
+  const raw = await fetchAllRows('moderation_events',
+    'id, content_type, content_id, group_id, user_id, category, severity, action_taken, snippet, seen_at, created_at');
   const byId = new Map(state.profiles.map(p => [p.id, p]));
+  const groupsById = new Map(state.groups.map(g => [g.id, g]));
+  state.moderationEvents = raw.map(e => ({
+    ...e,
+    userName: byId.get(e.user_id) ? displayName(byId.get(e.user_id)) : 'Unknown user',
+    groupName: e.group_id ? (groupsById.get(e.group_id)?.name || 'Unknown group') : null,
+  }));
+}
+
+async function fetchReports() {
+  const raw = await fetchAllRows('reports', 'id, message_id, reported_user_id, reported_by, reason, status, created_at, group_id, post_id');
+  const byId = new Map(state.profiles.map(p => [p.id, p]));
+
+  // Post-type reports need the actual post content pulled in so the
+  // Command Center can review it without leaving the page.
+  const postIds = [...new Set(raw.map(r => r.post_id).filter(Boolean))];
+  let postsById = new Map();
+  if (postIds.length) {
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('id, title, content, media_type, media_url, user_id, moderation_status')
+      .in('id', postIds);
+    postsById = new Map((postsData || []).map(p => [p.id, p]));
+  }
+
   state.reports = raw.map(r => ({
     ...r,
+    type: r.post_id ? 'post' : 'message',
     reportedUserName: byId.get(r.reported_user_id) ? displayName(byId.get(r.reported_user_id)) : 'Unknown user',
     reportedByName: byId.get(r.reported_by) ? displayName(byId.get(r.reported_by)) : 'Unknown user',
+    post: r.post_id ? postsById.get(r.post_id) || null : null,
   }));
 }
 
 async function fetchGroups() {
-  state.groups = await fetchAllRows('groups', 'id, name, course_code, description, created_by, institution, created_at');
-  const { data: members } = await supabase.from('group_members').select('group_id');
+  state.groups = await fetchAllRows('groups', 'id, name, course_code, description, created_by, institution, created_at, moderation_status, moderation_reason, moderation_at');
+  const members = await fetchAllRows('group_members', 'group_id', q => q, null);
   state.groupMemberCounts = {};
   (members || []).forEach(m => {
     state.groupMemberCounts[m.group_id] = (state.groupMemberCounts[m.group_id] || 0) + 1;
   });
 }
 
+async function fetchSuperAdminIds() {
+  const { data } = await supabase.from('super_admins').select('id');
+  state.superAdminIds = new Set((data || []).map(a => a.id));
+}
+
+// Platform-wide totals for the dashboard stat grid. Uses Supabase's
+// head-only exact count (no rows are actually fetched or transferred) rather
+// than pulling every row client-side and counting them, per item #7's own
+// "avoid loading huge datasets just to count them" requirement.
+// Quizzes use is_deleted (soft delete); resources/announcements are hard
+// deleted, so a plain row count already excludes anything removed.
+async function fetchPlatformContentCounts() {
+  const [quizzes, resources, announcements] = await Promise.all([
+    supabase.from('quizzes').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
+    supabase.from('resources').select('id', { count: 'exact', head: true }),
+    supabase.from('announcements').select('id', { count: 'exact', head: true }),
+  ]);
+  state.platformContentCounts = {
+    quizzes: quizzes.count ?? 0,
+    resources: resources.count ?? 0,
+    announcements: announcements.count ?? 0,
+  };
+}
+
 async function fetchLecturerContentCounts() {
-  const lecturerIds = state.profiles.filter(isLecturerProfile).map(p => p.id);
+  // A single malformed id (null/undefined/not-a-uuid) in this list turns the
+  // request's `in.(...)` filter into invalid syntax and PostgREST rejects
+  // the WHOLE query with a 400 — which is what silently broke this for
+  // every lecturer, not just one. Filtering to real UUIDs first means one
+  // bad profile row can't take the others down with it.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const lecturerIds = state.profiles.filter(isLecturerProfile).map(p => p.id).filter(id => UUID_RE.test(id));
   if (!lecturerIds.length) return;
   const counts = {};
   lecturerIds.forEach(id => counts[id] = { quizzes: 0, resources: 0, announcements: 0 });
 
   const [quizzes, resources, announcements] = await Promise.all([
-    supabase.from('quizzes').select('created_by').in('created_by', lecturerIds),
+    supabase.from('quizzes').select('creator_id').eq('is_deleted', false).in('creator_id', lecturerIds),
     supabase.from('resources').select('created_by').in('created_by', lecturerIds),
     supabase.from('announcements').select('created_by').in('created_by', lecturerIds),
   ]);
-  (quizzes.data || []).forEach(r => { if (counts[r.created_by]) counts[r.created_by].quizzes++; });
+  if (quizzes.error) console.error('fetchLecturerContentCounts: quizzes query failed —', quizzes.error.message, quizzes.error.details || '');
+  if (resources.error) console.error('fetchLecturerContentCounts: resources query failed —', resources.error.message, resources.error.details || '');
+  if (announcements.error) console.error('fetchLecturerContentCounts: announcements query failed —', announcements.error.message, announcements.error.details || '');
+  (quizzes.data || []).forEach(r => { if (counts[r.creator_id]) counts[r.creator_id].quizzes++; });
   (resources.data || []).forEach(r => { if (counts[r.created_by]) counts[r.created_by].resources++; });
   (announcements.data || []).forEach(r => { if (counts[r.created_by]) counts[r.created_by].announcements++; });
   state.lecturerContentCounts = counts;
@@ -203,6 +313,12 @@ function initRealtime() {
   const channel = supabase.channel('command-center')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleProfileRealtime)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, handleReportRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'quizzes' }, handleContentCountRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, handleContentCountRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, handleContentCountRealtime)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moderation_events' }, handleModerationRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions' }, handleSubscriptionRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, handlePaymentRealtime)
     .subscribe(status => {
       const dot = document.getElementById('ccLiveDot');
       if (dot) dot.style.background = status === 'SUBSCRIBED' ? 'var(--ok)' : 'var(--warn)';
@@ -210,12 +326,66 @@ function initRealtime() {
   state.realtimeChannel = channel;
 }
 
-function handleProfileRealtime(payload) {
-  const idx = state.profiles.findIndex(p => p.id === (payload.new?.id || payload.old?.id));
+// Any insert/delete/update on these three tables just re-runs the same
+// cheap head-count query and repaints the three stat cards — simplest
+// correct approach, and these are low-frequency tables compared to profiles.
+let contentCountRefreshTimer = null;
+function handleContentCountRealtime() {
+  clearTimeout(contentCountRefreshTimer);
+  contentCountRefreshTimer = setTimeout(async () => {
+    await fetchPlatformContentCounts();
+    renderDashboardStats();
+  }, 400);
+}
+
+// Revenue/MRR/active-subscription-count/failed-payment stats are all
+// computed from these two tables (see subscriptionsStatCardsConfig), but
+// they weren't part of the realtime channel at all — so once real payments
+// start flowing in, those stats would only ever update on the next poll or
+// manual refresh instead of live. Same debounce pattern as the content
+// counts above: both tables can fire in quick succession for one payment
+// (a payment insert alongside its subscription's status update), so this
+// coalesces bursts into a single re-fetch + re-render.
+let subscriptionsRefreshTimer = null;
+function handleSubscriptionRealtime() {
+  clearTimeout(subscriptionsRefreshTimer);
+  subscriptionsRefreshTimer = setTimeout(async () => {
+    await fetchSubscriptionsAndPayments();
+    renderSubscriptionsView();
+  }, 400);
+}
+
+function handlePaymentRealtime() {
+  handleSubscriptionRealtime();
+}
+
+// A brand-new flagged item is rare enough to just re-fetch and re-render
+// immediately rather than debounce like the content counts above.
+async function handleModerationRealtime(payload) {
+  await fetchModerationEvents();
+  renderModeration();
+  renderModerationBadge();
+  // Low severity is logged but deliberately doesn't badge or alert (see
+  // renderModerationBadge) — matching that, it doesn't make noise either.
+  // Realtime events are rare enough here that burst de-duplication across
+  // the whole batch isn't needed the way the flood guard is for inserts.
+  const severity = payload?.new?.severity;
+  if (severity === 'medium' || severity === 'high') {
+    window.ccPlaySound?.('moderation');
+  }
+  // fetchModerationEvents() above re-fetched the full list — mark every id
+  // in it as already-shown so the polling fallback (pollCommandCenterUpdates)
+  // doesn't re-toast/re-sound the one that just fired here over realtime.
+  state.moderationEvents.forEach(e => state.knownModerationEventIds.add(e.id));
+}
+
+function handleProfileRealtime(payload) {  const idx = state.profiles.findIndex(p => p.id === (payload.new?.id || payload.old?.id));
   if (payload.eventType === 'INSERT') {
     state.profiles.unshift(payload.new);
+    state.knownProfileIds.add(payload.new.id);
     toast(`New profile: ${displayName(payload.new)}`, 'info');
     pulseStat('ccStatTotalUsers');
+    window.ccPlaySound?.('new_user');
   } else if (payload.eventType === 'UPDATE' && idx > -1) {
     state.profiles[idx] = { ...state.profiles[idx], ...payload.new };
   } else if (payload.eventType === 'DELETE' && idx > -1) {
@@ -232,7 +402,9 @@ function handleReportRealtime(payload) {
       reportedUserName: byId.get(payload.new.reported_user_id) ? displayName(byId.get(payload.new.reported_user_id)) : 'Unknown user',
       reportedByName: byId.get(payload.new.reported_by) ? displayName(byId.get(payload.new.reported_by)) : 'Unknown user',
     });
+    state.knownReportIds.add(payload.new.id);
     toast('New report filed', 'info');
+    window.ccPlaySound?.('report');
   } else {
     const idx = state.reports.findIndex(r => r.id === payload.new?.id);
     if (idx > -1) state.reports[idx] = { ...state.reports[idx], ...payload.new };
@@ -247,6 +419,81 @@ function pulseStat(id) {
   el.classList.remove('is-pulse');
   void el.offsetWidth;
   el.classList.add('is-pulse');
+}
+
+// ============================================================
+// POLLING FALLBACK — resilience layer underneath realtime
+// ============================================================
+// Supabase realtime (postgres_changes) requires the project to have
+// replication turned on for a table, and even when it's on, the socket can
+// silently drop without reconnecting. When that happens the handlers above
+// never fire again and the only symptom is "I have to refresh the page to
+// see anything new." This re-fetches reports/moderation events/profiles on
+// an interval and diffs them against ids already known (from a prior poll
+// OR from realtime already having shown them), so a missed realtime event
+// still surfaces — with the right toast and sound — without ever showing
+// the same item twice.
+
+// Called once after the initial boot-time fetch, before polling starts, so
+// the rows already on screen at load time are never mistaken for "new".
+function seedPollingWatermarks() {
+  state.knownReportIds = new Set(state.reports.map(r => r.id));
+  state.knownModerationEventIds = new Set(state.moderationEvents.map(e => e.id));
+  state.knownProfileIds = new Set(state.profiles.map(p => p.id));
+}
+
+async function pollCommandCenterUpdates() {
+  try {
+    const reportsBefore = state.knownReportIds;
+    const moderationBefore = state.knownModerationEventIds;
+    const profilesBefore = state.knownProfileIds;
+
+    // Profiles first — fetchReports()/fetchModerationEvents() both look up
+    // display names from state.profiles, so it has to be current before
+    // they run (same ordering boot() already uses). Subscriptions/payments
+    // are refreshed here too as a backstop for initRealtime()'s
+    // subscriptions/payments channels, same as every other table on this
+    // dashboard — some projects don't have replication enabled for every
+    // table, so realtime alone can't be the only path to a live stat.
+    await fetchAllProfiles();
+    await Promise.all([fetchReports(), fetchModerationEvents(), fetchSubscriptionsAndPayments()]);
+
+    const newReports = state.reports.filter(r => !reportsBefore.has(r.id));
+    const newModerationEvents = state.moderationEvents.filter(e => !moderationBefore.has(e.id));
+    const newProfiles = state.profiles.filter(p => !profilesBefore.has(p.id));
+
+    state.knownReportIds = new Set(state.reports.map(r => r.id));
+    state.knownModerationEventIds = new Set(state.moderationEvents.map(e => e.id));
+    state.knownProfileIds = new Set(state.profiles.map(p => p.id));
+
+    if (!newReports.length && !newModerationEvents.length && !newProfiles.length) return;
+
+    if (newReports.length) {
+      toast(newReports.length === 1 ? 'New report filed' : `${newReports.length} new reports filed`, 'info');
+      window.ccPlaySound?.('report');
+    }
+    if (newModerationEvents.length) {
+      const alertWorthy = newModerationEvents.some(e => e.severity === 'medium' || e.severity === 'high');
+      if (alertWorthy) window.ccPlaySound?.('moderation');
+    }
+    if (newProfiles.length) {
+      newProfiles.forEach(p => toast(`New profile: ${displayName(p)}`, 'info'));
+      pulseStat('ccStatTotalUsers');
+      window.ccPlaySound?.('new_user');
+    }
+
+    renderAll();
+  } catch (err) {
+    // A poll failing (network blip, etc.) shouldn't ever throw out of the
+    // interval — it just tries again in 20s.
+    console.error('Command Center polling fallback failed:', err);
+  }
+}
+
+const COMMAND_CENTER_POLL_INTERVAL_MS = 20000;
+function startCommandCenterPolling() {
+  if (state.pollTimer) clearInterval(state.pollTimer);
+  state.pollTimer = setInterval(pollCommandCenterUpdates, COMMAND_CENTER_POLL_INTERVAL_MS);
 }
 
 // ============================================================
@@ -356,6 +603,16 @@ function initShell() {
       btn.classList.add('active');
       state.reportsFilter = btn.dataset.reportsFilter;
       renderReports();
+    });
+  });
+
+  // moderation filters
+  document.querySelectorAll('[data-moderation-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-moderation-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.moderationFilter = btn.dataset.moderationFilter;
+      renderModeration();
     });
   });
 
@@ -488,8 +745,11 @@ function renderAll() {
   renderGroupsTable();
   renderReports();
   renderReportsBadge();
+  renderModeration();
+  renderModerationBadge();
   renderActivityFeed();
   renderNotifDropdown();
+  renderSubscriptionsView();
 }
 
 function renderWelcome() {
@@ -502,7 +762,37 @@ function renderWelcome() {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function renderDashboardStats() {
+const countAnimState = {}; // stat id -> { current, raf }
+function animateCount(id, toValue) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const prev = countAnimState[id];
+  const fromValue = prev ? prev.current : 0;
+  if (prev?.raf) cancelAnimationFrame(prev.raf);
+  if (fromValue === toValue) { el.textContent = toValue.toLocaleString(); countAnimState[id] = { current: toValue, raf: null }; return; }
+
+  const startTime = performance.now();
+  const duration = 800;
+  const entry = { current: fromValue, raf: null };
+  countAnimState[id] = entry;
+
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic — quick start, gentle settle
+    const value = Math.round(fromValue + (toValue - fromValue) * eased);
+    el.textContent = value.toLocaleString();
+    entry.current = value;
+    if (t < 1) {
+      entry.raf = requestAnimationFrame(tick);
+    } else {
+      el.textContent = toValue.toLocaleString();
+      entry.current = toValue;
+    }
+  }
+  entry.raf = requestAnimationFrame(tick);
+}
+
+function statCardsConfig() {
   const profiles = state.profiles;
   const total = profiles.length;
   const lecturers = profiles.filter(isLecturerProfile).length;
@@ -512,7 +802,7 @@ function renderDashboardStats() {
   const verified = profiles.filter(isVerified).length;
   const recent7d = profiles.filter(p => p.created_at && (Date.now() - new Date(p.created_at)) < 7 * 86400000).length;
 
-  const cards = [
+  return [
     { id: 'ccStatTotalUsers', label: 'Total users', value: total, icon: 'fa-users', color: '#7c3aed', trend: `+${recent7d} this week` },
     { id: 'ccStatStudents', label: 'Students', value: students, icon: 'fa-user-graduate', color: '#3b82f6' },
     { id: 'ccStatLecturers', label: 'Lecturers', value: lecturers, icon: 'fa-chalkboard-user', color: '#ec4899' },
@@ -521,20 +811,44 @@ function renderDashboardStats() {
     { id: 'ccStatVerified', label: 'Verified users', value: verified, icon: 'fa-circle-check', color: '#06b6d4', sub: total ? `${Math.round(verified / total * 100)}% of all users` : null },
     { id: 'ccStatOnline', label: 'Online now', value: null, icon: 'fa-tower-broadcast', color: '#64748b', notTracked: true },
     { id: 'ccStatRecent', label: 'Joined this week', value: recent7d, icon: 'fa-user-plus', color: '#a78bfa' },
+    { id: 'ccStatQuizzes', label: 'Quizzes', value: state.platformContentCounts.quizzes, icon: 'fa-list-check', color: '#8b5cf6' },
+    { id: 'ccStatAnnouncements', label: 'Announcements', value: state.platformContentCounts.announcements, icon: 'fa-bullhorn', color: '#f97316' },
+    { id: 'ccStatResources', label: 'Resources', value: state.platformContentCounts.resources, icon: 'fa-folder-open', color: '#22c55e' },
   ];
+}
 
+function renderDashboardStats() {
+  const cards = statCardsConfig();
   const grid = document.getElementById('ccStatGrid');
-  grid.innerHTML = cards.map(c => `
-    <div class="cc-stat-card">
-      <div class="cc-stat-top">
-        <div class="cc-stat-icn" style="background:${c.color}1f; color:${c.color};"><i class="fa-solid ${c.icon}"></i></div>
-        ${c.trend ? `<span class="cc-stat-trend up"><i class="fa-solid fa-arrow-trend-up"></i> ${c.trend}</span>` : ''}
+
+  // Build the card structure once — after that, only the numbers inside
+  // update (with a live count-up), so realtime updates never tear down
+  // and rebuild the whole grid (which would kill hover state and make
+  // every card flicker even when only one value actually changed).
+  if (grid.children.length !== cards.length) {
+    grid.innerHTML = cards.map(c => `
+      <div class="cc-stat-card" data-stat-card="${c.id}">
+        <div class="cc-stat-top">
+          <div class="cc-stat-icn" style="background:${c.color}1f; color:${c.color};"><i class="fa-solid ${c.icon}"></i></div>
+          ${c.trend ? `<span class="cc-stat-trend up" data-stat-trend="${c.id}"><i class="fa-solid fa-arrow-trend-up"></i> ${c.trend}</span>` : ''}
+        </div>
+        <div class="cc-stat-value" id="${c.id}">${c.notTracked ? '—' : '0'}</div>
+        <div class="cc-stat-label">${c.label}${c.notTracked ? ' <span style="opacity:.7;">(not tracked yet)</span>' : ''}</div>
+        ${c.sub ? `<div style="font-size:0.72rem;color:var(--ink-mute);margin-top:4px;" data-stat-sub="${c.id}">${c.sub}</div>` : ''}
       </div>
-      <div class="cc-stat-value" id="${c.id}">${c.notTracked ? '—' : c.value.toLocaleString()}</div>
-      <div class="cc-stat-label">${c.label}${c.notTracked ? ' <span style="opacity:.7;">(not tracked yet)</span>' : ''}</div>
-      ${c.sub ? `<div style="font-size:0.72rem;color:var(--ink-mute);margin-top:4px;">${c.sub}</div>` : ''}
-    </div>
-  `).join('');
+    `).join('');
+  }
+
+  cards.forEach(c => {
+    if (c.notTracked) return;
+    const isFirstPaint = !countAnimState[c.id];
+    animateCount(c.id, c.value);
+    if (!isFirstPaint) pulseStat(c.id); // only pulse on genuine live changes, not initial load
+    const trendEl = document.querySelector(`[data-stat-trend="${c.id}"]`);
+    if (trendEl && c.trend) trendEl.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${c.trend}`;
+    const subEl = document.querySelector(`[data-stat-sub="${c.id}"]`);
+    if (subEl && c.sub) subEl.textContent = c.sub;
+  });
 }
 
 function renderRecentTable() {
@@ -552,18 +866,21 @@ function renderRecentTable() {
 
 function userCell(p) {
   const photo = p.profile_photo
-    ? `<img class="cc-avatar" src="${p.profile_photo}" alt="">`
+    ? `<img class="cc-avatar" src="${escapeHtml(p.profile_photo)}" alt="">`
     : `<div class="cc-avatar">${initials(displayName(p))}</div>`;
   return `<div class="cc-cell-user">${photo}<div><strong>${escapeHtml(displayName(p))}</strong><span>@${escapeHtml(p.username || 'unknown')}</span></div></div>`;
 }
 function roleBadge(p) {
+  if (state.superAdminIds?.has(p.id)) return `<span class="cc-badge cc-badge-superadmin"><i class="fa-solid fa-shield-halved"></i> Super Admin</span>`;
   return isLecturerProfile(p) ? `<span class="cc-badge cc-badge-info">Lecturer</span>` : `<span class="cc-badge cc-badge-mute">Student</span>`;
 }
 function verifiedBadge(p) {
   return isVerified(p) ? `<span class="cc-badge cc-badge-ok"><i class="fa-solid fa-check"></i> Verified</span>` : `<span class="cc-badge cc-badge-mute">Unverified</span>`;
 }
 function statusBadge(p) {
-  return isSuspended(p) ? `<span class="cc-badge cc-badge-danger">Suspended</span>` : `<span class="cc-badge cc-badge-ok">Active</span>`;
+  if (isBanned(p)) return `<span class="cc-badge cc-badge-danger">Banned</span>`;
+  if (isSuspended(p)) return `<span class="cc-badge cc-badge-danger">Suspended</span>`;
+  return `<span class="cc-badge cc-badge-ok">Active</span>`;
 }
 function emptyRow(colspan) {
   return `<tr><td colspan="${colspan}" style="text-align:center; color:var(--ink-mute); padding:30px;">No data yet</td></tr>`;
@@ -578,10 +895,63 @@ function chartTextColor() {
 function chartGridColor() {
   return getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || 'rgba(0,0,0,0.08)';
 }
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+// Vertical gradient fill for bars — solid at the top, fading toward the
+// baseline — instead of a flat single color. Mirrors the treatment the
+// line chart already had, so bars don't look flat by comparison.
+function barGradient(canvasCtx, chartArea, hex) {
+  if (!chartArea) return hex;
+  const g = canvasCtx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  g.addColorStop(0, hexToRgba(hex, 0.95));
+  g.addColorStop(1, hexToRgba(hex, 0.55));
+  return g;
+}
+function horizontalBarGradient(canvasCtx, chartArea, hex) {
+  if (!chartArea) return hex;
+  const g = canvasCtx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+  g.addColorStop(0, hexToRgba(hex, 0.55));
+  g.addColorStop(1, hexToRgba(hex, 0.95));
+  return g;
+}
+
+// Registered once — draws the total in the center of any doughnut chart
+// that sets `plugins.centerText`, so it reads as a real dashboard number
+// rather than just a decorative ring.
+const centerTextPlugin = {
+  id: 'centerText',
+  afterDraw(chart) {
+    const opts = chart.config.options.plugins?.centerText;
+    if (!opts) return;
+    const { ctx, chartArea } = chart;
+    const cx = (chartArea.left + chartArea.right) / 2;
+    const cy = (chartArea.top + chartArea.bottom) / 2;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '800 22px Inter, sans-serif';
+    ctx.fillStyle = chartTextColor() === '' ? '#16132a' : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+    ctx.fillText(opts.value, cx, cy - 9);
+    ctx.font = '600 10.5px Inter, sans-serif';
+    ctx.fillStyle = chartTextColor();
+    ctx.fillText(opts.label, cx, cy + 12);
+    ctx.restore();
+  },
+};
+if (window.Chart) Chart.register(centerTextPlugin);
+
 function baseChartOptions(extra = {}) {
   return {
     responsive: true, maintainAspectRatio: false,
-    animation: { duration: 700, easing: 'easeOutQuint' },
+    // Staggered per-bar/point entrance instead of the whole dataset
+    // appearing in one flat animation — reads as considerably livelier.
+    animation: {
+      duration: 820, easing: 'easeOutQuint',
+      delay: (ctx) => ctx.type === 'data' && ctx.mode === 'default' ? ctx.dataIndex * 55 : 0,
+    },
+    interaction: { intersect: false, mode: 'index' },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -624,20 +994,29 @@ function renderDashboardCharts() {
   }
   makeChart('chartRegistrations14', {
     type: 'bar',
-    data: { labels: days, datasets: [{ data: counts, backgroundColor: '#7c3aed', borderRadius: 6, maxBarThickness: 22 }] },
+    data: {
+      labels: days, datasets: [{
+        data: counts, borderRadius: 6, maxBarThickness: 22,
+        backgroundColor: (ctx) => barGradient(ctx.chart.ctx, ctx.chart.chartArea, '#7c3aed'),
+        hoverBackgroundColor: '#7c3aed',
+      }],
+    },
     options: baseChartOptions(),
   });
 
-  // role split donut
+  // role split donut, with the total shown in the center
   const lecturers = state.profiles.filter(isLecturerProfile).length;
   const students = state.profiles.length - lecturers;
   makeChart('chartRoleSplitMini', {
     type: 'doughnut',
-    data: { labels: ['Students', 'Lecturers'], datasets: [{ data: [students, lecturers], backgroundColor: ['#3b82f6', '#ec4899'], borderWidth: 0 }] },
+    data: { labels: ['Students', 'Lecturers'], datasets: [{ data: [students, lecturers], backgroundColor: ['#3b82f6', '#ec4899'], borderWidth: 0, hoverOffset: 8 }] },
     options: {
-      responsive: true, maintainAspectRatio: false, cutout: '68%',
-      animation: { duration: 700, easing: 'easeOutQuint' },
-      plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 8 } } },
+      responsive: true, maintainAspectRatio: false, cutout: '72%',
+      animation: { duration: 900, easing: 'easeOutQuint', animateRotate: true, animateScale: true },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: chartTextColor(), font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 8 } },
+        centerText: { value: (students + lecturers).toLocaleString(), label: 'total users' },
+      },
     },
   });
 }
@@ -695,15 +1074,20 @@ function topN(map, n) {
 function renderAnalyticsCharts() {
   renderGrowthChart();
 
-  // verification donut
+  // verification donut, with the verification rate shown in the center
   const verified = state.profiles.filter(isVerified).length;
   const unverified = state.profiles.length - verified;
+  const total = verified + unverified;
   makeChart('chartVerification', {
     type: 'doughnut',
-    data: { labels: ['Verified', 'Unverified'], datasets: [{ data: [verified, unverified], backgroundColor: ['#10b981', '#e5e2f5'], borderWidth: 0 }] },
+    data: { labels: ['Verified', 'Unverified'], datasets: [{ data: [verified, unverified], backgroundColor: ['#10b981', '#e5e2f5'], borderWidth: 0, hoverOffset: 8 }] },
     options: {
-      responsive: true, maintainAspectRatio: false, cutout: '70%',
-      plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), usePointStyle: true, boxWidth: 8, font: { family: 'Inter', size: 11 } } } },
+      responsive: true, maintainAspectRatio: false, cutout: '72%',
+      animation: { duration: 900, easing: 'easeOutQuint', animateRotate: true, animateScale: true },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: chartTextColor(), usePointStyle: true, boxWidth: 8, font: { family: 'Inter', size: 11 } } },
+        centerText: { value: total ? `${Math.round(verified / total * 100)}%` : '0%', label: 'verified' },
+      },
     },
   });
 
@@ -712,7 +1096,15 @@ function renderAnalyticsCharts() {
   const students = state.profiles.length - lecturers;
   makeChart('chartRoles', {
     type: 'bar',
-    data: { labels: ['Students', 'Lecturers'], datasets: [{ data: [students, lecturers], backgroundColor: ['#3b82f6', '#ec4899'], borderRadius: 8, maxBarThickness: 40 }] },
+    data: {
+      labels: ['Students', 'Lecturers'], datasets: [{
+        data: [students, lecturers], borderRadius: 8, maxBarThickness: 40,
+        backgroundColor: (ctx) => {
+          const colors = ['#3b82f6', '#ec4899'];
+          return horizontalBarGradient(ctx.chart.ctx, ctx.chart.chartArea, colors[ctx.dataIndex] || '#7c3aed');
+        },
+      }],
+    },
     options: { ...baseChartOptions(), indexAxis: 'y' },
   });
 
@@ -722,7 +1114,13 @@ function renderAnalyticsCharts() {
   const instTop = topN(instMap, 7);
   makeChart('chartInstitutions', {
     type: 'bar',
-    data: { labels: instTop.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k), datasets: [{ data: instTop.map(([, v]) => v), backgroundColor: PALETTE, borderRadius: 6, maxBarThickness: 22 }] },
+    data: {
+      labels: instTop.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k),
+      datasets: [{
+        data: instTop.map(([, v]) => v), borderRadius: 6, maxBarThickness: 22,
+        backgroundColor: (ctx) => horizontalBarGradient(ctx.chart.ctx, ctx.chart.chartArea, PALETTE[ctx.dataIndex % PALETTE.length]),
+      }],
+    },
     options: { ...baseChartOptions(), indexAxis: 'y', plugins: { ...baseChartOptions().plugins, legend: { display: false } } },
   });
 
@@ -730,9 +1128,16 @@ function renderAnalyticsCharts() {
   const campMap = {};
   state.profiles.forEach(p => { const k = campusOf(p); campMap[k] = (campMap[k] || 0) + 1; });
   const campTop = topN(campMap, 7);
+  const reversedPalette = PALETTE.slice().reverse();
   makeChart('chartCampuses', {
     type: 'bar',
-    data: { labels: campTop.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k), datasets: [{ data: campTop.map(([, v]) => v), backgroundColor: PALETTE.slice().reverse(), borderRadius: 6, maxBarThickness: 22 }] },
+    data: {
+      labels: campTop.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k),
+      datasets: [{
+        data: campTop.map(([, v]) => v), borderRadius: 6, maxBarThickness: 22,
+        backgroundColor: (ctx) => horizontalBarGradient(ctx.chart.ctx, ctx.chart.chartArea, reversedPalette[ctx.dataIndex % reversedPalette.length]),
+      }],
+    },
     options: { ...baseChartOptions(), indexAxis: 'y' },
   });
 }
@@ -748,13 +1153,13 @@ function filteredUsers() {
   else if (f === 'verified') list = list.filter(isVerified);
   else if (f === 'unverified') list = list.filter(p => !isVerified(p));
   else if (f === 'suspended') list = list.filter(isSuspended);
+  else if (f === 'banned') list = list.filter(isBanned);
 
   if (state.usersSearch) {
     const q = state.usersSearch;
     list = list.filter(p =>
       (p.full_name || '').toLowerCase().includes(q) ||
       (p.username || '').toLowerCase().includes(q) ||
-      (p.institution || '').toLowerCase().includes(q) ||
       (p.department || '').toLowerCase().includes(q)
     );
   }
@@ -777,7 +1182,6 @@ function renderUsersTable() {
     <tr>
       <td>${userCell(p)}</td>
       <td>${roleBadge(p)}</td>
-      <td>${escapeHtml(institutionOf(p))}</td>
       <td>${escapeHtml(campusOf(p))}</td>
       <td>${verifiedBadge(p)}</td>
       <td>${statusBadge(p)}</td>
@@ -786,7 +1190,7 @@ function renderUsersTable() {
         <button class="cc-btn cc-btn-ghost cc-btn-icon" data-user-view="${p.id}" title="View"><i class="fa-solid fa-eye"></i></button>
       </div></td>
     </tr>
-  `).join('') || emptyRow(8);
+  `).join('') || emptyRow(7);
 
   tbody.querySelectorAll('[data-user-view]').forEach(btn => {
     btn.addEventListener('click', () => openUserModal(btn.dataset.userView));
@@ -933,6 +1337,81 @@ function renderCampuses() {
 // ============================================================
 // GROUPS
 // ============================================================
+function handleGroupAction(action, groupId) {
+  const g = state.groups.find(x => x.id === groupId);
+  if (!g) return;
+  const previousStatus = g.moderation_status || 'active';
+
+  if (action === 'reinstate') {
+    confirmAction({
+      title: 'Reinstate this group?', body: `${g.name} will be fully active again — messaging and joining both resume immediately.`, icon: 'fa-circle-check', danger: false,
+      run: async () => {
+        await setGroupModeration(groupId, { moderation_status: 'active', moderation_reason: null });
+        await logModeration('group_reinstate', 'group', groupId, null, previousStatus, 'active');
+        if (g.created_by) await notifyUser(g.created_by, 'group_reinstated', `Your group "${g.name}" has been reinstated and is fully active again.`, null);
+      },
+    });
+    return;
+  }
+
+  if (action === 'warn') {
+    reasonAction({
+      title: `Warn "${g.name}"?`, icon: 'fa-triangle-exclamation',
+      subtitle: "The group stays active, but its creator gets a direct warning notification with this reason.",
+      label: 'Reason for the warning',
+      run: async (reason, policyRef) => {
+        await setGroupModeration(groupId, { moderation_status: 'warned', moderation_reason: reason, moderation_at: new Date().toISOString(), moderated_by: state.adminId, moderation_policy_ref: policyRef });
+        await logModeration('group_warn', 'group', groupId, reason, previousStatus, 'warned', policyRef);
+        if (g.created_by) await notifyUser(g.created_by, 'group_warning', `Your group "${g.name}" received a warning: ${reason}`, null, policyRef);
+      },
+    });
+    return;
+  }
+
+  if (action === 'suspend') {
+    reasonAction({
+      title: `Suspend "${g.name}"?`, icon: 'fa-ban',
+      subtitle: "Members will see this group is suspended, new messages and new members are blocked platform-wide (not just hidden in this UI). Its creator gets this reason as a notification.",
+      label: 'Reason for suspension',
+      run: async (reason, policyRef) => {
+        await setGroupModeration(groupId, { moderation_status: 'suspended', moderation_reason: reason, moderation_at: new Date().toISOString(), moderated_by: state.adminId, moderation_policy_ref: policyRef });
+        await logModeration('group_suspend', 'group', groupId, reason, previousStatus, 'suspended', policyRef);
+        if (g.created_by) await notifyUser(g.created_by, 'group_suspended', `Your group "${g.name}" was suspended: ${reason}`, null, policyRef);
+      },
+    });
+  }
+}
+
+// Every moderation action is written to moderation_log via this one RPC
+// (log_moderation_event, security-fixes-5-moderation.sql). The function
+// itself re-checks that the caller is a super admin and is the only way to
+// write a row, so the audit trail can't be forged or hand-edited even from
+// this same admin panel.
+async function logModeration(actionType, targetType, targetId, reason, previousState, newState, policyRef) {
+  const { error } = await supabase.rpc('log_moderation_event', {
+    p_action_type: actionType, p_target_type: targetType, p_target_id: targetId,
+    p_reason: reason || null, p_previous_state: previousState || null, p_new_state: newState || null,
+    p_policy_ref: policyRef || null,
+  });
+  if (error) console.warn('Could not write moderation log entry:', error.message);
+}
+
+async function setGroupModeration(groupId, fields) {
+  const { error } = await supabase.from('groups').update(fields).eq('id', groupId);
+  if (error) { toast('Could not update group — ' + error.message, 'err'); return; }
+  const idx = state.groups.findIndex(g => g.id === groupId);
+  if (idx > -1) state.groups[idx] = { ...state.groups[idx], ...fields };
+  renderGroupsTable();
+  toast('Group updated', 'ok');
+}
+
+function groupStatusBadge(g) {
+  const status = g.moderation_status || 'active';
+  if (status === 'suspended') return `<span class="cc-badge cc-badge-danger">Suspended</span>`;
+  if (status === 'warned') return `<span class="cc-badge cc-badge-warn">Warned</span>`;
+  return `<span class="cc-badge cc-badge-ok">Active</span>`;
+}
+
 function renderGroupsTable() {
   const q = (document.getElementById('ccGroupsSearch').value || '').toLowerCase();
   let list = state.groups;
@@ -946,9 +1425,20 @@ function renderGroupsTable() {
       <td>${escapeHtml(g.course_code || '—')}</td>
       <td>${escapeHtml(g.institution || '—')}</td>
       <td class="mono">${state.groupMemberCounts[g.id] || 0}</td>
+      <td>${groupStatusBadge(g)}</td>
       <td>${formatDate(g.created_at)}</td>
+      <td><div class="cc-row-actions">
+        ${g.moderation_status === 'suspended'
+          ? `<button class="cc-btn cc-btn-soft cc-btn-sm" data-group-action="reinstate" data-group-id="${g.id}">Reinstate</button>`
+          : `<button class="cc-btn cc-btn-ghost cc-btn-sm" data-group-action="warn" data-group-id="${g.id}">Warn</button>
+             <button class="cc-btn cc-btn-danger cc-btn-sm" data-group-action="suspend" data-group-id="${g.id}">Suspend</button>`}
+      </div></td>
     </tr>
-  `).join('') || emptyRow(5);
+  `).join('') || emptyRow(7);
+
+  tbody.querySelectorAll('[data-group-action]').forEach(btn => {
+    btn.addEventListener('click', () => handleGroupAction(btn.dataset.groupAction, btn.dataset.groupId));
+  });
   document.getElementById('ccGroupsFootCount').textContent = `${list.length.toLocaleString()} result${list.length === 1 ? '' : 's'}`;
 }
 
@@ -965,19 +1455,26 @@ function renderReports() {
   const tbody = document.querySelector('#ccReportsTable tbody');
   tbody.innerHTML = list.map(r => `
     <tr>
+      <td>${r.type === 'post'
+        ? '<span class="cc-badge cc-badge-info"><i class="fa-solid fa-clapperboard"></i> Skrolz post</span>'
+        : '<span class="cc-badge cc-badge-mute"><i class="fa-solid fa-message"></i> Chat message</span>'}</td>
       <td>${escapeHtml(r.reason || 'No reason given')}</td>
       <td>${escapeHtml(r.reportedUserName)}</td>
       <td>${escapeHtml(r.reportedByName)}</td>
       <td>${timeAgo(r.created_at)}</td>
       <td>${isReportPending(r) ? '<span class="cc-badge cc-badge-warn">Pending</span>' : '<span class="cc-badge cc-badge-ok">Resolved</span>'}</td>
       <td><div class="cc-row-actions">
+        ${r.type === 'post' && r.post ? `<button class="cc-btn cc-btn-ghost cc-btn-sm" data-view-post="${r.id}">View</button>` : ''}
         ${isReportPending(r) ? `<button class="cc-btn cc-btn-soft cc-btn-sm" data-resolve-report="${r.id}">Resolve</button>` : ''}
       </div></td>
     </tr>
-  `).join('') || `<tr><td colspan="6"><div class="cc-empty"><i class="fa-solid fa-flag"></i><h4>Nothing here</h4><p>${state.reportsFilter === 'pending' ? 'No pending reports right now — the queue is clear.' : 'No reports match this filter.'}</p></div></td></tr>`;
+  `).join('') || `<tr><td colspan="7"><div class="cc-empty"><i class="fa-solid fa-flag"></i><h4>Nothing here</h4><p>${state.reportsFilter === 'pending' ? 'No pending reports right now — the queue is clear.' : 'No reports match this filter.'}</p></div></td></tr>`;
 
   tbody.querySelectorAll('[data-resolve-report]').forEach(btn => {
     btn.addEventListener('click', () => resolveReport(btn.dataset.resolveReport));
+  });
+  tbody.querySelectorAll('[data-view-post]').forEach(btn => {
+    btn.addEventListener('click', () => openPostPreview(btn.dataset.viewPost));
   });
 }
 
@@ -988,6 +1485,82 @@ function renderReportsBadge() {
   badge.textContent = pending;
 }
 
+function severityBadge(sev) {
+  if (sev === 'high') return '<span class="cc-badge cc-badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> High</span>';
+  if (sev === 'medium') return '<span class="cc-badge cc-badge-warn">Medium</span>';
+  return '<span class="cc-badge cc-badge-mute">Low</span>';
+}
+
+function recommendedAction(severity) {
+  if (severity === 'high') return 'Suspend or ban';
+  if (severity === 'medium') return 'Warn';
+  return 'Monitor';
+}
+
+function renderModeration() {
+  let list = state.moderationEvents;
+  if (state.moderationFilter === 'unseen') list = list.filter(e => !e.seen_at);
+  else if (state.moderationFilter === 'high') list = list.filter(e => e.severity === 'high');
+
+  const tbody = document.querySelector('#ccModerationTable tbody');
+  tbody.innerHTML = list.map(e => {
+    const icon = e.content_type === 'message' ? 'fa-comment' : e.content_type === 'post' ? 'fa-clapperboard' : 'fa-comment-dots';
+    const groupActions = e.group_id ? `
+        <button class="cc-btn cc-btn-ghost cc-btn-sm" data-warn-event-group="${e.group_id}">Warn group</button>
+        <button class="cc-btn cc-btn-ghost cc-btn-sm" data-suspend-event-group="${e.group_id}">Suspend group</button>
+        <a class="cc-btn cc-btn-ghost cc-btn-sm" href="chatroom.html?group=${encodeURIComponent(e.group_id)}" target="_blank" rel="noopener">Open chat</a>` : '';
+    return `
+    <tr>
+      <td>${severityBadge(e.severity)}</td>
+      <td>${escapeHtml(e.category)}</td>
+      <td>${escapeHtml(e.userName)}</td>
+      <td><i class="fa-solid ${icon}"></i> ${e.group_id ? escapeHtml(e.groupName) : escapeHtml(e.content_type)}</td>
+      <td style="max-width:260px; white-space:normal;">${escapeHtml(e.snippet)}</td>
+      <td>${e.action_taken === 'hidden' ? '<span class="cc-badge cc-badge-danger">Hidden</span>' : '<span class="cc-badge cc-badge-mute">Allowed, logged</span>'}<div style="font-size:0.7rem; color:var(--ink-mute); margin-top:4px;">Recommended: ${recommendedAction(e.severity)}</div></td>
+      <td>${timeAgo(e.created_at)}</td>
+      <td><div class="cc-row-actions">
+        ${!e.seen_at ? `<button class="cc-btn cc-btn-ghost cc-btn-sm" data-ack-event="${e.id}">Mark reviewed</button>` : ''}
+        <button class="cc-btn cc-btn-soft cc-btn-sm" data-review-user="${e.user_id}">Review user</button>${groupActions}
+      </div></td>
+    </tr>
+  `;
+  }).join('') || `<tr><td colspan="8"><div class="cc-empty"><i class="fa-solid fa-shield-halved"></i><h4>Nothing here</h4><p>${state.moderationFilter === 'unseen' ? 'No flagged content waiting for review.' : 'No matching events.'}</p></div></td></tr>`;
+
+  tbody.querySelectorAll('[data-ack-event]').forEach(btn => {
+    btn.addEventListener('click', () => acknowledgeModerationEvent(btn.dataset.ackEvent));
+  });
+  tbody.querySelectorAll('[data-review-user]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = state.profiles.find(x => x.id === btn.dataset.reviewUser);
+      if (p) openUserModal(p.id);
+    });
+  });
+  tbody.querySelectorAll('[data-warn-event-group]').forEach(btn => {
+    btn.addEventListener('click', () => handleGroupAction('warn', btn.dataset.warnEventGroup));
+  });
+  tbody.querySelectorAll('[data-suspend-event-group]').forEach(btn => {
+    btn.addEventListener('click', () => handleGroupAction('suspend', btn.dataset.suspendEventGroup));
+  });
+
+  document.getElementById('ccModerationFootCount').textContent = `${list.length} event${list.length === 1 ? '' : 's'}`;
+}
+
+function renderModerationBadge() {
+  const unseen = state.moderationEvents.filter(e => !e.seen_at && (e.severity === 'high' || e.severity === 'medium')).length;
+  const badge = document.getElementById('ccModerationBadge');
+  badge.style.display = unseen ? 'inline-flex' : 'none';
+  badge.textContent = unseen;
+}
+
+async function acknowledgeModerationEvent(id) {
+  const { error } = await supabase.rpc('acknowledge_moderation_event', { p_id: id });
+  if (error) { toast('Could not mark reviewed — ' + error.message, 'err'); return; }
+  const e = state.moderationEvents.find(x => x.id === id);
+  if (e) e.seen_at = new Date().toISOString();
+  renderModeration();
+  renderModerationBadge();
+}
+
 async function resolveReport(id) {
   const { error } = await supabase.from('reports').update({ status: 'resolved' }).eq('id', id);
   if (error) { toast('Could not resolve report — ' + error.message, 'err'); return; }
@@ -995,6 +1568,124 @@ async function resolveReport(id) {
   if (r) r.status = 'resolved';
   renderReports(); renderReportsBadge();
   toast('Report marked resolved', 'ok');
+}
+
+function openPostPreview(reportId) {
+  const r = state.reports.find(x => x.id === reportId);
+  if (!r || !r.post) return;
+  const author = state.profiles.find(p => p.id === r.post.user_id);
+  const body = document.getElementById('ccPostPreviewBody');
+
+  const mediaHtml = r.post.media_url
+    ? (r.post.media_type === 'video'
+        ? `<video src="${r.post.media_url}" controls style="width:100%; border-radius:12px; max-height:360px; background:#000;"></video>`
+        : `<img src="${r.post.media_url}" style="width:100%; border-radius:12px; max-height:360px; object-fit:cover;">`)
+    : '';
+
+  const statusLabel = { active: 'Active', warned: 'Warned', removed: 'Removed' }[r.post.moderation_status] || 'Active';
+  const statusBadgeClass = r.post.moderation_status === 'removed' ? 'cc-badge-danger' : r.post.moderation_status === 'warned' ? 'cc-badge-warn' : 'cc-badge-ok';
+
+  body.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        ${author ? userCell(author) : '<span style="color:var(--ink-mute);">Unknown author</span>'}
+      </div>
+      <span class="cc-badge ${statusBadgeClass}">${statusLabel}</span>
+    </div>
+    ${r.post.title ? `<h4 style="margin:0 0 8px;">${escapeHtml(r.post.title)}</h4>` : ''}
+    ${mediaHtml}
+    ${r.post.content ? `<p style="margin:12px 0 0; font-size:0.88rem; color:var(--text);">${escapeHtml(r.post.content)}</p>` : ''}
+    <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+      <div style="font-size:0.72rem; color:var(--ink-mute); margin-bottom:6px;">REPORTED FOR</div>
+      <div style="font-size:0.88rem;">${escapeHtml(r.reason || 'No reason given')}</div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:20px;">
+      <button class="cc-btn cc-btn-ghost cc-btn-sm" data-post-action="warn">Warn author</button>
+      ${r.post.moderation_status !== 'removed' ? `<button class="cc-btn cc-btn-danger cc-btn-sm" data-post-action="remove">Remove post</button>` : `<button class="cc-btn cc-btn-soft cc-btn-sm" data-post-action="restore">Restore post</button>`}
+      ${isReportPending(r) ? `<button class="cc-btn cc-btn-soft cc-btn-sm" data-post-action="resolve">Mark report resolved</button>` : ''}
+    </div>
+  `;
+
+  body.querySelectorAll('[data-post-action]').forEach(btn => {
+    btn.addEventListener('click', () => handlePostAction(btn.dataset.postAction, r));
+  });
+  openModal('ccPostPreviewBackdrop');
+}
+
+function handlePostAction(action, r) {
+  if (action === 'resolve') { resolveReport(r.id); closeModal('ccPostPreviewBackdrop'); return; }
+
+  if (action === 'restore') {
+    closeModal('ccPostPreviewBackdrop');
+    confirmAction({
+      title: 'Restore this post?', body: 'It will become visible in Skrolz again.', icon: 'fa-eye', danger: false,
+      run: () => setPostModeration(r.post.id, { moderation_status: 'active', moderation_reason: null }),
+    });
+    return;
+  }
+
+  if (action === 'remove') {
+    closeModal('ccPostPreviewBackdrop');
+    reasonAction({
+      title: 'Remove this post?', icon: 'fa-trash',
+      subtitle: 'The post is hidden from Skrolz immediately. The author sees this reason as a notification.',
+      label: 'Reason for removal',
+      run: async (reason, policyRef) => {
+        await setPostModeration(r.post.id, { moderation_status: 'removed', moderation_reason: reason, moderation_at: new Date().toISOString(), moderated_by: state.adminId, moderation_policy_ref: policyRef });
+        await logModeration('content_remove', 'post', r.post.id, reason, r.post.moderation_status || 'active', 'removed', policyRef);
+        await notifyUser(r.post.user_id, 'content_removed', `Your post was removed: ${reason}`, r.post.id, policyRef);
+      },
+    });
+    return;
+  }
+
+  if (action === 'warn') {
+    closeModal('ccPostPreviewBackdrop');
+    reasonAction({
+      title: 'Warn the post author?', icon: 'fa-triangle-exclamation',
+      subtitle: 'The post stays visible, but the author gets a direct warning notification with this reason.',
+      label: 'Reason for the warning',
+      run: async (reason, policyRef) => {
+        await setPostModeration(r.post.id, { moderation_status: 'warned', moderation_reason: reason, moderation_at: new Date().toISOString(), moderated_by: state.adminId, moderation_policy_ref: policyRef });
+        await logModeration('content_warn', 'post', r.post.id, reason, r.post.moderation_status || 'active', 'warned', policyRef);
+        await notifyUser(r.post.user_id, 'content_warning', `You received a warning about a post: ${reason}`, r.post.id, policyRef);
+      },
+    });
+  }
+}
+
+async function setPostModeration(postId, fields) {
+  const { error } = await supabase.from('posts').update(fields).eq('id', postId);
+  if (error) { toast('Could not update post — ' + error.message, 'err'); return; }
+  state.reports.forEach(r => { if (r.post?.id === postId) r.post = { ...r.post, ...fields }; });
+  renderReports();
+  toast('Post updated', 'ok');
+}
+
+async function notifyUser(userId, type, content, postId, policyRef) {
+  // Supabase's .insert() does NOT throw on a database-level failure (RLS
+  // rejection, a column that doesn't exist yet, a constraint violation) —
+  // it resolves normally with { data, error }. A try/catch alone silently
+  // missed every one of those, which is why a failed warning could vanish
+  // completely with zero indication anything went wrong, for either the
+  // admin or the person who should have been warned. Checking { error }
+  // explicitly, and surfacing it, is the actual fix.
+  try {
+    const { error } = await supabase.from('notifications').insert({
+      user_id: userId, sender_id: state.adminId, type, content, post_id: postId || null, origin: 'command_center',
+      policy_ref: policyRef || null,
+    });
+    if (error) {
+      console.error('notifyUser: notification insert failed —', error.message, error.details || '', error.hint || '');
+      toast('That action saved, but the notification to the user failed to send: ' + error.message, 'err');
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('notifyUser: unexpected error —', err);
+    toast('That action saved, but the notification to the user failed to send.', 'err');
+    return false;
+  }
 }
 
 // ============================================================
@@ -1048,7 +1739,6 @@ function openUserModal(id) {
       </div>
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:0.84rem; margin-bottom:22px;">
-      <div><div style="color:var(--ink-mute); font-size:0.72rem;">Institution</div><div>${escapeHtml(institutionOf(p))}</div></div>
       <div><div style="color:var(--ink-mute); font-size:0.72rem;">Campus</div><div>${escapeHtml(campusOf(p))}</div></div>
       <div><div style="color:var(--ink-mute); font-size:0.72rem;">Department</div><div>${escapeHtml(p.department || '—')}</div></div>
       <div><div style="color:var(--ink-mute); font-size:0.72rem;">Level</div><div>${escapeHtml(p.custom_level || p.level || '—')}</div></div>
@@ -1058,7 +1748,9 @@ function openUserModal(id) {
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
       ${isVerified(p) ? btn('Unverify', 'cc-btn-ghost', 'unverify') : btn('Verify', 'cc-btn-soft', 'verify')}
       ${isLecturerProfile(p) ? btn('Demote to student', 'cc-btn-ghost', 'demote') : btn('Promote to lecturer', 'cc-btn-ghost', 'promote')}
+      ${btn('Warn', 'cc-btn-ghost', 'warn')}
       ${isSuspended(p) ? btn('Unsuspend', 'cc-btn-soft', 'unsuspend') : btn('Suspend', 'cc-btn-ghost', 'suspend')}
+      ${isBanned(p) ? btn('Unban', 'cc-btn-soft', 'unban') : btn('Ban', 'cc-btn-danger', 'ban')}
       ${btn('Delete profile', 'cc-btn-danger', 'delete')}
     </div>
     <p style="font-size:0.72rem; color:var(--ink-mute); margin-top:14px;">Deleting removes their Peerloom profile data. It does not remove their login credential — that requires Supabase's admin API with a service-role key, outside this client-side tool.</p>
@@ -1074,15 +1766,82 @@ function openUserModal(id) {
 }
 
 function handleUserAction(action, p) {
+  const prevStatus = p.account_status || 'active';
+
+  if (action === 'suspend') {
+    closeModal('ccUserModalBackdrop');
+    reasonAction({
+      title: `Suspend ${displayName(p)}?`,
+      subtitle: "They'll see this exact reason on a branded suspension screen the next time they try to log in, and every new post/message/quiz-attempt/join is blocked platform-wide, not just here.",
+      label: 'Reason for suspension',
+      icon: 'fa-ban',
+      run: async (reason, policyRef) => {
+        const ok = await setProfileField(p.id, { account_status: 'suspended', suspended_at: new Date().toISOString(), suspended_reason: reason, suspended_policy_ref: policyRef });
+        await logModeration('user_suspend', 'user', p.id, reason, prevStatus, 'suspended', policyRef);
+        if (ok) await revokeUserSessions(p.id);
+      },
+    });
+    return;
+  }
+
+  if (action === 'ban') {
+    closeModal('ccUserModalBackdrop');
+    reasonAction({
+      title: `Ban ${displayName(p)}?`,
+      subtitle: "Ban is for serious/repeated violations. Same enforcement as suspension (blocked platform-wide, blocked from logging in), kept as a separate status so it's clearly distinguishable in reports and the audit log.",
+      label: 'Reason for the ban',
+      icon: 'fa-gavel',
+      run: async (reason, policyRef) => {
+        const ok = await setProfileField(p.id, { account_status: 'banned', suspended_at: new Date().toISOString(), suspended_reason: reason, suspended_policy_ref: policyRef });
+        await logModeration('user_ban', 'user', p.id, reason, prevStatus, 'banned', policyRef);
+        if (ok) await revokeUserSessions(p.id);
+      },
+    });
+    return;
+  }
+
+  if (action === 'warn') {
+    closeModal('ccUserModalBackdrop');
+    reasonAction({
+      title: `Warn ${displayName(p)}?`,
+      subtitle: "Their account stays fully active. They get a direct notification with this reason.",
+      label: 'Reason for the warning',
+      icon: 'fa-triangle-exclamation',
+      run: async (reason, policyRef) => {
+        await logModeration('user_warn', 'user', p.id, reason, prevStatus, prevStatus, policyRef);
+        // Warning a user changes no column on their profile — unlike
+        // suspend/ban/unsuspend (which call setProfileField and always show
+        // a toast either way) there was previously NO toast at all here, on
+        // success or failure, for either the admin or (if the insert
+        // silently failed) the person being warned. notifyUser() now
+        // actually reports whether it worked, so this can too.
+        const ok = await notifyUser(p.id, 'account_warning', `You received a warning from Peerloom moderation: ${reason}`, null, policyRef);
+        if (ok) toast('Warning sent', 'ok');
+      },
+    });
+    return;
+  }
+
   const map = {
     verify: { title: 'Verify this user?', body: `${displayName(p)} will get a verified badge across Peerloom.`, icon: 'fa-circle-check', danger: false, run: () => setProfileField(p.id, { verified: true }) },
     unverify: { title: 'Remove verification?', body: `${displayName(p)} will lose their verified badge.`, icon: 'fa-circle-xmark', danger: true, run: () => setProfileField(p.id, { verified: false }) },
     promote: { title: 'Promote to lecturer?', body: `${displayName(p)} will get lecturer access across Peerloom.`, icon: 'fa-arrow-up', danger: false, run: () => setProfileField(p.id, { role: 'lecturer', is_lecturer: true }) },
     demote: { title: 'Demote to student?', body: `${displayName(p)} will lose lecturer access.`, icon: 'fa-arrow-down', danger: true, run: () => setProfileField(p.id, { role: 'student', is_lecturer: false }) },
-    suspend: { title: 'Suspend this account?', body: `${displayName(p)} won't be able to use Peerloom until unsuspended.`, icon: 'fa-ban', danger: true, run: () => setProfileField(p.id, { account_status: 'suspended', suspended_at: new Date().toISOString() }) },
-    unsuspend: { title: 'Unsuspend this account?', body: `${displayName(p)} will regain full access immediately.`, icon: 'fa-circle-check', danger: false, run: () => setProfileField(p.id, { account_status: 'active', suspended_at: null }) },
-    delete: { title: 'Delete this profile?', body: `This permanently removes ${displayName(p)}'s profile data from Peerloom. This can't be undone.`, icon: 'fa-trash', danger: true, run: () => deleteProfile(p.id) },
+    unsuspend: { title: 'Unsuspend this account?', body: `${displayName(p)} will regain full access immediately.`, icon: 'fa-circle-check', danger: false, run: async () => { await setProfileField(p.id, { account_status: 'active', suspended_at: null, suspended_reason: null }); await logModeration('user_unsuspend', 'user', p.id, null, prevStatus, 'active'); } },
+    unban: { title: 'Unban this account?', body: `${displayName(p)} will regain full access immediately.`, icon: 'fa-circle-check', danger: false, run: async () => { await setProfileField(p.id, { account_status: 'active', suspended_at: null, suspended_reason: null }); await logModeration('user_unban', 'user', p.id, null, prevStatus, 'active'); } },
+
   }[action];
+  if (action === 'delete') {
+    closeModal('ccUserModalBackdrop');
+    reasonAction({
+      title: `Delete ${displayName(p)}'s profile?`, icon: 'fa-trash',
+      subtitle: "This permanently removes their profile data from Peerloom and can't be undone. They'll see this reason, linked to the rule, the next time they try to sign in.",
+      label: 'Reason for deletion',
+      run: (reason, policyRef) => deleteProfile(p.id, reason, policyRef),
+    });
+    return;
+  }
+
   if (!map) return;
   closeModal('ccUserModalBackdrop');
   confirmAction(map);
@@ -1090,14 +1849,50 @@ function handleUserAction(action, p) {
 
 async function setProfileField(id, fields) {
   const { error } = await supabase.from('profiles').update(fields).eq('id', id);
-  if (error) { toast('Update failed — ' + error.message, 'err'); return; }
+  if (error) { toast('Update failed — ' + error.message, 'err'); return false; }
   const idx = state.profiles.findIndex(p => p.id === id);
   if (idx > -1) state.profiles[idx] = { ...state.profiles[idx], ...fields };
   renderAll();
   toast('Updated', 'ok');
+  return true;
 }
-async function deleteProfile(id) {
-  const { error } = await supabase.from('profiles').delete().eq('id', id);
+
+// Forces an already-logged-in user out of every session they currently hold
+// (every device, every open tab). Without this, suspending/banning someone
+// only blocks their NEXT sign-in and blocks new writes (enforced in
+// security-fixes-5-moderation.sql) — a session they already had stays
+// usable for reads, and keeps renewing itself, until this runs. Needs the
+// service-role key, so it's a server-side Edge Function
+// (admin-revoke-sessions), never done from here directly. A failure here is
+// reported but doesn't undo the suspend/ban that already succeeded — the
+// account_status change and the write-blocking trigger are still in effect
+// either way, this only closes the "already had a session open" gap.
+async function revokeUserSessions(userId) {
+  try {
+    const { error } = await supabase.functions.invoke('admin-revoke-sessions', {
+      body: { user_id: userId },
+    });
+    if (error) {
+      console.error('revokeUserSessions: admin-revoke-sessions failed —', error.message);
+      toast('Account suspended/banned, but an existing session could not be forced out: ' + error.message, 'err');
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('revokeUserSessions: unexpected error —', err);
+    toast('Account suspended/banned, but forcing out an existing session failed unexpectedly.', 'err');
+    return false;
+  }
+}
+// Goes through admin_delete_profile (security-fixes-6-policy-refs.sql) rather
+// than a plain table delete: that function does the delete, the audit-log
+// row, and the account_notices row the person sees at their next sign-in
+// attempt, all in one transaction, and re-checks the caller is a super admin
+// itself rather than trusting this being an admin-only screen.
+async function deleteProfile(id, reason, policyRef) {
+  const { error } = await supabase.rpc('admin_delete_profile', {
+    p_user_id: id, p_reason: reason, p_policy_ref: policyRef || null,
+  });
   if (error) { toast('Delete failed — ' + error.message, 'err'); return; }
   state.profiles = state.profiles.filter(p => p.id !== id);
   renderAll();
@@ -1125,6 +1920,106 @@ function confirmAction({ title, body, icon, danger, run }) {
     closeModal('ccConfirmModalBackdrop');
   });
   openModal('ccConfirmModalBackdrop');
+}
+
+// Same idea as confirmAction, but for anything where the reason typed in
+// is itself part of the action — warnings and suspensions, where the
+// affected person (or group) actually sees this text. Requires a
+// non-empty reason before it'll run.
+// Prefers the shared docs/js/policy-refs.js (keeps this list and the
+// Terms/Privacy pages' section ids in sync automatically), but never
+// depends on it loading successfully — EMBEDDED_POLICY_REGISTRY below is a
+// duplicate of the same list kept directly in this file, so the "Rule
+// breached" dropdown works even if that external script 404s or is slow.
+// If you add a rule, add it in BOTH places (js/policy-refs.js AND here).
+const EMBEDDED_POLICY_REGISTRY = [
+  { key: 'terms:impersonation',         page: 'terms.html',   pageName: 'Terms of Service', label: 'Impersonation or misrepresenting your role or affiliation' },
+  { key: 'terms:harassment',            page: 'terms.html',   pageName: 'Terms of Service', label: 'Harassing, abusive, unlawful or rights-infringing content' },
+  { key: 'terms:unauthorized-access',   page: 'terms.html',   pageName: 'Terms of Service', label: 'Unauthorized access to accounts, groups or quiz data' },
+  { key: 'terms:platform-interference', page: 'terms.html',   pageName: 'Terms of Service', label: 'Interfering with the platform (scripts, bots, bypassing security)' },
+  { key: 'terms:spam-malware',          page: 'terms.html',   pageName: 'Terms of Service', label: 'Malware, spam or unsolicited commercial content' },
+  { key: 'terms:academic-integrity',    page: 'terms.html',   pageName: 'Terms of Service', label: 'Quizzes & academic integrity' },
+  { key: 'terms:content-rights',        page: 'terms.html',   pageName: 'Terms of Service', label: 'Content & ownership (rights to what you upload)' },
+  { key: 'terms:group-conduct',         page: 'terms.html',   pageName: 'Terms of Service', label: 'Groups & lecturer responsibilities' },
+  { key: 'terms:eligibility',           page: 'terms.html',   pageName: 'Terms of Service', label: 'Eligibility & accounts (accurate information)' },
+  { key: 'terms:other',                 page: 'terms.html',   pageName: 'Terms of Service', label: 'Other violation of the Terms (see Suspension & termination)' },
+  { key: 'privacy:age-requirements',    page: 'privacy.html', pageName: 'Privacy Policy',    label: 'Age requirements' },
+];
+
+function ccPolicyRegistry() {
+  try {
+    if (window.PeerloomPolicy) {
+      const list = window.PeerloomPolicy.list();
+      if (Array.isArray(list) && list.length) return list;
+    }
+  } catch (e) { console.warn('js/policy-refs.js did not load correctly, using the built-in rule list instead.', e); }
+  return EMBEDDED_POLICY_REGISTRY;
+}
+function reasonAction({ title, subtitle, label, placeholder, icon, run, policyRequired = true }) {
+  document.getElementById('ccReasonTitle').textContent = title;
+  document.getElementById('ccReasonSubtitle').textContent = subtitle || 'This message is shown directly to them — be specific about what was breached.';
+  document.getElementById('ccReasonLabel').textContent = label || 'Reason';
+  const input = document.getElementById('ccReasonInput');
+  input.value = '';
+
+  const policyField = document.getElementById('ccReasonPolicyField');
+  const policySelect = document.getElementById('ccReasonPolicy');
+  // Not gated to "build once": if the source list wasn't ready on an earlier
+  // open for any reason, this retries every time instead of staying broken
+  // for the rest of the session. ccPolicyRegistry() always returns something
+  // (falls back to a copy embedded right here if js/policy-refs.js failed to
+  // load), so this should never leave the dropdown silently empty again.
+  if (policySelect.options.length <= 1) {
+    const registry = ccPolicyRegistry();
+    let currentPage = '';
+    registry.forEach(r => {
+      if (r.pageName !== currentPage) {
+        const group = document.createElement('optgroup');
+        group.label = r.pageName;
+        policySelect.appendChild(group);
+        currentPage = r.pageName;
+      }
+      const opt = document.createElement('option');
+      opt.value = r.key;
+      opt.textContent = r.label;
+      policySelect.lastElementChild.appendChild(opt);
+    });
+    if (registry.length === 0) {
+      console.error('Command Centre: no policy rules available for the "Rule breached" dropdown.');
+    }
+  }
+  policySelect.value = '';
+  policyField.style.display = policyRequired ? '' : 'none';
+  input.placeholder = placeholder || 'e.g. This content is unrelated to academic use, which breaches our Terms of Service (Acceptable Use).';
+  const iconEl = document.getElementById('ccReasonIcon');
+  iconEl.innerHTML = `<i class="fa-solid ${icon || 'fa-triangle-exclamation'}"></i>`;
+  iconEl.style.background = 'var(--danger-soft)';
+  iconEl.style.color = 'var(--danger)';
+  const errEl = document.getElementById('ccReasonError');
+  errEl.style.display = 'none';
+
+  const actionBtn = document.getElementById('ccReasonConfirmBtn');
+  const newBtn = actionBtn.cloneNode(true);
+  actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+  newBtn.addEventListener('click', async () => {
+    const reason = input.value.trim();
+    const policyRef = policySelect.value || null;
+    if (!reason) {
+      errEl.textContent = 'A reason is required — this is what gets shown to them.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (policyRequired && !policyRef) {
+      errEl.textContent = 'Select which rule this is about — it becomes a highlighted link they can open.';
+      errEl.style.display = 'block';
+      return;
+    }
+    newBtn.disabled = true;
+    await run(reason, policyRef);
+    newBtn.disabled = false;
+    closeModal('ccReasonModalBackdrop');
+  });
+  openModal('ccReasonModalBackdrop');
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -1188,7 +2083,7 @@ function renderPaletteResults(q) {
       if (label.toLowerCase().includes(query)) items.push({ icon: 'fa-arrow-right', label: `Go to ${label}`, hint: 'Section', action: () => { switchView(view); closePalette(); } });
     });
     state.profiles.filter(p => (p.full_name || '').toLowerCase().includes(query) || (p.username || '').toLowerCase().includes(query)).slice(0, 8).forEach(p => {
-      items.push({ icon: 'fa-user', label: displayName(p), hint: institutionOf(p), action: () => { switchView('users'); closePalette(); setTimeout(() => openUserModal(p.id), 200); } });
+      items.push({ icon: 'fa-user', label: displayName(p), hint: p.username ? '@' + p.username : 'User', action: () => { switchView('users'); closePalette(); setTimeout(() => openUserModal(p.id), 200); } });
     });
     const insts = new Set(state.profiles.map(institutionOf));
     [...insts].filter(i => i.toLowerCase().includes(query)).slice(0, 5).forEach(i => {
@@ -1303,8 +2198,10 @@ async function renderAdminsList() {
       run: async () => {
         const { error } = await supabase.from('super_admins').delete().eq('id', btn.dataset.removeAdmin);
         if (error) { toast('Could not remove — ' + error.message, 'err'); return; }
+        state.superAdminIds.delete(btn.dataset.removeAdmin);
         toast('Admin access removed', 'ok');
         renderAdminsList();
+        renderAll();
       },
     }));
   });
@@ -1324,8 +2221,10 @@ async function addAdmin() {
   if (insertErr) { errEl.textContent = insertErr.message.includes('duplicate') ? 'They already have access.' : insertErr.message; errEl.style.display = 'block'; return; }
 
   closeModal('ccAddAdminBackdrop');
+  state.superAdminIds.add(found.id);
   toast(`${found.full_name || found.username} now has Command Center access`, 'ok');
   renderAdminsList();
+  renderAll();
 }
 
 // ============================================================
@@ -1341,17 +2240,161 @@ function toast(message, type = 'info') {
 }
 
 // ============================================================
+// SUBSCRIPTIONS & PAYMENTS (membership revenue)
+// ============================================================
+function subscriptionsStatCardsConfig() {
+  const subs = state.subscriptions;
+  const payments = state.payments;
+  const paidActive = subs.filter(s => s.status === 'ACTIVE_PAID');
+  // A lecturer's free year is never a row in `subscriptions` — it's tracked
+  // directly on their profile (lecturer_free_started_at/ends_at, set at
+  // lecturer signup). Reading it from `subscriptions` always returned 0
+  // once there were zero paid-plan rows, even with real lecturers actively
+  // on their free year. Count it from profiles instead, the same source
+  // every other lecturer-facing stat in this file already uses.
+  const now = Date.now();
+  const freeYearActive = state.profiles.filter(p =>
+    isLecturerProfile(p) && p.lecturer_free_ends_at && new Date(p.lecturer_free_ends_at).getTime() > now
+  );
+  const totalRevenue = payments.filter(p => p.status === 'SUCCESS').reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const mrr = paidActive.reduce((sum, s) => {
+    const amt = Number(s.amount || 0);
+    return sum + (s.billing_interval === 'yearly' ? amt / 12 : amt);
+  }, 0);
+  const failedRecent = payments.filter(p => p.status === 'FAILED' && p.created_at && (Date.now() - new Date(p.created_at)) < 30 * 86400000).length;
+
+  return [
+    { id: 'ccStatTotalRevenue', label: 'Total revenue (all time)', value: `GHS ${totalRevenue.toFixed(2)}`, icon: 'fa-sack-dollar', color: '#10b981' },
+    { id: 'ccStatMRR', label: 'Monthly recurring revenue', value: `GHS ${mrr.toFixed(2)}`, icon: 'fa-chart-line', color: '#7c3aed' },
+    { id: 'ccStatActiveSubs', label: 'Active paid subscriptions', value: paidActive.length, icon: 'fa-credit-card', color: '#3b82f6' },
+    { id: 'ccStatFreeYearSubs', label: 'Lecturers on free year', value: freeYearActive.length, icon: 'fa-chalkboard-user', color: '#ec4899' },
+    { id: 'ccStatFailedPayments', label: 'Failed payments (30d)', value: failedRecent, icon: 'fa-triangle-exclamation', color: '#ef4444' },
+  ];
+}
+
+function renderSubscriptionsStats() {
+  const grid = document.getElementById('ccSubsStatGrid');
+  if (!grid) return;
+  const cards = subscriptionsStatCardsConfig();
+  grid.innerHTML = cards.map(c => `
+    <div class="cc-stat-card" data-stat-card="${c.id}">
+      <div class="cc-stat-top">
+        <div class="cc-stat-icn" style="background:${c.color}1f; color:${c.color};"><i class="fa-solid ${c.icon}"></i></div>
+      </div>
+      <div class="cc-stat-value">${c.value}</div>
+      <div class="cc-stat-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+function subscriptionStatusBadge(status) {
+  if (status === 'ACTIVE_PAID') return `<span class="cc-badge cc-badge-ok">Active (paid)</span>`;
+  if (status === 'LECTURER_FREE_YEAR') return `<span class="cc-badge cc-badge-info">Free year</span>`;
+  if (status === 'PENDING') return `<span class="cc-badge cc-badge-warn">Pending</span>`;
+  if (status === 'PAYMENT_FAILED') return `<span class="cc-badge cc-badge-danger">Payment failed</span>`;
+  if (status === 'EXPIRED') return `<span class="cc-badge cc-badge-mute">Expired</span>`;
+  if (status === 'CANCELLED') return `<span class="cc-badge cc-badge-mute">Cancelled</span>`;
+  return `<span class="cc-badge cc-badge-mute">${escapeHtml(status || '—')}</span>`;
+}
+
+function renderSubscriptionsTable() {
+  const tbody = document.querySelector('#ccSubscriptionsTable tbody');
+  if (!tbody) return;
+  const byId = new Map(state.profiles.map(p => [p.id, p]));
+  const live = state.subscriptions
+    .filter(s => s.status === 'ACTIVE_PAID' || s.status === 'LECTURER_FREE_YEAR' || s.status === 'PAYMENT_FAILED' || s.status === 'PENDING')
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (!live.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--ink-mute); padding:24px;">No subscriptions yet — Peerloom's payment provider isn't live, so this is genuinely empty, not a placeholder.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = live.map(s => {
+    const p = byId.get(s.user_id);
+    const canCancel = s.status === 'ACTIVE_PAID';
+    return `
+      <tr>
+        <td>${p ? userCell(p) : escapeHtml(s.user_id)}</td>
+        <td>${escapeHtml(s.plan || '—')}</td>
+        <td>${s.billing_interval ? (s.billing_interval === 'yearly' ? 'Yearly' : 'Monthly') : '—'}</td>
+        <td>${subscriptionStatusBadge(s.status)}</td>
+        <td>${formatDate(s.current_period_end)}</td>
+        <td>${canCancel ? `<button class="cc-btn cc-btn-ghost cc-btn-sm" data-cancel-sub="${s.id}">Cancel</button>` : ''}</td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('[data-cancel-sub]').forEach(btn => {
+    btn.addEventListener('click', () => handleCancelSubscription(btn.dataset.cancelSub));
+  });
+}
+
+function renderPaymentsTable() {
+  const tbody = document.querySelector('#ccPaymentsTable tbody');
+  if (!tbody) return;
+  const byId = new Map(state.profiles.map(p => [p.id, p]));
+  if (!state.payments.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--ink-mute); padding:24px;">No payments recorded yet — Peerloom's payment provider isn't live, so this is genuinely empty, not a placeholder.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.payments.slice(0, 50).map(p => {
+    const user = byId.get(p.user_id);
+    const statusClass = p.status === 'SUCCESS' ? 'cc-badge-ok' : p.status === 'FAILED' ? 'cc-badge-danger' : 'cc-badge-warn';
+    return `
+      <tr>
+        <td>${user ? userCell(user) : escapeHtml(p.user_id)}</td>
+        <td>${escapeHtml(p.currency || 'GHS')} ${Number(p.amount || 0).toFixed(2)}</td>
+        <td><span class="cc-badge ${statusClass}">${escapeHtml(p.status)}</span></td>
+        <td>${formatDate(p.created_at)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function handleCancelSubscription(subId) {
+  const sub = state.subscriptions.find(s => s.id === subId);
+  if (!sub) return;
+  const p = state.profiles.find(pp => pp.id === sub.user_id);
+  confirmAction({
+    title: `Cancel ${displayName(p || { full_name: 'this user' })}'s subscription?`,
+    body: 'This immediately marks the subscription CANCELLED. It does not delete any payment history, and does not issue a refund.',
+    icon: 'fa-ban',
+    danger: true,
+    run: async () => {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ status: 'CANCELLED', cancelled_at: new Date().toISOString() })
+        .eq('id', subId);
+      if (error) { toast('Failed to cancel subscription — ' + error.message, 'err'); return; }
+      sub.status = 'CANCELLED';
+      sub.cancelled_at = new Date().toISOString();
+      toast('Subscription cancelled', 'ok');
+      renderSubscriptionsView();
+    },
+  });
+}
+
+function renderSubscriptionsView() {
+  renderSubscriptionsStats();
+  renderSubscriptionsTable();
+  renderPaymentsTable();
+}
+
+// ============================================================
 // EXPORTS — branded PDF, Excel, CSV
 // ============================================================
 const EXPORT_CONFIG = {
-  users: { title: 'All Users', cols: ['Name', 'Username', 'Role', 'Institution', 'Campus', 'Verified', 'Status', 'Joined'], rows: () => filteredUsers().map(p => [displayName(p), '@' + (p.username || ''), isLecturerProfile(p) ? 'Lecturer' : 'Student', institutionOf(p), campusOf(p), isVerified(p) ? 'Yes' : 'No', isSuspended(p) ? 'Suspended' : 'Active', formatDate(p.created_at)]) },
+  users: { title: 'All Users', cols: ['Name', 'Username', 'Role', 'Campus', 'Verified', 'Status', 'Joined'], rows: () => filteredUsers().map(p => [displayName(p), '@' + (p.username || ''), isLecturerProfile(p) ? 'Lecturer' : 'Student', campusOf(p), isVerified(p) ? 'Yes' : 'No', isBanned(p) ? 'Banned' : isSuspended(p) ? 'Suspended' : 'Active', formatDate(p.created_at)]) },
   lecturers: { title: 'Lecturers', cols: ['Name', 'Institution', 'Campus', 'Department', 'Quizzes', 'Resources', 'Announcements', 'Verified'], rows: () => state.profiles.filter(isLecturerProfile).map(p => { const c = state.lecturerContentCounts[p.id] || { quizzes: 0, resources: 0, announcements: 0 }; return [displayName(p), institutionOf(p), campusOf(p), p.department || '—', c.quizzes, c.resources, c.announcements, isVerified(p) ? 'Yes' : 'No']; }) },
   students: { title: 'Students', cols: ['Name', 'Institution', 'Campus', 'Department', 'Level', 'Verified', 'Status'], rows: () => state.profiles.filter(p => !isLecturerProfile(p)).map(p => [displayName(p), institutionOf(p), campusOf(p), p.department || '—', p.custom_level || p.level || '—', isVerified(p) ? 'Yes' : 'No', isSuspended(p) ? 'Suspended' : 'Active']) },
   institutions: { title: 'Institutions', cols: ['Institution', 'Students', 'Lecturers', 'Campuses'], rows: () => { const m = {}; state.profiles.forEach(p => { const k = institutionOf(p); m[k] = m[k] || { s: 0, l: 0, c: new Set() }; isLecturerProfile(p) ? m[k].l++ : m[k].s++; m[k].c.add(campusOf(p)); }); return Object.entries(m).map(([k, v]) => [k, v.s, v.l, v.c.size]); } },
   campuses: { title: 'Campuses', cols: ['Campus', 'Institution', 'Students', 'Lecturers'], rows: () => { const m = {}; state.profiles.forEach(p => { const k = campusOf(p) + '|' + institutionOf(p); m[k] = m[k] || { camp: campusOf(p), inst: institutionOf(p), s: 0, l: 0 }; isLecturerProfile(p) ? m[k].l++ : m[k].s++; }); return Object.values(m).map(v => [v.camp, v.inst, v.s, v.l]); } },
   groups: { title: 'Groups', cols: ['Group', 'Course code', 'Institution', 'Members', 'Created'], rows: () => state.groups.map(g => [g.name || '—', g.course_code || '—', g.institution || '—', state.groupMemberCounts[g.id] || 0, formatDate(g.created_at)]) },
+  moderation: { title: 'Moderation events', cols: ['Severity', 'Category', 'User', 'Where', 'Excerpt', 'Action taken', 'When'], rows: () => state.moderationEvents.map(e => [e.severity, e.category, e.userName, e.group_id ? `Group: ${e.groupName}` : e.content_type, e.snippet, e.action_taken, formatDate(e.created_at)]) },
   reports: { title: 'Reports', cols: ['Reason', 'Reported user', 'Reported by', 'Status', 'Filed'], rows: () => state.reports.map(r => [r.reason || '—', r.reportedUserName, r.reportedByName, isReportPending(r) ? 'Pending' : 'Resolved', formatDate(r.created_at)]) },
   analytics: { title: 'Analytics Summary', cols: ['Metric', 'Value'], rows: () => { const l = state.profiles.filter(isLecturerProfile).length; const v = state.profiles.filter(isVerified).length; return [['Total users', state.profiles.length], ['Students', state.profiles.length - l], ['Lecturers', l], ['Institutions', new Set(state.profiles.map(institutionOf)).size], ['Campuses', new Set(state.profiles.map(campusOf)).size], ['Verified users', v], ['Verification rate', state.profiles.length ? Math.round(v / state.profiles.length * 100) + '%' : '0%']]; } },
+  payments: { title: 'Payments', cols: ['User', 'Amount', 'Currency', 'Status', 'Provider', 'Date'], rows: () => { const byId = new Map(state.profiles.map(p => [p.id, p])); return state.payments.map(p => { const u = byId.get(p.user_id); return [u ? displayName(u) : p.user_id, Number(p.amount || 0).toFixed(2), p.currency || 'GHS', p.status, p.provider || '—', formatDate(p.created_at)]; }); } },
 };
 
 function openExportModal(kind) {

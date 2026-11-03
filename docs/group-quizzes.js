@@ -5,6 +5,7 @@
 import { supabase } from './js/supabaseClient.js';
 import { getCurrentUserContext } from './js/campusDiscovery.js';
 import { initGlobalTheme } from './js/themeManager.js';
+import { canAccess, buildQuizLock } from './js/membership.js';
 
 // ------------------------------------------------------------
 // State
@@ -283,10 +284,15 @@ async function loadQuizzes() {
             attemptsRemaining,
             submittedAttempts,
             inProgressAttempt,
-            // Review is entirely the lecturer's call (quiz.allow_review) and
-            // only unlocks once the attempt has actually been graded — not
-            // merely submitted.
-            reviewableAttempt: q.allow_review && latestGradedAttempt ? latestGradedAttempt : null,
+            // Review is entirely the lecturer's call (quiz.allow_review). The
+            // button itself is shown whenever a lecturer has turned review on
+            // for this quiz — clicking it before the student's own attempt is
+            // actually graded lands on quiz-review.html's own "attempt the
+            // quiz first" / "not graded yet" message rather than the answers,
+            // so the real gate lives there (and is re-checked server-side on
+            // every load), not in whether this button is visible.
+            reviewableAttempt: q.allow_review ? (latestGradedAttempt || null) : null,
+            reviewAllowed: !!q.allow_review,
             bestScore: submittedAttempts.length
                 ? Math.max(...submittedAttempts.map(a => (a.score != null ? Number(a.score) : -Infinity)))
                 : null,
@@ -389,6 +395,56 @@ function getFilteredSortedQuizzes() {
     return list;
 }
 
+// Spec item #10: a student whose PeerLoom membership has lapsed should
+// never be able to just start a quiz unnoticed — and when they're blocked,
+// the way back in (reactivating) has to be right there, not something they
+// have to go hunting for. buildQuizLock() already carries the exact spec
+// copy and the "Reactivate Membership" link to membership.html; this just
+// wraps it in a dismissible modal instead of silently doing nothing.
+const QUIZ_LOCK_MODAL_STYLE_ID = 'quiz-lock-modal-style';
+function ensureQuizLockModalStyles() {
+    if (document.getElementById(QUIZ_LOCK_MODAL_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = QUIZ_LOCK_MODAL_STYLE_ID;
+    style.textContent = `
+        .quiz-lock-backdrop {
+            position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            padding: 20px;
+        }
+        .quiz-lock-modal {
+            position: relative; max-width: 420px; width: 100%;
+        }
+        .quiz-lock-modal .quiz-lock-close {
+            position: absolute; top: -14px; right: -14px; width: 32px; height: 32px; border-radius: 50%;
+            border: none; background: #fff; color: #1D1D1F; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+            cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+        }
+        .quiz-lock-modal .quiz-lock-close:hover { transform: scale(1.06); }
+        .quiz-lock-modal .pl-membership-lock { flex-direction: column; text-align: center; }
+        .quiz-lock-modal .pl-membership-lock .pl-lock-btn { width: 100%; }
+    `;
+    document.head.appendChild(style);
+}
+
+function showQuizLockModal() {
+    ensureQuizLockModalStyles();
+    const backdrop = document.createElement('div');
+    backdrop.className = 'quiz-lock-backdrop';
+    const modal = document.createElement('div');
+    modal.className = 'quiz-lock-modal';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'quiz-lock-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = '<i class="fas fa-xmark"></i>';
+    closeBtn.addEventListener('click', () => backdrop.remove());
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+    modal.appendChild(closeBtn);
+    modal.appendChild(buildQuizLock());
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+}
+
 function renderList() {
     const list = getFilteredSortedQuizzes();
 
@@ -407,9 +463,21 @@ function renderList() {
     els.quizList.innerHTML = list.map((q, i) => renderQuizCard(q, i)).join('');
 
     els.quizList.querySelectorAll('.start-quiz-btn[data-quiz-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             if (btn.disabled) return;
             const quizId = btn.dataset.quizId;
+
+            // Membership gate (spec item #10): never let a lapsed student
+            // slip into the quiz unnoticed — show the lock + subscribe link
+            // instead of navigating. canAccess fails closed, so a check
+            // that errors out blocks the attempt rather than silently
+            // letting it through.
+            const entitled = await canAccess('quiz_attempt');
+            if (!entitled) {
+                showQuizLockModal();
+                return;
+            }
+
             // quiz-session.html (Phase 3, Part 4/5) ships in the next stage of this build.
             // Using replace (not href) here means the quiz session takes over
             // this history slot instead of adding a new one. Combined with the
@@ -422,9 +490,12 @@ function renderList() {
         });
     });
 
-    els.quizList.querySelectorAll('[data-review-attempt-id]').forEach(btn => {
+    els.quizList.querySelectorAll('[data-review-quiz-id]').forEach(btn => {
         btn.addEventListener('click', () => {
-            window.location.href = `quiz-review.html?attempt=${btn.dataset.reviewAttemptId}&group=${groupId}`;
+            const quizId = btn.dataset.reviewQuizId;
+            const attemptId = btn.dataset.reviewAttemptId;
+            const attemptPart = attemptId ? `&attempt=${encodeURIComponent(attemptId)}` : '';
+            window.location.href = `quiz-review.html?quiz=${encodeURIComponent(quizId)}${attemptPart}&group=${groupId}`;
         });
     });
 }
@@ -481,8 +552,8 @@ function renderQuizCard(q, index) {
                     ${q.bestScore != null ? ` · Best: <strong>${q.bestScore}/${q.maxScore}</strong>` : ''}
                 </div>
                 <div class="quiz-card-actions">
-                    ${q.reviewableAttempt ? `
-                        <button class="start-quiz-btn secondary" data-review-attempt-id="${q.reviewableAttempt.id}">
+                    ${q.reviewAllowed ? `
+                        <button class="start-quiz-btn secondary" data-review-quiz-id="${q.id}" data-review-attempt-id="${q.reviewableAttempt ? q.reviewableAttempt.id : ''}">
                             <i class="fas fa-magnifying-glass"></i> Review Answers
                         </button>` : ''}
                     <button class="start-quiz-btn" data-quiz-id="${q.id}" ${disabled ? 'disabled' : ''}>

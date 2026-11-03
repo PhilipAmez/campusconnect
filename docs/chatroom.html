@@ -16,12 +16,16 @@
     /* Liquid glass polish for message content */
     .message-content { word-break: break-word; }
   </style>
+  <script src="js/a11y.js" defer></script>
+  <script src="js/policy-refs.js"></script>
+  <script type="module" src="js/global-notifications.js"></script>
+  <script type="module" src="js/moderation-banner.js"></script>
 </head>
 <body>
   <div class="chat-arena">
     <!-- Chat Header -->
     <div class="chat-header">
-      <button class="back-button" id="backButton">
+      <button aria-label="Go back" class="back-button" id="backButton">
         <i class="fas fa-arrow-left"></i>
       </button>
       <h1 id="groupTitle">Group Chat</h1>
@@ -29,16 +33,16 @@
         <button class="icon-btn" id="homeButton" aria-label="Go to Dashboard">
           <i class="fas fa-house"></i>
         </button>
-        <button class="icon-btn" id="voiceCallButton">
+        <button aria-label="Start voice call" class="icon-btn" id="voiceCallButton">
           <i class="fas fa-phone"></i>
         </button>
-        <button class="icon-btn" id="videoCallButton">
+        <button aria-label="Start video call" class="icon-btn" id="videoCallButton">
           <i class="fas fa-video"></i>
         </button>
-        <button class="icon-btn" id="themeToggleButton">
+        <button aria-label="Toggle dark mode" class="icon-btn" id="themeToggleButton">
           <i class="fas fa-moon"></i>
         </button>
-        <button class="icon-btn" id="adminPanelButton">
+        <button aria-label="Group admin settings" class="icon-btn" id="adminPanelButton">
           <i class="fas fa-cog"></i>
         </button>
       </div>
@@ -60,10 +64,10 @@
           <div class="reply-context-sender" id="replyContextSender"></div>
           <div class="reply-context-text" id="replyContextText"></div>
         </div>
-        <button class="reply-context-close" id="replyContextClose"><i class="fas fa-times"></i></button>
+        <button aria-label="Cancel reply" class="reply-context-close" id="replyContextClose"><i class="fas fa-times"></i></button>
       </div>
 
-      <div class="composer-container">
+      <div class="composer-container" style="display:none;" data-composer-pending="true">
         <div class="composer-actions">
           <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
           <button class="composer-action-btn" id="fileShareButton" title="Attach file">
@@ -77,7 +81,7 @@
           </button>
         </div>
         
-        <textarea 
+        <textarea aria-label="Message" 
           id="messageBar" 
           class="message-composer" 
           data-placeholder="Type here" 
@@ -89,7 +93,7 @@
           <button class="composer-action-btn" id="recordAudioButton" title="Hold to record voice message">
             <i class="fas fa-microphone"></i>
           </button>
-          <button class="send-button" id="sendMessageButton">
+          <button aria-label="Send message" class="send-button" id="sendMessageButton">
             <i class="fas fa-paper-plane"></i>
           </button>
         </div>
@@ -130,8 +134,8 @@
     </div>
   </div>
 
-  <div class="lightbox" id="lightbox">
-    <span class="lightbox-close" id="lightboxClose">&times;</span>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Media viewer">
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close media viewer" style="background:none;border:none;padding:0;">&times;</button>
     <div class="lightbox-content" id="lightboxContent">
     </div>
   </div>
@@ -142,7 +146,7 @@
         <div class="modal-title">Share Group</div>
         <div class="modal-description">Share this link to invite others to join your group</div>
       </div>
-      <input type="text" class="modal-input" id="shareGroupInput" readonly>
+      <input aria-label="Share link" type="text" class="modal-input" id="shareGroupInput" readonly>
       <div class="modal-actions">
         <button class="modal-btn cancel" id="shareGroupCancel">Close</button>
         <button class="modal-btn confirm" id="shareGroupCopy">Copy Link</button>
@@ -156,7 +160,7 @@
         <div class="modal-title">Edit Message</div>
         <div class="modal-description">Update your message below</div>
       </div>
-      <input type="text" class="modal-input" id="editMessageInput" placeholder="Type your message...">
+      <input aria-label="Edit message" type="text" class="modal-input" id="editMessageInput" placeholder="Type your message...">
       <div class="modal-actions">
         <button class="modal-btn cancel" id="editMessageCancel">Cancel</button>
         <button class="modal-btn confirm" id="editMessageConfirm">Update</button>
@@ -234,6 +238,7 @@
     import { mountAnnouncementBanner } from './js/announcement-banner.js';
     import { loadResourceCard } from './js/resource-card.js';
     import { initGlobalTheme } from './js/themeManager.js';
+    import { canAccess, buildComposerLock } from './js/membership.js';
 
     await initGlobalTheme({ supabase });
 
@@ -287,6 +292,8 @@
       userRole: 'member',
       isPublic: false,
       isFrozen: false,
+      groupModerationStatus: 'active',
+      groupModerationReason: null,
       allowedMediaTypes: null,
       messageRateLimit: 0,
       inviteCode: null,
@@ -696,7 +703,7 @@
       try {
         const { data: grp, error: grpError } = await supabase
           .from('groups')
-          .select('name, description, created_by, is_public, course_code, is_frozen, allowed_media_types, message_rate_limit, invite_code')
+          .select('name, description, created_by, is_public, course_code, is_frozen, allowed_media_types, message_rate_limit, invite_code, moderation_status, moderation_reason, moderation_policy_ref')
           .eq('id', gid)
           .single();
         
@@ -706,15 +713,28 @@
         state.groupCreatorId = grp.created_by;
         state.isPublic = grp.is_public || false;
         state.isFrozen = grp.is_frozen || false;
+        state.groupModerationStatus = grp.moderation_status || 'active';
+        state.groupModerationReason = grp.moderation_reason || null;
+        state.groupModerationPolicyRef = grp.moderation_policy_ref || null;
+        updateModerationBanner();
         state.allowedMediaTypes = grp.allowed_media_types || null;
         state.messageRateLimit = grp.message_rate_limit || 0;
         state.inviteCode = grp.invite_code || null;
         state.lastMessageSentAt = 0;
 
         updateFrozenBanner();
-        
-        elements.groupTitle.innerHTML = `<span>${grp.name}</span><br><small style="font-size: 0.8rem; opacity: 0.7; font-style: italic;">${grp.description || ''}</small>`;
-        
+
+        elements.groupTitle.innerHTML = `<span>${escapeHtml(grp.name)}</span><br><small style="font-size: 0.8rem; opacity: 0.7; font-style: italic;">${escapeHtml(grp.description || '')}</small>`;
+
+        // PeerLoom membership gate (spec item #9): an inactive student or
+        // a lecturer outside their free year/paid plan can still read the
+        // entire conversation — only the composer locks. This is a UX
+        // convenience; the real enforcement is the trg_entitled_group_messaging
+        // database trigger, which blocks the insert even if this check is
+        // bypassed entirely.
+        state.membershipCanMessage = await canAccess('group_messaging');
+        applyComposerMembershipLock();
+
       } catch (error) {
         console.error('Error loading group data:', error);
         showError('Failed to load group data');
@@ -899,8 +919,8 @@
         if (!replyText) replyText = '(message)';
         const preview = replyText.length > 60 ? replyText.substring(0, 60) + '…' : replyText;
         replyDiv.innerHTML = `
-          <div class="reply-banner-sender">${m.reply_to_sender || 'Unknown'}</div>
-          <div class="reply-banner-text">${preview}</div>
+          <div class="reply-banner-sender">${escapeHtml(m.reply_to_sender || 'Unknown')}</div>
+          <div class="reply-banner-text">${escapeHtml(preview)}</div>
         `;
         div.appendChild(replyDiv);
       }
@@ -912,9 +932,21 @@
       
       const ct = document.createElement('div');
       ct.className = 'message-content';
-      
-      if (m.message_type === 'placeholder') {
-        ct.innerHTML = m.content;
+
+      // Auto-moderation (security-fixes-7-moderation-pipeline.sql) marks a
+      // message 'hidden' the instant it's written, at the database layer —
+      // this only decides how it's DISPLAYED. The sender still sees their
+      // own message (so it isn't a confusing silent failure) and an admin
+      // can still see it (to act on it); everyone else sees a neutral
+      // placeholder instead of the real content. render() does its own
+      // appendChild(div) further down (it doesn't return div), so this has
+      // to fall through into the normal flow, not return early.
+      const isModHidden = m.moderation_status === 'hidden' && !mine && state.userRole !== 'admin';
+
+      if (isModHidden) {
+        ct.innerHTML = '<p style="opacity:0.65;font-style:italic;"><i class="fas fa-eye-slash"></i> This message was hidden by automatic moderation.</p>';
+      } else if (m.message_type === 'placeholder') {
+        ct.innerHTML = escapeHtml(m.content);
       } else if (m.message_type === 'uploading') {
         ct.innerHTML = createUploadingFileElement(m);
       } else if (m.message_type === 'audio' && m.audio_url) {
@@ -1009,7 +1041,7 @@
       elements.pinnedBar.style.display = 'flex';
       elements.pinnedBar.innerHTML = `
         <span class="pinned-bar-icon"><i class="fas fa-thumbtack"></i></span>
-        <span class="pinned-bar-text"><strong>${top.sender_name || 'Someone'}:</strong> ${preview}</span>
+        <span class="pinned-bar-text"><strong>${escapeHtml(top.sender_name || 'Someone')}:</strong> ${escapeHtml(preview)}</span>
         ${state.pinnedMessages.length > 1 ? `<span class="pinned-bar-count">${state.pinnedMessages.length}</span>` : ''}
       `;
       elements.pinnedBar.onclick = () => {
@@ -1033,10 +1065,10 @@
         return `
           <div class="admin-report-item">
             <div class="admin-report-top">
-              <strong>${pm.sender_name || 'Someone'}</strong>
-              ${state.userRole !== 'member' ? `<button class="admin-action" style="padding:4px 10px;font-size:12px;" data-unpin="${pm.id}"><i class="fas fa-thumbtack"></i> Unpin</button>` : ''}
+              <strong>${escapeHtml(pm.sender_name || 'Someone')}</strong>
+              ${state.userRole !== 'member' ? `<button class="admin-action" style="padding:4px 10px;font-size:12px;" data-unpin="${escapeHtml(pm.id)}"><i class="fas fa-thumbtack"></i> Unpin</button>` : ''}
             </div>
-            <div style="opacity:0.8;font-size:13px;">${preview}</div>
+            <div style="opacity:0.8;font-size:13px;">${escapeHtml(preview)}</div>
           </div>
         `;
       }).join('');
@@ -1119,15 +1151,15 @@
           return `
             <div class="admin-report-item">
               <div class="admin-report-top">
-                <span><strong>${reportedName}</strong> reported by ${reporterName}</span>
-                <span class="admin-report-status ${r.status}">${r.status}</span>
+                <span><strong>${escapeHtml(reportedName)}</strong> reported by ${escapeHtml(reporterName)}</span>
+                <span class="admin-report-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
               </div>
-              <div style="font-size:13px;opacity:0.8;">${r.reason || '(no reason given)'}</div>
-              ${msgPreview ? `<div style="font-size:12px;opacity:0.6;font-style:italic;">"${msgPreview.length > 80 ? msgPreview.substring(0,80)+'…' : msgPreview}"</div>` : ''}
+              <div style="font-size:13px;opacity:0.8;">${escapeHtml(r.reason || '(no reason given)')}</div>
+              ${msgPreview ? `<div style="font-size:12px;opacity:0.6;font-style:italic;">"${escapeHtml(msgPreview.length > 80 ? msgPreview.substring(0,80)+'…' : msgPreview)}"</div>` : ''}
               <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
                 <span style="font-size:11px;opacity:0.5;">${new Date(r.created_at).toLocaleString()}</span>
                 ${state.userRole !== 'member' ? `
-                  <select class="admin-report-status-select" data-report-id="${r.id}">
+                  <select class="admin-report-status-select" data-report-id="${escapeHtml(r.id)}">
                     <option value="open" ${r.status === 'open' ? 'selected' : ''}>Open</option>
                     <option value="reviewed" ${r.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
                     <option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>Dismissed</option>
@@ -1164,7 +1196,7 @@
         <div class="file-attachment-card">
           <div class="file-icon-wrapper"><i class="fas fa-file-alt"></i></div>
           <div class="file-info">
-            <div class="file-name">${m.file_name}</div>
+            <div class="file-name">${escapeHtml(m.file_name || 'File')}</div>
             <div class="upload-progress-container">
               <div class="upload-progress-bar-wrapper">
                 <div class="upload-progress-bar" id="progress-${m.id}"></div>
@@ -1328,13 +1360,15 @@
     
     function createImageElement(m) {
       const isDownloadedFlag = isDownloaded(m.content);
+      const safeUrl = escapeHtml(sanitizeUrl(m.content));
+      const safeName = escapeHtml(m.file_name || 'image');
       return `
         <div class="media-container">
-          <img src="${m.content}" alt="${m.file_name || 'Image'}" 
+          <img src="${safeUrl}" alt="${escapeHtml(m.file_name || 'Image')}"
                style="width: 100%; display: block; border-radius: ${isDownloadedFlag ? '15px' : '15px 15px 15px 4px'}; cursor: pointer;"
-               onclick="openLightbox('${m.content}', 'image')">
+               data-lightbox-src="${safeUrl}" data-lightbox-type="image">
           ${!isDownloadedFlag ? `
-            <button class="media-download-btn" title="Download" onclick="downloadWithAnimation(event, '${m.content}', '${m.file_name || 'image'}')">
+            <button class="media-download-btn" title="Download" data-download-url="${safeUrl}" data-download-name="${safeName}">
               <i class="fas fa-download"></i>
             </button>
           ` : ''}
@@ -1344,14 +1378,16 @@
     
     function createVideoElement(m) {
       const isDownloadedFlag = isDownloaded(m.content);
+      const safeUrl = escapeHtml(sanitizeUrl(m.content));
+      const safeName = escapeHtml(m.file_name || 'video');
       return `
-        <div class="media-container" style="cursor: pointer;" onclick="openLightbox('${m.content}', 'video')">
-          <video src="${m.content}#t=0.1" preload="metadata" style="width: 100%; display: block; border-radius: ${isDownloadedFlag ? '15px' : '15px 15px 15px 4px'}; pointer-events: none;"></video>
+        <div class="media-container" style="cursor: pointer;" data-lightbox-src="${safeUrl}" data-lightbox-type="video">
+          <video src="${safeUrl}#t=0.1" preload="metadata" style="width: 100%; display: block; border-radius: ${isDownloadedFlag ? '15px' : '15px 15px 15px 4px'}; pointer-events: none;"></video>
           <div class="media-play-btn">
             <i class="fas fa-play"></i>
           </div>
           ${!isDownloadedFlag ? `
-            <button class="media-download-btn" title="Download" onclick="event.stopPropagation(); downloadWithAnimation(event, '${m.content}', '${m.file_name || 'video'}')">
+            <button class="media-download-btn" title="Download" data-download-url="${safeUrl}" data-download-name="${safeName}" data-stop-propagation="true">
               <i class="fas fa-download"></i>
             </button>
           ` : ''}
@@ -1380,10 +1416,10 @@
             <i class="fas fa-file-alt"></i>
           </div>
           <div class="file-info">
-            <div class="file-name">${displayName}</div>
-            <div class="file-meta">${metaStr}</div>
+            <div class="file-name">${escapeHtml(displayName)}</div>
+            <div class="file-meta">${escapeHtml(metaStr)}</div>
           </div>
-          <a href="${m.content}" download="${displayName}" class="download-btn-wrapper" title="Download">
+          <a href="${escapeHtml(sanitizeUrl(m.content))}" download="${escapeHtml(displayName)}" class="download-btn-wrapper" title="Download">
             <i class="fas fa-download"></i>
           </a>
         </div>
@@ -1482,7 +1518,7 @@
         pollDiv.className = 'poll-container poll-fade-in';
 
         pollDiv.innerHTML = `
-          <div class="poll-question">${poll.question || 'No question'}</div>
+          <div class="poll-question">${escapeHtml(poll.question || 'No question')}</div>
           <div class="poll-options"></div>
           <div class="poll-total-votes">Total votes: ${totalVotes}</div>
         `;
@@ -1497,7 +1533,7 @@
           optionDiv.className = `poll-option${isMyVote ? ' voted' : ''}`;
           optionDiv.innerHTML = `
             <div class="poll-option-bar" style="width: ${percent}%"></div>
-            <div class="poll-option-text">${opt}</div>
+            <div class="poll-option-text">${escapeHtml(opt)}</div>
             <div class="poll-option-votes">${voteCount} vote${voteCount !== 1 ? 's' : ''} (${percent.toFixed(1)}%)</div>
           `;
 
@@ -1647,9 +1683,9 @@
         const item = document.createElement('div');
         item.className = `mention-item${u.isAI ? ' ai-mention-item' : ''}${index === 0 ? ' active' : ''}`;
         item.innerHTML = `
-          <img src="${u.avatar}" class="mention-avatar" alt="${u.name}" onerror="this.style.display='none'">
+          <img src="${escapeHtml(u.avatar)}" class="mention-avatar" alt="${escapeHtml(u.name)}" onerror="this.style.display='none'">
           <div class="mention-item-info">
-            <span class="mention-item-name">${u.name}</span>
+            <span class="mention-item-name">${escapeHtml(u.name)}</span>
           </div>
           ${u.isAI ? '<span class="mention-badge">AI</span>' : ''}
         `;
@@ -1786,10 +1822,35 @@
       return blocks.join('');
     }
 
+    // Escapes raw message text before any HTML is built from it. Chat
+    // messages are entirely user-controlled, so without this, anyone
+    // could send a message containing <img onerror=...> or <script>
+    // and it would execute in every other group member's browser —
+    // this was rendering completely unescaped before this fix.
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // URL allowlist for anything that lands in an href/src. escapeHtml() stops
+    // attribute breakout but does NOT stop a "javascript:" scheme, so anything
+    // that becomes a link or media source goes through this first.
+    function sanitizeUrl(u) {
+      try {
+        const url = new URL(String(u ?? ''), window.location.href);
+        return ['https:', 'http:', 'blob:'].includes(url.protocol) ? url.href : '';
+      } catch (e) {
+        return '';
+      }
+    }
+
     function processMentions(content) {
-      let processedContent = content;
+      // Escape first, then detect/highlight mentions on the already-safe
+      // text — @usernames contain no HTML-special characters, so this
+      // doesn't break mention matching, and the <span> markup built below
+      // is our own trusted HTML, not user input.
+      let processedContent = escapeHtml(content);
       const mentionRegex = /(@[^\s]+)/g;
-      const mentions = content.match(mentionRegex);
+      const mentions = processedContent.match(mentionRegex);
       
       if (mentions) {
         mentions.forEach(mention => {
@@ -1842,12 +1903,83 @@
       }
     }
 
+    // Platform-level Command Centre moderation, distinct from a group
+    // admin's own freeze toggle above: this applies to EVERY member,
+    // including the group's own admin/creator, and is backed by a database
+    // trigger (not just this banner), so it can't be bypassed by editing
+    // the page or calling the API directly.
+    function updateModerationBanner() {
+      let banner = document.getElementById('moderationStatusBanner');
+      const status = state.groupModerationStatus;
+      if (status === 'suspended' || status === 'warned') {
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'moderationStatusBanner';
+          const inputArea = document.querySelector('.chat-input-area');
+          inputArea?.parentElement?.insertBefore(banner, inputArea);
+        }
+        const reasonHtml = state.groupModerationReason ? escapeHtml(state.groupModerationReason) : 'No reason recorded.';
+        const ruleHtml = (window.PeerloomPolicy && window.PeerloomPolicy.noticeHtml(state.groupModerationPolicyRef)) || '';
+        if (status === 'suspended') {
+          banner.style.cssText = 'display:flex; flex-direction:column; gap:2px; padding:10px 16px; background:rgba(239,68,68,0.12); color:#dc2626; font-size:13px; font-weight:600;';
+          banner.innerHTML = '<div><i class="fas fa-ban"></i> This group has been suspended by Peerloom moderation — no one, including admins, can send new messages or add members.</div>' +
+            '<div style="font-weight:400; opacity:0.85;">Reason: ' + reasonHtml + '</div>' + ruleHtml;
+        } else {
+          banner.style.cssText = 'display:flex; flex-direction:column; gap:2px; padding:10px 16px; background:rgba(255,149,0,0.12); color:var(--ios-warning); font-size:13px; font-weight:600;';
+          banner.innerHTML = '<div><i class="fas fa-triangle-exclamation"></i> This group received a moderation warning. The group creator has been notified.</div>' +
+            '<div style="font-weight:400; opacity:0.85;">Reason: ' + reasonHtml + '</div>' + ruleHtml;
+        }
+      } else if (banner) {
+        banner.remove();
+      }
+    }
+
+    // Swaps the composer for the "PARTICIPATION IS INACTIVE" lock (spec
+    // item #9) when membership isn't active, and restores the normal
+    // composer when it is. Never hides the group, never touches existing
+    // messages, never redirects away.
+    let composerLockEl = null;
+    function applyComposerMembershipLock() {
+      const container = document.querySelector('.composer-container');
+      if (!container) return;
+      if (state.membershipCanMessage) {
+        if (composerLockEl) { composerLockEl.remove(); composerLockEl = null; }
+        container.style.display = '';
+        container.removeAttribute('data-composer-pending');
+        return;
+      }
+      container.style.display = 'none';
+      container.removeAttribute('data-composer-pending');
+      if (!composerLockEl) {
+        composerLockEl = buildComposerLock({
+          onReactivate: () => { window.location.href = 'membership.html'; },
+        });
+        container.insertAdjacentElement('afterend', composerLockEl);
+      }
+    }
+
     async function sendMessage() {
       const text = elements.messageBar.value.trim();
       if (!text) return;
 
+      if (!state.membershipCanMessage) {
+        // Defense in depth: the composer should already be swapped for the
+        // locked card (spec #9) by the time anyone could click Send, but if
+        // this ever fires anyway (e.g. a stale click queued right as the
+        // entitlement check resolved), show the same locked/Reactivate
+        // experience rather than a dismissible toast — the user should land
+        // on the payment flow, not just an error message.
+        applyComposerMembershipLock();
+        return;
+      }
+
       if (state.isFrozen && state.userRole !== 'admin') {
         showError('This chat is currently frozen by an admin. New messages are paused.');
+        return;
+      }
+
+      if (state.groupModerationStatus === 'suspended') {
+        showError('This group has been suspended by Peerloom moderation. New messages are blocked for everyone, including admins.');
         return;
       }
 
@@ -1999,7 +2131,7 @@
         typingDiv.className = 'typing-indicator';
         typingDiv.id = `typing-${typingUser.id}`;
         typingDiv.innerHTML = `
-          <div class="sender-name">${typingUser.name}</div>
+          <div class="sender-name">${escapeHtml(typingUser.name)}</div>
           <div class="typing-dots">
             <div class="typing-dot"></div>
             <div class="typing-dot"></div>
@@ -2027,9 +2159,10 @@
       let aiReply = null;
 
       try {
+        const { data: { session: aiSession } } = await supabase.auth.getSession();
         const response = await fetch('/api/peerpal', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiSession?.access_token ?? ''}` },
           body: JSON.stringify({ message: cleanMessage })
         });
 
@@ -2431,6 +2564,14 @@
     
     async function uploadAudioMessage(audioBlob) {
       try {
+        // Same PeerLoom membership gate as sendMessage() (spec #9) — voice
+        // messages are still a message, so an inactive student's recording
+        // must be stopped here too, not just the plain text composer.
+        if (!state.membershipCanMessage) {
+          applyComposerMembershipLock();
+          return;
+        }
+
         if (!audioBlob || audioBlob.size === 0) {
           showError('Recording is empty, please try again.');
           return;
@@ -2498,8 +2639,21 @@
     async function handleFileUpload(file) {
       if (!file) return;
 
+      // Same PeerLoom membership gate as sendMessage() (spec #9) — a file
+      // share is still a message, so an inactive student's upload must be
+      // stopped here too, not just the plain text composer.
+      if (!state.membershipCanMessage) {
+        applyComposerMembershipLock();
+        return;
+      }
+
       if (state.isFrozen && state.userRole !== 'admin') {
         showError('This chat is currently frozen by an admin.');
+        return;
+      }
+
+      if (state.groupModerationStatus === 'suspended') {
+        showError('This group has been suspended by Peerloom moderation. New messages are blocked for everyone, including admins.');
         return;
       }
 
@@ -2630,9 +2784,9 @@
         const item = document.createElement('div');
         item.className = 'member-item';
         item.innerHTML = `
-          <img src="${avatarUrl}" class="member-avatar" alt="${displayName}">
+          <img src="${escapeHtml(avatarUrl)}" class="member-avatar" alt="${escapeHtml(displayName)}">
           <div class="member-info">
-            <div class="member-name">${displayName}</div>
+            <div class="member-name">${escapeHtml(displayName)}</div>
             <div class="member-role">${role.charAt(0).toUpperCase() + role.slice(1)}</div>
           </div>
           <div class="member-status"></div>
@@ -3128,7 +3282,7 @@
       const fileType = file.type.split('/')[0];
       
       if (fileType === 'image') {
-        previewHtml = `<img src="${URL.createObjectURL(file)}" style="max-height: 200px; border-radius: 8px;">`;
+        previewHtml = `<img src="${URL.createObjectURL(file)}" alt="Selected image preview" style="max-height: 200px; border-radius: 8px;">`;
       } else if (fileType === 'video') {
         previewHtml = `<video src="${URL.createObjectURL(file)}" controls style="max-height: 200px; border-radius: 8px;"></video>`;
       } else {
@@ -3136,7 +3290,7 @@
           <div class="file-attachment-card" style="background: var(--input-bg);">
             <div class="file-icon-wrapper"><i class="fas fa-file-alt"></i></div>
             <div class="file-info">
-              <div class="file-name">${file.name}</div>
+              <div class="file-name">${escapeHtml(file.name)}</div>
               <div class="file-meta">${formatFileSize(file.size)}</div>
             </div>
           </div>
@@ -3390,7 +3544,7 @@
               .limit(20);
             if (logError) { showError('Error loading log.'); return; }
             const logLines = (recentMsgs || []).map(msg =>
-              `<div class="admin-log-entry"><span class="admin-log-time">${new Date(msg.created_at).toLocaleString()}</span><span class="admin-log-sender">${msg.sender_name}</span><span class="admin-log-msg">${msg.content}</span></div>`
+              `<div class="admin-log-entry"><span class="admin-log-time">${new Date(msg.created_at).toLocaleString()}</span><span class="admin-log-sender">${escapeHtml(msg.sender_name)}</span><span class="admin-log-msg">${escapeHtml(msg.content)}</span></div>`
             ).join('');
             showAdminInfoModal('Recent Activity Log', logLines || '<p style="opacity:0.6;text-align:center;padding:1rem">No messages found.</p>');
           })();
@@ -3518,7 +3672,7 @@
               .order('created_at', { ascending: false });
             if (pollHistErr) { showError('Error loading poll history.'); return; }
             const lines = (pollMsgs || []).map(p =>
-              `<div class="admin-log-entry"><span class="admin-log-time">${new Date(p.created_at).toLocaleString()}</span><span class="admin-log-sender">${p.sender_name}</span></div>`
+              `<div class="admin-log-entry"><span class="admin-log-time">${new Date(p.created_at).toLocaleString()}</span><span class="admin-log-sender">${escapeHtml(p.sender_name)}</span></div>`
             ).join('');
             showAdminInfoModal('Poll History', lines || '<p style="opacity:0.6;text-align:center;padding:1rem">No polls found.</p>');
           })();
@@ -3672,7 +3826,7 @@
       modal.style.zIndex = '2500';
       const memberItems = humanMembers.map(m => {
         const dn = getDisplayName(m);
-        return `<button class="admin-member-pick-btn" data-id="${m.user_id}" data-name="${dn}">${dn} <span style="opacity:0.5;font-size:12px">(${m.role || 'member'})</span></button>`;
+        return `<button class="admin-member-pick-btn" data-id="${escapeHtml(m.user_id)}" data-name="${escapeHtml(dn)}">${escapeHtml(dn)} <span style="opacity:0.5;font-size:12px">(${escapeHtml(m.role || 'member')})</span></button>`;
       }).join('');
       modal.innerHTML = `
         <div class="modal-content">
@@ -3712,10 +3866,10 @@
             <div class="modal-title">Schedule Message</div>
             <div class="modal-description">Set a message to be sent after a delay.</div>
           </div>
-          <textarea class="modal-input" id="_scheduleMsg" rows="3" placeholder="Enter your message..."></textarea>
+          <textarea aria-label="Enter your message..." class="modal-input" id="_scheduleMsg" rows="3" placeholder="Enter your message..."></textarea>
           <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
             <label style="font-size:14px;opacity:0.8;white-space:nowrap;">Send after</label>
-            <input type="number" class="modal-input" id="_scheduleMin" placeholder="Minutes" min="0" style="margin-bottom:0;flex:1;">
+            <input aria-label="Minutes" type="number" class="modal-input" id="_scheduleMin" placeholder="Minutes" min="0" style="margin-bottom:0;flex:1;">
             <label style="font-size:14px;opacity:0.8;white-space:nowrap;">minutes</label>
           </div>
           <div class="modal-actions">
@@ -3757,8 +3911,8 @@
             <div class="modal-title">Edit Group Info</div>
             <div class="modal-description">Update name and description</div>
           </div>
-          <input type="text" class="modal-input" id="newName" value="${state.groupInfo.name}" placeholder="Group Name">
-          <textarea class="modal-input" id="newDesc" rows="3" placeholder="Description">${state.groupInfo.description || ''}</textarea>
+          <input aria-label="Group Name" type="text" class="modal-input" id="newName" value="${escapeHtml(state.groupInfo.name)}" placeholder="Group Name">
+          <textarea aria-label="Description" class="modal-input" id="newDesc" rows="3" placeholder="Description">${escapeHtml(state.groupInfo.description || '')}</textarea>
           <div class="modal-actions">
             <button class="modal-btn cancel" onclick="this.closest('.modal-backdrop').remove()">Cancel</button>
             <button class="modal-btn confirm" onclick="updateGroup(this)">Update</button>
@@ -3805,7 +3959,7 @@
             <div class="modal-title">Create Poll</div>
             <div class="modal-description">Enter question and options</div>
           </div>
-          <input type="text" class="modal-input" id="pollQuestion" placeholder="Poll Question">
+          <input aria-label="Poll Question" type="text" class="modal-input" id="pollQuestion" placeholder="Poll Question">
           <div id="pollOptionsContainer" style="margin-bottom: 1rem;">
             <input type="text" class="modal-input poll-option-input" placeholder="Option 1" style="margin-bottom: 0.5rem;">
             <input type="text" class="modal-input poll-option-input" placeholder="Option 2" style="margin-bottom: 0.5rem;">
@@ -3833,6 +3987,15 @@
     }
     
     window.createPoll = async function(btn) {
+      // Same PeerLoom membership gate as sendMessage() (spec #9) — a poll
+      // is still a message to the group, so an inactive student creating
+      // one must be stopped here too, not just the plain text composer.
+      if (!state.membershipCanMessage) {
+        btn?.closest('.modal-backdrop')?.remove();
+        applyComposerMembershipLock();
+        return;
+      }
+
       const question = document.getElementById('pollQuestion').value.trim();
       if (!question) {
         showError('Question required');
@@ -4008,7 +4171,7 @@
             <div class="modal-title">Limit Message Frequency</div>
           </div>
           <p style="opacity:0.7; font-size:13px; margin-bottom:0.75rem;">Minimum seconds a member must wait between messages. Set to 0 to remove the limit. Admins are never limited.</p>
-          <input type="number" id="frequencyLimitInput" min="0" max="300" value="${state.messageRateLimit || 0}" style="width:100%; padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,0.12); font-size:16px;">
+          <input aria-label="Frequency Limit" type="number" id="frequencyLimitInput" min="0" max="300" value="${state.messageRateLimit || 0}" style="width:100%; padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,0.12); font-size:16px;">
           <div class="modal-actions">
             <button class="modal-btn cancel" onclick="this.closest('.modal-backdrop').remove()">Cancel</button>
             <button class="modal-btn confirm" onclick="updateFrequencyLimit(this)">Save</button>
@@ -4277,13 +4440,34 @@
     }
     
     window.openLightbox = function(src, type) {
+      const safeSrc = sanitizeUrl(src);
+      if (!safeSrc) return;
       if (type === 'image') {
-        elements.lightboxContent.innerHTML = `<img src="${src}" alt="Lightbox image">`;
+        elements.lightboxContent.replaceChildren(Object.assign(document.createElement('img'), { src: safeSrc, alt: 'Enlarged image' }));
       } else if (type === 'video') {
-        elements.lightboxContent.innerHTML = `<video src="${src}" controls autoplay></video>`;
+        elements.lightboxContent.replaceChildren(Object.assign(document.createElement('video'), { src: safeSrc, controls: true, autoplay: true }));
       }
       elements.lightbox.classList.add('visible');
     };
+
+    // Delegated handler for media messages — reads the actual URL/filename
+    // out of data-* attributes (which the browser safely HTML-decodes for
+    // us) rather than ever building an onclick="..." string containing
+    // user-controlled content. That's what actually closes this off: no
+    // amount of escaping a value that gets concatenated into inline JS is
+    // as safe as never constructing executable code from user data at all.
+    elements.messagePanel?.addEventListener('click', (e) => {
+      const downloadBtn = e.target.closest('[data-download-url]');
+      if (downloadBtn) {
+        if (downloadBtn.dataset.stopPropagation) e.stopPropagation();
+        downloadWithAnimation(e, downloadBtn.dataset.downloadUrl, downloadBtn.dataset.downloadName);
+        return;
+      }
+      const lightboxTrigger = e.target.closest('[data-lightbox-src]');
+      if (lightboxTrigger) {
+        openLightbox(lightboxTrigger.dataset.lightboxSrc, lightboxTrigger.dataset.lightboxType);
+      }
+    });
     
     function closeLightbox() {
       elements.lightbox.classList.remove('visible');

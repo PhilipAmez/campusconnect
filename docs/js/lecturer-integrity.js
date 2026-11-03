@@ -1,6 +1,35 @@
 import { supabase } from './supabaseClient.js';
 import { openStudentProfile } from './lecturer-student-profile.js';
 
+// membership.js is imported lazily (see lecturer-quizzes.js for the full
+// rationale): a missing/unreachable membership.js must never break the
+// static import graph that every lecturer dashboard section shares.
+let _membershipModPromise = null;
+function loadMembership() {
+  if (!_membershipModPromise) {
+    _membershipModPromise = import('./membership.js').catch((err) => {
+      console.error('lecturer-integrity.js: membership.js failed to load — gating fails closed:', err);
+      return null;
+    });
+  }
+  return _membershipModPromise;
+}
+async function canAccess(feature, opts) {
+  const mod = await loadMembership();
+  if (!mod) return false;
+  return mod.canAccess(feature, opts);
+}
+async function buildLecturerLock(opts) {
+  const mod = await loadMembership();
+  if (mod) return mod.buildLecturerLock(opts);
+  // Fallback if membership.js itself couldn't load at all — still locks
+  // the feature (fail closed), just without the shared styled component.
+  const el = document.createElement('div');
+  el.style.cssText = 'padding:16px;border-radius:16px;background:rgba(138,43,226,0.06);border:1px solid rgba(138,43,226,0.18);';
+  el.textContent = `Your PeerLoom Lecturer Access is inactive. Reactivate it to use ${opts?.feature || 'this tool'}.`;
+  return el;
+}
+
 const SEVERITY = {
   text_selection: 'low',
   tab_switch: 'medium',
@@ -317,7 +346,7 @@ function openTimelineOverlay(attemptId) {
 
   const overlay = ensureTimelineOverlay();
   const first = events[0];
-  overlay.querySelector('#timelineStudentName').innerHTML = `<span class="clickable-student" id="timelineStudentLink">${first.__attempt?.full_name || 'Unknown student'}</span>`;
+  overlay.querySelector('#timelineStudentName').innerHTML = `<span class="clickable-student" id="timelineStudentLink">${escapeHtml(first.__attempt?.full_name || 'Unknown student')}</span>`;
   overlay.querySelector('#timelineStudentLink')?.addEventListener('click', () => {
     if (first.__attempt?.student_id) openStudentProfile(first.__attempt.student_id, state.profile);
   });
@@ -347,6 +376,25 @@ function openTimelineOverlay(attemptId) {
 async function renderIntegritySection(container, profile) {
   if (!container) return;
   state.profile = profile;
+
+  // PeerLoom membership gate (spec item #15): integrity logs are a lecturer
+  // tool, so once a lecturer's free year/paid plan has lapsed no proctor
+  // event data is fetched or shown at all — not just a hidden UI element.
+  if (!(await canAccess('integrity_logs'))) {
+    container.innerHTML = `
+      <section class="hero-card">
+        <div>
+          <div class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Academic integrity</div>
+          <h3>Integrity event log</h3>
+        </div>
+      </section>
+    `;
+    const lockSection = document.createElement('section');
+    lockSection.className = 'glass-card';
+    lockSection.appendChild(await buildLecturerLock({ feature: 'the integrity log' }));
+    container.appendChild(lockSection);
+    return;
+  }
 
   container.innerHTML = `
     <section class="hero-card">

@@ -36,6 +36,7 @@ const DICTIONARIES = {
     btn_view_group: 'View Group',
     btn_quizzes: 'Quizzes',
     btn_resources: 'Resources',
+    btn_live_class: 'Live Class',
     btn_leave: 'Leave',
     sidebar_dashboard: 'Dashboard',
     sidebar_course_groups: 'My Course Groups',
@@ -48,6 +49,7 @@ const DICTIONARIES = {
     sidebar_resources: 'Resources',
     sidebar_announcements: 'Announcements',
     sidebar_settings: 'Settings',
+    sidebar_membership: 'Membership',
     sidebar_logout: 'Log out'
   },
   es: {
@@ -78,6 +80,7 @@ const DICTIONARIES = {
     btn_view_group: 'Ver Grupo',
     btn_quizzes: 'Cuestionarios',
     btn_resources: 'Recursos',
+    btn_live_class: 'Clase en Vivo',
     btn_leave: 'Salir',
     sidebar_dashboard: 'Panel',
     sidebar_course_groups: 'Mis Grupos de Curso',
@@ -90,6 +93,7 @@ const DICTIONARIES = {
     sidebar_resources: 'Recursos',
     sidebar_announcements: 'Anuncios',
     sidebar_settings: 'Configuración',
+    sidebar_membership: 'Membresía',
     sidebar_logout: 'Cerrar sesión'
   },
   fr: {
@@ -120,6 +124,7 @@ const DICTIONARIES = {
     btn_view_group: 'Voir le Groupe',
     btn_quizzes: 'Quiz',
     btn_resources: 'Ressources',
+    btn_live_class: 'Cours en Direct',
     btn_leave: 'Quitter',
     sidebar_dashboard: 'Tableau de Bord',
     sidebar_course_groups: 'Mes Groupes de Cours',
@@ -132,6 +137,7 @@ const DICTIONARIES = {
     sidebar_resources: 'Ressources',
     sidebar_announcements: 'Annonces',
     sidebar_settings: 'Paramètres',
+    sidebar_membership: 'Adhésion',
     sidebar_logout: 'Se déconnecter'
   },
   de: {
@@ -162,6 +168,7 @@ const DICTIONARIES = {
     btn_view_group: 'Gruppe ansehen',
     btn_quizzes: 'Quizze',
     btn_resources: 'Ressourcen',
+    btn_live_class: 'Live-Kurs',
     btn_leave: 'Verlassen',
     sidebar_dashboard: 'Übersicht',
     sidebar_course_groups: 'Meine Kursgruppen',
@@ -174,6 +181,7 @@ const DICTIONARIES = {
     sidebar_resources: 'Ressourcen',
     sidebar_announcements: 'Ankündigungen',
     sidebar_settings: 'Einstellungen',
+    sidebar_membership: 'Mitgliedschaft',
     sidebar_logout: 'Abmelden'
   }
 };
