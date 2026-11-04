@@ -71,6 +71,9 @@ export async function showSponsoredSlide(supabase, feed) {
     }, { root: feed, threshold: 0.6 });
     io.observe(slide);
 
+    // If the image can't be loaded (bad link), drop the slide and never count it.
+    slide.querySelector('.sponsored-img').addEventListener('error', () => { io.disconnect(); if (timer) clearTimeout(timer); counted = true; slide.remove(); });
+
     // ---- count a click (once per press, never blocks navigation) ----
     slide.querySelector('.sponsored-cta').addEventListener('click', () => {
       try { supabase.rpc('ad_record_click', { p_campaign_id: ad.campaign_id, p_placement_id: ad.placement_id, p_event_id: newId() }).then(() => {}, () => {}); } catch (e) { /* ignore */ }

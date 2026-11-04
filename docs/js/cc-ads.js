@@ -25,6 +25,30 @@ export function createAdsModule(ctx) {
   const num = n => Number(n || 0).toLocaleString('en-GB');
   const $ = id => document.getElementById(id);
   const isHttps = v => { try { return new URL(v).protocol === 'https:'; } catch { return false; } };
+  const IMG_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const MAX_IMG = 5 * 1024 * 1024;
+  function checkImage(file) {
+    if (!file) return 'Choose an image file.';
+    if (!IMG_TYPES[file.type]) return 'The image must be a JPG, PNG or WebP file.';
+    if (file.size > MAX_IMG) return 'The image is larger than 5 MB.';
+    return null;
+  }
+  async function uploadImage(file) {
+    const name = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + IMG_TYPES[file.type];
+    const path = getAdminId() + '/' + name;
+    const { error } = await supabase.storage.from('ad-creatives').upload(path, file, { contentType: file.type, upsert: false, cacheControl: '31536000' });
+    if (error) throw error;
+    const { data } = supabase.storage.from('ad-creatives').getPublicUrl(path);
+    if (!data || !isHttps(data.publicUrl)) throw new Error('Could not get a public link for the image');
+    return data.publicUrl;
+  }
+  function wirePreview() {
+    const f = $('adfFile'), p = $('adfPreview'); if (!f || !p) return;
+    f.addEventListener('change', () => {
+      const file = f.files && f.files[0];
+      if (file && IMG_TYPES[file.type]) { p.src = URL.createObjectURL(file); p.style.display = 'block'; } else { p.style.display = 'none'; p.removeAttribute('src'); }
+    });
+  }
   const errMsg = e => (e && e.message) ? e.message.replace(/^.*?exception:\s*/i, '') : 'Something went wrong';
 
   // ---------------- data ----------------
@@ -197,6 +221,7 @@ export function createAdsModule(ctx) {
         const acts = [];
         if (c.status !== 'approved') acts.push(btn('data-cre-act', c.id + '|approved', 'Approve', 'cc-btn-primary'));
         if (c.status !== 'rejected') acts.push(btn('data-cre-act', c.id + '|rejected', 'Reject', 'cc-btn-danger'));
+        acts.push(btn('data-cre-replace', c.id, 'Replace image'));
         return `<tr><td><div style="display:flex;gap:10px;align-items:center;">${thumb}<div><a href="${escapeHtml(isHttps(c.asset_url) ? c.asset_url : '#')}" target="_blank" rel="noopener noreferrer" style="font-size:.8rem;">Open file</a><div style="font-size:.72rem;color:var(--ink-mute);">${escapeHtml(c.alt_text || 'No description')}</div></div></div></td>
           <td>${escapeHtml(camp ? camp.name : '—')}</td><td>${badge(CRE_BADGE, c.status)}${c.rejection_reason ? `<div style="font-size:.72rem;color:var(--danger);margin-top:3px;">${escapeHtml(c.rejection_reason)}</div>` : ''}</td>
           <td style="display:flex;gap:6px;flex-wrap:wrap;">${acts.join('')}</td></tr>`;
@@ -214,6 +239,7 @@ export function createAdsModule(ctx) {
     body.querySelectorAll('[data-camp-submit]').forEach(b => b.addEventListener('click', () => submitForReview(b.dataset.campSubmit)));
     body.querySelectorAll('[data-camp-act]').forEach(b => b.addEventListener('click', () => { const [id, act] = b.dataset.campAct.split('|'); campaignAction(id, act); }));
     body.querySelectorAll('[data-adv-act]').forEach(b => b.addEventListener('click', () => { const [id, st] = b.dataset.advAct.split('|'); advertiserAction(id, st); }));
+    body.querySelectorAll('[data-cre-replace]').forEach(b => b.addEventListener('click', () => openForm('replace', b.dataset.creReplace)));
     body.querySelectorAll('[data-cre-act]').forEach(b => b.addEventListener('click', () => { const [id, st] = b.dataset.creAct.split('|'); creativeAction(id, st); }));
   }
 
@@ -267,7 +293,8 @@ export function createAdsModule(ctx) {
   }
 
   // ---------------- create forms ----------------
-  function openForm(kind) {
+  function openForm(kind, id) {
+    ads.replaceId = id || null;
     const body = $('ccAdFormBody'), title = $('ccAdFormTitle'), err = $('ccAdFormError');
     err.style.display = 'none'; err.textContent = '';
     if (kind === 'advertiser') {
@@ -279,6 +306,13 @@ export function createAdsModule(ctx) {
         <div class="cc-field"><label for="adfPhone">Contact phone</label><input id="adfPhone" maxlength="40"></div>
         <p style="font-size:.76rem;color:var(--ink-mute);margin:0;">New advertisers start as “awaiting verification”. Nothing of theirs can run until you verify them.</p>`;
       ads.formKind = 'advertiser';
+    } else if (kind === 'replace') {
+      title.textContent = 'Replace image';
+      body.innerHTML = `
+        <div class="cc-field"><label for="adfFile">New image * (JPG, PNG or WebP, up to 5 MB)</label><input id="adfFile" type="file" accept="image/jpeg,image/png,image/webp"><img id="adfPreview" alt="" style="display:none;margin-top:8px;max-width:140px;max-height:140px;border-radius:8px;border:1px solid var(--border);"></div>
+        <div class="cc-field"><label for="adfAlt">Image description (for screen readers) *</label><input id="adfAlt" maxlength="160" value="${escapeHtml(ads.creatives.find(c => c.id === ads.replaceId)?.alt_text || '')}"></div>
+        <p style="font-size:.76rem;color:var(--ink-mute);margin:0;">The new image goes back to “pending” and must be approved again before it can be shown.</p>`;
+      ads.formKind = 'replace';
     } else {
       const verified = ads.advertisers.filter(a => a.status === 'active');
       if (!verified.length) { toast('Add and verify an advertiser first.', 'info'); return; }
@@ -292,7 +326,7 @@ export function createAdsModule(ctx) {
         <div class="cc-field"><label for="adfBodyTxt">Short text</label><textarea id="adfBodyTxt" rows="2" maxlength="240"></textarea></div>
         <div class="cc-field"><label for="adfCta">Button label *</label><input id="adfCta" value="Learn More" maxlength="24"></div>
         <div class="cc-field"><label for="adfUrl">Where the button goes (https only) *</label><input id="adfUrl" placeholder="https://"></div>
-        <div class="cc-field"><label for="adfImg">Image link (https only) *</label><input id="adfImg" placeholder="https://"></div>
+        <div class="cc-field"><label for="adfFile">Image * (JPG, PNG or WebP, up to 5 MB; square 1080 × 1080 works best)</label><input id="adfFile" type="file" accept="image/jpeg,image/png,image/webp"><img id="adfPreview" alt="" style="display:none;margin-top:8px;max-width:140px;max-height:140px;border-radius:8px;border:1px solid var(--border);"></div>
         <div class="cc-field"><label for="adfAlt">Image description (for screen readers) *</label><input id="adfAlt" maxlength="160"></div>
         <div class="cc-field"><label for="adfStart">Starts</label><input id="adfStart" type="datetime-local"></div>
         <div class="cc-field"><label for="adfEnd">Ends</label><input id="adfEnd" type="datetime-local"></div>
@@ -302,6 +336,7 @@ export function createAdsModule(ctx) {
         <p style="font-size:.76rem;color:var(--ink-mute);margin:0;">The campaign is saved as a draft. A price above zero must be paid in full by the advertiser before it can go live; this page never marks anything as paid.</p>`;
       ads.formKind = 'campaign';
     }
+    wirePreview();
     openModal('ccAdFormBackdrop');
   }
 
@@ -319,16 +354,28 @@ export function createAdsModule(ctx) {
         const { error } = await supabase.from('ad_advertisers').insert({ business_name: v('adfBusiness'), contact_name: v('adfContact') || null, contact_email: v('adfEmail'), contact_phone: v('adfPhone') || null, created_by: adminId });
         if (error) return fail(errMsg(error));
         toast('Advertiser added', 'ok');
+      } else if (ads.formKind === 'replace') {
+        const imgProblem = checkImage($('adfFile')?.files?.[0]);
+        if (imgProblem) return fail(imgProblem);
+        if (!v('adfAlt')) return fail('Describe the image for screen readers.');
+        let imageUrl;
+        try { imageUrl = await uploadImage($('adfFile').files[0]); } catch (e) { return fail('Image upload failed: ' + errMsg(e)); }
+        const { error } = await supabase.from('ad_creatives').update({ asset_url: imageUrl, alt_text: v('adfAlt'), status: 'pending', rejection_reason: null }).eq('id', ads.replaceId);
+        if (error) return fail(errMsg(error));
+        toast('Image replaced. Approve it again to put it live.', 'ok');
       } else {
         if (!v('adfName') || !v('adfHead') || !v('adfCta')) return fail('Name, headline and button label are required.');
         if (!isHttps(v('adfUrl'))) return fail('The button link must start with https://');
-        if (!isHttps(v('adfImg'))) return fail('The image link must start with https://');
+        const imgProblem = checkImage($('adfFile')?.files?.[0]);
+        if (imgProblem) return fail(imgProblem);
         if (!v('adfAlt')) return fail('Describe the image for screen readers.');
         const s = v('adfStart') ? new Date(v('adfStart')) : null, e = v('adfEnd') ? new Date(v('adfEnd')) : null;
         if (s && e && e <= s) return fail('The end must be after the start.');
         const price = Number(v('adfPrice') || 0);
         if (!(price >= 0)) return fail('Price cannot be negative.');
         const placement = ads.placements.find(p => p.id === v('adfPlace'));
+        let imageUrl;
+        try { imageUrl = await uploadImage($('adfFile').files[0]); } catch (e) { return fail('Image upload failed: ' + errMsg(e)); }
         const { data: camp, error } = await supabase.from('ad_campaigns').insert({
           advertiser_id: v('adfAdv'), placement_id: v('adfPlace') || null, name: v('adfName'), headline: v('adfHead'), body: v('adfBodyTxt') || null,
           cta_label: v('adfCta'), destination_url: v('adfUrl'), objective: (placement?.eligible_objectives || ['awareness'])[0],
@@ -337,7 +384,7 @@ export function createAdsModule(ctx) {
           created_by: adminId,
         }).select('id').single();
         if (error) return fail(errMsg(error));
-        const { error: cErr } = await supabase.from('ad_creatives').insert({ campaign_id: camp.id, asset_url: v('adfImg'), asset_type: 'image', alt_text: v('adfAlt') });
+        const { error: cErr } = await supabase.from('ad_creatives').insert({ campaign_id: camp.id, asset_url: imageUrl, asset_type: 'image', alt_text: v('adfAlt') });
         if (cErr) { toast('Campaign saved, but the image failed: ' + errMsg(cErr), 'err'); } else { toast('Campaign saved as a draft', 'ok'); }
       }
       closeModal('ccAdFormBackdrop');

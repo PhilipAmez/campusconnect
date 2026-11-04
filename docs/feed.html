@@ -963,13 +963,19 @@
                     (!post.media_type && post.media_url &&
                      /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(post.media_url));
 
-                const mediaElement = isImage
+                // Text-only posts have no media_url; without this guard the page asked the
+                // server for the file named "null" (404) twice per post.
+                const hasMedia = !!(post.media_url && String(post.media_url).trim());
+                const noVisual = isImage || !hasMedia;
+                const mediaElement = !hasMedia
+                    ? `<div class="video-player no-media" role="img" aria-label="${escapeHtml(post.title || 'Text post')}" style="background: linear-gradient(160deg, #1a1a2e, #2d2166);"></div>`
+                    : isImage
                     ? `<img src="${post.media_url}" class="video-player" alt="${escapeHtml(post.title || post.content || 'Post image')}" loading="lazy" style="object-fit: contain;">`
                     : `<video class="video-player" loop muted playsinline preload="metadata">
                            <source src="${post.media_url}" type="${post.media_url && post.media_url.includes('.webm') ? 'video/webm' : 'video/mp4'}">
                        </video>`;
 
-                const scrubbingPlayerHtml = isImage ? '' :
+                const scrubbingPlayerHtml = noVisual ? '' :
                     `<video id="scrubbingPlayer-${post.id}" muted playsinline preload="metadata" style="display:none; position:absolute; pointer-events:none;">
                         <source src="${post.media_url}" type="${post.media_url && post.media_url.includes('.webm') ? 'video/webm' : 'video/mp4'}">
                     </video>`;
@@ -988,7 +994,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="video-controls-overlay" ${isImage ? 'style="display: none;"' : ''}>
+                    <div class="video-controls-overlay" ${noVisual ? 'style="display: none;"' : ''}>
                         <i class="fas fa-play play-pause-btn" id="playPauseBtn-${post.id}"></i>
                     </div>
                     <div class="video-info">
@@ -1054,7 +1060,7 @@
                         ${currentUserId && post.user_id === currentUserId ? '<div role="button" tabindex="0" aria-label="Delete post" class="action-item delete-action" onclick="deletePost(\'' + post.id + '\')"><div class="action-icon delete-post"><i class="fas fa-trash-alt" style="font-size:0.9rem;"></i></div><div class="action-count">Delete</div></div>' : `<div role="button" tabindex="0" aria-label="Report post" class="action-item" onclick="openReportModal('${post.id}', '${post.user_id}')"><div class="action-icon"><i class="fas fa-flag" style="font-size:0.9rem;"></i></div><div class="action-count">Report</div></div>`}
                         ` : ''}
                     </div>
-                    <div class="bottom-controls-bar" ${isImage ? 'style="display: none;"' : ''}>
+                    <div class="bottom-controls-bar" ${noVisual ? 'style="display: none;"' : ''}>
                         <div class="progress-bar-container" id="progressBarContainer-${post.id}">
                             <div class="progress-bar">
                                 <div class="progress-fill" id="progressFill-${post.id}"></div>
