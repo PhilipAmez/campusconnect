@@ -2200,3 +2200,23 @@
 .sponsored-cta { display: inline-block; background: var(--primary-color); color: #fff; font-weight: 700; padding: 10px 22px; border-radius: 999px; text-decoration: none; }
 .sponsored-cta:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 @media (max-width: 768px) { .sponsored-info { padding-bottom: 20px; } }
+
+/* ===== iPhone Safari scroll fix =====
+   Problems fixed:
+   1. Heights used dvh, which changes while Safari's address bar slides in and out, so the
+      snap points moved mid-scroll and the feed could stop between two posts. svh is constant.
+   2. On phones the feed box (100dvh) was taller than each post (100dvh - 60px), so the post
+      "step" never matched the box, and the last post could not snap fully into place.
+   3. An iOS-only block further up forced -webkit-fill-available heights (and an invalid
+      calc() with it), which Safari resolves unreliably.
+   Now the box and every post share one fixed height. */
+@supports (height: 100svh) {
+    .feed-container { height: 100svh; }
+    .video-container { height: 100svh; min-height: 100svh; }
+}
+@media (max-width: 768px) {
+    @supports (height: 100svh) {
+        .feed-container { height: calc(100svh - 60px); }
+        .video-container { height: calc(100svh - 60px); min-height: calc(100svh - 60px); }
+    }
+}
