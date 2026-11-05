@@ -1,34 +1,97 @@
 {
   "builds": [
-    { "src": "api/peerpal.js", "use": "@vercel/node" },
-    { "src": "api/youtube-search.js", "use": "@vercel/node" },
-    { "src": "docs/**", "use": "@vercel/static" }
+    {
+      "src": "api/peerpal.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/youtube-search.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/paystack-initialize.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/paystack-webhook.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/paystack-verify.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "docs/**",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
-    { "src": "/api/peerpal", "dest": "/api/peerpal.js" },
-    { "src": "/api/youtube-search", "dest": "/api/youtube-search.js" },
-    { "src": "/(.*)", "dest": "/docs/$1" }
+    {
+      "src": "/api/peerpal",
+      "dest": "/api/peerpal.js"
+    },
+    {
+      "src": "/api/youtube-search",
+      "dest": "/api/youtube-search.js"
+    },
+    {
+      "src": "/api/paystack-initialize",
+      "dest": "/api/paystack-initialize.js"
+    },
+    {
+      "src": "/api/paystack-webhook",
+      "dest": "/api/paystack-webhook.js"
+    },
+    {
+      "src": "/api/paystack-verify",
+      "dest": "/api/paystack-verify.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/docs/$1"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()" },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://download.agora.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https:; connect-src 'self' https://mdofjippejpqylwuzsqp.supabase.co wss://mdofjippejpqylwuzsqp.supabase.co https://www.googleapis.com https://cdn.jsdelivr.net; frame-src https://www.youtube-nocookie.com https://www.youtube.com; form-action 'self' https://formspree.io; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://download.agora.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https:; connect-src 'self' https://mdofjippejpqylwuzsqp.supabase.co wss://mdofjippejpqylwuzsqp.supabase.co https://www.googleapis.com https://cdn.jsdelivr.net; frame-src https://www.youtube-nocookie.com https://www.youtube.com; form-action 'self' https://formspree.io https://checkout.paystack.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
         }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     }
   ]

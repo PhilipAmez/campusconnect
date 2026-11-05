@@ -459,25 +459,10 @@
         }
         .bio-section {
             position: relative;
-            min-width: 0;
         }
         .bio-content {
             line-height: 1.6;
             color: var(--text-secondary);
-            min-width: 0;
-            max-width: 100%;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            white-space: normal;
-            padding-right: 2.5rem;
-        }
-        .bio-section .academic-input,
-        .bio-section textarea {
-            box-sizing: border-box;
-            max-width: 100%;
-            resize: vertical;
-            overflow-wrap: anywhere;
-            word-break: break-word;
         }
         .edit-bio-btn {
             position: absolute;
@@ -488,7 +473,6 @@
             color: var(--primary);
             cursor: pointer;
             transition: var(--transition);
-            z-index: 1;
         }
         .edit-bio-btn:hover {
             transform: scale(1.1);
@@ -1338,21 +1322,6 @@
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
-            }
-
-            .bio-section {
-                padding-right: 0.25rem;
-            }
-
-            .bio-content {
-                padding-right: 2.75rem;
-                overflow-wrap: anywhere;
-                word-break: break-word;
-            }
-
-            .edit-bio-btn {
-                top: 1.25rem;
-                right: 1rem;
             }
           
             /* Make posts drawer full-screen on smaller devices */
@@ -2559,6 +2528,11 @@
               
                 // Load user profile
                 await loadUserProfile();
+                if (!userProfile) {
+                    const nl = document.getElementById('nameLoading'); if (nl) nl.style.display = 'none';
+                    const nt = document.getElementById('nameText'); if (nt) { nt.textContent = 'Profile not available'; nt.style.display = 'inline'; }
+                    return;
+                }
               
                 // NEW: Always load the logged-in user's following list for correct button states
                 await loadCurrentUserFollowing();
@@ -2776,10 +2750,16 @@
             // NEW: Load avatar image if it exists, otherwise show initials
             const avatarContainer = document.getElementById('avatar');
             const avatarUrl = profileData.avatar_url || profileData.profile_photo;
+            // profileUserId can be ANY user (this page renders ?userId=<other
+            // user>'s profile, not just your own), so avatar_url/full_name are
+            // that other person's own data — fully under their control. Escape
+            // before innerHTML so a crafted avatar URL or name can't break out
+            // of the src attribute or inject markup for everyone who visits
+            // their profile.
             if (avatarUrl) {
-                avatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+                avatarContainer.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="Avatar">`;
             } else {
-                avatarContainer.innerHTML = `<span id="avatarInitials">${getInitials(profileData.full_name || 'User')}</span>`;
+                avatarContainer.innerHTML = `<span id="avatarInitials">${escapeHtml(getInitials(profileData.full_name || 'User'))}</span>`;
             }
           
             // Set status - only show when we have real data
@@ -2866,6 +2846,27 @@
             document.getElementById('contactValue').textContent = profileData.contact || 'Not set';
             document.getElementById('contactInput').value = profileData.contact || '';
           
+            // Respect this person's privacy switches when somebody else is looking.
+            // (This hides the details on screen; to stop the data being sent at all it has to be
+            // enforced in the database, which is a separate change.)
+            if (profileUserId !== currentUser.id) {
+                if (profileData.show_full_name === false) {
+                    const nm = document.getElementById('nameText');
+                    if (nm) nm.textContent = profileData.username || 'User';
+                    const av = document.getElementById('avatarInitials');
+                    if (av) av.textContent = getInitials(profileData.username || 'User');
+                }
+                if (profileData.show_academic_info === false && academicGrid) {
+                    const sec = academicGrid.closest('.section'); if (sec) sec.style.display = 'none';
+                }
+                if (profileData.show_groups_count === false) {
+                    const gg = document.getElementById('groupsGrid'); const sec = gg && gg.closest('.section'); if (sec) sec.style.display = 'none';
+                }
+                // "Saved" is the viewer's own list, not this person's, so it does not belong here.
+                const savedTab = document.querySelector('#postsTabs .tab-button[data-tab="saved-posts"]'); if (savedTab) savedTab.style.display = 'none';
+                const postsTab = document.querySelector('#postsTabs .tab-button[data-tab="my-posts"]'); if (postsTab) postsTab.textContent = 'Posts';
+            }
+
             // Set bio
             document.getElementById('bioContent').textContent = profileData.bio || 'No bio yet...';
             document.getElementById('bioInput').value = profileData.bio || '';
@@ -3029,6 +3030,7 @@
                         )
                     `)
                     .eq('user_id', profileUserId)
+                    .neq('moderation_status', 'removed')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -3067,6 +3069,7 @@
                         )
                     `)
                     .in('id', Array.from(userLikes))
+                    .neq('moderation_status', 'removed')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -3104,9 +3107,9 @@
                 // NEW: Use thumbnail_url for the grid preview. If no thumbnail is available, fall back to the video element so the grid still shows a preview.
                 // Add data-media-url to images so we can fall back to the video when the thumbnail fails to load.
                 const videoHtml = post.thumbnail_url
-                    ? `<img src="${post.thumbnail_url}" alt="${post.title}" class="post-video-element" loading="lazy" data-media-url="${post.media_url || ''}" onload="this.closest('.post-card').classList.remove('loading')">`
+                    ? `<img src="${escapeHtml(post.thumbnail_url)}" alt="${escapeHtml(post.title || '')}" class="post-video-element" loading="lazy" data-media-url="${escapeHtml(post.media_url || '')}" onload="this.closest('.post-card').classList.remove('loading')">`
                     : (post.media_url
-                        ? `<video src="${post.media_url}" class="post-video-element" muted playsinline preload="metadata" onloadeddata="this.closest('.post-card').classList.remove('loading')"></video>`
+                        ? `<video src="${escapeHtml(post.media_url)}" class="post-video-element" muted playsinline preload="metadata" onloadeddata="this.closest('.post-card').classList.remove('loading')"></video>`
                         : '<i class="fas fa-play-circle"></i>');
                 
                 postCard.innerHTML = `
@@ -3170,17 +3173,14 @@
             });
 
             // Like buttons
-            document.querySelectorAll('.post-stats .like-btn, .post-stats .like-btn').forEach(el => {
+            postsGrid.querySelectorAll('.like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
+                    e.stopPropagation();
                     const id = this.getAttribute('data-post-id');
                     toggleLike(id, this);
                 });
             });
 
-            // Close menus when clicking elsewhere
-            document.addEventListener('click', function() {
-                document.querySelectorAll('.post-menu').forEach(menu => menu.classList.remove('show'));
-            });
             
             // Ensure broken thumbnail images fall back to video previews
             addImageFallbackHandlers();
@@ -3191,6 +3191,16 @@
             if (e.target.tagName === 'VIDEO') e.target.play();
         });
         postsGrid.addEventListener('mouseout', (e) => {
+            if (e.target.tagName === 'VIDEO') e.target.pause();
+        });
+        // Close post menus when clicking elsewhere (bound once, not on every re-render)
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.post-menu').forEach(menu => menu.classList.remove('show'));
+        });
+        savedPostsGrid.addEventListener('mouseover', (e) => {
+            if (e.target.tagName === 'VIDEO') e.target.play();
+        });
+        savedPostsGrid.addEventListener('mouseout', (e) => {
             if (e.target.tagName === 'VIDEO') e.target.pause();
         });
 
@@ -3213,16 +3223,16 @@
             savedPosts.forEach(post => {
                 const postCard = document.createElement('div');
                 postCard.className = 'post-card loading'; // Add loading class
-                postCard.dataset.postId = post.post_id; // Associate post ID with the card
+                postCard.dataset.postId = post.id; // Associate post ID with the card
 
                 const postDate = new Date(post.created_at);
                 const timeAgo = getTimeAgo(postDate);
                 const isLiked = userLikes.has(post.id);
 
                 const videoHtml = post.thumbnail_url
-                    ? `<img src="${post.thumbnail_url}" alt="${post.title}" class="post-video-element" loading="lazy" data-media-url="${post.media_url || ''}" onload="this.closest('.post-card').classList.remove('loading')">`
+                    ? `<img src="${escapeHtml(post.thumbnail_url)}" alt="${escapeHtml(post.title || '')}" class="post-video-element" loading="lazy" data-media-url="${escapeHtml(post.media_url || '')}" onload="this.closest('.post-card').classList.remove('loading')">`
                     : (post.media_url
-                        ? `<video src="${post.media_url}" class="post-video-element" muted playsinline preload="metadata" onloadeddata="this.closest('.post-card').classList.remove('loading')"></video>`
+                        ? `<video src="${escapeHtml(post.media_url)}" class="post-video-element" muted playsinline preload="metadata" onloadeddata="this.closest('.post-card').classList.remove('loading')"></video>`
                         : '<i class="fas fa-play-circle"></i>');
                 
                 postCard.innerHTML = `
@@ -3261,18 +3271,12 @@
             // Attach like handlers for saved posts
             savedPostsGrid.querySelectorAll('.like-btn').forEach(el => {
                 el.addEventListener('click', function(e) {
+                    e.stopPropagation();
                     const id = this.getAttribute('data-post-id');
                     toggleLike(id, this); // This should have stopPropagation
                 });
             });
 
-            // Add hover-to-play for videos in saved posts
-            savedPostsGrid.addEventListener('mouseover', (e) => {
-                if (e.target.tagName === 'VIDEO') e.target.play();
-            });
-            savedPostsGrid.addEventListener('mouseout', (e) => {
-                if (e.target.tagName === 'VIDEO') e.target.pause();
-            });
             
             // Ensure broken thumbnail images fall back to video previews
             addImageFallbackHandlers();
@@ -3658,6 +3662,7 @@
         };
         // Follow a user
         async function followUser(userId) {
+            if (userId === currentUser.id || isFollowing(userId)) return; // no self-follow, no double-click duplicates
             try {
                 const { error: followError } = await supabase
                     .from('followers')
@@ -3690,7 +3695,8 @@
 
                 // Manually update local state for immediate UI feedback
                 if (!currentUserFollowing.includes(userId)) currentUserFollowing.push(userId);
-                showError('User followed successfully!');
+                updateFollowButton();
+                await loadFollowersData();
                 const prefs = userProfile?.notification_preferences || {};
                 if (prefs.sound !== false) {
                     playNotificationSound();
@@ -3714,7 +3720,8 @@
               
                 // Manually update local state for immediate UI feedback
                 currentUserFollowing = currentUserFollowing.filter(id => id !== userId);
-                showError('User unfollowed');
+                updateFollowButton();
+                await loadFollowersData();
                 const prefs = userProfile?.notification_preferences || {};
                 if (prefs.sound !== false) {
                     playNotificationSound();

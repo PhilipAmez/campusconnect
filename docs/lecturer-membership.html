@@ -192,12 +192,12 @@
                     <div class="price-amount" id="lecPriceAmount"></div>
                     <div class="price-save hidden" id="lecPriceSave">Save 3%</div>
                 </div>
-                <button type="button" class="plan-cta" disabled>Continue to Payment</button>
+                <button type="button" class="plan-cta" id="lecContinueBtn">Continue to Payment</button>
                 <div class="payment-brand-row">
                     <img src="logo.png" alt="PeerLoom" class="payment-brand-logo">
                     <span>Payments secured by PeerLoom</span>
                 </div>
-                <p class="continue-note">Lecturer plans are opening soon — PeerLoom's payment provider is being finalized. Nothing is charged until then, and your existing quizzes, resources, announcements and group conversations are preserved and unaffected.</p>
+                <p class="continue-note" id="lecContinueNote">You'll be taken to Paystack's secure page to pay with mobile money or card. PeerLoom never sees your card or wallet details.</p>
             `;
             document.getElementById('lecPlanToggle').addEventListener('click', (e) => {
                 const btn = e.target.closest('button[data-plan]');
@@ -206,6 +206,47 @@
                 renderLecturerPrice();
             });
             renderLecturerPrice();
+            document.getElementById('lecContinueBtn').addEventListener('click', startCheckout);
+        }
+
+        async function accessToken() {
+            const { data } = await supabase.auth.getSession();
+            return data && data.session ? data.session.access_token : null;
+        }
+        // The server decides the price; membership switches on only after Paystack confirms.
+        async function startCheckout() {
+            const btn = document.getElementById('lecContinueBtn'), note = document.getElementById('lecContinueNote');
+            const label = btn.textContent; btn.disabled = true; btn.textContent = 'Opening secure checkout…';
+            try {
+                const token = await accessToken();
+                if (!token) { window.location.href = 'login.html'; return; }
+                const r = await fetch('/api/paystack-initialize', { method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ interval: selectedLecturerPlan }) });
+                const out = await r.json().catch(() => ({}));
+                if (!r.ok || !out.url) throw new Error(out.error || 'Could not start payment.');
+                const u = new URL(out.url);
+                if (u.protocol !== 'https:' || u.hostname !== 'checkout.paystack.com') throw new Error('Unexpected checkout address.');
+                window.location.href = out.url;
+            } catch (e) { note.textContent = e.message || 'Could not start payment.'; btn.disabled = false; btn.textContent = label; }
+        }
+
+        async function confirmReturn() {
+            const p = new URLSearchParams(location.search);
+            const ref = p.get('reference') || p.get('trxref');
+            if (!ref) return;
+            history.replaceState(null, '', location.pathname);
+            const token = await accessToken(); if (!token) return;
+            for (let i = 0; i < 4; i++) {
+                try {
+                    const r = await fetch('/api/paystack-verify', { method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ reference: ref }) });
+                    const out = await r.json().catch(() => ({}));
+                    if (out.state === 'activated' || out.state === 'already_done' || out.state === 'failed' || out.state === 'abandoned') return;
+                } catch (e) { /* retry */ }
+                await new Promise(res => setTimeout(res, 2500));
+            }
         }
 
         function renderNotLecturer() {
@@ -223,6 +264,7 @@
             const { user } = await getCurrentUserContext(supabase, { force: true });
             if (!user) { window.location.href = 'login.html'; return; }
 
+            await confirmReturn();
             const summary = await getMembershipSummary();
             if (!summary || !summary.is_verified_lecturer) {
                 renderNotLecturer();

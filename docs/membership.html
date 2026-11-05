@@ -241,16 +241,14 @@
             <li><i class="fas fa-circle-check"></i> Academic participation</li>
         </ul>
 
-        <button type="button" class="continue-btn" id="continueBtn" disabled>
+        <button type="button" class="continue-btn" id="continueBtn">
             Continue to Payment
         </button>
         <div class="payment-brand-row">
             <img src="logo.png" alt="PeerLoom" class="payment-brand-logo">
             <span>Payments secured by PeerLoom</span>
         </div>
-        <p class="continue-note" id="continueNote">
-            Payments are opening soon. PeerLoom's payment provider is being set up — you'll be able to subscribe here as soon as it's live, and nothing is charged until then.
-        </p>
+        <p class="continue-note" id="continueNote">You'll be taken to Paystack's secure page to pay with mobile money or card. PeerLoom never sees your card or wallet details.</p>
 
         <p class="browse-note">
             You can still browse PeerLoom and read your groups without an active membership.
@@ -348,6 +346,35 @@
         function renderStatus(summary) {
             const slot = document.getElementById('statusSlot');
             const active = !!(summary && summary.student_entitled && summary.active_subscription_plan);
+
+            // A student inside their free first month (profiles.student_trial_ends_at,
+            // set automatically at signup) is fully entitled server-side
+            // (is_entitled() checks this), but until now this page had no
+            // idea the trial existed and showed "No Active Membership /
+            // Inactive" the whole time they were actually using it for
+            // free — confusing, and the opposite of what a free-trial
+            // promotion is supposed to communicate. Checked only when
+            // there's no paid plan, since an active paid subscription
+            // always takes priority in what's displayed.
+            const trialEndsAt = summary && summary.student_trial_ends_at ? new Date(summary.student_trial_ends_at) : null;
+            const onFreeTrial = !active && trialEndsAt && trialEndsAt.getTime() > Date.now();
+
+            if (!active && onFreeTrial) {
+                const daysLeft = Math.max(1, Math.ceil((trialEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+                slot.innerHTML = `
+                    <div class="status-card">
+                        <div class="status-title"><i class="fas fa-gift"></i> Free Trial Active</div>
+                        <div class="status-field-grid">
+                            <div class="status-field"><div class="status-field-label">Current plan</div><div class="status-field-value">Free first month</div></div>
+                            <div class="status-field"><div class="status-field-label">Membership status</div><div class="status-field-value">Active (trial)</div></div>
+                            <div class="status-field"><div class="status-field-label">Billing interval</div><div class="status-field-value">Not billed yet</div></div>
+                            <div class="status-field"><div class="status-field-label">Trial ends</div><div class="status-field-value">${fmtDate(summary.student_trial_ends_at)} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)</div></div>
+                        </div>
+                        <p style="margin-top:10px; font-size:13px; color:var(--text-secondary);">You won't be charged automatically — pick a plan below before your trial ends to keep uninterrupted access.</p>
+                    </div>
+                `;
+                return;
+            }
 
             if (!active) {
                 slot.innerHTML = `
@@ -469,11 +496,70 @@
             `).join('');
         }
 
+        // ---- Paystack checkout ----
+        // The server decides the price; this only says "monthly" or "yearly".
+        // Membership is switched on by the server after Paystack confirms the
+        // payment, never by anything that happens in this page.
+        const continueBtn = document.getElementById('continueBtn');
+        const continueNote = document.getElementById('continueNote');
+        async function accessToken() {
+            const { data } = await supabase.auth.getSession();
+            return data && data.session ? data.session.access_token : null;
+        }
+        continueBtn.addEventListener('click', async () => {
+            const label = continueBtn.textContent;
+            continueBtn.disabled = true; continueBtn.textContent = 'Opening secure checkout…';
+            try {
+                const token = await accessToken();
+                if (!token) { window.location.href = 'login.html'; return; }
+                const r = await fetch('/api/paystack-initialize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ interval: selectedPlan })
+                });
+                const out = await r.json().catch(() => ({}));
+                if (!r.ok || !out.url) throw new Error(out.error || 'Could not start payment.');
+                const u = new URL(out.url);
+                if (u.protocol !== 'https:' || u.hostname !== 'checkout.paystack.com') throw new Error('Unexpected checkout address.');
+                window.location.href = out.url;
+            } catch (e) {
+                continueNote.textContent = e.message || 'Could not start payment. Please try again.';
+                continueBtn.disabled = false; continueBtn.textContent = label;
+            }
+        });
+
+        // Back from Paystack: ask the server to confirm with Paystack.
+        async function confirmReturn() {
+            const p = new URLSearchParams(location.search);
+            const ref = p.get('reference') || p.get('trxref');
+            if (!ref) return null;
+            history.replaceState(null, '', location.pathname);
+            continueNote.textContent = 'Confirming your payment…';
+            const token = await accessToken();
+            if (!token) return null;
+            try {
+                for (let i = 0; i < 4; i++) {
+                    const r = await fetch('/api/paystack-verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ reference: ref })
+                    });
+                    const out = await r.json().catch(() => ({}));
+                    if (out.state === 'activated' || out.state === 'already_done') { continueNote.textContent = 'Payment received. Your membership is active. Thank you!'; return 'ok'; }
+                    if (out.state === 'failed' || out.state === 'abandoned') { continueNote.textContent = 'The payment was not completed. You have not been charged.'; return 'failed'; }
+                    await new Promise(res => setTimeout(res, 2500));
+                }
+                continueNote.textContent = 'We are still confirming your payment. Check back in a minute; if you were charged, your membership will switch on automatically.';
+            } catch (e) { continueNote.textContent = 'Could not confirm yet. If you were charged, your membership will switch on automatically.'; }
+            return null;
+        }
+
         async function init() {
             await initGlobalTheme({ supabase });
             const { user } = await getCurrentUserContext(supabase, { force: true });
             if (!user) { window.location.href = 'login.html'; return; }
 
+            await confirmReturn();
             const [summary] = await Promise.all([
                 getMembershipSummary(),
                 renderHistory(user.id),
