@@ -170,6 +170,9 @@ async function handleNotificationClick(notif, element) {
                 window.location.href = `chatroom.html?groupId=${notif.post_id}`;
             }
             break;
+        case 'support_reply':
+            window.location.href = 'support.html#tickets';
+            break;
         default:
             console.log('Clicked notification with no defined action:', notif.type);
     }

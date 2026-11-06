@@ -572,9 +572,11 @@
         acceptBtn.onclick = async () => {
           modal.classList.remove('visible');
           try {
-            const { error: joinErr } = await supabase
+            let { data: _res, error: joinErr } = await supabase
               .rpc('join_group_by_code', { p_group_id: gid, p_code: '' });
-            if (joinErr) throw joinErr;
+            if (!joinErr && _res === 'invalid_code') joinErr = { message: 'Invalid invite code' };
+            if (joinErr) throw new Error(/invite code/i.test(joinErr.message || '')
+              ? 'This is a private group. Ask a group admin for an invite link.' : joinErr.message);
             showSuccess(`Joined "${grpInfo.name || 'group'}"!`);
             // Reload so initialize() runs again with isMember = true
             setTimeout(() => window.location.reload(), 700);
@@ -673,8 +675,15 @@
         // Invite link (?code=...): join first, via the database function that checks the code.
         const _inviteCode = new URLSearchParams(window.location.search).get('code');
         if (_inviteCode) {
-          const { error: _joinErr } = await supabase.rpc('join_group_by_code', { p_group_id: gid, p_code: _inviteCode });
-          if (_joinErr) showError(_joinErr.message || 'Could not join with this invite');
+          // Already a member? Then there is nothing to join; never fail them over an old/changed code.
+          const { data: _already } = await supabase.from('group_members').select('user_id').eq('group_id', gid).eq('user_id', user.id).maybeSingle();
+          if (!_already) {
+            let { data: _joinRes, error: _joinErr } = await supabase.rpc('join_group_by_code', { p_group_id: gid, p_code: _inviteCode });
+            if (!_joinErr && _joinRes === 'invalid_code') _joinErr = { message: 'Invalid invite code' };
+            if (_joinErr) showError(/invite code/i.test(_joinErr.message || '')
+              ? 'This invite link is no longer valid. Ask a group admin for a new one.'
+              : (_joinErr.message || 'Could not join with this invite'));
+          }
           const _clean = new URL(window.location.href); _clean.searchParams.delete('code');
           window.history.replaceState(null, '', _clean.toString());
         }

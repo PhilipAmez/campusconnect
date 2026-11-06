@@ -8,6 +8,7 @@
 
 import { supabase } from './js/supabaseClient.js';
 import { createAdsModule } from './js/cc-ads.js';
+import { createSupportModule } from './js/cc-support.js';
 
 // ---------- lecturer detection matches login.html's own logic ----------
 // (is_lecturer boolean OR role/level/custom_level === 'lecturer' — the
@@ -104,6 +105,16 @@ function adsModule() {
   return _ads;
 }
 
+let _support = null;
+function supportModule() {
+  if (!_support) {
+    _support = createSupportModule({ supabase, toast, escapeHtml, openModal, closeModal, confirmAction, getAdminId: () => state.adminId });
+    _support.init();
+    _support.onChange = () => { try { renderNotifDropdown(); renderActivityFeed(); } catch (e) { /* views not ready */ } };
+  }
+  return _support;
+}
+
 const PALETTE = ['#7c3aed', '#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#64748b', '#ec4899', '#06b6d4', '#a78bfa', '#14b8a6'];
 
 // ============================================================
@@ -146,6 +157,7 @@ async function boot() {
     await fetchPlatformContentCounts();
     await fetchSubscriptionsAndPayments();
     try { await adsModule().load(); } catch (e) { console.error('Ads data failed to load', e); }
+    try { await supportModule().load(); } catch (e) { console.error('Support data failed to load', e); }
 
     document.getElementById('ccBoot').style.display = 'none';
     document.getElementById('ccApp').classList.add('is-ready');
@@ -329,6 +341,8 @@ function initRealtime() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moderation_events' }, handleModerationRealtime)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions' }, handleSubscriptionRealtime)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, handlePaymentRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, p => supportModule().onRealtime(p))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, p => supportModule().onRealtime(p))
     .subscribe(status => {
       const dot = document.getElementById('ccLiveDot');
       if (dot) dot.style.background = status === 'SUBSCRIBED' ? 'var(--ok)' : 'var(--warn)';
@@ -763,6 +777,7 @@ function renderAll() {
   renderNotifDropdown();
   renderSubscriptionsView();
   adsModule().render();
+  supportModule().render();
 }
 
 function renderWelcome() {
@@ -1711,10 +1726,11 @@ function buildActivityFeed(limit) {
   state.profiles.filter(isSuspended).forEach(p => events.push({ type: 'suspended', at: p.suspended_at || p.created_at, profile: p }));
   (state.payments || []).filter(pay => pay.status === 'SUCCESS' || pay.status === 'FAILED').forEach(pay =>
     events.push({ type: pay.status === 'SUCCESS' ? 'payment' : 'payment_failed', at: pay.created_at, payment: pay, profile: state.profiles.find(p => p.id === pay.user_id) }));
+  supportModule().tickets.forEach(t => events.push({ type: 'ticket', at: t.created_at, ticket: t }));
   return events.filter(e => e.at).sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, limit);
 }
 function activityRowHtml(e) {
-  const icons = { signup: ['fa-user-plus', '#7c3aed'], report: ['fa-flag', '#f59e0b'], suspended: ['fa-ban', '#ef4444'], payment: ['fa-credit-card', '#10b981'], payment_failed: ['fa-circle-exclamation', '#ef4444'] };
+  const icons = { signup: ['fa-user-plus', '#7c3aed'], report: ['fa-flag', '#f59e0b'], suspended: ['fa-ban', '#ef4444'], payment: ['fa-credit-card', '#10b981'], payment_failed: ['fa-circle-exclamation', '#ef4444'], ticket: ['fa-headset', '#3b82f6'] };
   const [icon, color] = icons[e.type];
   let text = '';
   if (e.type === 'signup') text = `<strong>${escapeHtml(displayName(e.profile))}</strong> joined Peerloom`;
@@ -1725,6 +1741,7 @@ function activityRowHtml(e) {
     const amt = `${escapeHtml(e.payment.currency || 'GHS')} ${Number(e.payment.amount || 0).toFixed(2)}`;
     text = e.type === 'payment' ? `<strong>${who}</strong> (${role}) paid <strong>${amt}</strong>` : `Payment of <strong>${amt}</strong> by <strong>${who}</strong> (${role}) failed`;
   }
+  if (e.type === 'ticket') text = `Support ticket <strong>${escapeHtml(e.ticket.ticket_no)}</strong> from <strong>${escapeHtml(e.ticket.name)}</strong>: ${escapeHtml(e.ticket.subject)}`;
   if (e.type === 'suspended') text = `<strong>${escapeHtml(displayName(e.profile))}</strong> was suspended`;
   return `<div class="cc-notif-item">
     <div class="cc-notif-icn" style="background:${color}1f; color:${color};"><i class="fa-solid ${icon}"></i></div>

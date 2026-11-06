@@ -79,7 +79,7 @@
           <button class="cc-nav-item" data-view="notifications"><i class="fa-solid fa-bell"></i><span class="label">Notifications</span></button>
           <button class="cc-nav-item" data-view="advertisements"><i class="fa-solid fa-rectangle-ad"></i><span class="label">Advertisements</span></button>
           <button class="cc-nav-item" data-view="subscriptions"><i class="fa-solid fa-credit-card"></i><span class="label">Subscriptions</span></button>
-          <button class="cc-nav-item locked" data-view="support" data-locked="true"><i class="fa-solid fa-headset"></i><span class="label">Support</span><i class="fa-solid fa-lock cc-lock-icn"></i></button>
+          <button class="cc-nav-item" data-view="support"><i class="fa-solid fa-headset"></i><span class="label">Support</span><span class="cc-nav-badge" id="ccSupportBadge" style="display:none;">0</span></button>
         </div>
         <div class="cc-nav-group">
           <div class="cc-nav-label">System</div>
@@ -474,14 +474,35 @@
         </div>
       </section>
 
-      <!-- ========== SUPPORT (locked) ========== -->
+      <!-- ========== SUPPORT DESK ========== -->
       <section class="cc-view" data-view="support" id="view-support">
-        <div class="cc-view-head"><div><h1>Support</h1><p>Coming soon</p></div></div>
-        <div class="cc-lockscreen">
-          <div class="cc-lockscreen-icn"><i class="fa-solid fa-headset"></i></div>
-          <h3>A support desk isn't built yet</h3>
-          <p>There's no support-ticket table in Peerloom today. Once one exists, this becomes a real queue here — until then, support requests are handled outside the Command Center.</p>
-          <span class="cc-badge cc-badge-mute">Coming soon</span>
+        <div class="cc-view-head">
+          <div><h1>Support desk</h1><p>Requests sent from the Support page. Reply, assign, set priority and resolve. Logged-in users are notified inside Peerloom.</p></div>
+          <div class="cc-view-actions"><button class="cc-btn cc-btn-ghost" id="ccSupCannedOpen"><i class="fa-solid fa-bookmark"></i> Saved replies</button></div>
+        </div>
+        <div class="cc-stat-grid" id="ccSupStatGrid"></div>
+        <div class="cc-table-wrap">
+          <div class="cc-table-toolbar" style="flex-wrap:wrap;gap:8px;">
+            <button class="cc-filter-pill active" data-sup-status="active">Active</button>
+            <button class="cc-filter-pill" data-sup-status="open">Open</button>
+            <button class="cc-filter-pill" data-sup-status="pending">Waiting</button>
+            <button class="cc-filter-pill" data-sup-status="resolved">Resolved</button>
+            <button class="cc-filter-pill" data-sup-status="closed">Closed</button>
+            <button class="cc-filter-pill" data-sup-status="all">All</button>
+            <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <select id="ccSupScope" class="cc-filter-pill" aria-label="Assignment"><option value="all">Everyone's</option><option value="mine">Assigned to me</option><option value="unassigned">Unassigned</option></select>
+              <select id="ccSupCategory" class="cc-filter-pill" aria-label="Category"></select>
+              <select id="ccSupPriorityFilter" class="cc-filter-pill" aria-label="Priority"><option value="all">Any priority</option><option value="urgent">Urgent</option><option value="high">High</option><option value="normal">Normal</option><option value="low">Low</option></select>
+              <input id="ccSupSearch" class="cc-filter-pill" type="search" placeholder="Search tickets…" aria-label="Search tickets" style="min-width:170px;">
+            </div>
+          </div>
+          <div class="cc-table-scroll">
+            <table class="cc-table">
+              <thead><tr><th>Priority</th><th>Ticket</th><th>From</th><th>Category</th><th>Status</th><th>Assigned</th><th>Updated</th></tr></thead>
+              <tbody id="ccSupTbody"></tbody>
+            </table>
+          </div>
+          <div class="cc-table-foot"><span id="ccSupFootCount">—</span></div>
         </div>
       </section>
 
@@ -578,6 +599,25 @@
   </div>
 
   <!-- ADVERTISING FORM MODAL (new advertiser / new campaign) -->
+    <!-- SUPPORT: ticket detail -->
+  <div class="cc-modal-backdrop" id="ccSupModalBackdrop">
+    <div class="cc-modal cc-sup-modal">
+      <div class="cc-modal-head"><h3 id="ccSupTitle">Ticket</h3><button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button></div>
+      <div id="ccSupBody"></div>
+    </div>
+  </div>
+
+  <!-- SUPPORT: saved replies -->
+  <div class="cc-modal-backdrop" id="ccSupCannedBackdrop">
+    <div class="cc-modal wide" style="max-height:90vh;overflow:auto;">
+      <div class="cc-modal-head"><h3>Saved replies</h3><button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button></div>
+      <div id="ccSupCannedList"></div>
+      <div class="cc-field"><label for="ccSupCannedTitle">New saved reply: title</label><input id="ccSupCannedTitle" maxlength="80" placeholder="e.g. Password reset help"></div>
+      <div class="cc-field"><label for="ccSupCannedBody">Text (starting with "Hi," adds the person's first name)</label><textarea id="ccSupCannedBody" rows="4" maxlength="3000"></textarea></div>
+      <div class="cc-modal-foot"><button class="cc-btn cc-btn-ghost" data-close-modal>Close</button><button class="cc-btn cc-btn-primary" id="ccSupCannedAdd">Add reply</button></div>
+    </div>
+  </div>
+
   <div class="cc-modal-backdrop" id="ccAdFormBackdrop">
     <div class="cc-modal" style="max-width:520px;max-height:90vh;overflow:auto;">
       <div class="cc-modal-head"><h3 id="ccAdFormTitle">New</h3><button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button></div>

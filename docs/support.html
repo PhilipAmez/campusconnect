@@ -304,7 +304,24 @@
         gap: 1.25rem;
       }
     }
+    .tk { border:1px solid rgba(124,58,237,.25); border-radius:14px; margin-bottom:12px; overflow:hidden; background:#fff; }
+    .tk-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:12px 14px; cursor:pointer; flex-wrap:wrap; }
+    .tk-head b { color:#1f1b2e; }
+    .tk-sub { font-size:.78rem; color:#6b6585; }
+    .tk-badge { font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:99px; background:#ede9fe; color:#5b21b6; white-space:nowrap; }
+    .tk-badge.pending { background:#fef3c7; color:#92400e; } .tk-badge.resolved { background:#dcfce7; color:#166534; } .tk-badge.closed { background:#e5e7eb; color:#374151; }
+    .tk-body { display:none; padding:0 14px 14px; border-top:1px solid rgba(124,58,237,.15); }
+    .tk.open .tk-body { display:block; }
+    .tk-thread { display:flex; flex-direction:column; gap:8px; margin:12px 0; max-height:320px; overflow-y:auto; }
+    .tk-msg { max-width:90%; padding:9px 12px; border-radius:12px; font-size:.9rem; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .tk-msg small { display:block; font-size:.7rem; opacity:.7; margin-bottom:2px; }
+    .tk-msg.user { align-self:flex-end; background:#ede9fe; } .tk-msg.agent { align-self:flex-start; background:#f3f4f6; }
+    .tk textarea { width:100%; border:1px solid #d9d4ee; border-radius:10px; padding:10px; font:inherit; }
+    .tk button.send { margin-top:8px; background:linear-gradient(135deg,#7c3aed,#9f67ff); color:#fff; border:0; border-radius:10px; padding:9px 16px; font-weight:700; cursor:pointer; }
+    .tk button.send:disabled { opacity:.6; }
+    .stars button { background:none; border:0; font-size:1.5rem; cursor:pointer; color:#d1d5db; } .stars button.on { color:#f59e0b; }
   </style>
+  <script src="js/a11y.js" defer></script>
 </head>
 <body>
   <nav class="navbar" id="navbar">
@@ -334,7 +351,21 @@
 
         <div class="form-group">
           <label for="email" class="form-label">Email Address</label>
-          <input type="email" id="email" name="email" class="input-field" placeholder="Enter your email address" required />
+          <input type="email" id="email" name="email" class="input-field" placeholder="Enter your email address" required  autocomplete="email"/>
+        </div>
+
+        <div class="form-group">
+          <label for="category" class="form-label">What is this about?</label>
+          <select id="category" name="category" class="input-field">
+            <option value="account">My account / login</option>
+            <option value="payments">Payments &amp; membership</option>
+            <option value="groups">Groups &amp; chat</option>
+            <option value="quizzes">Quizzes</option>
+            <option value="bug">Something is broken</option>
+            <option value="abuse">Report abuse or safety</option>
+            <option value="feedback">Feedback or an idea</option>
+            <option value="other" selected>Something else</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -389,91 +420,149 @@
     </div>
   </div>
 
+  <div class="support-container" id="myTicketsWrap" style="display:none;margin-top:-10px;">
+    <div class="support-card">
+      <h2 class="form-title"><i class="fas fa-ticket"></i> Your requests</h2>
+      <p class="form-subtitle">Follow replies from our team and answer here. We also notify you inside Peerloom.</p>
+      <div id="myTickets"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
-  <script>
-    document.getElementById('support-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const submitButton = document.getElementById('submit-button');
-      const originalText = submitButton.innerHTML;
-      const form = e.target;
-      
-      // Get form values
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const subject = document.getElementById('subject').value.trim();
-      const message = document.getElementById('message').value.trim();
-      
-      // Validate form
-      if (!name || !email || !subject || !message) {
-        showToast('Please fill out all fields', 'error');
-        return;
-      }
-      
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        showToast('Please enter a valid email address', 'error');
-        return;
-      }
-      
-      // Change button to loading state
-      submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-      submitButton.disabled = true;
-      
-      try {
-        // Prepare form data
-        const formData = new FormData(form);
-        
-        // Update the _replyto field with the current email
-        formData.set('_replyto', email);
-        
-        // Send to Formspree
-        const response = await fetch(form.action, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          showToast('Message sent successfully! We\'ll respond soon.', 'success');
-          form.reset();
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to send message');
-        }
-      } catch (error) {
-        console.error('Form submission error:', error);
-        let errorMessage = 'Failed to send message. Please try again.';
-        
-        if (error.message.includes('Failed to fetch')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        }
-        
-        showToast(errorMessage, 'error');
-      } finally {
-        // Reset button state
-        submitButton.innerHTML = originalText;
-        submitButton.disabled = false;
-      }
-    });
-    
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
+    const $ = id => document.getElementById(id);
+    const STATUS = { open: 'Open', pending: 'Reply from support', resolved: 'Resolved', closed: 'Closed' };
+    let me = null;
+
     function showToast(message, type) {
-      const toast = document.getElementById('toast');
-      toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${message}`;
+      const toast = $('toast');
+      toast.innerHTML = '';
+      const i = document.createElement('i'); i.className = 'fas fa-' + (type === 'success' ? 'check-circle' : 'exclamation-triangle');
+      toast.append(i, document.createTextNode(' ' + message));
       toast.className = `toast ${type} show`;
-      
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 5000);
+      setTimeout(() => toast.classList.remove('show'), 6000);
+    }
+    const cleanErr = e => (e && e.message ? e.message.replace(/^.*?exception:\s*/i, '') : 'Something went wrong. Please try again.');
+    const when = iso => new Date(iso).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    // ---------- sign-in aware prefill ----------
+    async function init() {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const user = data && data.session ? data.session.user : null;
+        if (user) {
+          me = user;
+          const { data: p } = await supabase.from('profiles').select('full_name, username').eq('id', user.id).maybeSingle();
+          if (!$('name').value) $('name').value = (p && (p.full_name || p.username)) || '';
+          if (!$('email').value) $('email').value = user.email || '';
+          $('myTicketsWrap').style.display = 'block';
+          await loadMine();
+          if (location.hash === '#tickets') $('myTicketsWrap').scrollIntoView({ behavior: 'smooth' });
+        }
+      } catch (e) { /* the form still works for guests */ }
     }
 
-    // Set up _replyto field dynamically
-    document.getElementById('email').addEventListener('input', function() {
-      document.querySelector('input[name="_replyto"]').value = this.value;
+    // ---------- send a new request ----------
+    $('support-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = $('submit-button'); const original = btn.innerHTML;
+      const name = $('name').value.trim(), email = $('email').value.trim(), subject = $('subject').value.trim(),
+            message = $('message').value.trim(), category = $('category').value;
+      if (!name || !email || !subject || !message) return showToast('Please fill out all fields', 'error');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Please enter a valid email address', 'error');
+      if (message.length < 10) return showToast('Please describe the issue in a little more detail', 'error');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; btn.disabled = true;
+      try {
+        const { data, error } = await supabase.rpc('support_create_ticket', { p_name: name, p_email: email, p_subject: subject, p_category: category, p_message: message });
+        if (error) throw error;
+        showToast(`Request ${data.ticket_no} received. We'll reply as soon as we can.`, 'success');
+        // Optional email copy to the team; never blocks or fails the request.
+        try {
+          const fd = new FormData(e.target); fd.set('_replyto', email); fd.set('_subject', `[${data.ticket_no}] ${subject}`);
+          fetch(e.target.action, { method: 'POST', body: fd, headers: { Accept: 'application/json' } }).catch(() => {});
+        } catch (_) { /* ignore */ }
+        e.target.reset(); if (me) { $('email').value = me.email || ''; }
+        if (me) { await loadMine(); }
+      } catch (err) {
+        showToast(cleanErr(err), 'error');
+      } finally { btn.innerHTML = original; btn.disabled = false; }
     });
+
+    // ---------- my requests ----------
+    async function loadMine() {
+      const box = $('myTickets');
+      const { data: tickets, error } = await supabase.from('support_tickets')
+        .select('id, ticket_no, subject, status, rating, created_at, last_message_at').order('last_message_at', { ascending: false }).limit(50);
+      if (error) { box.textContent = 'Could not load your requests.'; return; }
+      box.replaceChildren();
+      if (!tickets.length) { const p = document.createElement('p'); p.className = 'tk-sub'; p.textContent = 'You have not sent any requests yet.'; box.append(p); return; }
+      tickets.forEach(t => box.append(ticketEl(t)));
+    }
+    function ticketEl(t) {
+      const wrap = document.createElement('div'); wrap.className = 'tk';
+      const head = document.createElement('div'); head.className = 'tk-head'; head.tabIndex = 0;
+      const left = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = t.subject;
+      const sub = document.createElement('div'); sub.className = 'tk-sub'; sub.textContent = `${t.ticket_no} · updated ${when(t.last_message_at)}`;
+      left.append(b, sub);
+      const badge = document.createElement('span'); badge.className = 'tk-badge ' + t.status; badge.textContent = STATUS[t.status] || t.status;
+      head.append(left, badge);
+      const body = document.createElement('div'); body.className = 'tk-body';
+      wrap.append(head, body);
+      let loaded = false;
+      const toggle = async () => {
+        wrap.classList.toggle('open');
+        if (wrap.classList.contains('open') && !loaded) { loaded = true; await renderBody(t, body, badge); }
+      };
+      head.addEventListener('click', toggle);
+      head.addEventListener('keydown', e => { if (e.key === 'Enter') toggle(); });
+      return wrap;
+    }
+    async function renderBody(t, body, badge) {
+      body.textContent = 'Loading…';
+      const { data: msgs, error } = await supabase.from('support_messages').select('author_type, author_name, body, created_at').eq('ticket_id', t.id).order('created_at');
+      if (error) { body.textContent = 'Could not load this conversation.'; return; }
+      body.replaceChildren();
+      const th = document.createElement('div'); th.className = 'tk-thread';
+      msgs.forEach(m => {
+        const d = document.createElement('div'); d.className = 'tk-msg ' + (m.author_type === 'agent' ? 'agent' : 'user');
+        const s = document.createElement('small'); s.textContent = `${m.author_type === 'agent' ? 'Peerloom Support' : 'You'} · ${when(m.created_at)}`;
+        d.append(s, document.createTextNode(m.body)); th.append(d);
+      });
+      body.append(th);
+      if (t.status !== 'closed') {
+        const ta = document.createElement('textarea'); ta.rows = 3; ta.maxLength = 5000; ta.placeholder = 'Write a reply…';
+        const send = document.createElement('button'); send.className = 'send'; send.type = 'button'; send.textContent = 'Send reply';
+        send.addEventListener('click', async () => {
+          const text = ta.value.trim(); if (!text) return;
+          send.disabled = true;
+          const { error: err } = await supabase.rpc('support_user_reply', { p_ticket_id: t.id, p_body: text });
+          if (err) { showToast(cleanErr(err), 'error'); send.disabled = false; return; }
+          t.status = 'open'; badge.className = 'tk-badge open'; badge.textContent = STATUS.open;
+          await renderBody(t, body, badge);
+        });
+        body.append(ta, send);
+      } else {
+        const p = document.createElement('p'); p.className = 'tk-sub'; p.textContent = 'This request is closed. Please send a new one if you need more help.'; body.append(p);
+      }
+      if ((t.status === 'resolved' || t.status === 'closed') && !t.rating) {
+        const r = document.createElement('div'); r.className = 'stars'; r.style.marginTop = '12px';
+        const lab = document.createElement('div'); lab.className = 'tk-sub'; lab.textContent = 'How did we do?'; r.append(lab);
+        for (let i = 1; i <= 5; i++) {
+          const star = document.createElement('button'); star.type = 'button'; star.textContent = '★'; star.setAttribute('aria-label', i + ' star' + (i > 1 ? 's' : ''));
+          star.addEventListener('click', async () => {
+            const { error: err } = await supabase.rpc('support_rate_ticket', { p_ticket_id: t.id, p_rating: i, p_comment: null });
+            if (err) return showToast(cleanErr(err), 'error');
+            t.rating = i; r.replaceChildren(document.createTextNode('Thank you for your feedback!'));
+          });
+          r.append(star);
+        }
+        body.append(r);
+      }
+    }
+    init();
   </script></body>
 </html>
