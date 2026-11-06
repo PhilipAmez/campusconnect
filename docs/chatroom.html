@@ -250,9 +250,14 @@
       if (_gidParam) {
         localStorage.setItem('pendingJoinGroupId', _gidParam);
       }
-      // Redirect to login and encode the chatroom URL as the return destination
-      const returnUrl = encodeURIComponent(window.location.href);
-      window.location.href = `login.html?redirect=${returnUrl}`;
+      if (_gidParam) {
+        // Group link opened by a logged-out visitor: show the read-only invite page first
+        window.location.replace(`group-invite.html${window.location.search}`);
+      } else {
+        const returnUrl = encodeURIComponent(window.location.href);
+        window.location.href = `login.html?redirect=${returnUrl}`;
+      }
+      await new Promise(() => {}); // stop here; the page is navigating away
     }
 
     const user = session.data.session.user;
@@ -568,9 +573,8 @@
           modal.classList.remove('visible');
           try {
             const { error: joinErr } = await supabase
-              .from('group_members')
-              .insert({ group_id: gid, user_id: user.id, role: 'member' });
-            if (joinErr && joinErr.code !== '23505') throw joinErr;
+              .rpc('join_group_by_code', { p_group_id: gid, p_code: '' });
+            if (joinErr) throw joinErr;
             showSuccess(`Joined "${grpInfo.name || 'group'}"!`);
             // Reload so initialize() runs again with isMember = true
             setTimeout(() => window.location.reload(), 700);
@@ -666,6 +670,14 @@
 
     async function initialize() {
       try {
+        // Invite link (?code=...): join first, via the database function that checks the code.
+        const _inviteCode = new URLSearchParams(window.location.search).get('code');
+        if (_inviteCode) {
+          const { error: _joinErr } = await supabase.rpc('join_group_by_code', { p_group_id: gid, p_code: _inviteCode });
+          if (_joinErr) showError(_joinErr.message || 'Could not join with this invite');
+          const _clean = new URL(window.location.href); _clean.searchParams.delete('code');
+          window.history.replaceState(null, '', _clean.toString());
+        }
         // Handle deep-link group join for a DIFFERENT group stored in localStorage
         await checkPendingGroupJoin();
 
@@ -855,11 +867,12 @@
           .from('group_messages')
           .select('*')
           .eq('group_id', gid)
-          .order('created_at');
+          .order('created_at', { ascending: false })
+          .limit(150); // newest 150 only; older history is not loaded all at once
         
         elements.messagePanel.innerHTML = '';
         if (data) {
-          data.forEach(render);
+          data.reverse().forEach(render);
         }
       } catch (error) {
         console.error('Error loading messages:', error);
@@ -2984,7 +2997,10 @@
       
       elements.shareGroupBtn.addEventListener('click', (e) => {
         createRipple(e);
-        const groupUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
+        // Members share the invite page. Only owners/admins of a PRIVATE group embed the invite code.
+        const _canInvite = state.userRole === 'owner' || state.userRole === 'admin' || state.groupCreatorId === user.id;
+        const groupUrl = `${window.location.origin}/group-invite.html?groupId=${gid}` +
+          (!state.isPublic && _canInvite && state.inviteCode ? `&code=${encodeURIComponent(state.inviteCode)}` : '');
         elements.shareGroupInput.value = groupUrl;
         elements.shareGroupModal.classList.add('visible');
         closeDrawer();
@@ -3601,8 +3617,9 @@
                 console.error('Failed to generate invite code:', err);
               }
             }
-            const inviteUrl = `${window.location.origin}${window.location.pathname}?groupId=${gid}`;
-            elements.shareGroupInput.value = state.isPublic ? inviteUrl : code;
+            const inviteUrl = `${window.location.origin}/group-invite.html?groupId=${gid}` +
+              (state.isPublic ? '' : `&code=${encodeURIComponent(code)}`);
+            elements.shareGroupInput.value = inviteUrl;
             elements.shareGroupModal.classList.add('visible');
             showAdminInfoModal(
               'Group Invite Code',

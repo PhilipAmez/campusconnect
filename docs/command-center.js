@@ -362,6 +362,8 @@ function handleSubscriptionRealtime() {
   subscriptionsRefreshTimer = setTimeout(async () => {
     await fetchSubscriptionsAndPayments();
     renderSubscriptionsView();
+    renderNotifDropdown();
+    try { renderActivityFeed(); } catch (e) { /* view not mounted yet */ }
   }, 400);
 }
 
@@ -1707,14 +1709,22 @@ function buildActivityFeed(limit) {
   state.profiles.forEach(p => events.push({ type: 'signup', at: p.created_at, profile: p }));
   state.reports.forEach(r => events.push({ type: 'report', at: r.created_at, report: r }));
   state.profiles.filter(isSuspended).forEach(p => events.push({ type: 'suspended', at: p.suspended_at || p.created_at, profile: p }));
+  (state.payments || []).filter(pay => pay.status === 'SUCCESS' || pay.status === 'FAILED').forEach(pay =>
+    events.push({ type: pay.status === 'SUCCESS' ? 'payment' : 'payment_failed', at: pay.created_at, payment: pay, profile: state.profiles.find(p => p.id === pay.user_id) }));
   return events.filter(e => e.at).sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, limit);
 }
 function activityRowHtml(e) {
-  const icons = { signup: ['fa-user-plus', '#7c3aed'], report: ['fa-flag', '#f59e0b'], suspended: ['fa-ban', '#ef4444'] };
+  const icons = { signup: ['fa-user-plus', '#7c3aed'], report: ['fa-flag', '#f59e0b'], suspended: ['fa-ban', '#ef4444'], payment: ['fa-credit-card', '#10b981'], payment_failed: ['fa-circle-exclamation', '#ef4444'] };
   const [icon, color] = icons[e.type];
   let text = '';
   if (e.type === 'signup') text = `<strong>${escapeHtml(displayName(e.profile))}</strong> joined Peerloom`;
   if (e.type === 'report') text = `New report: <strong>${escapeHtml(e.report.reason || 'flagged content')}</strong>`;
+  if (e.type === 'payment' || e.type === 'payment_failed') {
+    const who = e.profile ? escapeHtml(displayName(e.profile)) : 'A member';
+    const role = e.profile ? (isLecturerProfile(e.profile) ? 'lecturer' : 'student') : 'member';
+    const amt = `${escapeHtml(e.payment.currency || 'GHS')} ${Number(e.payment.amount || 0).toFixed(2)}`;
+    text = e.type === 'payment' ? `<strong>${who}</strong> (${role}) paid <strong>${amt}</strong>` : `Payment of <strong>${amt}</strong> by <strong>${who}</strong> (${role}) failed`;
+  }
   if (e.type === 'suspended') text = `<strong>${escapeHtml(displayName(e.profile))}</strong> was suspended`;
   return `<div class="cc-notif-item">
     <div class="cc-notif-icn" style="background:${color}1f; color:${color};"><i class="fa-solid ${icon}"></i></div>
