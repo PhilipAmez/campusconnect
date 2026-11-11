@@ -130,7 +130,7 @@
           <div class="cc-avatar" id="ccUserAvatar">–</div>
           <div class="cc-user-menu-text">
             <strong id="ccUserName">—</strong>
-            <span>Super Admin</span>
+            <span id="ccRoleLabel">Super Admin</span>
           </div>
           <i class="fa-solid fa-chevron-down" style="font-size:0.68rem; color:var(--ink-mute);"></i>
         </div>
@@ -541,12 +541,17 @@
             </div>
           </div>
 
-          <div class="cc-panel">
+          <div class="cc-panel" id="ccAdminsPanel">
             <div class="cc-panel-head">
-              <div><h3>Super admins</h3><p>Who can access this Command Center</p></div>
+              <div><h3>Admins</h3><p>Who can open this Command Center, and which sections</p></div>
               <button class="cc-btn cc-btn-soft cc-btn-sm" id="ccAddAdminBtn"><i class="fa-solid fa-plus"></i> Add</button>
             </div>
             <div id="ccAdminsList"></div>
+          </div>
+
+          <div class="cc-panel" id="ccMyAccessPanel" style="display:none;">
+            <div class="cc-panel-head"><div><h3>Your access</h3><p>The sections you can open</p></div></div>
+            <div id="ccMyAccessBody"></div>
           </div>
         </div>
       </section>
@@ -675,15 +680,24 @@
        ADD ADMIN MODAL
        ============================================================ -->
   <div class="cc-modal-backdrop" id="ccAddAdminBackdrop">
-    <div class="cc-modal" style="max-width:420px;">
+    <div class="cc-modal" style="max-width:540px;">
       <div class="cc-modal-head">
-        <h3>Add a super admin</h3>
+        <h3 id="ccAdminModalTitle">Add an admin</h3>
         <button aria-label="Close" class="cc-modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <p style="font-size:0.82rem; color:var(--ink-mute); margin:-8px 0 16px;">The person must already have a Peerloom account. Enter the exact <strong>username</strong> they signed up with — Peerloom's client can't look up accounts by email directly, only by username.</p>
-      <div class="cc-field">
+      <p id="ccAdminModalHint" style="font-size:0.82rem; color:var(--ink-mute); margin:-8px 0 16px;">The person must already have a Peerloom account. Enter the exact <strong>username</strong> they signed up with, then choose what they can open.</p>
+      <div class="cc-field" id="ccAdminUserField">
         <label>Username</label>
         <input aria-label="Cc Add Admin" type="text" id="ccAddAdminInput" placeholder="jane_doe">
+      </div>
+      <div class="cc-field">
+        <label>Quick presets</label>
+        <div id="ccAdminPresets" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </div>
+      <div class="cc-field">
+        <label>What can they access?</label>
+        <div id="ccAdminPermGrid" style="display:grid; gap:8px; max-height:300px; overflow-y:auto; padding-right:2px;"></div>
+        <p style="font-size:0.74rem; color:var(--ink-mute); margin-top:8px;">Admins can never add or remove other admins. Only the owner can. Changes apply immediately.</p>
       </div>
       <div id="ccAddAdminError" style="color:var(--danger); font-size:0.8rem; display:none; margin-bottom:8px;"></div>
       <div class="cc-modal-foot">

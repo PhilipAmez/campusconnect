@@ -31,7 +31,10 @@ function campusOf(p) {
 }
 function isSuspended(p) { return p.account_status === 'suspended'; }
 function isBanned(p) { return p.account_status === 'banned'; }
-function isVerified(p) { return p.verified === true; }
+// "Verified" in the command center means the person confirmed their email address (synced from the auth system).
+// The separate `verified` flag is a manual trusted badge an admin can grant.
+function isVerified(p) { return p.email_verified === true; }
+function hasTrustedBadge(p) { return p.verified === true; }
 function displayName(p) { return p.full_name || p.username || 'Unnamed user'; }
 function initials(name) {
   if (!name) return '?';
@@ -75,6 +78,9 @@ const state = {
   lecturerContentCounts: {}, // profile id -> { quizzes, resources, announcements }
   platformContentCounts: { quizzes: 0, resources: 0, announcements: 0 },
   superAdminIds: new Set(),
+  isOwner: false,
+  perms: new Set(),
+  adminRows: [],
   charts: {},
   usersFilter: 'all',
   usersSearch: '',
@@ -134,7 +140,7 @@ async function boot() {
     bootText.textContent = 'Confirming super admin access…';
     const { data: adminRow, error: adminErr } = await supabase
       .from('super_admins')
-      .select('id, email, full_name')
+      .select('id, email, full_name, is_owner, permissions')
       .eq('id', session.user.id)
       .maybeSingle();
 
@@ -142,6 +148,9 @@ async function boot() {
       showDenied();
       return;
     }
+
+    state.isOwner = adminRow.is_owner === true;
+    state.perms = new Set(adminRow.permissions || []);
 
     bootText.textContent = 'Loading Peerloom data…';
     const { data: profile } = await supabase
@@ -162,6 +171,7 @@ async function boot() {
     document.getElementById('ccBoot').style.display = 'none';
     document.getElementById('ccApp').classList.add('is-ready');
     initShell();
+    applyAccessToUI();
     renderAll();
     initRealtime();
     // Realtime (postgres_changes) depends on the Supabase project having
@@ -214,7 +224,7 @@ async function fetchAllRows(table, select, applyFilters = q => q, orderCol = 'cr
 async function fetchAllProfiles() {
   state.profiles = await fetchAllRows(
     'profiles',
-    'id, full_name, username, profile_photo, institution, campus, custom_campus, department, level, custom_level, role, is_lecturer, verified, account_status, suspended_reason, created_at, lecturer_free_started_at, lecturer_free_ends_at'
+    'id, full_name, username, profile_photo, institution, campus, custom_campus, department, level, custom_level, role, is_lecturer, verified, email_verified, email_verified_at, account_status, suspended_reason, created_at, lecturer_free_started_at, lecturer_free_ends_at'
   );
 }
 
@@ -225,7 +235,7 @@ async function fetchSubscriptionsAndPayments() {
   );
   const { data, error } = await supabase
     .from('payments')
-    .select('id, user_id, subscription_id, amount, currency, status, provider, provider_reference, failure_reason, created_at')
+    .select('id, user_id, subscription_id, amount, currency, status, provider, provider_reference, failure_reason, created_at, paystack_fee, net_amount, channel, paid_at')
     .order('created_at', { ascending: false })
     .limit(500);
   if (error) { console.error('fetchSubscriptionsAndPayments(payments)', error); state.payments = []; }
@@ -657,6 +667,8 @@ function initShell() {
     btn.addEventListener('click', () => openExportModal(btn.dataset.export));
   });
   document.getElementById('ccExportAnalyticsBtn').addEventListener('click', () => openExportModal('analytics'));
+  const feeBtn = document.getElementById('ccSyncFeesBtn');
+  if (feeBtn) feeBtn.addEventListener('click', () => syncPaystackFees(true));
   document.querySelectorAll('[data-export-format]').forEach(btn => {
     btn.addEventListener('click', () => runExport(btn.dataset.exportFormat));
   });
@@ -688,6 +700,7 @@ function closeMobileSidebar() {
 
 function switchView(view) {
   if (view === state.currentView) return;
+  if (!canAccess(view)) { toast("You don't have access to that section. Ask the owner.", 'err'); return; }
   const current = document.querySelector('.cc-view.active');
   const next = document.querySelector(`.cc-view[data-view="${view}"]`);
   if (!next || next === current) return;
@@ -903,7 +916,7 @@ function roleBadge(p) {
   return isLecturerProfile(p) ? `<span class="cc-badge cc-badge-info">Lecturer</span>` : `<span class="cc-badge cc-badge-mute">Student</span>`;
 }
 function verifiedBadge(p) {
-  return isVerified(p) ? `<span class="cc-badge cc-badge-ok"><i class="fa-solid fa-check"></i> Verified</span>` : `<span class="cc-badge cc-badge-mute">Unverified</span>`;
+  return isVerified(p) ? `<span class="cc-badge cc-badge-ok" title="Email address confirmed"><i class="fa-solid fa-check"></i> Verified</span>` : `<span class="cc-badge cc-badge-mute" title="Email address not confirmed yet">Unverified</span>`;
 }
 function statusBadge(p) {
   if (isBanned(p)) return `<span class="cc-badge cc-badge-danger">Banned</span>`;
@@ -1773,7 +1786,7 @@ function openUserModal(id) {
       <div>
         <div style="font-weight:800; font-size:1.05rem;">${escapeHtml(displayName(p))}</div>
         <div style="color:var(--ink-mute); font-size:0.84rem;">@${escapeHtml(p.username || 'unknown')}</div>
-        <div style="display:flex; gap:6px; margin-top:6px;">${roleBadge(p)}${verifiedBadge(p)}${statusBadge(p)}</div>
+        <div style="display:flex; gap:6px; margin-top:6px;">${roleBadge(p)}${verifiedBadge(p)}${hasTrustedBadge(p) ? '<span class="cc-badge cc-badge-info">Trusted</span>' : ''}${statusBadge(p)}</div>
       </div>
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:0.84rem; margin-bottom:22px;">
@@ -1784,7 +1797,7 @@ function openUserModal(id) {
       <div><div style="color:var(--ink-mute); font-size:0.72rem;">User ID</div><div class="mono" style="font-size:0.72rem;">${p.id}</div></div>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
-      ${isVerified(p) ? btn('Unverify', 'cc-btn-ghost', 'unverify') : btn('Verify', 'cc-btn-soft', 'verify')}
+      ${hasTrustedBadge(p) ? btn('Remove trusted badge', 'cc-btn-ghost', 'unverify') : btn('Give trusted badge', 'cc-btn-soft', 'verify')}
       ${isLecturerProfile(p) ? btn('Demote to student', 'cc-btn-ghost', 'demote') : btn('Promote to lecturer', 'cc-btn-ghost', 'promote')}
       ${btn('Warn', 'cc-btn-ghost', 'warn')}
       ${isSuspended(p) ? btn('Unsuspend', 'cc-btn-soft', 'unsuspend') : btn('Suspend', 'cc-btn-ghost', 'suspend')}
@@ -1861,8 +1874,8 @@ function handleUserAction(action, p) {
   }
 
   const map = {
-    verify: { title: 'Verify this user?', body: `${displayName(p)} will get a verified badge across Peerloom.`, icon: 'fa-circle-check', danger: false, run: () => setProfileField(p.id, { verified: true }) },
-    unverify: { title: 'Remove verification?', body: `${displayName(p)} will lose their verified badge.`, icon: 'fa-circle-xmark', danger: true, run: () => setProfileField(p.id, { verified: false }) },
+    verify: { title: 'Give trusted badge?', body: `${displayName(p)} will be marked as a trusted user. This is separate from email verification.`, icon: 'fa-circle-check', danger: false, run: () => setProfileField(p.id, { verified: true }) },
+    unverify: { title: 'Remove trusted badge?', body: `${displayName(p)} will lose their trusted badge. Their email verification is not affected.`, icon: 'fa-circle-xmark', danger: true, run: () => setProfileField(p.id, { verified: false }) },
     promote: { title: 'Promote to lecturer?', body: `${displayName(p)} will get lecturer access across Peerloom.`, icon: 'fa-arrow-up', danger: false, run: () => setProfileField(p.id, { role: 'lecturer', is_lecturer: true }) },
     demote: { title: 'Demote to student?', body: `${displayName(p)} will lose lecturer access.`, icon: 'fa-arrow-down', danger: true, run: () => setProfileField(p.id, { role: 'student', is_lecturer: false }) },
     unsuspend: { title: 'Unsuspend this account?', body: `${displayName(p)} will regain full access immediately.`, icon: 'fa-circle-check', danger: false, run: async () => { await setProfileField(p.id, { account_status: 'active', suspended_at: null, suspended_reason: null }); await logModeration('user_unsuspend', 'user', p.id, null, prevStatus, 'active'); } },
@@ -2208,34 +2221,105 @@ function initSettingsPanel() {
   sound.checked = localStorage.getItem('cc_sound') === 'on';
   sound.addEventListener('change', () => localStorage.setItem('cc_sound', sound.checked ? 'on' : 'off'));
 
-  document.getElementById('ccAddAdminBtn').addEventListener('click', () => {
-    document.getElementById('ccAddAdminInput').value = '';
-    document.getElementById('ccAddAdminError').style.display = 'none';
-    openModal('ccAddAdminBackdrop');
-  });
-  document.getElementById('ccAddAdminConfirm').addEventListener('click', addAdmin);
+  document.getElementById('ccAddAdminBtn').addEventListener('click', () => openAdminModal('add'));
+  document.getElementById('ccAddAdminConfirm').addEventListener('click', saveAdminModal);
 
   renderAdminsList();
+  renderMyAccess();
+}
+
+// ============================================================
+// ADMIN ACCESS — the owner chooses what each admin can open. The same rules are enforced in the
+// database (peerloom_has_perm), so hiding a menu item is never the only protection.
+// ============================================================
+const ADMIN_PERMS = [
+  { key: 'overview',   label: 'Overview & analytics',   short: 'Overview',   desc: 'Dashboard, analytics, activity feed and system health' },
+  { key: 'users',      label: 'People',                 short: 'People',     desc: 'Users, lecturers, students, institutions, campuses; warn, suspend, ban and trusted badge' },
+  { key: 'groups',     label: 'Groups',                 short: 'Groups',     desc: 'See and manage study groups and their members' },
+  { key: 'moderation', label: 'Reports & moderation',   short: 'Moderation', desc: 'User reports, flagged content and moderation rules' },
+  { key: 'ads',        label: 'Advertisements',         short: 'Ads',        desc: 'Advertisers, campaigns, creatives and ad settings' },
+  { key: 'finance',    label: 'Subscriptions & payments', short: 'Finance',  desc: 'Revenue, Paystack payments, fees and subscriptions' },
+  { key: 'support',    label: 'Support desk',           short: 'Support',    desc: 'Answer and manage support tickets' },
+];
+const ADMIN_PRESETS = [
+  { id: 'support',   label: 'Support agent', perms: ['overview', 'support'] },
+  { id: 'moderator', label: 'Moderator',     perms: ['overview', 'users', 'groups', 'moderation'] },
+  { id: 'finance',   label: 'Finance',       perms: ['overview', 'finance'] },
+  { id: 'full',      label: 'Everything (not owner)', perms: ADMIN_PERMS.map(p => p.key) },
+];
+const VIEW_PERM = {
+  dashboard: 'overview', analytics: 'overview', notifications: 'overview', 'system-health': 'overview',
+  users: 'users', lecturers: 'users', students: 'users', institutions: 'users', campuses: 'users',
+  groups: 'groups', reports: 'moderation', moderation: 'moderation',
+  advertisements: 'ads', subscriptions: 'finance', support: 'support',
+};
+function canAccess(view) {
+  if (state.isOwner) return true;
+  const need = VIEW_PERM[view];
+  return !need || state.perms.has(need);   // Settings has no entry: every admin can open their own settings
+}
+function permChips(perms) {
+  return (perms || []).map(k => ADMIN_PERMS.find(p => p.key === k)).filter(Boolean)
+    .map(p => `<span class="cc-badge cc-badge-info" style="margin:2px 4px 2px 0;">${escapeHtml(p.short)}</span>`).join('') || '<span style="color:var(--ink-mute); font-size:0.76rem;">No sections</span>';
+}
+
+// Hide what this admin can't open, and land them on a section they can.
+function applyAccessToUI() {
+  document.querySelectorAll('.cc-nav-item[data-view]').forEach(b => { b.style.display = canAccess(b.dataset.view) ? '' : 'none'; });
+  document.querySelectorAll('.cc-nav-group').forEach(g => {
+    const items = [...g.querySelectorAll('.cc-nav-item[data-view]')];
+    g.style.display = items.some(i => i.style.display !== 'none') ? '' : 'none';
+  });
+  document.querySelectorAll('[data-goto-view]').forEach(b => { if (!canAccess(b.dataset.gotoView)) b.style.display = 'none'; });
+  const role = document.getElementById('ccRoleLabel');
+  if (role) role.textContent = state.isOwner ? 'Owner' : 'Admin';
+  const panel = document.getElementById('ccAdminsPanel');
+  if (panel) panel.style.display = state.isOwner ? '' : 'none';
+  if (!canAccess(state.currentView)) {
+    const first = [...document.querySelectorAll('.cc-nav-item[data-view]')].map(b => b.dataset.view).find(canAccess) || 'settings';
+    state.currentView = null;
+    switchView(first);
+  }
+}
+
+function renderMyAccess() {
+  const panel = document.getElementById('ccMyAccessPanel');
+  if (!panel) return;
+  panel.style.display = state.isOwner ? 'none' : '';
+  const body = document.getElementById('ccMyAccessBody');
+  if (body) body.innerHTML = permChips([...state.perms]) + `<p style="font-size:0.78rem; color:var(--ink-mute); margin-top:10px;">The owner decides what you can open. Ask them if you need more access.</p>`;
 }
 
 async function renderAdminsList() {
-  const { data, error } = await supabase.from('super_admins').select('id, email, full_name, created_at').order('created_at', { ascending: true });
+  if (!state.isOwner) return;
+  const { data, error } = await supabase.from('super_admins').select('id, email, full_name, created_at, is_owner, permissions').order('created_at', { ascending: true });
   const list = document.getElementById('ccAdminsList');
   if (error) { list.innerHTML = `<p style="color:var(--danger); font-size:0.84rem;">Couldn't load admins.</p>`; return; }
-  list.innerHTML = (data || []).map(a => {
+  state.adminRows = data || [];
+  list.innerHTML = state.adminRows.map(a => {
     const isMe = a.id === state.adminId;
-    return `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);">
-      <div><div style="font-weight:700; font-size:0.86rem;">${escapeHtml(a.full_name || a.email)}${isMe ? ' <span style="color:var(--ink-mute); font-weight:500;">(you)</span>' : ''}</div><div style="font-size:0.74rem; color:var(--ink-mute);">Added ${formatDate(a.created_at)}</div></div>
-      ${isMe ? '' : `<button class="cc-btn cc-btn-ghost cc-btn-icon" data-remove-admin="${a.id}" title="Remove"><i class="fa-solid fa-user-minus"></i></button>`}
+    return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0; border-bottom:1px solid var(--border);">
+      <div style="min-width:0;">
+        <div style="font-weight:700; font-size:0.86rem;">${escapeHtml(a.full_name || a.email)}${isMe ? ' <span style="color:var(--ink-mute); font-weight:500;">(you)</span>' : ''}</div>
+        <div style="font-size:0.74rem; color:var(--ink-mute); margin-bottom:4px;">${a.is_owner ? 'Owner' : 'Added ' + formatDate(a.created_at)}</div>
+        <div>${a.is_owner ? '<span class="cc-badge cc-badge-superadmin"><i class="fa-solid fa-shield-halved"></i> Full access</span>' : permChips(a.permissions)}</div>
+      </div>
+      ${a.is_owner ? '' : `<div style="display:flex; gap:4px; flex:none;">
+        <button class="cc-btn cc-btn-ghost cc-btn-icon" data-edit-admin="${a.id}" title="Edit access"><i class="fa-solid fa-user-pen"></i></button>
+        <button class="cc-btn cc-btn-ghost cc-btn-icon" data-remove-admin="${a.id}" title="Remove"><i class="fa-solid fa-user-minus"></i></button>
+      </div>`}
     </div>`;
   }).join('') || `<p style="font-size:0.84rem; color:var(--ink-mute);">No admins found.</p>`;
 
+  list.querySelectorAll('[data-edit-admin]').forEach(btn => {
+    btn.addEventListener('click', () => openAdminModal('edit', state.adminRows.find(a => a.id === btn.dataset.editAdmin)));
+  });
   list.querySelectorAll('[data-remove-admin]').forEach(btn => {
     btn.addEventListener('click', () => confirmAction({
       title: 'Remove admin access?', body: 'They will immediately lose access to the Command Center.', icon: 'fa-user-minus', danger: true,
       run: async () => {
-        const { error } = await supabase.from('super_admins').delete().eq('id', btn.dataset.removeAdmin);
-        if (error) { toast('Could not remove — ' + error.message, 'err'); return; }
+        const { data: gone, error } = await supabase.from('super_admins').delete().eq('id', btn.dataset.removeAdmin).select('id');
+        if (error || !gone || !gone.length) { toast('Could not remove — ' + (error ? error.message : 'not allowed'), 'err'); return; }
         state.superAdminIds.delete(btn.dataset.removeAdmin);
         toast('Admin access removed', 'ok');
         renderAdminsList();
@@ -2245,22 +2329,65 @@ async function renderAdminsList() {
   });
 }
 
-async function addAdmin() {
-  const input = document.getElementById('ccAddAdminInput');
+const adminModal = { mode: 'add', id: null };
+
+function openAdminModal(mode, admin) {
+  adminModal.mode = mode; adminModal.id = admin ? admin.id : null;
+  const edit = mode === 'edit';
+  document.getElementById('ccAdminModalTitle').textContent = edit ? `Edit access for ${admin.full_name || admin.email}` : 'Add an admin';
+  document.getElementById('ccAdminUserField').style.display = edit ? 'none' : '';
+  document.getElementById('ccAdminModalHint').style.display = edit ? 'none' : '';
+  document.getElementById('ccAddAdminInput').value = '';
+  document.getElementById('ccAddAdminError').style.display = 'none';
+  document.getElementById('ccAddAdminConfirm').textContent = edit ? 'Save access' : 'Grant access';
+  const have = new Set(edit ? (admin.permissions || []) : []);
+
+  document.getElementById('ccAdminPermGrid').innerHTML = ADMIN_PERMS.map(p => `
+    <label style="display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--border); border-radius:10px; cursor:pointer;">
+      <input type="checkbox" data-perm="${p.key}" ${have.has(p.key) ? 'checked' : ''} style="margin-top:3px;">
+      <span><strong style="font-size:0.84rem;">${escapeHtml(p.label)}</strong><br><span style="font-size:0.76rem; color:var(--ink-mute);">${escapeHtml(p.desc)}</span></span>
+    </label>`).join('');
+  const presets = document.getElementById('ccAdminPresets');
+  presets.innerHTML = ADMIN_PRESETS.map(p => `<button type="button" class="cc-btn cc-btn-ghost cc-btn-sm" data-preset="${p.id}">${escapeHtml(p.label)}</button>`).join('');
+  presets.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+    const preset = ADMIN_PRESETS.find(p => p.id === b.dataset.preset);
+    document.querySelectorAll('#ccAdminPermGrid [data-perm]').forEach(cb => { cb.checked = preset.perms.includes(cb.dataset.perm); });
+  }));
+  openModal('ccAddAdminBackdrop');
+}
+
+function pickedPerms() {
+  return [...document.querySelectorAll('#ccAdminPermGrid [data-perm]')].filter(cb => cb.checked).map(cb => cb.dataset.perm);
+}
+
+async function saveAdminModal() {
   const errEl = document.getElementById('ccAddAdminError');
-  const username = input.value.trim().replace(/^@/, '');
   errEl.style.display = 'none';
-  if (!username) { errEl.textContent = 'Enter a username.'; errEl.style.display = 'block'; return; }
+  const fail = msg => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  if (!state.isOwner) return fail('Only the owner can manage admins.');
+  const permissions = pickedPerms();
+  if (!permissions.length) return fail('Pick at least one section this admin can access.');
 
+  if (adminModal.mode === 'edit') {
+    const { data, error } = await supabase.from('super_admins').update({ permissions }).eq('id', adminModal.id).select('id');
+    if (error || !data || !data.length) return fail(error ? error.message : 'Could not save, you may not have permission.');
+    closeModal('ccAddAdminBackdrop');
+    toast('Access updated', 'ok');
+    renderAdminsList();
+    return;
+  }
+
+  const username = document.getElementById('ccAddAdminInput').value.trim().replace(/^@/, '');
+  if (!username) return fail('Enter a username.');
   const { data: found, error } = await supabase.from('profiles').select('id, full_name, username').eq('username', username).maybeSingle();
-  if (error || !found) { errEl.textContent = "Couldn't find a Peerloom account with that username."; errEl.style.display = 'block'; return; }
+  if (error || !found) return fail("Couldn't find a Peerloom account with that username.");
 
-  const { error: insertErr } = await supabase.from('super_admins').insert({ id: found.id, email: found.username, full_name: found.full_name, granted_by: state.adminId });
-  if (insertErr) { errEl.textContent = insertErr.message.includes('duplicate') ? 'They already have access.' : insertErr.message; errEl.style.display = 'block'; return; }
+  const { error: insertErr } = await supabase.from('super_admins').insert({ id: found.id, email: found.username, full_name: found.full_name, granted_by: state.adminId, permissions });
+  if (insertErr) return fail(insertErr.message.includes('duplicate') ? 'They already have access. Use Edit access to change it.' : insertErr.message);
 
   closeModal('ccAddAdminBackdrop');
   state.superAdminIds.add(found.id);
-  toast(`${found.full_name || found.username} now has Command Center access`, 'ok');
+  toast(`${found.full_name || found.username} can now open: ${permissions.map(k => ADMIN_PERMS.find(p => p.key === k).short).join(', ')}`, 'ok');
   renderAdminsList();
   renderAll();
 }
@@ -2299,10 +2426,16 @@ function subscriptionsStatCardsConfig() {
     const amt = Number(s.amount || 0);
     return sum + (s.billing_interval === 'yearly' ? amt / 12 : amt);
   }, 0);
+  const feeRows = payments.filter(p => p.status === 'SUCCESS' && p.paystack_fee != null);
+  const totalFees = feeRows.reduce((sum, p) => sum + Number(p.paystack_fee || 0), 0);
+  const totalNet = feeRows.reduce((sum, p) => sum + Number(p.net_amount || 0), 0);
+  const unsynced = payments.filter(p => p.status === 'SUCCESS' && p.paystack_fee == null).length;
   const failedRecent = payments.filter(p => p.status === 'FAILED' && p.created_at && (Date.now() - new Date(p.created_at)) < 30 * 86400000).length;
 
   return [
     { id: 'ccStatTotalRevenue', label: 'Total revenue (all time)', value: `GHS ${totalRevenue.toFixed(2)}`, icon: 'fa-sack-dollar', color: '#10b981' },
+    { id: 'ccStatFees', label: 'Paystack fees paid', value: `GHS ${totalFees.toFixed(2)}`, icon: 'fa-percent', color: '#f59e0b' },
+    { id: 'ccStatNet', label: unsynced ? `Net after fees (${unsynced} awaiting sync)` : 'Net received after fees', value: `GHS ${totalNet.toFixed(2)}`, icon: 'fa-wallet', color: '#06b6d4' },
     { id: 'ccStatMRR', label: 'Monthly recurring revenue', value: `GHS ${mrr.toFixed(2)}`, icon: 'fa-chart-line', color: '#7c3aed' },
     { id: 'ccStatActiveSubs', label: 'Active paid subscriptions', value: paidActive.length, icon: 'fa-credit-card', color: '#3b82f6' },
     { id: 'ccStatFreeYearSubs', label: 'Lecturers on free year', value: freeYearActive.length, icon: 'fa-chalkboard-user', color: '#ec4899' },
@@ -2373,7 +2506,7 @@ function renderPaymentsTable() {
   if (!tbody) return;
   const byId = new Map(state.profiles.map(p => [p.id, p]));
   if (!state.payments.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--ink-mute); padding:24px;">No payments recorded yet — Peerloom's payment provider isn't live, so this is genuinely empty, not a placeholder.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--ink-mute); padding:24px;">No payments recorded yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = state.payments.slice(0, 50).map(p => {
@@ -2383,6 +2516,8 @@ function renderPaymentsTable() {
       <tr>
         <td>${user ? userCell(user) : escapeHtml(p.user_id)}</td>
         <td>${escapeHtml(p.currency || 'GHS')} ${Number(p.amount || 0).toFixed(2)}</td>
+        <td>${p.paystack_fee != null ? '- ' + Number(p.paystack_fee).toFixed(2) : '<span style="color:var(--ink-mute);" title="Not synced from Paystack yet">—</span>'}</td>
+        <td>${p.net_amount != null ? '<b>' + escapeHtml(p.currency || 'GHS') + ' ' + Number(p.net_amount).toFixed(2) + '</b>' : '<span style="color:var(--ink-mute);">—</span>'}</td>
         <td><span class="cc-badge ${statusClass}">${escapeHtml(p.status)}</span></td>
         <td>${formatDate(p.created_at)}</td>
       </tr>
@@ -2417,22 +2552,44 @@ function renderSubscriptionsView() {
   renderSubscriptionsStats();
   renderSubscriptionsTable();
   renderPaymentsTable();
+  if (!state.feeSyncTried) { state.feeSyncTried = true; syncPaystackFees(false); }
+}
+
+// Asks the server to fetch each successful payment's fee from Paystack and store it (admin only, server side).
+async function syncPaystackFees(manual) {
+  const pending = state.payments.filter(p => p.status === 'SUCCESS' && p.provider === 'paystack' && p.paystack_fee == null);
+  if (!pending.length) { if (manual) toast('Every successful payment already has its Paystack fee recorded', 'ok'); return; }
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch('/api/paystack-sync-fees', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (!res.ok) throw new Error(res.status === 404 ? 'fee sync endpoint is not deployed yet' : `server said ${res.status}`);
+    const out = await res.json();
+    await fetchSubscriptionsAndPayments();
+    renderSubscriptionsStats(); renderPaymentsTable();
+    if (manual || out.updated) toast(`Paystack fees recorded for ${out.updated} payment${out.updated === 1 ? '' : 's'}` + (out.skipped ? `, ${out.skipped} could not be matched` : ''), out.skipped ? 'info' : 'ok');
+  } catch (err) {
+    console.error('syncPaystackFees', err);
+    if (manual) toast('Could not sync Paystack fees: ' + err.message, 'err');
+  }
 }
 
 // ============================================================
 // EXPORTS — branded PDF, Excel, CSV
 // ============================================================
 const EXPORT_CONFIG = {
-  users: { title: 'All Users', cols: ['Name', 'Username', 'Role', 'Campus', 'Verified', 'Status', 'Joined'], rows: () => filteredUsers().map(p => [displayName(p), '@' + (p.username || ''), isLecturerProfile(p) ? 'Lecturer' : 'Student', campusOf(p), isVerified(p) ? 'Yes' : 'No', isBanned(p) ? 'Banned' : isSuspended(p) ? 'Suspended' : 'Active', formatDate(p.created_at)]) },
-  lecturers: { title: 'Lecturers', cols: ['Name', 'Institution', 'Campus', 'Department', 'Quizzes', 'Resources', 'Announcements', 'Verified'], rows: () => state.profiles.filter(isLecturerProfile).map(p => { const c = state.lecturerContentCounts[p.id] || { quizzes: 0, resources: 0, announcements: 0 }; return [displayName(p), institutionOf(p), campusOf(p), p.department || '—', c.quizzes, c.resources, c.announcements, isVerified(p) ? 'Yes' : 'No']; }) },
-  students: { title: 'Students', cols: ['Name', 'Institution', 'Campus', 'Department', 'Level', 'Verified', 'Status'], rows: () => state.profiles.filter(p => !isLecturerProfile(p)).map(p => [displayName(p), institutionOf(p), campusOf(p), p.department || '—', p.custom_level || p.level || '—', isVerified(p) ? 'Yes' : 'No', isSuspended(p) ? 'Suspended' : 'Active']) },
-  institutions: { title: 'Institutions', cols: ['Institution', 'Students', 'Lecturers', 'Campuses'], rows: () => { const m = {}; state.profiles.forEach(p => { const k = institutionOf(p); m[k] = m[k] || { s: 0, l: 0, c: new Set() }; isLecturerProfile(p) ? m[k].l++ : m[k].s++; m[k].c.add(campusOf(p)); }); return Object.entries(m).map(([k, v]) => [k, v.s, v.l, v.c.size]); } },
+  users: { title: 'All Users', cols: ['Name', 'Username', 'Role', 'Verified', 'Status', 'Joined'], rows: () => filteredUsers().map(p => [displayName(p), '@' + (p.username || ''), isLecturerProfile(p) ? 'Lecturer' : 'Student', isVerified(p) ? 'Yes' : 'No', isBanned(p) ? 'Banned' : isSuspended(p) ? 'Suspended' : 'Active', formatDate(p.created_at)]) },
+  lecturers: { title: 'Lecturers', cols: ['Name', 'Institution', 'Department', 'Quizzes', 'Resources', 'Announcements', 'Verified'], rows: () => state.profiles.filter(isLecturerProfile).map(p => { const c = state.lecturerContentCounts[p.id] || { quizzes: 0, resources: 0, announcements: 0 }; return [displayName(p), institutionOf(p), p.department || '—', c.quizzes, c.resources, c.announcements, isVerified(p) ? 'Yes' : 'No']; }) },
+  students: { title: 'Students', cols: ['Name', 'Institution', 'Department', 'Level', 'Verified', 'Status'], rows: () => state.profiles.filter(p => !isLecturerProfile(p)).map(p => [displayName(p), institutionOf(p), p.department || '—', p.custom_level || p.level || '—', isVerified(p) ? 'Yes' : 'No', isSuspended(p) ? 'Suspended' : 'Active']) },
+  institutions: { title: 'Institutions', cols: ['Institution', 'Students', 'Lecturers'], rows: () => { const m = {}; state.profiles.forEach(p => { const k = institutionOf(p); m[k] = m[k] || { s: 0, l: 0 }; isLecturerProfile(p) ? m[k].l++ : m[k].s++; }); return Object.entries(m).map(([k, v]) => [k, v.s, v.l]); } },
   campuses: { title: 'Campuses', cols: ['Campus', 'Institution', 'Students', 'Lecturers'], rows: () => { const m = {}; state.profiles.forEach(p => { const k = campusOf(p) + '|' + institutionOf(p); m[k] = m[k] || { camp: campusOf(p), inst: institutionOf(p), s: 0, l: 0 }; isLecturerProfile(p) ? m[k].l++ : m[k].s++; }); return Object.values(m).map(v => [v.camp, v.inst, v.s, v.l]); } },
   groups: { title: 'Groups', cols: ['Group', 'Course code', 'Institution', 'Members', 'Created'], rows: () => state.groups.map(g => [g.name || '—', g.course_code || '—', g.institution || '—', state.groupMemberCounts[g.id] || 0, formatDate(g.created_at)]) },
   moderation: { title: 'Moderation events', cols: ['Severity', 'Category', 'User', 'Where', 'Excerpt', 'Action taken', 'When'], rows: () => state.moderationEvents.map(e => [e.severity, e.category, e.userName, e.group_id ? `Group: ${e.groupName}` : e.content_type, e.snippet, e.action_taken, formatDate(e.created_at)]) },
   reports: { title: 'Reports', cols: ['Reason', 'Reported user', 'Reported by', 'Status', 'Filed'], rows: () => state.reports.map(r => [r.reason || '—', r.reportedUserName, r.reportedByName, isReportPending(r) ? 'Pending' : 'Resolved', formatDate(r.created_at)]) },
-  analytics: { title: 'Analytics Summary', cols: ['Metric', 'Value'], rows: () => { const l = state.profiles.filter(isLecturerProfile).length; const v = state.profiles.filter(isVerified).length; return [['Total users', state.profiles.length], ['Students', state.profiles.length - l], ['Lecturers', l], ['Institutions', new Set(state.profiles.map(institutionOf)).size], ['Campuses', new Set(state.profiles.map(campusOf)).size], ['Verified users', v], ['Verification rate', state.profiles.length ? Math.round(v / state.profiles.length * 100) + '%' : '0%']]; } },
-  payments: { title: 'Payments', cols: ['User', 'Amount', 'Currency', 'Status', 'Provider', 'Date'], rows: () => { const byId = new Map(state.profiles.map(p => [p.id, p])); return state.payments.map(p => { const u = byId.get(p.user_id); return [u ? displayName(u) : p.user_id, Number(p.amount || 0).toFixed(2), p.currency || 'GHS', p.status, p.provider || '—', formatDate(p.created_at)]; }); } },
+  analytics: { title: 'Analytics Summary', cols: ['Metric', 'Value'], rows: () => { const l = state.profiles.filter(isLecturerProfile).length; const v = state.profiles.filter(isVerified).length; return [['Total users', state.profiles.length], ['Students', state.profiles.length - l], ['Lecturers', l], ['Institutions', new Set(state.profiles.map(institutionOf)).size], ['Verified users', v], ['Verification rate', state.profiles.length ? Math.round(v / state.profiles.length * 100) + '%' : '0%']]; } },
+  payments: { title: 'Payments', cols: ['User', 'Paystack reference', 'Gross (GHS)', 'Paystack fee (GHS)', 'Net received (GHS)', 'Method', 'Status', 'Date'],
+    rows: () => { const byId = new Map(state.profiles.map(p => [p.id, p])); return state.payments.map(p => { const u = byId.get(p.user_id); return [u ? displayName(u) : p.user_id, p.provider_reference || '—', Number(p.amount || 0).toFixed(2), p.paystack_fee != null ? Number(p.paystack_fee).toFixed(2) : '—', p.net_amount != null ? Number(p.net_amount).toFixed(2) : '—', (p.channel || '—').replace(/_/g, ' '), p.status, formatDate(p.paid_at || p.created_at)]; }); },
+    foot: () => { const ok = state.payments.filter(p => p.status === 'SUCCESS'); const known = ok.filter(p => p.paystack_fee != null); return ['TOTAL', 'Successful payments only', ok.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2), known.reduce((s, p) => s + Number(p.paystack_fee || 0), 0).toFixed(2), known.reduce((s, p) => s + Number(p.net_amount || 0), 0).toFixed(2), '', ok.length + ' paid', '']; } },
 };
 
 function openExportModal(kind) {
@@ -2450,7 +2607,7 @@ async function runExport(format) {
   try {
     if (format === 'csv') exportCSV(cfg.title, cfg.cols, rows);
     else if (format === 'excel') exportExcel(cfg.title, cfg.cols, rows);
-    else await exportPDF(cfg.title, cfg.cols, rows);
+    else await exportPDF(cfg.title, cfg.cols, rows, kind, cfg.foot ? cfg.foot() : null);
     toast(`Exported ${cfg.title} as ${format.toUpperCase()}`, 'ok');
   } catch (err) {
     console.error(err);
@@ -2490,64 +2647,353 @@ async function loadLogoDataUrl() {
   return _logoDataUrl;
 }
 
-async function exportPDF(title, cols, rows) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
+// ---------- PDF report ----------
+const PDF_COLORS = {
+  ink: [26, 20, 46], mute: [112, 106, 138], violet: [124, 58, 237], violetDark: [58, 24, 124],
+  navy: [16, 10, 36], blue: [59, 130, 246], green: [16, 185, 129], pink: [236, 72, 153], amber: [245, 158, 11], red: [239, 68, 68],
+  panel: [247, 245, 253], line: [226, 222, 242], lavender: [205, 197, 240],
+};
+const CHART_PALETTE = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#ef4444', '#8b5cf6'];
 
-  // ---- Branded cover page ----
-  // Manually interpolated gradient (violet → blue) built from thin rects —
-  // avoids relying on jsPDF's GState/opacity API, which isn't consistent
-  // enough across versions to trust without a real browser to test in.
-  const coverH = 300;
-  const bands = 60;
-  const c1 = [46, 16, 101];   // violet-900
-  const c2 = [59, 130, 246];  // blue-500
+function ghs(n) { return 'GHS ' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function pct(a, b) { return b ? Math.round(a / b * 100) + '%' : '0%'; }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+
+// Render a Chart.js chart off-screen and hand back a PNG (2x for crisp print).
+function chartToImage(config, w, h) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const whiteBg = { id: 'whiteBg', beforeDraw(c) { const x = c.ctx; x.save(); x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height); x.restore(); } };
+  const chart = new Chart(canvas.getContext('2d'), {
+    ...config,
+    plugins: [whiteBg],
+    options: { responsive: false, animation: false, devicePixelRatio: 2, ...config.options },
+  });
+  const url = canvas.toDataURL('image/png');
+  chart.destroy();
+  return url;
+}
+
+function lastNDays(n) {
+  const days = [];
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  for (let i = n - 1; i >= 0; i--) { const d = new Date(d0); d.setDate(d0.getDate() - i); days.push(d); }
+  return days;
+}
+const dayKey = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+const dayLabel = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+function countByDay(items, getDate, days) {
+  const m = new Map(days.map(d => [dayKey(d), 0]));
+  items.forEach(it => { const t = getDate(it); if (!t) return; const k = dayKey(new Date(t)); if (m.has(k)) m.set(k, m.get(k) + 1); });
+  return days.map(d => m.get(dayKey(d)));
+}
+function countBetween(items, getDate, fromMs, toMs) {
+  return items.filter(it => { const t = getDate(it); if (!t) return false; const v = new Date(t).getTime(); return v >= fromMs && v < toMs; }).length;
+}
+function topEntry(map) { const e = Object.entries(map).sort((a, b) => b[1] - a[1]); return e.length ? e[0] : null; }
+
+function pieConfig(labels, data, colors) {
+  const total = data.reduce((a, b) => a + b, 0);
+  return {
+    type: 'doughnut',
+    data: { labels: labels.map((l, i) => `${l} (${data[i]}${total ? ', ' + Math.round(data[i] / total * 100) + '%' : ''})`), datasets: [{ data, backgroundColor: colors || CHART_PALETTE, borderColor: '#ffffff', borderWidth: 2 }] },
+    options: { cutout: '58%', layout: { padding: 4 }, plugins: { legend: { position: 'right', labels: { boxWidth: 9, font: { size: 10 }, padding: 7 } } } },
+  };
+}
+
+function lineConfig(labels, series) {
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: series.map((s, i) => ({
+        label: s.label, data: s.data, borderColor: s.color || CHART_PALETTE[i], backgroundColor: (s.color || CHART_PALETTE[i]) + '22',
+        fill: s.fill !== false, tension: 0.3, borderWidth: 2.2, pointRadius: 0, pointHoverRadius: 0,
+      })),
+    },
+    options: {
+      layout: { padding: { top: 4, right: 8, bottom: 0, left: 0 } },
+      plugins: { legend: { display: series.length > 1, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 9 }, color: '#706a8a' } },
+        y: { beginAtZero: true, grid: { color: '#eceaf7' }, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 5, font: { size: 9 }, color: '#706a8a' } },
+      },
+    },
+  };
+}
+
+const LINE_W = 520, LINE_H = 150, PIE_W = 320, PIE_H = 165;
+
+// What each report shows on page one. Everything is computed from the same state the dashboard uses,
+// so numbers in the PDF always match the screen.
+function buildReportAnalytics(kind, rowCount) {
+  const profiles = state.profiles;
+  const lecturers = profiles.filter(isLecturerProfile).length;
+  const students = profiles.length - lecturers;
+  const verified = profiles.filter(isVerified).length;
+  const days = lastNDays(30);
+  const labels = days.map(dayLabel);
+  const DAY = 86400000, now = Date.now();
+  const charts = [];
+  let kpis = [], insights = [], note = '';
+
+  if (kind === 'payments') {
+    const paid = state.payments.filter(p => p.status === 'SUCCESS');
+    const failed = state.payments.filter(p => p.status === 'FAILED').length;
+    const pending = state.payments.filter(p => p.status !== 'SUCCESS' && p.status !== 'FAILED').length;
+    const withFee = paid.filter(p => p.paystack_fee != null);
+    const gross = paid.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const grossKnown = withFee.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const fees = withFee.reduce((s, p) => s + Number(p.paystack_fee || 0), 0);
+    const net = withFee.reduce((s, p) => s + Number(p.net_amount || 0), 0);
+    const missing = paid.length - withFee.length;
+    const attempts = state.payments.length;
+    kpis = [
+      { label: 'GROSS COLLECTED', value: ghs(gross) }, { label: 'PAYSTACK FEES', value: ghs(fees) }, { label: 'NET RECEIVED', value: ghs(net) },
+      { label: 'SUCCESSFUL PAYMENTS', value: String(paid.length) }, { label: 'FAILED / PENDING', value: failed + ' / ' + pending },
+      { label: 'AVERAGE FEE', value: grossKnown ? (fees / grossKnown * 100).toFixed(2) + '%' : 'n/a' },
+    ];
+    const grossDay = days.map(() => 0), netDay = days.map(() => 0);
+    const idx = new Map(days.map((d, i) => [dayKey(d), i]));
+    paid.forEach(p => {
+      const k = dayKey(new Date(p.paid_at || p.created_at)); if (!idx.has(k)) return;
+      grossDay[idx.get(k)] += Number(p.amount || 0);
+      if (p.paystack_fee != null) netDay[idx.get(k)] += Number(p.net_amount || 0);
+    });
+    const byChannel = {};
+    withFee.forEach(p => { const k = (p.channel || 'unknown').replace(/_/g, ' '); byChannel[k] = (byChannel[k] || 0) + 1; });
+    const chLabels = Object.keys(byChannel);
+    insights.push(`${paid.length} of ${plural(attempts, 'payment attempt')} succeeded (${pct(paid.length, attempts)}); ${plural(failed, 'payment')} failed and ${pending} ${pending === 1 ? 'is' : 'are'} still pending.`);
+    if (withFee.length) insights.push(`Paystack kept ${ghs(fees)} in fees (${(fees / grossKnown * 100).toFixed(2)}% on average) across ${plural(withFee.length, 'confirmed payment')}, so Peerloom received ${ghs(net)} of ${ghs(grossKnown)}.`);
+    const topCh = topEntry(byChannel); if (topCh) insights.push(`Most payments came through ${topCh[0]} (${topCh[1]} of ${withFee.length}).`);
+    const bestI = grossDay.indexOf(Math.max(...grossDay)); if (grossDay[bestI] > 0) insights.push(`The strongest day in the last 30 was ${days[bestI].toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} with ${ghs(grossDay[bestI])} collected.`);
+    if (missing > 0) note = `${plural(missing, 'successful payment')} ${missing === 1 ? 'has' : 'have'} no Paystack fee recorded yet and ${missing === 1 ? 'is' : 'are'} excluded from the fee and net figures. Use "Sync fees from Paystack" in Subscriptions to fill them in.`;
+    charts.push({ title: 'Daily revenue, last 30 days (GHS)', wide: true, img: () => chartToImage(lineConfig(labels, [{ label: 'Gross', data: grossDay, color: '#7c3aed' }, { label: 'Net after fees', data: netDay, color: '#10b981', fill: false }]), LINE_W, LINE_H) });
+    charts.push({ title: 'Payment status', img: () => chartToImage(pieConfig(['Successful', 'Failed', 'Pending'], [paid.length, failed, pending], ['#10b981', '#ef4444', '#f59e0b']), PIE_W, PIE_H) });
+    charts.push({ title: 'Payment method', img: () => chartToImage(chLabels.length ? pieConfig(chLabels, chLabels.map(k => byChannel[k])) : pieConfig(['No data yet'], [1], ['#e5e2f5']), PIE_W, PIE_H) });
+  } else if (kind === 'groups') {
+    const byInst = {};
+    state.groups.forEach(g => { const k = g.institution || 'Unspecified'; byInst[k] = (byInst[k] || 0) + 1; });
+    const top = Object.entries(byInst).sort((a, b) => b[1] - a[1]);
+    const shown = top.slice(0, 5), rest = top.slice(5).reduce((s, e) => s + e[1], 0);
+    const counts = state.groupMemberCounts || {};
+    const memberTotal = Object.values(counts).reduce((a, b) => a + b, 0);
+    const biggest = [...state.groups].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0))[0];
+    kpis = [{ label: 'TOTAL GROUPS', value: String(state.groups.length) }, { label: 'TOTAL MEMBERSHIPS', value: String(memberTotal) }, { label: 'AVG MEMBERS / GROUP', value: state.groups.length ? (memberTotal / state.groups.length).toFixed(1) : '0' }, { label: 'INSTITUTIONS', value: String(top.length) }, { label: 'TOTAL USERS', value: String(profiles.length) }, { label: 'ROWS IN THIS REPORT', value: String(rowCount) }];
+    const newWeek = countBetween(state.groups, g => g.created_at, now - 7 * DAY, now + DAY);
+    insights.push(`${plural(state.groups.length, 'group')} exist with ${plural(memberTotal, 'membership')}, an average of ${state.groups.length ? (memberTotal / state.groups.length).toFixed(1) : 0} members each.`);
+    if (biggest && (counts[biggest.id] || 0) > 0) insights.push(`The largest group is "${biggest.name || 'Unnamed'}" with ${plural(counts[biggest.id], 'member')}.`);
+    if (top[0]) insights.push(`${top[0][0]} has the most groups (${top[0][1]} of ${state.groups.length}).`);
+    insights.push(`${plural(newWeek, 'group')} ${newWeek === 1 ? 'was' : 'were'} created in the last 7 days.`);
+    charts.push({ title: 'Groups created, last 30 days', wide: true, img: () => chartToImage(lineConfig(labels, [{ label: 'New groups', data: countByDay(state.groups, g => g.created_at, days), color: '#3b82f6' }]), LINE_W, LINE_H) });
+    charts.push({ title: 'Groups by institution', img: () => chartToImage(pieConfig(shown.map(e => e[0]).concat(rest ? ['Others'] : []), shown.map(e => e[1]).concat(rest ? [rest] : [])), PIE_W, PIE_H) });
+    charts.push({ title: 'Students vs lecturers', img: () => chartToImage(pieConfig(['Students', 'Lecturers'], [students, lecturers], ['#7c3aed', '#ec4899']), PIE_W, PIE_H) });
+  } else if (kind === 'moderation') {
+    const ev = state.moderationEvents;
+    const sev = {}; ev.forEach(e => { const k = e.severity || 'unknown'; sev[k] = (sev[k] || 0) + 1; });
+    const cat = {}; ev.forEach(e => { const k = e.category || 'other'; cat[k] = (cat[k] || 0) + 1; });
+    kpis = [{ label: 'FLAGGED EVENTS', value: String(ev.length) }, { label: 'SEVERITY LEVELS', value: String(Object.keys(sev).length) }, { label: 'CATEGORIES', value: String(Object.keys(cat).length) }, { label: 'TOTAL USERS', value: String(profiles.length) }, { label: 'SUSPENDED', value: String(profiles.filter(isSuspended).length) }, { label: 'BANNED', value: String(profiles.filter(isBanned).length) }];
+    const wk = countBetween(ev, e => e.created_at, now - 7 * DAY, now + DAY);
+    insights.push(`${plural(ev.length, 'event')} flagged in total, ${wk} in the last 7 days.`);
+    const tc = topEntry(cat); if (tc) insights.push(`The most common category is "${tc[0]}" (${tc[1]} of ${ev.length}).`);
+    const ts = topEntry(sev); if (ts) insights.push(`Most events are rated "${ts[0]}" severity (${ts[1]}).`);
+    insights.push(`${plural(profiles.filter(isSuspended).length, 'account')} currently suspended and ${profiles.filter(isBanned).length} banned.`);
+    charts.push({ title: 'Flagged events, last 30 days', wide: true, img: () => chartToImage(lineConfig(labels, [{ label: 'Events', data: countByDay(ev, e => e.created_at, days), color: '#ef4444' }]), LINE_W, LINE_H) });
+    charts.push({ title: 'By severity', img: () => chartToImage(Object.keys(sev).length ? pieConfig(Object.keys(sev), Object.values(sev)) : pieConfig(['No events'], [1], ['#e5e2f5']), PIE_W, PIE_H) });
+    const catTop = Object.entries(cat).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    charts.push({ title: 'By category', img: () => chartToImage(catTop.length ? pieConfig(catTop.map(e => e[0]), catTop.map(e => e[1])) : pieConfig(['No events'], [1], ['#e5e2f5']), PIE_W, PIE_H) });
+  } else if (kind === 'reports') {
+    const pendingN = state.reports.filter(isReportPending).length;
+    kpis = [{ label: 'REPORTS FILED', value: String(state.reports.length) }, { label: 'PENDING', value: String(pendingN) }, { label: 'RESOLVED', value: String(state.reports.length - pendingN) }, { label: 'TOTAL USERS', value: String(profiles.length) }, { label: 'SUSPENDED', value: String(profiles.filter(isSuspended).length) }, { label: 'BANNED', value: String(profiles.filter(isBanned).length) }];
+    const rs = {}; state.reports.forEach(r => { const k = r.reason || 'Other'; rs[k] = (rs[k] || 0) + 1; });
+    const wk = countBetween(state.reports, r => r.created_at, now - 7 * DAY, now + DAY);
+    insights.push(`${plural(state.reports.length, 'report')} filed, ${pendingN} still pending (${pct(pendingN, state.reports.length)}) and ${state.reports.length - pendingN} resolved.`);
+    const tr = topEntry(rs); if (tr) insights.push(`The most common reason is "${tr[0]}" (${tr[1]} of ${state.reports.length}).`);
+    insights.push(`${plural(wk, 'report')} ${wk === 1 ? 'was' : 'were'} filed in the last 7 days.`);
+    charts.push({ title: 'Reports filed, last 30 days', wide: true, img: () => chartToImage(lineConfig(labels, [{ label: 'Reports', data: countByDay(state.reports, r => r.created_at, days), color: '#f59e0b' }]), LINE_W, LINE_H) });
+    charts.push({ title: 'Pending vs resolved', img: () => chartToImage(pieConfig(['Pending', 'Resolved'], [pendingN, state.reports.length - pendingN], ['#f59e0b', '#10b981']), PIE_W, PIE_H) });
+    const rsTop = Object.entries(rs).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    charts.push({ title: 'Top reasons', img: () => chartToImage(rsTop.length ? pieConfig(rsTop.map(e => e[0]), rsTop.map(e => e[1])) : pieConfig(['No reports'], [1], ['#e5e2f5']), PIE_W, PIE_H) });
+  } else {
+    const instMap = {}; profiles.forEach(p => { const k = institutionOf(p); instMap[k] = (instMap[k] || 0) + 1; });
+    const insts = Object.keys(instMap).length;
+    kpis = [{ label: 'TOTAL USERS', value: String(profiles.length) }, { label: 'STUDENTS', value: String(students) }, { label: 'LECTURERS', value: String(lecturers) }, { label: 'EMAIL VERIFIED', value: pct(verified, profiles.length) }, { label: 'INSTITUTIONS', value: String(insts) }, { label: 'JOINED LAST 7 DAYS', value: String(countBetween(profiles, p => p.created_at, now - 7 * DAY, now + DAY)) }];
+    const signups = countByDay(profiles, p => p.created_at, days);
+    const before = profiles.filter(p => p.created_at && new Date(p.created_at) < days[0]).length;
+    let run = before; const cumulative = signups.map(n => (run += n));
+    const w1 = countBetween(profiles, p => p.created_at, now - 7 * DAY, now + DAY);
+    const w0 = countBetween(profiles, p => p.created_at, now - 14 * DAY, now - 7 * DAY);
+    insights.push(`${plural(profiles.length, 'person', 'people')} on Peerloom: ${students} students and ${lecturers} lecturers.`);
+    insights.push(`${w1} joined in the last 7 days, ${w1 > w0 ? 'up from' : w1 < w0 ? 'down from' : 'the same as'} ${w0} the week before.`);
+    insights.push(`${verified} (${pct(verified, profiles.length)}) have verified their email; ${profiles.length - verified} still to verify.`);
+    const ti = topEntry(instMap); if (ti) insights.push(`${ti[0]} has the most users (${ti[1]}), out of ${plural(insts, 'institution')}.`);
+    note = 'Email verified means the person has confirmed their email address from the link Peerloom sent them.';
+    charts.push({ title: 'New sign-ups per day, last 30 days', wide: true, img: () => chartToImage(lineConfig(labels, [{ label: 'New sign-ups', data: signups, color: '#7c3aed' }, { label: 'Total users', data: cumulative, color: '#3b82f6', fill: false }]), LINE_W, LINE_H) });
+    charts.push({ title: 'Students vs lecturers', img: () => chartToImage(pieConfig(['Students', 'Lecturers'], [students, lecturers], ['#7c3aed', '#ec4899']), PIE_W, PIE_H) });
+    charts.push({ title: 'Email verification', img: () => chartToImage(pieConfig(['Verified', 'Not yet verified'], [verified, profiles.length - verified], ['#10b981', '#d9d5ee']), PIE_W, PIE_H) });
+  }
+  return { kpis, insights, charts, note };
+}
+
+function pdfGradient(doc, x, y, w, h, c1, c2, vertical = true) {
+  const bands = 80;
   for (let i = 0; i < bands; i++) {
     const t = i / (bands - 1);
-    const r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
-    const g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
-    const b = Math.round(c1[2] + (c2[2] - c1[2]) * t);
-    doc.setFillColor(r, g, b);
-    doc.rect((pageW / bands) * i, 0, pageW / bands + 1, coverH, 'F');
+    doc.setFillColor(Math.round(c1[0] + (c2[0] - c1[0]) * t), Math.round(c1[1] + (c2[1] - c1[1]) * t), Math.round(c1[2] + (c2[2] - c1[2]) * t));
+    if (vertical) doc.rect(x, y + (h / bands) * i, w, h / bands + 1, 'F');
+    else doc.rect(x + (w / bands) * i, y, w / bands + 1, h, 'F');
   }
+}
 
+function drawBrandMark(doc, x, y, size, logo) {
+  if (logo) { try { doc.addImage(logo, 'PNG', x, y, size, size); return; } catch { /* fall back to the drawn mark */ } }
+  doc.setFillColor(...PDF_COLORS.violet); doc.roundedRect(x, y, size, size, size * 0.24, size * 0.24, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(size * 0.62);
+  doc.text('P', x + size / 2, y + size * 0.72, { align: 'center' });
+}
+
+function sectionLabel(doc, text, x, y) {
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...PDF_COLORS.violet);
+  doc.text(text, x, y, { charSpace: 1.2 });
+}
+
+async function exportPDF(title, cols, rows, kind, foot) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const P = PDF_COLORS;
+  const M = 40;
+  const nowD = new Date();
+  const generated = nowD.toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' });
+  const pad = n => String(n).padStart(2, '0');
+  const refNo = `PL-${slug(kind || title).toUpperCase()}-${nowD.getFullYear()}${pad(nowD.getMonth() + 1)}${pad(nowD.getDate())}-${pad(nowD.getHours())}${pad(nowD.getMinutes())}`;
+  const analytics = buildReportAnalytics(kind, rows.length);
   const logo = await loadLogoDataUrl();
-  if (logo) {
-    try { doc.addImage(logo, 'PNG', 48, 46, 40, 40); } catch { /* non-fatal — cover still works without it */ }
+
+  // =============== PAGE 1: MASTHEAD + SUMMARY ===============
+  const mastH = 150;
+  pdfGradient(doc, 0, 0, W, mastH, P.navy, P.violetDark, false);
+  pdfGradient(doc, 0, mastH, W, 3, P.violet, P.blue, false);
+  doc.setFillColor(76, 41, 140); doc.circle(W - 20, 20, 90, 'F');   // soft corner accent
+  doc.setFillColor(P.violetDark[0] + 6, P.violetDark[1] + 4, P.violetDark[2] + 10); doc.circle(W - 20, 20, 52, 'F');
+  drawBrandMark(doc, M, 28, 34, logo);
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Peerloom', M + 44, 46);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...P.lavender); doc.text('COMMAND CENTER', M + 44, 58, { charSpace: 1.6 });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...P.lavender);
+  doc.text('CONFIDENTIAL', W - M, 40, { align: 'right', charSpace: 1.4 });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.text(nowD.toLocaleDateString('en-GB', { dateStyle: 'long' }), W - M, 54, { align: 'right' });
+
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+  let tSize = 28; doc.setFontSize(tSize);
+  while (doc.getTextWidth(title) > W - 2 * M && tSize > 18) { tSize -= 2; doc.setFontSize(tSize); }
+  doc.text(title, M, 108);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...P.lavender);
+  doc.text(`${plural(rows.length, 'record')}   |   Prepared by ${displayName(state.adminProfile)}   |   Generated ${generated}`, M, 130);
+
+  // KPI tiles
+  const gap = 12, tw = (W - 2 * M - 2 * gap) / 3, th = 54;
+  const accents = [P.violet, P.blue, P.green, P.amber, P.pink, P.violetDark];
+  const k0 = mastH + 24;
+  analytics.kpis.slice(0, 6).forEach((k, i) => {
+    const x = M + (i % 3) * (tw + gap), y = k0 + Math.floor(i / 3) * (th + 10);
+    doc.setFillColor(255, 255, 255); doc.setDrawColor(...P.line); doc.setLineWidth(0.7); doc.roundedRect(x, y, tw, th, 5, 5, 'FD');
+    doc.setFillColor(...accents[i % accents.length]); doc.rect(x + 12, y, 26, 2.4, 'F');
+    doc.setTextColor(...P.mute); doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.text(k.label, x + 12, y + 20, { charSpace: 0.8 });
+    doc.setTextColor(...P.ink); doc.setFontSize(k.value.length > 13 ? 12.5 : 17); doc.text(k.value, x + 12, y + 43);
+  });
+  let y = k0 + 2 * (th + 10) + 8;
+
+  // Key findings
+  if (analytics.insights.length) {
+    sectionLabel(doc, 'KEY FINDINGS', M, y + 6);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.2);
+    const wrapW = W - 2 * M - 34;
+    const wrapped = analytics.insights.slice(0, 4).map(t => doc.splitTextToSize(t, wrapW));
+    const lines = wrapped.reduce((s, w) => s + w.length, 0);
+    const boxH = 16 + lines * 12 + wrapped.length * 5;
+    doc.setFillColor(...P.panel); doc.setDrawColor(...P.line); doc.setLineWidth(0.6); doc.roundedRect(M, y + 14, W - 2 * M, boxH, 5, 5, 'FD');
+    doc.setFillColor(...P.violet); doc.rect(M, y + 14, 3.5, boxH, 'F');
+    let ly = y + 14 + 18;
+    wrapped.forEach(w => {
+      doc.setFillColor(...P.violet); doc.circle(M + 17, ly - 3, 1.8, 'F');
+      doc.setTextColor(...P.ink); doc.text(w, M + 28, ly);
+      ly += w.length * 12 + 5;
+    });
+    y += 14 + boxH + 20;
   }
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
-  doc.text('Peerloom', logo ? 98 : 48, 72);
-  doc.setFontSize(12); doc.setFont('helvetica', 'normal');
-  doc.text('Command Center', logo ? 98 : 48, 90);
+  // Trend chart
+  const wide = analytics.charts.find(c => c.wide);
+  if (wide) {
+    sectionLabel(doc, wide.title.toUpperCase(), M, y);
+    doc.setDrawColor(...P.line); doc.setLineWidth(0.6); doc.line(M, y + 6, W - M, y + 6);
+    const ch = (W - 2 * M) * LINE_H / LINE_W;
+    try { doc.addImage(wide.img(), 'PNG', M, y + 12, W - 2 * M, ch); } catch (e) { console.error('line chart failed', e); }
+    y += 12 + ch + 18;
+  }
+  // Breakdown charts
+  const pies = analytics.charts.filter(c => !c.wide).slice(0, 2);
+  const pw = (W - 2 * M - 18) / 2, ph = pw * PIE_H / PIE_W;
+  pies.forEach((c, i) => {
+    const x = M + i * (pw + 18);
+    sectionLabel(doc, c.title.toUpperCase(), x, y);
+    doc.setDrawColor(...P.line); doc.line(x, y + 6, x + pw, y + 6);
+    try { doc.addImage(c.img(), 'PNG', x, y + 12, pw, ph); } catch (e) { console.error('pie chart failed', e); }
+  });
+  y += 12 + ph + 12;
+  if (analytics.note) {
+    doc.setTextColor(...P.mute); doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
+    doc.text(doc.splitTextToSize(analytics.note, W - 2 * M), M, Math.min(y, H - 52));
+  }
 
-  doc.setFontSize(20); doc.setFont('helvetica', 'bold');
-  doc.text(title, 48, 210);
-  doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(230, 225, 250);
-  doc.text(`Generated ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' })}`, 48, 232);
-  doc.text(`Prepared by ${displayName(state.adminProfile)}`, 48, 248);
-
-  doc.setTextColor(220, 215, 245); doc.setFontSize(9);
-  doc.text('Copyright © Peerloom Technologies', 48, 285);
-
-  // ---- Table ----
+  // =============== DATA TABLE ===============
+  doc.addPage();
+  doc.setTextColor(...P.ink); doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text('Detailed records', M, 76);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...P.mute);
+  doc.text(`${title}  |  ${plural(rows.length, 'record')}`, M, 91);
+  const rightCols = {};
+  cols.forEach((c, i) => { if (/^(amount|gross|net|fee|paystack fee|net received|quizzes|resources|announcements|members|students|lecturers|campuses)/i.test(c) || /\(GHS\)$/.test(c)) rightCols[i] = /\(GHS\)$/.test(c) ? { halign: 'right', cellWidth: 46 } : { halign: 'right' }; });
+  const runningHeader = () => {
+    drawBrandMark(doc, M, 20, 16, logo);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...P.ink); doc.text('Peerloom', M + 22, 31);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...P.mute); doc.text(`|  ${title}`, M + 72, 31);
+    doc.text(nowD.toLocaleDateString('en-GB', { dateStyle: 'long' }), W - M, 31, { align: 'right' });
+    doc.setDrawColor(...P.line); doc.setLineWidth(0.6); doc.line(M, 42, W - M, 42);
+  };
   doc.autoTable({
-    startY: 330,
+    startY: 106,
     head: [cols],
     body: rows.map(r => r.map(c => String(c ?? ''))),
-    margin: { left: 40, right: 40 },
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 6, textColor: [30, 24, 50] },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [247, 245, 253] },
-    didDrawPage: (data) => {
-      const pageHeight = doc.internal.pageSize.getHeight();
-      doc.setFontSize(8); doc.setTextColor(150, 145, 165);
-      doc.text('Copyright © Peerloom Technologies', 40, pageHeight - 20);
-      doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageW - 70, pageHeight - 20);
+    foot: foot ? [foot] : undefined,
+    showFoot: 'lastPage',
+    margin: { top: 58, left: M, right: M, bottom: 48 },
+    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: { top: 5.5, bottom: 5.5, left: 6, right: 6 }, textColor: P.ink, lineWidth: 0, overflow: 'linebreak', valign: 'middle' },
+    headStyles: { fillColor: P.navy, textColor: 255, fontStyle: 'bold', fontSize: 8, cellPadding: { top: 7, bottom: 7, left: 6, right: 6 } },
+    footStyles: { fillColor: [237, 233, 254], textColor: P.violetDark, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [250, 249, 254] },
+    columnStyles: rightCols,
+    didParseCell: (d) => {
+      if (d.section !== 'foot' && /^(date|status|joined|created|filed|when|method|verified)/i.test(String(cols[d.column.index] || ''))) d.cell.styles.cellWidth = 'wrap';
+      if (/reference/i.test(String(cols[d.column.index] || '')) && d.section !== 'head') { d.cell.styles.fontSize = 5.8; d.cell.styles.cellWidth = 'wrap'; }
+      if (d.column.index === 0 && d.section !== 'foot') d.cell.styles.minCellWidth = 66;
     },
+    didDrawCell: (d) => {
+      if (d.section === 'body') { doc.setDrawColor(...P.line); doc.setLineWidth(0.3); doc.line(d.cell.x, d.cell.y + d.cell.height, d.cell.x + d.cell.width, d.cell.y + d.cell.height); }
+    },
+    didDrawPage: runningHeader,
   });
+
+  // =============== FOOTERS ===============
+  const total = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(...P.line); doc.setLineWidth(0.6); doc.line(M, H - 34, W - M, H - 34);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...P.mute);
+    doc.text(`Copyright © Peerloom Technologies   |   Confidential   |   Ref ${refNo}`, M, H - 20);
+    doc.text(`Page ${i} of ${total}`, W - M, H - 20, { align: 'right' });
+  }
 
   doc.save(`${slug(title)}.pdf`);
 }
