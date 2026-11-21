@@ -60,7 +60,11 @@ async function canAccess(feature, opts) {
       recordedChunks: [],
       recordingStream: null,
       captionsEnabled: false,
+      isCoHost: false,
+      coHostIds: new Set(),
       speechRecognition: null,
+      speechRunning: false,
+      speechWanted: false,
       isHandRaised: false,
       isScreenSharing: false,
       isPresentationMode: false,
@@ -2630,8 +2634,29 @@ async function canAccess(feature, opts) {
       }
     }
 
+    // Captions are produced by the speaker's own browser and sent to
+    // everyone else. The browser's recognizer stops itself regularly and
+    // Chrome also stops it whenever the page's audio changes (for example
+    // when another person joins and their audio starts playing), so it is
+    // restarted from both onend and a 3-second watchdog instead of once.
+    let speechRestartTimer = null;
+    let speechWatchdog = null;
+    let speechFailCount = 0;
+    let speechStartedAt = 0;
+    let lastInterimSent = 0;
+    let speechDeniedNotified = false;
+
+    function sendCaption(text, isFinal) {
+      if (!text) return;
+      const payload = { userId: state.currentUser.id, name: state.currentUser.name, text, final: !!isFinal };
+      if (state.channel) {
+        try { state.channel.send({ type: 'broadcast', event: 'caption', payload }); } catch (e) { /* channel not ready */ }
+      }
+      // The speaker does not receive their own broadcast, so show it locally.
+      if (state.captionsEnabled) showCaption(payload.name, text);
+    }
+
     function startSpeechRecognition() {
-      if (state.speechRecognition) return; // already running
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognitionAPI) {
         if (state.captionsEnabled) {
@@ -2639,54 +2664,108 @@ async function canAccess(feature, opts) {
         }
         return;
       }
+      state.speechWanted = true;
+      if (!speechWatchdog) {
+        speechWatchdog = setInterval(() => {
+          if (state.speechWanted && state.isMicOn && !state.speechRunning) {
+            launchRecognition();
+          } else if (!state.isMicOn && state.speechRunning) {
+            // Muted by the host or by a lock: stop listening straight away.
+            stopSpeechRecognition();
+          }
+        }, 3000);
+      }
+      launchRecognition();
+    }
+
+    function launchRecognition() {
+      if (state.speechRunning || !state.speechWanted || !state.isMicOn) return;
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionAPI) return;
+
+      let recognition;
+      try {
+        recognition = new SpeechRecognitionAPI();
+      } catch (err) {
+        console.error('Could not create speech recognition:', err);
+        return;
+      }
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        state.speechRunning = true;
+        speechStartedAt = Date.now();
+      };
+
+      recognition.onresult = (event) => {
+        let finalText = '';
+        let interimText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const r = event.results[i];
+          if (r.isFinal) finalText += r[0].transcript;
+          else interimText += r[0].transcript;
+        }
+        if (finalText.trim()) {
+          sendCaption(finalText.trim(), true);
+        } else if (interimText.trim()) {
+          // Interim text makes captions appear while the person is still
+          // talking; throttled so the realtime channel is not flooded.
+          const now = Date.now();
+          if (now - lastInterimSent > 700) {
+            lastInterimSent = now;
+            sendCaption(interimText.trim(), false);
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          // The browser refused microphone/speech access: retrying forever
+          // would just spam errors, so stop and say so once.
+          state.speechWanted = false;
+          if (!speechDeniedNotified) {
+            speechDeniedNotified = true;
+            showNotification('Captions need speech-recognition permission in your browser.', 'error');
+          }
+        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          console.warn('Speech recognition error:', event.error);
+        }
+      };
+
+      recognition.onend = () => {
+        state.speechRunning = false;
+        if (state.speechRecognition === recognition) state.speechRecognition = null;
+        if (!state.speechWanted || !state.isMicOn) return;
+        // A run that lasted a while is normal (the browser ends them);
+        // restart almost immediately. Runs that die instantly back off.
+        const ranMs = Date.now() - speechStartedAt;
+        speechFailCount = ranMs > 4000 ? 0 : speechFailCount + 1;
+        const delay = speechFailCount === 0 ? 150 : Math.min(500 * speechFailCount, 4000);
+        clearTimeout(speechRestartTimer);
+        speechRestartTimer = setTimeout(launchRecognition, delay);
+      };
 
       try {
-        const recognition = new SpeechRecognitionAPI();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onresult = (event) => {
-          let finalText = '';
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
-          }
-          if (finalText.trim() && state.channel) {
-            state.channel.send({
-              type: 'broadcast',
-              event: 'caption',
-              payload: { userId: state.currentUser.id, name: state.currentUser.name, text: finalText.trim() }
-            });
-          }
-        };
-
-        recognition.onerror = (event) => {
-          // "no-speech" fires constantly during normal silence between
-          // sentences — not a real error, just restart quietly.
-          if (event.error !== 'no-speech') {
-            console.warn('Speech recognition error:', event.error);
-          }
-        };
-
-        recognition.onend = () => {
-          // Auto-restart while the mic is still on — the API stops itself
-          // periodically even during continuous use.
-          if (state.isMicOn && state.speechRecognition) {
-            try { recognition.start(); } catch (e) { /* already starting */ }
-          }
-        };
-
-        recognition.start();
         state.speechRecognition = recognition;
+        recognition.start();
       } catch (err) {
-        console.error('Could not start speech recognition:', err);
+        // start() throws if a previous run is still shutting down; the
+        // watchdog tries again in a few seconds.
+        state.speechRecognition = null;
+        state.speechRunning = false;
       }
     }
 
     function stopSpeechRecognition() {
-      if (state.speechRecognition) {
-        const rec = state.speechRecognition;
-        state.speechRecognition = null; // clear first so onend doesn't auto-restart
+      state.speechWanted = false;
+      clearTimeout(speechRestartTimer);
+      if (speechWatchdog) { clearInterval(speechWatchdog); speechWatchdog = null; }
+      const rec = state.speechRecognition;
+      state.speechRecognition = null;
+      state.speechRunning = false;
+      if (rec) {
         try { rec.stop(); } catch (e) { /* already stopped */ }
       }
     }
@@ -3113,7 +3192,7 @@ async function canAccess(feature, opts) {
         const container = document.getElementById('video-container');
         const hostTile = document.getElementById('host-tile');
         
-        if (state.isHost && hostTile) {
+        if (state.isHost && !state.isCoHost && hostTile) {
           hostTile.id = `tile-${uid}`;
           hostTile.innerHTML = '';
           
@@ -3209,6 +3288,10 @@ async function canAccess(feature, opts) {
         // Start detecting who is speaking
         startSpeakingDetection();
 
+        // The host joins with the mic already on and never presses the mic
+        // button, so nothing used to start captions for their speech.
+        if (state.isMicOn) startSpeechRecognition();
+
         // Host Welcome Message
         if (state.isHost) {
           const overlay = document.getElementById('waiting-room-overlay');
@@ -3266,8 +3349,25 @@ async function canAccess(feature, opts) {
       }
     }
 
+    // Which badge (if any) belongs on a person's card. Only the class's
+    // real host (the group creator) is ever labelled HOST. Group admins who
+    // run the class alongside them are labelled CO-HOST, so a second person
+    // with host tools can never look like the main host.
+    function roleBadgeFor(uid) {
+      if (state.hostId && uid === state.hostId) return 'HOST';
+      if (state.isHost && !state.isCoHost && uid === state.currentUser.id) return 'HOST';
+      if (state.isCoHost && uid === state.currentUser.id) return 'CO-HOST';
+      if (state.coHostIds && state.coHostIds.has(uid)) return 'CO-HOST';
+      return '';
+    }
+
     function createVideoTile(uid, name, isLocal = false, photoUrl = null) {
-      
+      // One card per person, always. If a tile for this uid already exists
+      // (two user-published events racing each other, a quick rejoin, a
+      // reconnect) hand back the existing card instead of building a second.
+      const existingTile = document.getElementById(`tile-${uid}`);
+      if (existingTile) return existingTile;
+
       const div = document.createElement('div');
       div.className = 'video-tile';
       div.id = `tile-${uid}`;
@@ -3307,8 +3407,9 @@ async function canAccess(feature, opts) {
       nameTag.className = 'name-tag';
       nameTag.style.zIndex = '2';
       nameTag.innerHTML = `<span>${escapeHtml(name)}</span>`;
-      if (state.isHost && uid === state.currentUser.id) {
-        nameTag.innerHTML += `<span class="host-badge">HOST</span>`;
+      const roleBadge = roleBadgeFor(uid);
+      if (roleBadge) {
+        nameTag.innerHTML += `<span class="host-badge">${roleBadge}</span>`;
       }
       div.appendChild(nameTag);
 
@@ -3423,8 +3524,11 @@ async function canAccess(feature, opts) {
             }
           }
           
+          // Another user-published event for this same person may have built
+          // their card while we were waiting on the profile lookup above;
+          // createVideoTile returns that card instead of making a duplicate.
           tile = createVideoTile(user.uid, name, false, photo);
-          if (tile) {
+          if (tile && tile.parentNode !== container) {
             container.appendChild(tile);
           }
         }
@@ -3434,6 +3538,8 @@ async function canAccess(feature, opts) {
           state.remoteUsers[user.uid] = user;
         }
       }
+
+      state.remoteUsers[user.uid] = user;
 
       if (mediaType === 'video') {
         console.log(`Subscribing to video of user ${user.uid}`);
@@ -3624,9 +3730,9 @@ async function canAccess(feature, opts) {
           .select('id')
           .eq('group_id', gid)
           .eq('status', 'host_active')
-          .maybeSingle();
+          .limit(1);
           
-        if (hostActive) {
+        if (hostActive && hostActive.length) {
           console.log('[Waiting Room] Host detected via polling - handleClassStart triggered');
           handleClassStart();
         }
@@ -4312,10 +4418,13 @@ async function canAccess(feature, opts) {
         
         const { data: members } = await supabase
           .from('group_members')
-          .select('user_id, profiles(full_name, username, profile_photo)')
+          .select('user_id, role, profiles(full_name, username, profile_photo)')
           .eq('group_id', gid);
 
         if (members) {
+          state.coHostIds = new Set(
+            members.filter(m => m.role === 'admin' && m.user_id !== state.hostId).map(m => m.user_id)
+          );
           state.students = members
             .filter(m => m.user_id !== user.id)
             .map((m, i) => ({
@@ -4339,6 +4448,7 @@ async function canAccess(feature, opts) {
           })
           .on('broadcast', { event: 'caption' }, (payload) => {
             if (!state.captionsEnabled) return;
+            if (payload.payload.userId === state.currentUser.id) return; // already shown locally
             showCaption(payload.payload.name, payload.payload.text);
           })
           .on('broadcast', { event: 'spotlight' }, (payload) => {
@@ -4843,11 +4953,25 @@ async function canAccess(feature, opts) {
 
           if (willBeHost) {
             state.isHost = true;
+            // A group admin runs the class with full host tools but is NOT
+            // the main host: they keep a normal card labelled CO-HOST, and
+            // the big host tile stays reserved for the real host.
+            state.isCoHost = group.created_by !== user.id && !isAdminUser;
             state.currentUser.role = 'host';
             hostTools.style.display = 'flex';
             document.body.classList.add('is-host');
-            hostNameEl.textContent = state.currentUser.name;
-            state.hostName = state.currentUser.name;
+            if (state.isCoHost) {
+              const { data: mainHost } = await supabase
+                .from('profiles')
+                .select('full_name, username')
+                .eq('id', group.created_by)
+                .single();
+              state.hostName = mainHost?.full_name || mainHost?.username || 'Host';
+              hostNameEl.textContent = state.hostName;
+            } else {
+              hostNameEl.textContent = state.currentUser.name;
+              state.hostName = state.currentUser.name;
+            }
           } else {
             const { data: hostProfile } = await supabase
               .from('profiles')
