@@ -2411,16 +2411,11 @@ function subscriptionsStatCardsConfig() {
   const subs = state.subscriptions;
   const payments = state.payments;
   const paidActive = subs.filter(s => s.status === 'ACTIVE_PAID');
-  // A lecturer's free year is never a row in `subscriptions` — it's tracked
-  // directly on their profile (lecturer_free_started_at/ends_at, set at
-  // lecturer signup). Reading it from `subscriptions` always returned 0
-  // once there were zero paid-plan rows, even with real lecturers actively
-  // on their free year. Count it from profiles instead, the same source
-  // every other lecturer-facing stat in this file already uses.
-  const now = Date.now();
-  const freeYearActive = state.profiles.filter(p =>
-    isLecturerProfile(p) && p.lecturer_free_ends_at && new Date(p.lecturer_free_ends_at).getTime() > now
-  );
+  // Lecturer access is free, permanently (board decision): no payment and no
+  // expiry. Lecturers never have a row in `subscriptions`, so count them from
+  // profiles. Only verified lecturers get the free access (same rule the
+  // database uses in is_entitled()).
+  const freeLecturers = state.profiles.filter(p => isLecturerProfile(p) && p.verified === true);
   const totalRevenue = payments.filter(p => p.status === 'SUCCESS').reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const mrr = paidActive.reduce((sum, s) => {
     const amt = Number(s.amount || 0);
@@ -2438,7 +2433,7 @@ function subscriptionsStatCardsConfig() {
     { id: 'ccStatNet', label: unsynced ? `Net after fees (${unsynced} awaiting sync)` : 'Net received after fees', value: `GHS ${totalNet.toFixed(2)}`, icon: 'fa-wallet', color: '#06b6d4' },
     { id: 'ccStatMRR', label: 'Monthly recurring revenue', value: `GHS ${mrr.toFixed(2)}`, icon: 'fa-chart-line', color: '#7c3aed' },
     { id: 'ccStatActiveSubs', label: 'Active paid subscriptions', value: paidActive.length, icon: 'fa-credit-card', color: '#3b82f6' },
-    { id: 'ccStatFreeYearSubs', label: 'Lecturers on free year', value: freeYearActive.length, icon: 'fa-chalkboard-user', color: '#ec4899' },
+    { id: 'ccStatFreeYearSubs', label: 'Lecturers (free access)', value: freeLecturers.length, icon: 'fa-chalkboard-user', color: '#ec4899' },
     { id: 'ccStatFailedPayments', label: 'Failed payments (30d)', value: failedRecent, icon: 'fa-triangle-exclamation', color: '#ef4444' },
   ];
 }
@@ -2460,7 +2455,7 @@ function renderSubscriptionsStats() {
 
 function subscriptionStatusBadge(status) {
   if (status === 'ACTIVE_PAID') return `<span class="cc-badge cc-badge-ok">Active (paid)</span>`;
-  if (status === 'LECTURER_FREE_YEAR') return `<span class="cc-badge cc-badge-info">Free year</span>`;
+  if (status === 'LECTURER_FREE_YEAR') return `<span class="cc-badge cc-badge-info">Free (lecturer)</span>`;
   if (status === 'PENDING') return `<span class="cc-badge cc-badge-warn">Pending</span>`;
   if (status === 'PAYMENT_FAILED') return `<span class="cc-badge cc-badge-danger">Payment failed</span>`;
   if (status === 'EXPIRED') return `<span class="cc-badge cc-badge-mute">Expired</span>`;
