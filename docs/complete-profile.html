@@ -260,10 +260,29 @@
 
         submitBtn.disabled = true
         submitBtn.textContent = 'Saving\u2026'
-        const { error } = await supabase.rpc('complete_my_profile', {
+        const args = {
             p_first_name: firstName, p_last_name: lastName, p_username: username, p_contact: contact,
             p_campus: campus, p_department: department, p_level: level
-        })
+        }
+        // A dropped connection ("Failed to fetch") is retried; the function is safe to repeat.
+        let error = null
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                if (attempt > 1) {
+                    submitBtn.textContent = 'Retrying\u2026'
+                    await new Promise(r => setTimeout(r, 1200 * attempt))
+                    await supabase.auth.refreshSession().catch(() => {})
+                }
+                const res = await supabase.rpc('complete_my_profile', args)
+                error = res.error
+            } catch (err) {
+                error = err || { message: 'Failed to fetch' }
+            }
+            if (!error || !/failed to fetch|networkerror|load failed|network request failed/i.test(String(error.message || error))) break
+        }
+        if (error && /failed to fetch|networkerror|load failed|network request failed/i.test(String(error.message || error))) {
+            error = { message: 'We could not reach the server. Please check your internet connection and tap Continue again. Your details are still filled in.' }
+        }
         if (error) {
             submitBtn.disabled = false
             submitBtn.textContent = 'Continue'
