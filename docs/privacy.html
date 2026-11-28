@@ -170,6 +170,21 @@
   @media (hover: none) {
     .tilt-card:hover::after { opacity: 0; }
   }
+
+  /* Key points: the important parts in plain, readable type */
+  .keypoints { padding: 4px 0 8px; }
+  .keypoints-card { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 16px; padding: 24px 26px; box-shadow: var(--shadow); }
+  .keypoints-card h2 { font-size: 1.05rem; color: var(--ink); font-weight: 800; margin-bottom: 4px; display: flex; gap: 10px; align-items: center; }
+  .keypoints-card h2 i { color: var(--primary); }
+  .keypoints-card .kp-sub { color: var(--muted); font-size: 0.86rem; margin-bottom: 14px; }
+  .keypoints-card ul { list-style: none; display: grid; gap: 10px; margin: 0; padding: 0; }
+  .keypoints-card li { position: relative; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; color: var(--ink); }
+  .keypoints-card li::before { content: '\f058'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; left: 0; top: 1px; color: var(--primary); font-size: 0.9rem; }
+  .keypoints-card li strong { color: var(--primary-dark); }
+  .keypoints-card .kp-foot { margin-top: 14px; font-size: 0.8rem; color: var(--muted); }
+  /* Phones: the 4-up summary cards must stack (the earlier 860px rule was overridden by a later rule) */
+  @media (max-width: 860px) { .glance-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .glance-grid { grid-template-columns: 1fr; } .keypoints-card { padding: 20px 18px; } }
 </style>
   <script src="js/a11y.js" defer></script>
   <script src="js/policy-refs.js"></script>
@@ -197,7 +212,7 @@
     <div class="wrap">
       <span class="eyebrow"><i class="fa-solid fa-lock"></i> Privacy Policy</span>
       <h1>How Peerloom handles your data</h1>
-      <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: November 3, 2026</p>
+      <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: November 27, 2026</p>
     </div>
   </header>
 
@@ -211,8 +226,8 @@
         </div>
         <div class="glance-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-video-slash"></i></div>
-          <h4>No camera or mic access</h4>
-          <p>Quiz monitoring never touches your camera or screen.</p>
+          <h4>Quizzes never use camera or mic</h4>
+          <p>In live classes, your camera and mic turn on only when you switch them on.</p>
         </div>
         <div class="glance-item reveal-item tilt-card">
           <div class="icn"><i class="fa-solid fa-trash-can"></i></div>
@@ -228,6 +243,24 @@
     </div>
   </section>
 
+  <section class="keypoints">
+    <div class="wrap">
+      <div class="keypoints-card">
+        <h2><i class="fa-solid fa-circle-info"></i> The important parts, in plain words</h2>
+        <p class="kp-sub">What most people want to know before they sign up.</p>
+        <ul>
+          <li><strong>We never sell your data</strong> and never share it with advertisers or data brokers.</li>
+          <li><strong>Quiz monitoring is limited.</strong> During a quiz we record only tab switches, copy and paste events. Never your camera, microphone, screen or clipboard contents.</li>
+          <li><strong>Live classes:</strong> your camera and microphone work only when you turn them on. A host may record a class, and <strong>anyone who has the recording link can open it</strong>.</li>
+          <li><strong>Live captions</strong> use your browser's speech recognition. In Chrome and Edge, the browser sends the speaker's audio to its maker's speech service (Google or Microsoft) to turn it into text. Peerloom does not save caption text.</li>
+          <li><strong>Sign in with Google</strong> gives us only your name, email address and profile photo. We never see your Google password or contacts.</li>
+          <li><strong>You can ask for deletion</strong> of your account and data at any time: <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</li>
+        </ul>
+        <p class="kp-foot">This summary is for convenience. The full policy below applies.</p>
+      </div>
+    </div>
+  </section>
+
   <div class="wrap layout">
     <nav class="toc">
       <h4>On this page</h4>
@@ -235,6 +268,7 @@
       <a href="#data-we-collect">2. Data we collect</a>
       <a href="#payments">2A. Payments &amp; membership data</a>
       <a href="#quiz-integrity">3. Quiz integrity monitoring</a>
+      <a href="#live-classes">3A. Live classes, recording &amp; captions</a>
       <a href="#cookies">4. Cookies &amp; local storage</a>
       <a href="#how-we-use">5. How we use your data</a>
       <a href="#sharing">6. Who we share data with</a>
@@ -261,6 +295,7 @@
         <table>
           <tr><th>Category</th><th>Examples</th></tr>
           <tr><td>Account &amp; profile</td><td>Full name, email address, password (hashed, never stored in plain text), profile photo, role (student or lecturer), institution/campus name.</td></tr>
+          <tr><td>Google sign-in</td><td>If you choose "Sign in with Google": the name, email address and profile photo on your Google account. We do not receive your Google password, contacts, or other Google data.</td></tr>
           <tr><td>Academic activity</td><td>Groups you join, messages you send in group chat, quizzes you create or take, quiz answers and scores, resources you upload or download, announcements.</td></tr>
           <tr><td>Quiz session data</td><td>Attempt timestamps, time spent, and the integrity events described in Section 3 — collected only while a quiz is actively in progress.</td></tr>
           <tr><td>Technical data</td><td>Device and browser type, IP address, and general usage logs used for security, debugging, and keeping the service reliable.</td></tr>
@@ -287,6 +322,13 @@
         </ul>
         <div class="callout"><strong>What we don't do:</strong> Peerloom does not access your webcam or microphone, does not take screenshots, does not read your clipboard contents (only that a copy/paste action occurred), and does not monitor other browser tabs, applications, or activity on your device outside the quiz page.</div>
         <p>These events are visible to the lecturer who owns the quiz, as a timestamped log tied to that specific attempt. They're used to support academic integrity decisions and are not shared for any other purpose.</p>
+      </section>
+
+      <section class="reveal" id="live-classes">
+        <h2><span class="num">3A.</span> Live classes, recording &amp; captions</h2>
+        <p>Live classes use a third-party real-time video service (Agora) to carry video, audio and screen sharing between participants. Your camera and microphone are used only after you switch them on, and you can switch them off at any time.</p>
+        <p><strong>Recording.</strong> A class host may record a class (using their browser's tab-capture). If they do, the recording is uploaded to Peerloom's storage and a link is posted in that group's chat. <strong>Anyone who has the link can open the recording</strong>, so treat it as shared with the group and do not pass it on. Your name, and anything of yours that is visible or audible during the class, may appear in a recording. To ask for a recording to be removed, contact the host or us.</p>
+        <p><strong>Live captions.</strong> Captions are produced by speech recognition built into your browser. In Chrome and Edge, the browser itself sends the speaker's audio to its maker's speech service (Google or Microsoft) to convert it to text; that processing is governed by the browser maker's privacy policy, not ours. The resulting text is sent to people in the same class in real time. Peerloom does not save caption text. Captions are not available in browsers without speech recognition.</p>
       </section>
 
       <section class="reveal" id="cookies">
@@ -318,6 +360,8 @@
           <li><strong>Within your group</strong> — messages, resources, and announcements you post are visible to other members of that group, as expected for a collaboration tool.</li>
           <li><strong>With your lecturer</strong> — quiz answers, scores, submission timestamps, and integrity events for quizzes they've created are visible to that quiz's lecturer.</li>
           <li><strong>Infrastructure providers</strong> — we use Supabase for authentication, database, and file storage, and standard email delivery infrastructure for account and notification emails. These providers process data on our behalf, under contractual terms limiting their use of it to providing the service to us, and don't use your data for their own purposes.</li>
+          <li><strong>Live-class video provider</strong> — Agora carries the real-time video and audio of live classes, and sees the technical connection data needed to do that.</li>
+          <li><strong>Google (only if you choose "Sign in with Google")</strong> — Google confirms your identity and tells us your name, email address and profile photo. See Google's own privacy policy for how it handles sign-ins.</li>
           <li><strong>Payment provider</strong> — if you activate a Peerloom Membership, the amount, plan, and billing details needed to process that payment are shared with our third-party payment provider so they can process the transaction and confirm it to us; we don't share your academic data (messages, quiz answers, resources) with them.</li>
           <li><strong>Legal requirements</strong> — if required to comply with applicable law, regulation, legal process, or a valid governmental request.</li>
         </ul>

@@ -3,59 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complete Profile - Peerloom</title>
-    <!-- Same styling as above -->
-  <script src="js/a11y.js" defer></script>
+    <title>Complete your profile - Peerloom</title>
+    <link rel="icon" href="/android-chrome-192x192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { min-height: 100vh; background: linear-gradient(180deg, #f3e8ff 0%, #e0e7ff 100%); display: flex; justify-content: center; align-items: flex-start; padding: 24px 16px 48px; color: #1f2937; }
+        .card { width: 100%; max-width: 480px; background: rgba(255,255,255,0.55); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.6); border-radius: 24px; padding: 2rem; box-shadow: 0 20px 60px -20px rgba(76,29,149,0.3); margin-top: 24px; }
+        .logo { display: flex; justify-content: center; margin-bottom: 14px; }
+        .logo img { height: 40px; width: auto; }
+        h1 { font-size: 1.4rem; font-weight: 800; text-align: center; margin-bottom: 6px; }
+        .sub { text-align: center; color: #6b7280; font-size: 0.92rem; line-height: 1.5; margin-bottom: 1.5rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0 0 6px; }
+        .field { margin-bottom: 14px; }
+        input, select { width: 100%; padding: 0.8rem 1rem; border-radius: 12px; border: 1px solid #d1d5db; background: rgba(255,255,255,0.85); color: #1f2937; font-size: 0.95rem; }
+        input:focus, select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.18); }
+        .hint { font-size: 0.78rem; color: #6b7280; margin-top: 4px; }
+        .error { display: none; color: #dc2626; font-size: 0.88rem; margin: 6px 0 12px; text-align: center; }
+        button.primary { width: 100%; padding: 0.95rem; border: none; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #3b82f6); color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 6px; }
+        button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .legal { text-align: center; font-size: 0.75rem; color: #6b7280; margin-top: 14px; line-height: 1.5; }
+        .legal a { color: #5b21b6; text-decoration: underline; }
+        .signout { display: block; margin: 14px auto 0; background: none; border: none; color: #7c3aed; font-weight: 600; font-size: 0.85rem; cursor: pointer; text-decoration: underline; }
+        #loading { text-align: center; color: #6b7280; padding: 2rem 0; }
+        #formWrap { display: none; }
+        @media (max-width: 480px) { .grid { grid-template-columns: 1fr; gap: 0; } .card { padding: 1.4rem; } }
+    </style>
+    <script src="js/a11y.js" defer></script>
 </head>
 <body>
-    <nav class="navbar">
-        <!-- Same navbar -->
-    </nav>
-
     <div class="card">
-        <h2 class="auth-title text-xl"><i class="fas fa-user-edit"></i> Complete Your Profile</h2>
-        <p class="text-center text-gray-600 mb-4">Please complete your profile information to continue</p>
-        
-        <form id="completeProfileForm">
-            <input aria-label="First name" type="text" id="firstName" class="input-field" placeholder="First name" required autocomplete="given-name">
-            <input aria-label="Last name" type="text" id="lastName" class="input-field" placeholder="Last name" required autocomplete="family-name">
-            <input aria-label="Username" type="text" id="username" class="input-field" placeholder="Username (e.g., @charles_fx)" required autocomplete="username">
-            <input aria-label="Contact - phone or WhatsApp" type="tel" id="contact" class="input-field" placeholder="Contact - phone or WhatsApp" required autocomplete="tel">
-            
-            <!-- Department Field (Mandatory) -->
-            <select aria-label="Department" id="department" class="input-field" required>
-                <option value="" disabled selected>Select your department *</option>
-                <!-- Same department options -->
-            </select>
-            <input type="text" id="customDepartment" class="input-field" placeholder="Type your department" style="display:none; margin-bottom: 1rem;">
-            
-            <!-- Same campus and level fields -->
-            
-            <button type="submit" class="btn">Complete Profile</button>
-        </form>
+        <a href="index.html" class="logo"><img src="logo.png" alt="Peerloom" onerror="this.style.display='none'"></a>
+        <h1>Complete your profile</h1>
+        <p class="sub">One last step. Tell us where you study so we can put you with the right classmates.</p>
+
+        <div id="loading"><i class="fas fa-spinner fa-spin"></i> Loading&hellip;</div>
+
+        <div id="formWrap">
+            <form id="completeProfileForm" novalidate>
+                <div class="grid">
+                    <div class="field">
+                        <label for="firstName">First name</label>
+                        <input type="text" id="firstName" required autocomplete="given-name">
+                    </div>
+                    <div class="field">
+                        <label for="lastName">Last name</label>
+                        <input type="text" id="lastName" required autocomplete="family-name">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required autocomplete="username" placeholder="e.g. @charles_fx" maxlength="31">
+                    <div class="hint">3 to 30 letters, numbers or underscores. An @ at the start is fine.</div>
+                </div>
+
+                <div class="field">
+                    <label for="contact">Phone or WhatsApp</label>
+                    <input type="tel" id="contact" autocomplete="tel" placeholder="e.g. +233 20 123 4567">
+                </div>
+
+                <div class="field">
+                    <label for="campus">Campus / school</label>
+                    <select id="campus" required>
+                        <option value="" disabled selected>Select your campus</option>
+                        <option value="type">Type my campus&hellip;</option>
+                            <optgroup label="Ghana">
+                                <option>Central University</option>
+                                <option>University of Ghana</option>
+                                <option>Kwame Nkrumah University of Science and Technology</option>
+                                <option>University of Cape Coast</option>
+                                <option>University of Professional Studies</option>
+                                <option>Ghana Institute of Management and Public Administration</option>
+                                <option>Ashesi University</option>
+                                <option>Koforidua Technical University</option>
+                            </optgroup>
+                            <optgroup label="Nigeria">
+                                <option>University of Lagos</option>
+                                <option>University of Ibadan</option>
+                                <option>University of Nigeria, Nsukka</option>
+                                <option>Ahmadu Bello University</option>
+                                <option>University of Benin</option>
+                                <option>Covenant University</option>
+                            </optgroup>
+                            <optgroup label="United Kingdom">
+                                <option>University of Oxford</option>
+                                <option>University of Cambridge</option>
+                                <option>Imperial College London</option>
+                                <option>University College London</option>
+                            </optgroup>
+                            <optgroup label="United States">
+                                <option>Harvard University</option>
+                                <option>Massachusetts Institute of Technology</option>
+                                <option>Stanford University</option>
+                                <option>Yale University</option>
+                            </optgroup>
+                            <optgroup label="Asia">
+                                <option>National University of Singapore</option>
+                                <option>University of Tokyo</option>
+                                <option>Tsinghua University</option>
+                                <option>University of Hong Kong</option>
+                            </optgroup>
+                            <optgroup label="High Schools (Ghana)">
+                                <option>Presbyterian Boys' Secondary School (PRESEC)</option>
+                                <option>Wesley Girls' High School</option>
+                                <option>Achimota School</option>
+                                <option>Mfantsipim School</option>
+                                <option>Adisadel College</option>
+                                <option>St. Augustine's College</option>
+                                <option>Opoku Ware School</option>
+                                <option>KNUST Senior High School</option>
+                                <option>Tema International School</option>
+                                <option>SOS-Hermann Gmeiner International College</option>
+                                <option>Ghana International School</option>
+                            </optgroup>
+                    </select>
+                    <input type="text" id="customCampus" style="display:none; margin-top:10px;" placeholder="Type your campus name" maxlength="200">
+                </div>
+
+                <div class="field">
+                    <label for="department">Department</label>
+                    <select id="department" required>
+                        <option value="" disabled selected>Select your department</option>
+                        <option value="type">Type my department&hellip;</option>
+                        <option>Information Technology</option>
+                        <option>Computer Science</option>
+                        <option>Engineering</option>
+                        <option>Business Administration</option>
+                        <option>Medicine</option>
+                        <option>Law</option>
+                        <option>Arts</option>
+                        <option>Sciences</option>
+                        <option>Social Sciences</option>
+                        <option>Education</option>
+                    </select>
+                    <input type="text" id="customDepartment" style="display:none; margin-top:10px;" placeholder="Type your department" maxlength="200">
+                </div>
+
+                <div class="field">
+                    <label for="level">Level</label>
+                    <select id="level" required>
+                        <option value="" disabled selected>Select your level</option>
+                        <option value="type">Type my level&hellip;</option>
+                        <option>University 1st Year</option>
+                        <option>University 2nd Year</option>
+                        <option>University 3rd Year</option>
+                        <option>University 4th Year</option>
+                        <option>University 5th Year</option>
+                        <option>Master's / PhD</option>
+                        <option>JHS 1</option>
+                        <option>JHS 2</option>
+                        <option>JHS 3</option>
+                        <option>SHS 1</option>
+                        <option>SHS 2</option>
+                        <option>SHS 3</option>
+                    </select>
+                    <input type="text" id="customLevel" style="display:none; margin-top:10px;" placeholder="Type your level" maxlength="100">
+                </div>
+
+                <div class="error" id="formError" role="alert"></div>
+                <button type="submit" class="primary" id="submitBtn">Continue</button>
+            </form>
+
+            <p class="legal">By continuing you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>. Your first month is free, no card needed.</p>
+            <button type="button" class="signout" id="signOutBtn">Not you? Sign out</button>
+        </div>
     </div>
 
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js'
+<script type="module">
+    import { supabase } from './js/supabaseClient.js'
 
-        // Check if user is authenticated
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-            window.location.href = 'login.html';
+    const $ = (id) => document.getElementById(id)
+    const loading = $('loading'), formWrap = $('formWrap'), errorEl = $('formError'), submitBtn = $('submitBtn')
+
+    // Same-site relative paths only, never an external URL from storage or the query string.
+    function safeRedirect(value) {
+        if (!value) return null
+        try {
+            const decoded = decodeURIComponent(value)
+            if (/^\/(?!\/)/.test(decoded) || /^[a-zA-Z0-9_-]+\.html/.test(decoded)) return decoded
+        } catch (e) {}
+        return null
+    }
+
+    function goNext() {
+        const params = new URLSearchParams(window.location.search)
+        const redirect = safeRedirect(params.get('redirect') || localStorage.getItem('pendingRedirect'))
+        if (redirect) { localStorage.removeItem('pendingRedirect'); window.location.replace(redirect); return }
+        const groupId = params.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
+        window.location.replace(groupId ? 'dashboard.html?joinGroup=' + encodeURIComponent(groupId) : 'dashboard.html')
+    }
+
+    function wireCustom(selectId, inputId) {
+        const sel = $(selectId), inp = $(inputId)
+        sel.addEventListener('change', () => {
+            const custom = sel.value === 'type'
+            inp.style.display = custom ? 'block' : 'none'
+            if (custom) inp.focus()
+        })
+    }
+    wireCustom('campus', 'customCampus'); wireCustom('department', 'customDepartment'); wireCustom('level', 'customLevel')
+    const pick = (selectId, inputId) => $(selectId).value === 'type' ? $(inputId).value.trim() : $(selectId).value
+
+    function showError(msg) { errorEl.textContent = msg; errorEl.style.display = 'block' }
+
+    function suggestUsername(user) {
+        const base = String((user.email || '').split('@')[0] || 'user').toLowerCase().replace(/[^a-z0-9_]/g, '')
+        return (base.length >= 3 ? base : base + 'user').slice(0, 24)
+    }
+
+    $('signOutBtn').addEventListener('click', async () => {
+        await supabase.auth.signOut()
+        window.location.replace('login.html')
+    })
+
+    // ---- Start: must be signed in ----
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { window.location.replace('login.html'); throw new Error('Not signed in') }
+    const user = session.user
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, username, contact, campus, department, level, is_lecturer, role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+    const isLecturer = profile && (profile.is_lecturer === true || profile.role === 'lecturer')
+    const complete = profile && String(profile.campus || '').trim() && String(profile.department || '').trim() && String(profile.level || '').trim()
+    if (isLecturer || complete) { goNext(); throw new Error('Nothing to complete') }
+
+    // Prefill from whatever Google / the profile already gave us.
+    const meta = user.user_metadata || {}
+    const fullName = (profile && profile.full_name) || meta.full_name || meta.name || ''
+    const parts = String(fullName).trim().split(/\s+/).filter(Boolean)
+    $('firstName').value = meta.firstName || parts[0] || ''
+    $('lastName').value = meta.lastName || parts.slice(1).join(' ') || ''
+    $('username').value = (profile && profile.username) || suggestUsername(user)
+    $('contact').value = (profile && profile.contact) || ''
+    loading.style.display = 'none'
+    formWrap.style.display = 'block'
+
+    $('completeProfileForm').addEventListener('submit', async (e) => {
+        e.preventDefault()
+        errorEl.style.display = 'none'
+        const firstName = $('firstName').value.trim(), lastName = $('lastName').value.trim()
+        const username = $('username').value.trim(), contact = $('contact').value.trim()
+        const campus = pick('campus', 'customCampus'), department = pick('department', 'customDepartment'), level = pick('level', 'customLevel')
+
+        if (!firstName || !lastName) return showError('Please enter your first and last name.')
+        if (!/^@?[A-Za-z0-9_]{3,30}$/.test(username)) return showError('Username must be 3 to 30 letters, numbers or underscores.')
+        if (!campus || !department || !level) return showError('Please choose your campus, department and level.')
+        if (level.toLowerCase() === 'lecturer') return showError('Please choose a student level.')
+
+        submitBtn.disabled = true
+        submitBtn.textContent = 'Saving\u2026'
+        const { error } = await supabase.rpc('complete_my_profile', {
+            p_first_name: firstName, p_last_name: lastName, p_username: username, p_contact: contact,
+            p_campus: campus, p_department: department, p_level: level
+        })
+        if (error) {
+            submitBtn.disabled = false
+            submitBtn.textContent = 'Continue'
+            if (/username_taken/.test(error.message)) return showError('That username is already taken. Please choose another one.')
+            if (/already complete/i.test(error.message)) return goNext()
+            return showError(error.message || 'Something went wrong. Please try again.')
         }
-
-        // Populate form with Google profile data if available
-        if (user.user_metadata) {
-            document.getElementById('firstName').value = user.user_metadata.firstName || user.user_metadata.full_name?.split(' ')[0] || '';
-            document.getElementById('lastName').value = user.user_metadata.lastName || user.user_metadata.full_name?.split(' ').slice(1).join(' ') || '';
-        }
-
-        document.getElementById('completeProfileForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Collect form data and update user profile
-            // Similar to the signup form but using update instead of insert
-        });
-    </script></body>
+        goNext()
+    })
+</script>
+</body>
 </html>

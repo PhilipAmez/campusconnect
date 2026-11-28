@@ -569,7 +569,8 @@ async function canAccess(feature, opts) {
       }
     }
 
-    setInterval(rotateActiveSpeaker, 5000 + Math.random() * 5000);
+    // (Removed) rotateActiveSpeaker used to highlight a RANDOM student every few
+    // seconds - that was invented data. Real speaking indicators come from audio levels.
 
     // ============= WHITEBOARD BATCH SYNC =============
     setInterval(() => {
@@ -1474,6 +1475,8 @@ async function canAccess(feature, opts) {
       }
       
       messagesContainer.appendChild(messageDiv);
+      // Keep the page light in long classes: only the most recent 400 chat rows stay in the DOM.
+      while (messagesContainer.children.length > 400) messagesContainer.removeChild(messagesContainer.firstElementChild);
       updateChatEmptyState();
 
       const drawerOpen = chatDrawer.classList.contains('open');
@@ -2713,7 +2716,9 @@ async function canAccess(feature, opts) {
           // Interim text makes captions appear while the person is still
           // talking; throttled so the realtime channel is not flooded.
           const now = Date.now();
-          if (now - lastInterimSent > 700) {
+          // Fewer interim updates for big classes: every one is delivered to every viewer.
+          const interimGap = state.students.length > 200 ? 2000 : (state.students.length > 50 ? 1200 : 700);
+          if (now - lastInterimSent > interimGap) {
             lastInterimSent = now;
             sendCaption(interimText.trim(), false);
           }
@@ -3736,7 +3741,7 @@ async function canAccess(feature, opts) {
           console.log('[Waiting Room] Host detected via polling - handleClassStart triggered');
           handleClassStart();
         }
-      }, 2000);
+      }, 4000 + Math.floor(Math.random() * 4000)); // staggered so 1000 students do not hit the DB together
 
       async function handleClassStart() {
         console.log('[Waiting Room] handleClassStart - host has started');
@@ -3944,7 +3949,7 @@ async function canAccess(feature, opts) {
           .maybeSingle();
         
         if (current) handleStatusChange(current.status);
-      }, 3000);
+      }, 5000 + Math.floor(Math.random() * 3000));
 
       function handleStatusChange(status) {
         if (joined) return;
@@ -4006,8 +4011,7 @@ async function canAccess(feature, opts) {
           table: 'meeting_requests',
           filter: `group_id=eq.${gid}`
         }, (payload) => {
-          console.log('Waiting room update:', payload);
-          fetchPendingRequests(gid);
+          scheduleFetchPending(gid);
         })
         .subscribe();
 
@@ -4018,6 +4022,12 @@ async function canAccess(feature, opts) {
     }
 
 
+
+    let fetchPendingTimer = null;
+    function scheduleFetchPending(gid) {
+      clearTimeout(fetchPendingTimer);
+      fetchPendingTimer = setTimeout(() => fetchPendingRequests(gid), 800);
+    }
 
     async function fetchPendingRequests(gid) {
       const { data: requests } = await supabase
@@ -4070,17 +4080,20 @@ async function canAccess(feature, opts) {
 
       list.innerHTML = state.waitingStudents.length === 0 ? '<div style="padding:20px; text-align:center; opacity:0.7;">No pending requests</div>' : '';
 
-      state.waitingStudents.forEach(req => {
+      const WAITING_RENDER_CAP = 100;
+      state.waitingStudents.slice(0, WAITING_RENDER_CAP).forEach(req => {
         const div = document.createElement('div');
         div.className = 'waiting-list-item';
         
-        const initials = (req.user_name || 'S').charAt(0).toUpperCase();
-        const avatarHtml = req.profile_photo 
-          ? `<img src="${req.profile_photo}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; margin-right:10px; border: 1px solid var(--glass-border);">`
+        const safeName = escapeHtml(req.user_name || 'Student');
+        const initials = escapeHtml((req.user_name || 'S').charAt(0).toUpperCase());
+        const safePhoto = req.profile_photo && /^https?:\/\//i.test(req.profile_photo) ? escapeHtml(req.profile_photo) : '';
+        const avatarHtml = safePhoto 
+          ? `<img src="${safePhoto}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; margin-right:10px; border: 1px solid var(--glass-border);">`
           : `<div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color:white; display:flex; align-items:center; justify-content:center; margin-right:10px; font-size:14px; font-weight:bold;">${initials}</div>`;
 
         div.innerHTML = `
-          <div style="display:flex; align-items:center;">${avatarHtml}<span style="font-weight:500;">${req.user_name}</span></div>
+          <div style="display:flex; align-items:center;">${avatarHtml}<span style="font-weight:500;">${safeName}</span></div>
           <div class="waiting-actions">
             <button class="approve-btn" onclick="approveStudent('${req.id}', '${req.user_id}')"><i class="fas fa-check"></i></button>
             <button class="reject-btn" onclick="rejectStudent('${req.id}')"><i class="fas fa-times"></i></button>
@@ -4088,6 +4101,12 @@ async function canAccess(feature, opts) {
         `;
         list.appendChild(div);
       });
+      if (state.waitingStudents.length > WAITING_RENDER_CAP) {
+        const more = document.createElement('div');
+        more.style.cssText = 'padding:10px; text-align:center; opacity:0.7;';
+        more.textContent = `+${state.waitingStudents.length - WAITING_RENDER_CAP} more waiting \u2014 use Accept All`;
+        list.appendChild(more);
+      }
     }
 
     async function approveStudent(id, userId) {
@@ -4176,12 +4195,11 @@ async function canAccess(feature, opts) {
         
         // Notify all students
         if (state.channel) {
-          userIds.forEach(userId => {
-            state.channel.send({
-              type: 'broadcast',
-              event: 'promote-speaker',
-              payload: { userId }
-            });
+          // One message for everyone (not one per student) so a big class does not flood realtime.
+          state.channel.send({
+            type: 'broadcast',
+            event: 'promote-speaker',
+            payload: { userIds }
           });
         }
         
@@ -4735,8 +4753,10 @@ async function canAccess(feature, opts) {
             }
           })
           .on('broadcast', { event: 'promote-speaker' }, (payload) => {
-            if (payload.payload.userId === state.currentUser?.id) {
-              enablePresenterMode(payload.payload.userId);
+            const p = payload.payload || {};
+            const me = state.currentUser?.id;
+            if (p.userId === me || (Array.isArray(p.userIds) && p.userIds.includes(me))) {
+              enablePresenterMode(me);
             }
           })
           .on('broadcast', { event: 'demote-speaker' }, (payload) => {

@@ -169,6 +169,21 @@
   }
   .glance-item h4 { font-size: 0.88rem; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
   .glance-item p { color: var(--muted); font-size: 0.8rem; margin: 0; }
+
+  /* Key points: the important parts in plain, readable type */
+  .keypoints { padding: 4px 0 8px; }
+  .keypoints-card { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 16px; padding: 24px 26px; box-shadow: var(--shadow); }
+  .keypoints-card h2 { font-size: 1.05rem; color: var(--ink); font-weight: 800; margin-bottom: 4px; display: flex; gap: 10px; align-items: center; }
+  .keypoints-card h2 i { color: var(--primary); }
+  .keypoints-card .kp-sub { color: var(--muted); font-size: 0.86rem; margin-bottom: 14px; }
+  .keypoints-card ul { list-style: none; display: grid; gap: 10px; margin: 0; padding: 0; }
+  .keypoints-card li { position: relative; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; color: var(--ink); }
+  .keypoints-card li::before { content: '\f058'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; left: 0; top: 1px; color: var(--primary); font-size: 0.9rem; }
+  .keypoints-card li strong { color: var(--primary-dark); }
+  .keypoints-card .kp-foot { margin-top: 14px; font-size: 0.8rem; color: var(--muted); }
+  /* Phones: the 4-up summary cards must stack (the earlier 860px rule was overridden by a later rule) */
+  @media (max-width: 860px) { .glance-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .glance-grid { grid-template-columns: 1fr; } .keypoints-card { padding: 20px 18px; } }
 </style>
   <script src="js/a11y.js" defer></script>
   <script src="js/policy-refs.js"></script>
@@ -196,7 +211,7 @@
     <div class="wrap">
       <span class="eyebrow"><i class="fa-solid fa-file-contract"></i> Terms of Service</span>
       <h1>The rules for using Peerloom</h1>
-      <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: July 22, 2026</p>
+      <p class="updated">Effective date: July 1, 2026 &nbsp;·&nbsp; Last updated: November 27, 2026</p>
     </div>
   </header>
 
@@ -227,6 +242,24 @@
     </div>
   </section>
 
+  <section class="keypoints">
+    <div class="wrap">
+      <div class="keypoints-card">
+        <h2><i class="fa-solid fa-circle-info"></i> The important parts, in plain words</h2>
+        <p class="kp-sub">A short summary of the clauses people ask about most.</p>
+        <ul>
+          <li><strong>Free to browse, membership to take part.</strong> Reading is free. Sending group messages, taking quizzes and joining live classes needs a membership: students pay <strong>GHS 6.00/month</strong> or <strong>GHS 69.84/year</strong>, and the <strong>first month is free</strong> (no card needed).</li>
+          <li><strong>Lecturers are free.</strong> Verified lecturers use the full lecturer tools at no charge, with no end date.</li>
+          <li><strong>No partial refunds.</strong> You can cancel any time and keep access until the end of the period you already paid for.</li>
+          <li><strong>Be honest.</strong> Cheating on quizzes, impersonating someone, or breaking into accounts can get your account suspended.</li>
+          <li><strong>Your work stays yours.</strong> We only host and show it as needed to run Peerloom.</li>
+          <li><strong>Live classes can be recorded.</strong> A class host may record a class, and the recording link is posted in that group's chat (see section 7A).</li>
+        </ul>
+        <p class="kp-foot">This summary is for convenience. If it ever differs from the full clauses below, the full clauses apply.</p>
+      </div>
+    </div>
+  </section>
+
   <div class="wrap layout">
     <nav class="toc">
       <h4>On this page</h4>
@@ -237,6 +270,7 @@
       <a href="#content">5. Content &amp; ownership</a>
       <a href="#ai">6. PeerPal AI</a>
       <a href="#groups">7. Groups &amp; lecturer responsibilities</a>
+      <a href="#live-classes">7A. Live classes &amp; recording</a>
       <a href="#membership">8. Membership &amp; billing</a>
       <a href="#feedback">9. Feedback</a>
       <a href="#copyright">10. Copyright complaints</a>
@@ -258,7 +292,7 @@
 
       <section class="reveal" id="eligibility">
         <h2><span class="num">2.</span> Eligibility &amp; accounts</h2>
-        <p>Peerloom is intended for students, lecturers, and staff affiliated with a tertiary or higher-education institution. You must provide accurate information when creating your account, including your correct role (student or lecturer) and institution, and you're responsible for keeping your login credentials secure.</p>
+        <p>Peerloom is intended for students, lecturers, and staff affiliated with a tertiary or higher-education institution. You must provide accurate information when creating your account, including your correct role (student or lecturer) and institution, and you're responsible for keeping your login credentials secure. You can create an account with an email and password or with Google sign-in; the same Terms apply either way.</p>
         <p>You're responsible for all activity that happens under your account. If you believe your account has been compromised, contact us immediately at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
       </section>
 
@@ -298,19 +332,26 @@
         <p>Lecturers who create and manage groups are responsible for the accuracy of the quizzes, announcements, and resources they publish, and for managing membership appropriately. Students who join a group are expected to follow the norms and instructions set by that group's lecturer, in addition to these Terms.</p>
       </section>
 
+      <section class="reveal" id="live-classes">
+        <h2><span class="num">7A.</span> Live classes &amp; recording</h2>
+        <p>Live classes run over a third-party real-time video service. Your camera and microphone are used only when you switch them on, and you can switch them off at any time. Live captions are produced by your own browser's speech recognition (available in Chrome and Edge) and may be inaccurate.</p>
+        <p>A class host may record a class. If they do, the recording is saved by Peerloom and a link is posted in that group's chat. Anyone who has that link can open the recording, so please do not share it outside the group. By joining a live class you accept that it may be recorded, and that your name and anything of yours that is visible or audible during the class may appear in the recording.</p>
+        <p>Do not record, copy or redistribute a class without the host's permission. If you want a recording removed, contact the host or us at <a href="mailto:peerloomonline@gmail.com">peerloomonline@gmail.com</a>.</p>
+      </section>
+
       <section class="reveal" id="membership">
         <h2><span class="num">8.</span> Membership &amp; billing</h2>
         <p>Peerloom's core features — creating an account, browsing Campus Discovery, reading group conversations, academic resources and announcements, Skrolz, and connections — remain free to use. A PeerLoom Membership is required to <em>participate</em> in a group: sending messages, taking and submitting quizzes, and joining live classes.</p>
 
         <h3>8.1 Student pricing</h3>
-        <p>A student membership costs <strong>GHS 6.00 per month</strong>, billed monthly, or <strong>GHS 69.84 per year</strong> if billed annually (a 3% discount against twelve monthly payments). These prices are set and enforced on our servers — no page or button on Peerloom can submit a different amount, and we never charge an amount the server has not independently calculated and verified.</p>
+        <p>A student membership costs <strong>GHS 6.00 per month</strong>, billed monthly, or <strong>GHS 69.84 per year</strong> if billed annually (a 3% discount against twelve monthly payments). New student accounts get their first month free, with no card needed. These prices are set and enforced on our servers — no page or button on Peerloom can submit a different amount, and we never charge an amount the server has not independently calculated and verified.</p>
 
         <h3>8.2 Verified lecturers</h3>
-        <p>A verified lecturer receives <strong>12 months of full, free lecturer access</strong> from the date their lecturer status is verified — not a limited trial. No payment is requested or collected during this period. We'll remind you by in-app notification 30 days and 7 days before your free access ends, and again when it ends.</p>
-        <p>After the free year, continuing to use full lecturer teaching tools (Quiz Builder, Live Classes, Resources, Announcements, and Integrity Logs) requires a paid lecturer membership, billed at the same rate as a student membership: <strong>GHS 6.00/month or GHS 69.84/year</strong>. Course Groups you've created, and content you've already published — quizzes, resources, announcements, and group conversations — remain intact and accessible whether or not you renew; the membership requirement applies to creating or publishing new content and to the actions listed in 8.3, not to anything that already exists.</p>
+        <p>A lecturer whose status Peerloom has verified uses the full lecturer tools (Quiz Builder, Live Classes, Resources, Announcements, and Integrity Logs) <strong>free of charge</strong>. No payment is requested or collected, and there is no end date. Course Groups you create and content you publish stay available to you and your members.</p>
+        <p>Lecturer status is confirmed by Peerloom staff. Until it is confirmed, your account is treated like a student account. If we ever change how lecturer access is priced, we will tell you in the app in advance, and any change will apply only going forward.</p>
 
         <h3>8.3 What an inactive membership restricts</h3>
-        <p>If a student or lecturer membership lapses or was never activated, you can still sign in, browse your groups and institution, and read existing conversations, quizzes, resources, and announcements. What's restricted is active participation: sending group messages, starting or submitting a quiz attempt, joining a live class, and — for lecturers — creating or publishing new quizzes, resources, and announcements. These restrictions are enforced on our servers, not only in the app you're using, so they can't be bypassed by modifying the app, your browser's local storage, or the URL.</p>
+        <p>If a student membership lapses or was never activated, you can still sign in, browse your groups and institution, and read existing conversations, quizzes, resources, and announcements. What's restricted is active participation: sending group messages, starting or submitting a quiz attempt, and joining a live class. Verified lecturers are not affected (see 8.2). These restrictions are enforced on our servers, not only in the app you're using, so they can't be bypassed by modifying the app, your browser's local storage, or the URL.</p>
 
         <h3>8.4 Payment processing &amp; billing</h3>
         <p>Payments are processed by a third-party payment provider; Peerloom does not receive or store your full card number. A subscription only becomes active once that provider confirms payment was successfully made — we never activate a membership, or claim a payment succeeded, before that confirmation arrives, and we never charge your payment method on a recurring basis without your prior authorization through that provider's checkout flow. If a renewal payment fails, your membership is marked inactive rather than retried indefinitely without telling you, and you'll see this reflected in the app.</p>

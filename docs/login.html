@@ -241,6 +241,53 @@
                 font-size: 0.9rem;
             }
         }
+        .divider { display:flex; align-items:center; gap:.75rem; margin:1.25rem 0 1rem; color:#6b7280; font-size:.8rem; }
+        .divider::before, .divider::after { content:''; flex:1; height:1px; background:rgba(107,114,128,.35); }
+        .google-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:.6rem; padding:.75rem 1rem; border-radius:.5rem; background:#fff; border:1px solid #d1d5db; color:#1f2937; font-weight:500; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
+        .google-btn:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,.12); }
+        .google-btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+        .legal-note { text-align:center; font-size:.75rem; color:#6b7280; margin-top:1rem; line-height:1.5; }
+        .legal-note a { color:#5b21b6; text-decoration:underline; }
+        .resend-btn { margin-top:.5rem; background:none; border:none; color:#7c3aed; font-weight:600; text-decoration:underline; cursor:pointer; font-size:.85rem; }
+        .resend-btn:disabled { opacity:.6; cursor:default; }
+        /* ===== Login redesign ===== */
+        .auth-card, .auth-card.dimmed, .auth-card.activated { background: rgba(255,255,255,0.82); transform: none !important; opacity: 1; box-shadow: 0 24px 60px -24px rgba(76,29,149,0.35); border: 1px solid rgba(255,255,255,0.8); max-width: 430px; padding: 2.25rem 2rem; }
+        .auth-card.activated::after { display: none; }
+        .pl-logo { display: flex; justify-content: center; margin-bottom: 14px; }
+        .pl-logo img { height: 42px; width: auto; }
+        .pl-title { font-size: 1.6rem; font-weight: 800; text-align: center; color: #1f2937; margin: 0; }
+        .pl-sub { text-align: center; color: #6b7280; font-size: 0.92rem; margin: 6px 0 1.5rem; }
+        .google-btn { position: relative; min-height: 48px; font-size: 0.95rem; }
+        .google-btn { background: #fff; border: 1px solid #dadce0; color: #3c4043; font-weight: 500; letter-spacing: 0.01em; }
+        .google-btn:hover { background: #f8f9fa; border-color: #d2e3fc; box-shadow: 0 1px 3px rgba(60,64,67,.25); transform: none; }
+        .google-btn .g-logo { flex-shrink: 0; }
+        .divider { margin: 1.25rem 0; }
+        .pl-field { margin-bottom: 1rem; }
+        .pl-field > label, .pl-label-row label { display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .pl-label-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .pl-label-row a { font-size: 0.8rem; color: #7c3aed; text-decoration: none; font-weight: 600; }
+        .pl-label-row a:hover { text-decoration: underline; }
+        .auth-card .pl-field input { box-sizing: border-box; width: 100%; padding: 0.8rem 1rem; border: 1px solid #d1d5db; background: #fff; border-radius: 0.7rem; color: #1f2937; font-size: 0.95rem; transform: none; }
+        .auth-card .pl-field input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.18); background: #fff; transform: none; }
+        .pl-pw { position: relative; }
+        .pl-pw input { padding-right: 2.75rem !important; }
+        .pl-pw .password-toggle-icon { top: 50%; right: 14px; transform: translateY(-50%); }
+        .auth-button.pl-primary { position: relative; min-height: 48px; margin-top: 0.25rem; border: none; border-radius: 0.7rem; background: linear-gradient(135deg, #7c3aed, #3b82f6); color: #fff; font-weight: 700; font-size: 1rem; box-shadow: 0 10px 24px -10px rgba(124,58,237,0.7); }
+        .auth-button.pl-primary { overflow: visible; }
+        .auth-button.pl-primary.loading::after { border-radius: inherit; }
+        .google-btn, .auth-button.pl-primary { box-sizing: border-box; }
+        .auth-button.pl-primary:hover { background: linear-gradient(135deg, #6d28d9, #2563eb); }
+        .last-used { position: absolute; right: 10px; top: -9px; background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; line-height: 1.4; }
+        .last-used[hidden] { display: none; }
+        .auth-button.pl-primary .last-used { background: #fff; border-color: #fff; }
+        .pl-switch { text-align: center; font-size: 0.9rem; color: #4b5563; margin-top: 1.25rem; }
+        .pl-switch a { color: #7c3aed; font-weight: 700; text-decoration: none; }
+        .pl-switch a:hover { text-decoration: underline; }
+        .pl-home { display: block; text-align: center; font-size: 0.82rem; color: #6b7280; margin-top: 1rem; text-decoration: none; }
+        .pl-home:hover { color: #5b21b6; }
+        .error-message { margin-top: 0.75rem; }
+        .success-message { margin-top: 0.5rem; }
+        @media (max-width: 480px) { .auth-card, .auth-card.dimmed, .auth-card.activated { padding: 1.6rem 1.2rem; margin: 0.75rem; } .pl-title { font-size: 1.4rem; } }
     </style>
   <script src="js/a11y.js" defer></script>
   <script src="js/policy-refs.js"></script>
@@ -249,44 +296,48 @@
     <div class="auth-container">
         <div class="auth-card" id="authCard">
             <div class="auth-content">
-                <a href="index.html" style="display:flex; justify-content:center; margin-bottom:14px;">
-                    <img src="logo.png" alt="Peerloom" style="height:40px; width:auto;" onerror="this.style.display='none'">
+                <a href="index.html" class="pl-logo" aria-label="Peerloom home">
+                    <img src="logo.png" alt="Peerloom" onerror="this.style.display='none'">
                 </a>
-                <h2 class="auth-title text-3xl text-center text-gray-800 mb-6">👤 Login</h2>
-                <form id="loginForm" class="auth-form space-y-6">
-                    <div class="input-group relative">
-                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="text" id="username" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your email">
-                        <i class="fas fa-user input-icon text-gray-400"></i>
+                <h1 class="pl-title">Welcome back</h1>
+                <p class="pl-sub">Sign in to pick up where you left off.</p>
+
+                <button type="button" id="googleBtn" class="google-btn">
+                    <svg class="g-logo" width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                    <span>Continue with Google</span>
+                    <span class="last-used" id="lastUsedGoogle" hidden>Last used</span>
+                </button>
+
+                <div class="divider"><span>or sign in with email</span></div>
+
+                <form id="loginForm" class="auth-form" autocomplete="on">
+                    <div class="pl-field">
+                        <label for="username">Email</label>
+                        <input type="email" id="username" required autocomplete="email" inputmode="email" placeholder="you@example.com">
                     </div>
-                    <div class="input-group relative">
-                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your password" autocomplete="current-password">
-                        <!-- ADDED: password visibility toggle icon -->
-                        <i class="fas fa-eye password-toggle-icon" id="passwordToggle"></i>
+                    <div class="pl-field">
+                        <div class="pl-label-row">
+                            <label for="password">Password</label>
+                            <a href="forgotpassword.html">Forgot password?</a>
+                        </div>
+                        <div class="pl-pw input-group">
+                            <input type="password" id="password" required autocomplete="current-password" placeholder="Enter your password">
+                            <i class="fas fa-eye password-toggle-icon" id="passwordToggle" role="button" tabindex="0" aria-label="Show or hide password"></i>
+                        </div>
                     </div>
-                    <button type="submit" class="auth-button w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
-                        <span>Login</span>
-                        <i class="fas fa-arrow-right"></i>
+                    <button type="submit" class="auth-button pl-primary">
+                        <span>Log in</span>
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        <span class="last-used" id="lastUsedPassword" hidden>Last used</span>
                     </button>
                 </form>
-                <div class="error-message" id="errorMessage"></div>
-                <div class="success-message" id="successMessage"></div>
-                <p class="text-center text-sm text-gray-600 mt-4">
-                    Don't have an account? <a href="signup.html" id="signupLink" class="text-purple-600 hover:underline">Sign up</a>
-                </p>
-                <p class="text-center text-sm text-gray-600 mt-2">
-                    Forgot your password? <a href="forgotpassword.html" class="text-purple-600 hover:underline">Reset it</a>
-                </p>
-               
-                <!-- Added "Want to go back?" message with home link -->
-                <div class="text-center text-sm text-gray-600 mt-4">
-                    <p class="mb-2">Want to go back🥹?</p>
-                    <a href="index.html" class="home-link text-purple-600 font-medium">
-                        <i class="fas fa-home"></i>
-                        <span>Go Home</span>
-                    </a>
-                </div>
+
+                <div class="error-message" id="errorMessage" role="alert"></div>
+                <div class="success-message" id="successMessage" role="status"></div>
+
+                <p class="pl-switch">New to Peerloom? <a href="signup.html" id="signupLink">Create an account</a></p>
+                <p class="legal-note">By continuing you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+                <a href="index.html" class="pl-home"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to home</a>
             </div>
         </div>
     </div>
@@ -408,6 +459,28 @@
     const errorEl = document.getElementById('errorMessage')
     const okEl = document.getElementById('successMessage')
     console.log('Login script loaded, Supabase:', supabase ? 'Loaded' : 'Not loaded')
+
+    // ---- "Last used" memory (only the method and the email are kept, never the password) ----
+    const LAST_METHOD_KEY = 'pl_last_login_method', LAST_EMAIL_KEY = 'pl_last_login_email'
+    function saveLastLogin(method, email) {
+        try {
+            localStorage.setItem(LAST_METHOD_KEY, method)
+            if (email) localStorage.setItem(LAST_EMAIL_KEY, email)
+        } catch (e) { /* storage unavailable: the tag just will not show */ }
+    }
+    function methodFromSession(session) {
+        const ids = ((session && session.user && session.user.identities) || []).slice()
+            .sort((a, b) => new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0))
+        const provider = (ids[0] && ids[0].provider) || (session && session.user && session.user.app_metadata && session.user.app_metadata.provider)
+        return provider === 'google' ? 'google' : 'password'
+    }
+    try {
+        const lastMethod = localStorage.getItem(LAST_METHOD_KEY)
+        const lastEmail = localStorage.getItem(LAST_EMAIL_KEY)
+        if (lastMethod === 'google') document.getElementById('lastUsedGoogle').hidden = false
+        else if (lastMethod === 'password') document.getElementById('lastUsedPassword').hidden = false
+        if (lastEmail && !emailEl.value) emailEl.value = lastEmail
+    } catch (e) { /* ignore */ }
     // ========== ADDED: lamp‑toggle activation ==========
     const authCard = document.getElementById('authCard') // safe, no rename
     // start dimmed
@@ -447,6 +520,7 @@
             }
         });
     }
+    if (toggleIcon) toggleIcon.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleIcon.click() } })
     // ========== END ADDED ==========
     // ── Helper: read joinGroup from URL param first, fall back to localStorage ──
     function dismissSuspendedScreen() {
@@ -483,11 +557,18 @@
         document.getElementById('pl-suspended-overlay').style.display = 'flex'
     }
 
-    function getRedirectUrl(profile = null, isSuperAdmin = false) {
+    function getRedirectUrl(profile = null, isSuperAdmin = false, needsProfile = false) {
         const params = new URLSearchParams(window.location.search)
         const explicitRedirect = params.get('redirect') || localStorage.getItem('pendingRedirect')
         const groupId = params.get('joinGroup') || localStorage.getItem('pendingGroupJoin')
         const isLecturer = profile?.is_lecturer === true || profile?.role === 'lecturer' || profile?.level === 'lecturer' || profile?.custom_level === 'lecturer'
+
+        // Someone who just signed up with Google has no campus / department /
+        // level yet: finish the profile first. (Any pending redirect or group
+        // invite stays in localStorage and is used afterwards.)
+        if (needsProfile && !isSuperAdmin && !isLecturer) {
+            return 'complete-profile.html'
+        }
 
         // An explicit redirect (e.g. a guest sent here from a live meeting
         // link) takes priority over the usual lecturer/dashboard routing —
@@ -526,6 +607,7 @@
 
     async function redirectAfterAuth(session) {
         button.classList.add('loading')
+        saveLastLogin(methodFromSession(session), session && session.user && session.user.email)
         let profile = null
 
         // Suspended accounts are stopped right here, before anything
@@ -622,7 +704,7 @@
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('role, level, custom_level, is_lecturer')
+                .select('role, level, custom_level, is_lecturer, campus, department')
                 .eq('id', session.user.id)
                 .maybeSingle()
 
@@ -633,8 +715,13 @@
             console.warn('Could not load profile for redirect:', err)
         }
 
+        const usedGoogle = session.user?.app_metadata?.provider === 'google' ||
+            (session.user?.identities || []).some(i => i.provider === 'google')
+        const needsProfile = usedGoogle && !!profile &&
+            (!String(profile.campus || '').trim() || !String(profile.department || '').trim() || !String(profile.level || '').trim())
+
         setTimeout(() => {
-            window.location.href = getRedirectUrl(profile, isSuperAdmin)
+            window.location.href = getRedirectUrl(profile, isSuperAdmin, needsProfile)
         }, 1000)
     }
 
@@ -685,6 +772,7 @@
             if (error) {
                 console.error('Login error:', error)
                 errorEl.textContent = error.message || 'Login failed. Please check your credentials.'
+                if (/not confirmed/i.test(error.message || '')) showResend(email)
                 button.classList.remove('loading')
                 return
             }
@@ -698,6 +786,62 @@
             console.error('Unexpected error:', err)
             errorEl.textContent = 'An unexpected error occurred. Please try again.'
             button.classList.remove('loading')
+        }
+    })
+
+    // ---- Email not confirmed: let people ask for a fresh confirmation email ----
+    function showResend(email) {
+        errorEl.textContent = 'Your email is not confirmed yet. Open the confirmation link we sent you (check spam too).'
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'resend-btn'
+        btn.textContent = 'Resend confirmation email'
+        btn.addEventListener('click', async () => {
+            btn.disabled = true
+            const { error: rErr } = await supabase.auth.resend({
+                type: 'signup',
+                email,
+                options: { emailRedirectTo: window.location.origin + '/email-verified.html' }
+            })
+            if (rErr) {
+                errorEl.textContent = 'Could not resend right now: ' + rErr.message
+                setTimeout(() => { btn.disabled = false }, 60000)
+                return
+            }
+            errorEl.textContent = ''
+            okEl.textContent = 'Confirmation email sent to ' + email + '. Please check your inbox.'
+        })
+        errorEl.appendChild(document.createElement('br'))
+        errorEl.appendChild(btn)
+    }
+
+    // ---- Google sign-in (button only appears once Google is switched on in Supabase) ----
+    async function googleIsEnabled() {
+        try {
+            const r = await fetch(supabase.supabaseUrl + '/auth/v1/settings', { headers: { apikey: supabase.supabaseKey } })
+            const j = await r.json()
+            return j && j.external && j.external.google === true
+        } catch (e) { return false }
+    }
+    const googleBtn = document.getElementById('googleBtn')
+    googleBtn.addEventListener('click', async () => {
+        errorEl.textContent = okEl.textContent = ''
+        googleBtn.disabled = true
+        try {
+            if (!(await googleIsEnabled())) {
+                errorEl.textContent = 'Google sign-in is not switched on yet. Please use your email and password for now.'
+                googleBtn.disabled = false
+                return
+            }
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + '/login.html' }
+            })
+            if (error) throw error
+        } catch (err) {
+            console.error('Google sign-in error:', err)
+            errorEl.textContent = 'Google sign-in is not available right now. Please use your email and password.'
+            googleBtn.disabled = false
         }
     })
 
